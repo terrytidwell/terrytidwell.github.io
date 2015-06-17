@@ -45,9 +45,9 @@ $(document).ready(function(){
  //used for intro screen
  var set_text = ["S","E","T"];
  var set_shape = [];
- set_shape.push({shape:ShapeEnum.CIRCLE,fill:FillEnum.STRIPED,color:ColorEnum.BLUE});
+ set_shape.push({shape:ShapeEnum.TRIANGLE,fill:FillEnum.FULL,color:ColorEnum.BLUE});
  set_shape.push({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.RED});
- set_shape.push({shape:ShapeEnum.TRIANGLE,fill:FillEnum.EMPTY,color:ColorEnum.GREEN});
+ set_shape.push({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.GREEN});
  var floater={x:0,y:0,dx:1,dy:1.6,fade:100};
  var floater_card = randomCard();
  
@@ -438,18 +438,9 @@ $(document).ready(function(){
    ctx.fillText(set_text[i], cw*(i*6+1)+cw*5/2,cw*5+cw*5/2);
    ctx.strokeText(set_text[i], cw*(i*6+1)+cw*5/2,cw*5+cw*5/2);
   }
-  /*
-  ctx.textAlign="center";
-  ctx.font="900 120px Arial";
-  ctx.fillStyle="rgb(255, 0, 0)";
-  ctx.fillText("S", w/2-1*ctx.measureText("S").width,h/2-40);
-  ctx.font="900 120px Arial";
-  ctx.fillStyle="rgb(0, 255, 0)";
-  ctx.fillText("E", w/2-0*ctx.measureText("S").width,h/2-40);
-  ctx.font="900 120px Arial";  
-  ctx.fillStyle="rgb(0, 0, 255)";
-  ctx.fillText("T", w/2+1*ctx.measureText("S").width,h/2-40);
-*/
+
+  ctx.fillStyle = "rgb(255, 255, 255)";
+  ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
   ctx.strokeStyle = "rgb(64, 64, 64)";
   ctx.lineWidth = 2;
   ctx.strokeRect(16*cw, 16*cw, 2*cw, 2*cw);
