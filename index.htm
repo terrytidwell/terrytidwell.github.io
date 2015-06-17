@@ -569,16 +569,16 @@ $(document).ready(function(){
    floater.fade = 100;
   }
 
-  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.GREEN},w/2-300,h/2-80,260)
-  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2+100,h/2-50,160);
-  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.RED},w/2-50,h/2-80,160);
-  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2-100,h/2-50,100);
+  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.GREEN},w/2-300,h*0.382-80,260)
+  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2+100,h*0.382-50,160);
+  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.RED},w/2-50,h*0.382-80,160);
+  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2-100,h*0.382-50,100);
   
   ctx.textAlign="center";
   ctx.textBaseline="middle";
   ctx.fillStyle = "rgb(255, 255, 255)";
   ctx.font = "900 120px Arial";
-  ctx.fillText("paused",h/2,w/2);
+  ctx.fillText("paused",w/2,h*0.382);
   
   ctx.fillStyle = "rgb(255, 255, 255)";
   ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
