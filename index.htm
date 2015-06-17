@@ -142,7 +142,7 @@ $(document).ready(function(){
  
  function detectSet(cards)
  {
- return compareElements(cards[0].number, cards[1].number, cards[2].number) &&
+ return compareElements(cards[0].number-1, cards[1].number-1, cards[2].number-1) &&
   compareElements(cards[0].shape.shape, cards[1].shape.shape, cards[2].shape.shape) &&
   compareElements(cards[0].shape.color, cards[1].shape.color, cards[2].shape.color) &&
   compareElements(cards[0].shape.fill, cards[1].shape.fill, cards[2].shape.fill);
