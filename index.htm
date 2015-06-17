@@ -439,6 +439,18 @@ $(document).ready(function(){
    ctx.strokeText(set_text[i], cw*(i*6+1)+cw*5/2,cw*5+cw*5/2);
   }
 
+  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.GREEN},225-120,400,300)
+  ctx.translate(0, 500);
+  ctx.rotate(10*Math.PI/180);
+  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.STRIPED,color:ColorEnum.RED},-150,-150,300)
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.translate(400, -100);
+  ctx.rotate(-5*Math.PI/180);
+  paintShape({shape:ShapeEnum.TRIANGLE,fill:FillEnum.EMPTY,color:ColorEnum.BLUE},-150,-150,300)
+  ctx.setTransform(1,0,0,1,0,0);
+  
+  
+  
   ctx.fillStyle = "rgb(255, 255, 255)";
   ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
   ctx.strokeStyle = "rgb(64, 64, 64)";
@@ -491,11 +503,11 @@ $(document).ready(function(){
 	if(scene_change_timer.current == scene_change_timer.period)
 	{
 		scene_change_timer.current=0;
-		setTimeout(paintTitle(),0);
+   	setTimeout(paintTitle(),0);
 		return;
 	}
   }
-
+  
   var size=scene_change_timer.current;
   size*=size;
   //alert(size);
