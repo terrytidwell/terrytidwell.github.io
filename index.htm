@@ -536,6 +536,29 @@ $(document).ready(function(){
    }
   }
 
+  var other_color = Math.round(255-((1-(Math.abs(floater.fade--)/100))*64));
+  var color = "rgb(255,"+other_color+","+other_color+")";
+  if(floater_card.shape.color == 1)
+  {
+   color = "rgb("+other_color+",255,"+other_color+")";
+  }
+  else if(floater_card.shape.color == 2)
+  {
+   color = "rgb("+other_color+","+other_color+",255)";
+  }
+  paintShapeAndColor(floater_card.shape,floater.x+=floater.dx,floater.y+=floater.dy,250,color);
+  if(floater.fade<-100)
+  {
+   randomizeCard(floater_card);
+   floater.x = Math.random()*200;
+   floater.dx = .5*Math.random()*5-2;
+   floater.y = Math.random()*200;
+   floater.dy = .5*Math.random()*5-2;
+   floater.fade = 100;
+  }
+  
+  ctx.fillStyle = "rgb(255, 255, 255)";
+  ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
   ctx.strokeStyle = "rgb(64, 64, 64)";
   ctx.lineWidth = 2;
   ctx.strokeRect(16*cw, 16*cw, 2*cw, 2*cw);
@@ -737,6 +760,8 @@ $(document).ready(function(){
   ctx.fillStyle = life_color;
   ctx.fillRect(cw + random_x_jitter,2*cw + random_y_jitter,(w-2*cw)*(display_life)/100,cw);
 
+  ctx.fillStyle = "rgb(255, 255, 255)";
+  ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
   ctx.strokeStyle = "rgb(64, 64, 64)";
   ctx.lineWidth = 2;
   ctx.strokeRect(16*cw, 16*cw, 2*cw, 2*cw);
