@@ -568,6 +568,17 @@ $(document).ready(function(){
    floater.dy = .5*Math.random()*5-2;
    floater.fade = 100;
   }
+
+  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.GREEN},w/2-300,h/2-80,260)
+  paintShape({shape:ShapeEnum.CIRCLE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2+100,h/2-50,160);
+  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.RED},w/2-50,h/2-80,160);
+  paintShape({shape:ShapeEnum.SQUARE,fill:FillEnum.FULL,color:ColorEnum.BLUE},w/2-100,h/2-50,100);
+  
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillStyle = "rgb(255, 255, 255)";
+  ctx.font = "900 120px Arial";
+  ctx.fillText("paused",h/2,w/2);
   
   ctx.fillStyle = "rgb(255, 255, 255)";
   ctx.fillRect(16*cw, 16*cw, 2*cw, 2*cw);
@@ -744,6 +755,7 @@ $(document).ready(function(){
 	var text_height = Math.round(35+Math.cos(2*Math.PI*text_pulse_timer.current/text_pulse_timer.period));
 	ctx.font = "800 "+text_height+"px Arial";
 	ctx.textAlign="center";
+   ctx.textBaseline="middle";
 	var button_text = "SET";
 	var button_color = "rgb(224, 224, 224)";
 	if(user_guessing_set)
@@ -797,4 +809,3 @@ $(document).ready(function(){
         </script>
     </body>
 </html>
-
