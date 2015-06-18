@@ -418,7 +418,15 @@ $(document).ready(function(){
 
  function updateCards()
  {
-   var random_choice = Math.floor(Math.random()*3);
+   var random_choice = 0
+   if(currently_set)
+   {
+      random_choice = Math.floor(Math.random()*2+1);
+   }
+   else
+   {
+   	random_choice = Math.floor(Math.random()*3);
+   }
    if(random_choice == 0)
    {
       var random_selection = Math.floor(Math.random()*3);
