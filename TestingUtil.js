@@ -17,7 +17,7 @@ TestingUtil.test=function(obj) {
                 obj[key].call(obj);
                 nSucceeded++;
             } catch (e) {
-                WScript.Echo("---- "+("name" in obj[key]?obj[key].name:key)+" failed: ----");
+                WScript.Echo("---- "+("name_" in obj[key]?obj[key].name_:key)+" failed: ----");
                 WScript.Echo(e.description);
                 nFailed++;
             }

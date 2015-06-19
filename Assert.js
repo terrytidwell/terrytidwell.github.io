@@ -6,7 +6,7 @@ Assert={};
 Require=Assert;
 
 Assert.fail=function(sMessage) {
-    throw new Error(-1, "AssertionFailure: "+sMessage+"\n"+Assert.getStackTrace());
+    throw { description: "AssertionFailure: "+sMessage+"\n"+Assert.getStackTrace()};
 };
 
 Assert.formatValue=function(value) {
@@ -133,7 +133,7 @@ Assert.getStackTrace=function() {
 
     var frame=Assert.getStackTrace.caller;
     while (true) {
-        sStackTrace+="    at "+("name" in frame?frame.name:"(anonymous)")+"\n";
+        sStackTrace+="    at "+("name_" in frame?frame.name_:"(anonymous)")+"\n";
         for (key in visitedFrames) {
             if (visitedFrames[key]===frame) {
                 sStackTrace+="    ...(recursed)...\n";
@@ -157,7 +157,7 @@ Assert.fixupMethodNames=function(obj, sClassName) {
         var key;
         for (key in obj) {
             if (obj.hasOwnProperty(key) && obj[key] instanceof Function) {
-                obj[key].name=sClassName+"."+key;
+                obj[key].name_=sClassName+"."+key;
             }
         }
     }
