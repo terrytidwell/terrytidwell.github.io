@@ -2,7 +2,7 @@
 // Testing utilities
 // Created 2006-07-09 by Louis Thomas
 
-TestingUtil=new Object();
+TestingUtil={};
 
 //--------------------------------------------------------------------
 TestingUtil.test=function(obj) {
@@ -19,16 +19,21 @@ TestingUtil.test=function(obj) {
             } catch (e) {
                 WScript.Echo("---- "+("name_" in obj[key]?obj[key].name_:key)+" failed: ----");
                 WScript.Echo(e.description);
+                if ("stack" in e.error) {
+                    WScript.Echo(e.error.stack);
+                }
                 nFailed++;
             }
         }
     }
     if (nTotal==nSucceeded) {
         WScript.Echo("---- All "+nTotal+" tests succeeded. ----");
+        return true;
     } else {
         WScript.Echo("---- Some tests failed. Out of "+nTotal+" tests, "+nSucceeded+" succeeded and "+nFailed+" failed. ----");
+        return false;
     }
-}
+};
 
 //--------------------------------------------------------------------
 /** Dumps the properties of the given object.
@@ -186,6 +191,6 @@ TestingUtil.dumpObj=function (obj, /*optional*/sName, /*optional*/bRecurse, /*op
             }
         }
     }
-}
+};
 
 Assert.fixupMethodNames(TestingUtil, "TestingUtil");

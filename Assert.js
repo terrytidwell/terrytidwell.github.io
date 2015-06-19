@@ -6,7 +6,10 @@ Assert={};
 Require=Assert;
 
 Assert.fail=function(sMessage) {
-    throw { description: "AssertionFailure: "+sMessage+"\n"+Assert.getStackTrace()};
+    throw {
+        description: "AssertionFailure: "+sMessage+"\n"+Assert.getStackTrace(),
+        error: new Error()
+    };
 };
 
 Assert.formatValue=function(value) {

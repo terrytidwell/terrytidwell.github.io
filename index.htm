@@ -10,7 +10,7 @@
   <body style="background-color: black;">
     <canvas tabindex='1' id="canvas" width="450" height="450"></canvas>
     <p><button onclick="runTests()">Run Tests</button></p>
-    <div id="testOutput" style="background-color: white;"></div>
+    <div id="testOutput" style="color: limegreen;"></div>
 
     <script>
       //#######################################################################
@@ -943,10 +943,13 @@
         log: "",
         Echo: function (text)
         {
-          this.log += text + "\n";
-          document.getElementById("testOutput").innerText = this.log;
-          //alert(this.log);
-        }
+          text = text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
+          this.log += "<Pre>" + text + "</Pre>";
+          this.testOutput.innerHTML = this.log;
+        },
+        testOutput: document.getElementById("testOutput")
       };
 
 
@@ -973,7 +976,14 @@
       function runTests()
       {
         WScript.log = "";
-        TestingUtil.test(TestSuite);
+        if (TestingUtil.test(TestSuite))
+        {
+          WScript.testOutput.style.color="limegreen";
+        }
+        else
+        {
+          WScript.testOutput.style.color="red";
+        }
       }
 
       Assert.fixupMethodNames(this, "top_level");
