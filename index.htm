@@ -9,16 +9,26 @@
   </head>
   <body style="background-color: black;">
     <canvas tabindex='1' id="canvas" width="450" height="450"></canvas>
-    <button onclick="runTests()">Run Tests</button>
+    <p><button onclick="runTests()">Run Tests</button></p>
+    <p><div id="testOutput" style="background-color: white;"></div></p>
     <!-- Jquery -->
     <script>
+      // simulate the WScript object for the testing library
+      WScript = {
+        log: "",
+        Echo: function (text)
+        {
+          this.log += text + "\n";
+          document.getElementById("testOutput").innerText = this.log;
+          //alert(this.log);
+        }
+      };
 
       var canvas;
       var ctx;
       var canvasWidth;
       var canvasHeight;
       var cellWidth;
-      alert("ready");
 
       var mouse_x = 0;
       var mouse_y = 0;
@@ -880,13 +890,15 @@
           var v = 1;
           Assert.eq(v, "v", 0);
         }
-      }
+      };
 
       //-----------------------------------------------------------------------
       function runTests()
       {
         TestingUtil.test(TestSuite);
       }
+
+      Assert.fixupMethodNames(this, "top_level");
 
       //-----------------------------------------------------------------------
       $(document).ready(function ()
