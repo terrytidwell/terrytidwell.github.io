@@ -78,7 +78,6 @@
         var reaction_timer = {active: false, period: 10, current: 0};
         var success_timer = {active: false, period: 10, current: 0};
         var text_pulse_timer = {active: true, period: 20, current: 0};
-        resetGame();
 
         canvas.addEventListener("mousedown", function (event)
         {
@@ -87,13 +86,6 @@
           mouse_y = event.clientY - rect.top;
           mouse_click_pending = true;
         }, false);
-
-        function init()
-        {
-          setTimeout(paintTitle, 40);
-        }
-
-        init();
 
         function resetGame()
         {
@@ -309,7 +301,7 @@
 
         function paintCard(card, x, y, size)
         {
-          var color = 'rgb(255,0,0)'
+          var color = 'rgb(255,0,0)';
           if (card.shape.color == 1)
           {
             color = 'rgb(0,255,0)'
@@ -337,7 +329,7 @@
 
         function paintShape(shape, x, y, size)
         {
-          var color = 'rgb(255,0,0)'
+          var color = 'rgb(255,0,0)';
           if (shape.color == 1)
           {
             color = 'rgb(0,255,0)'
@@ -352,7 +344,7 @@
         function paintShapeAndColor(shape, x, y, size, color)
         {
           ctx.strokeStyle = color;
-          ctx.fillStyle = 'rgb(255,255,255)'
+          ctx.fillStyle = 'rgb(255,255,255)';
           if (shape.fill == FillEnum.FULL)
           {
             ctx.fillStyle = color;
@@ -430,7 +422,7 @@
 
         function updateCards()
         {
-          var random_choice = 0
+          var random_choice = 0;
           if (currently_set)
           {
             random_choice = Math.floor(Math.random() * 2 + 1);
@@ -470,265 +462,221 @@
           }
         }
 
-        function paintTitle()
-        {
-          var start_time = Date.now()
-          //Lets paint the canvas now
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, w, h);
-
-          if (mouse_click_pending)
+        //---------------------------------------------------------------------
+        var titleScreen = {
+          handleMouseClick: function ()
           {
-            mouse_click_pending = false;
             if (mouse_y >= 16 * cw &&
               mouse_y <= 18 * cw &&
               mouse_x >= 16 * cw &&
               mouse_x <= 18 * cw)
             {
               resetGame();
-              paint();
-              return;
+              currentScreen = gameScreen;
             }
-          }
+          },
 
-          var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
-          var color = "rgb(255," + other_color + "," + other_color + ")";
-          if (floater_card.shape.color == 1)
+          paint: function()
           {
-            color = "rgb(" + other_color + ",255," + other_color + ")";
-          }
-          else if (floater_card.shape.color == 2)
-          {
-            color = "rgb(" + other_color + "," + other_color + ",255)";
-          }
-          paintShapeAndColor(floater_card.shape, floater.x += floater.dx, floater.y += floater.dy, 250, color);
-          if (floater.fade < -100)
-          {
-            randomizeCard(floater_card);
-            floater.x = Math.random() * 200;
-            floater.dx = .5 * Math.random() * 5 - 2;
-            floater.y = Math.random() * 200;
-            floater.dy = .5 * Math.random() * 5 - 2;
-            //alert(floater.x, floater.y);
-            floater.fade = 100;
-          }
+            //Lets paint the canvas now
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, w, h);
 
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.font = "900 120px Arial";
+            var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
+            var color = "rgb(255," + other_color + "," + other_color + ")";
+            if (floater_card.shape.color == 1)
+            {
+              color = "rgb(" + other_color + ",255," + other_color + ")";
+            }
+            else if (floater_card.shape.color == 2)
+            {
+              color = "rgb(" + other_color + "," + other_color + ",255)";
+            }
+            paintShapeAndColor(floater_card.shape, floater.x += floater.dx, floater.y += floater.dy, 250, color);
+            if (floater.fade < -100)
+            {
+              randomizeCard(floater_card);
+              floater.x = Math.random() * 200;
+              floater.dx = .5 * Math.random() * 5 - 2;
+              floater.y = Math.random() * 200;
+              floater.dy = .5 * Math.random() * 5 - 2;
+              //alert(floater.x, floater.y);
+              floater.fade = 100;
+            }
 
-          for (var i = 0; i < 3; ++i)
-          {
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "900 120px Arial";
 
-            paintShape(set_shape[i], cw * (i * 6 + 1), cw * 5, cw * 5);
-            ctx.lineWidth = 4;
+            for (var i = 0; i < 3; ++i)
+            {
+              paintShape(set_shape[i], cw * (i * 6 + 1), cw * 5, cw * 5);
+              ctx.lineWidth = 4;
+
+              ctx.fillStyle = "rgb(255, 255, 255)";
+              ctx.fillText(set_text[i], cw * (i * 6 + 1) + cw * 5 / 2, cw * 5 + cw * 5 / 2);
+              ctx.strokeText(set_text[i], cw * (i * 6 + 1) + cw * 5 / 2, cw * 5 + cw * 5 / 2);
+            }
+
+            paintShape({shape: ShapeEnum.CIRCLE, fill: FillEnum.FULL, color: ColorEnum.GREEN}, 225 - 120, 400, 300);
+            ctx.translate(0, 500);
+            ctx.rotate(10 * Math.PI / 180);
+            paintShape({shape: ShapeEnum.SQUARE, fill: FillEnum.STRIPED, color: ColorEnum.RED}, -150, -150, 300);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.translate(400, -100);
+            ctx.rotate(-5 * Math.PI / 180);
+            paintShape({shape: ShapeEnum.TRIANGLE, fill: FillEnum.EMPTY, color: ColorEnum.BLUE}, -150, -150, 300);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
 
             ctx.fillStyle = "rgb(255, 255, 255)";
-            ctx.fillText(set_text[i], cw * (i * 6 + 1) + cw * 5 / 2, cw * 5 + cw * 5 / 2);
-            ctx.strokeText(set_text[i], cw * (i * 6 + 1) + cw * 5 / 2, cw * 5 + cw * 5 / 2);
+            ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.beginPath();
+            ctx.moveTo(16 * cw + cw / 3, 16 * cw + 1 * cw / 4);
+            ctx.lineTo(17 * cw + 2 * cw / 3, cw * 17);
+            ctx.lineTo(16 * cw + cw / 3, 16 * cw + 7 * cw / 4);
+            ctx.closePath();
+            ctx.fill();
           }
+        };
 
-          paintShape({shape: ShapeEnum.CIRCLE, fill: FillEnum.FULL, color: ColorEnum.GREEN}, 225 - 120, 400, 300)
-          ctx.translate(0, 500);
-          ctx.rotate(10 * Math.PI / 180);
-          paintShape({shape: ShapeEnum.SQUARE, fill: FillEnum.STRIPED, color: ColorEnum.RED}, -150, -150, 300)
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.translate(400, -100);
-          ctx.rotate(-5 * Math.PI / 180);
-          paintShape({shape: ShapeEnum.TRIANGLE, fill: FillEnum.EMPTY, color: ColorEnum.BLUE}, -150, -150, 300)
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
+        //---------------------------------------------------------------------
+        var gameOverScreen = {
+          handleMouseClick: function()
+          {},
 
-
-          ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.strokeStyle = "rgb(64, 64, 64)";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.fillStyle = "rgb(64, 64, 64)";
-          ctx.beginPath();
-          ctx.moveTo(16 * cw + cw / 3, 16 * cw + 1 * cw / 4);
-          ctx.lineTo(17 * cw + 2 * cw / 3, cw * 17);
-          ctx.lineTo(16 * cw + cw / 3, 16 * cw + 7 * cw / 4);
-          ctx.closePath();
-          ctx.fill();
-
-          var end_time = Date.now();
-          var comp_time = end_time - start_time;
-          if (comp_time > 40 || comp_time < 0)
+          paint: function()
           {
-            setTimeout(paintTitle, 0);
-          }
-          else
-          {
-            setTimeout(paintTitle, 40 - comp_time);
-          }
-
-        }
-
-        function paintGameOver()
-        {
-          var start_time = Date.now()
-          //Lets paint the canvas now
-
-          if (mouse_click_pending)
-          {
-            mouse_click_pending = false;
-          }
-
-          if (scene_change_timer.current == 0)
-          {
-            for (var i = 0; i < 3; i++)
+            if (scene_change_timer.current == 0)
             {
-              randomizeCard(animation_cards[i].card);
-              animation_cards[i].x = Math.random() * w;
-              animation_cards[i].y = Math.random() * h;
+              for (var i = 0; i < 3; i++)
+              {
+                randomizeCard(animation_cards[i].card);
+                animation_cards[i].x = Math.random() * w;
+                animation_cards[i].y = Math.random() * h;
+              }
+            }
+
+            if (scene_change_timer.active)
+            {
+              scene_change_timer.current++;
+              if (scene_change_timer.current == scene_change_timer.period)
+              {
+                scene_change_timer.current = 0;
+                currentScreen = titleScreen;
+                return;
+              }
+            }
+
+            var size = scene_change_timer.current;
+            size *= size;
+            size *= size;
+            size *= .005;
+            //alert(size);
+            for (var i = 0; i < 4; i++)
+            {
+              paintShape(animation_cards[i].card.shape, animation_cards[i].x - size / 2, animation_cards[i].y - size / 2, size);
             }
           }
+        };
 
-          if (scene_change_timer.active)
+        //---------------------------------------------------------------------
+        var pauseScreen = {
+          handleMouseClick: function()
           {
-            scene_change_timer.current++;
-            if (scene_change_timer.current == scene_change_timer.period)
-            {
-              scene_change_timer.current = 0;
-              setTimeout(paintTitle(), 0);
-              return;
-            }
-          }
-
-          var size = scene_change_timer.current;
-          size *= size;
-          size *= size;
-          size *= .005;
-          //alert(size);
-          for (var i = 0; i < 4; i++)
-          {
-            paintShape(animation_cards[i].card.shape, animation_cards[i].x - size / 2, animation_cards[i].y - size / 2, size);
-          }
-
-          var end_time = Date.now();
-          var comp_time = end_time - start_time;
-          if (comp_time > 40 || comp_time < 0)
-          {
-            setTimeout(paintGameOver, 0);
-          }
-          else
-          {
-            setTimeout(paintGameOver, 40 - comp_time);
-          }
-        }
-
-        function paintPause()
-        {
-          var start_time = Date.now()
-          //Lets paint the canvas now
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, w, h);
-
-          if (mouse_click_pending)
-          {
-            mouse_click_pending = false;
             if (mouse_y >= 16 * cw &&
               mouse_y <= 18 * cw &&
               mouse_x >= 16 * cw &&
               mouse_x <= 18 * cw)
             {
-              paint();
-              return;
+              currentScreen = gameScreen;
             }
-          }
+          },
 
-          var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
-          var color = "rgb(255," + other_color + "," + other_color + ")";
-          if (floater_card.shape.color == 1)
+          paint: function()
           {
-            color = "rgb(" + other_color + ",255," + other_color + ")";
+            //Lets paint the canvas now
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, w, h);
+
+            var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
+            var color = "rgb(255," + other_color + "," + other_color + ")";
+            if (floater_card.shape.color == 1)
+            {
+              color = "rgb(" + other_color + ",255," + other_color + ")";
+            }
+            else if (floater_card.shape.color == 2)
+            {
+              color = "rgb(" + other_color + "," + other_color + ",255)";
+            }
+            paintShapeAndColor(floater_card.shape, floater.x += floater.dx, floater.y += floater.dy, 250, color);
+            if (floater.fade < -100)
+            {
+              randomizeCard(floater_card);
+              floater.x = Math.random() * 200;
+              floater.dx = .5 * Math.random() * 5 - 2;
+              floater.y = Math.random() * 200;
+              floater.dy = .5 * Math.random() * 5 - 2;
+              floater.fade = 100;
+            }
+
+            paintShape({
+              shape: ShapeEnum.CIRCLE,
+              fill: FillEnum.FULL,
+              color: ColorEnum.GREEN
+            }, w / 2 - 300, h * 0.382 - 80, 260)
+            paintShape({
+              shape: ShapeEnum.CIRCLE,
+              fill: FillEnum.FULL,
+              color: ColorEnum.BLUE
+            }, w / 2 + 100, h * 0.382 - 50, 160);
+            paintShape({
+              shape: ShapeEnum.SQUARE,
+              fill: FillEnum.FULL,
+              color: ColorEnum.RED
+            }, w / 2 - 50, h * 0.382 - 80, 160);
+            paintShape({
+              shape: ShapeEnum.SQUARE,
+              fill: FillEnum.FULL,
+              color: ColorEnum.BLUE
+            }, w / 2 - 100, h * 0.382 - 50, 100);
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.font = "900 120px Arial";
+            ctx.fillText("paused", w / 2, h * 0.382);
+
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.beginPath();
+            ctx.moveTo(16 * cw + cw / 3, 16 * cw + 1 * cw / 4);
+            ctx.lineTo(17 * cw + 2 * cw / 3, cw * 17);
+            ctx.lineTo(16 * cw + cw / 3, 16 * cw + 7 * cw / 4);
+            ctx.closePath();
+            ctx.fill();
+
           }
-          else if (floater_card.shape.color == 2)
+        };
+
+        //---------------------------------------------------------------------
+        var gameScreen = {
+          handleMouseClick: function()
           {
-            color = "rgb(" + other_color + "," + other_color + ",255)";
-          }
-          paintShapeAndColor(floater_card.shape, floater.x += floater.dx, floater.y += floater.dy, 250, color);
-          if (floater.fade < -100)
-          {
-            randomizeCard(floater_card);
-            floater.x = Math.random() * 200;
-            floater.dx = .5 * Math.random() * 5 - 2;
-            floater.y = Math.random() * 200;
-            floater.dy = .5 * Math.random() * 5 - 2;
-            floater.fade = 100;
-          }
-
-          paintShape({
-            shape: ShapeEnum.CIRCLE,
-            fill: FillEnum.FULL,
-            color: ColorEnum.GREEN
-          }, w / 2 - 300, h * 0.382 - 80, 260)
-          paintShape({
-            shape: ShapeEnum.CIRCLE,
-            fill: FillEnum.FULL,
-            color: ColorEnum.BLUE
-          }, w / 2 + 100, h * 0.382 - 50, 160);
-          paintShape({
-            shape: ShapeEnum.SQUARE,
-            fill: FillEnum.FULL,
-            color: ColorEnum.RED
-          }, w / 2 - 50, h * 0.382 - 80, 160);
-          paintShape({
-            shape: ShapeEnum.SQUARE,
-            fill: FillEnum.FULL,
-            color: ColorEnum.BLUE
-          }, w / 2 - 100, h * 0.382 - 50, 100);
-
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.font = "900 120px Arial";
-          ctx.fillText("paused", w / 2, h * 0.382);
-
-          ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.strokeStyle = "rgb(64, 64, 64)";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.fillStyle = "rgb(64, 64, 64)";
-          ctx.beginPath();
-          ctx.moveTo(16 * cw + cw / 3, 16 * cw + 1 * cw / 4);
-          ctx.lineTo(17 * cw + 2 * cw / 3, cw * 17);
-          ctx.lineTo(16 * cw + cw / 3, 16 * cw + 7 * cw / 4);
-          ctx.closePath();
-          ctx.fill();
-
-          var end_time = Date.now();
-          var comp_time = end_time - start_time;
-          if (comp_time > 40 || comp_time < 0)
-          {
-            setTimeout(paintPause, 0);
-          }
-          else
-          {
-            setTimeout(paintPause, 40 - comp_time);
-          }
-        }
-
-        function paint()
-        {
-          var start_time = Date.now()
-          //Lets paint the canvas now
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, w, h);
-
-
-          if (mouse_click_pending)
-          {
-            mouse_click_pending = false;
-
             if (mouse_y >= 16 * cw &&
               mouse_y <= 18 * cw &&
               mouse_x >= 16 * cw &&
               mouse_x <= 18 * cw)
             {
-              paintPause();
+              currentScreen = pauseScreen;
               return;
             }
 
@@ -740,177 +688,203 @@
             {
               user_guessing_set = !user_guessing_set;
             }
-          }
+          },
 
-          for (var i = 0; i < 3; ++i)
+          paint: function()
           {
-            paintCard(cards[i], cw * (i * 6 + 1), cw * 5, cw * 5);
-          }
+            // clear the screen
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, w, h);
 
-          if (tile_change_timer.active)
-          {
-            tile_change_timer.current++;
-            if (tile_change_timer.current == tile_change_timer.period)
+            for (var i = 0; i < 3; ++i)
             {
+              paintCard(cards[i], cw * (i * 6 + 1), cw * 5, cw * 5);
+            }
 
-              //fire tile_change_timer
-              var require_reaction = false;
-              if (user_guessing_set != currently_set)
+            if (tile_change_timer.active)
+            {
+              tile_change_timer.current++;
+              if (tile_change_timer.current == tile_change_timer.period)
               {
-                user_life -= 20
-                if (user_life < 0)
+
+                //fire tile_change_timer
+                var require_reaction = false;
+                if (user_guessing_set != currently_set)
                 {
-                  user_life = 0;
-                }
-                require_reaction = true;
-              }
-              else
-              {
-                if (currently_set)
-                {
-                  success_timer.active = true;
-                  success_timer.current = 0;
-                  user_life += 5;
-                  if (user_life > 100)
+                  user_life -= 20;
+                  if (user_life < 0)
                   {
-                    user_life = 100;
+                    user_life = 0;
+                  }
+                  require_reaction = true;
+                }
+                else
+                {
+                  if (currently_set)
+                  {
+                    success_timer.active = true;
+                    success_timer.current = 0;
+                    user_life += 5;
+                    if (user_life > 100)
+                    {
+                      user_life = 100;
+                    }
                   }
                 }
-              }
 
-              if (require_reaction)
-              {
-                tile_change_timer.active = false;
-                //start the reaction timer
-                reaction_timer.current = 0;
-                reaction_timer.active = true;
+                if (require_reaction)
+                {
+                  tile_change_timer.active = false;
+                  //start the reaction timer
+                  reaction_timer.current = 0;
+                  reaction_timer.active = true;
+                }
+                else
+                {
+                  updateCards();
+                  tile_change_timer.current = 0;
+                }
+
+
+                user_guessing_set = false;
               }
-              else
+            }
+
+            var life_color = "rgb(0,128,0)";
+            if (success_timer.active)
+            {
+              success_timer.current++;
+              life_color = "rgb(0," + Math.round(255 - 255 * Math.abs(success_timer.current / success_timer.period - .5)) + ",0)";
+              if (success_timer.current == success_timer.period)
               {
-                updateCards();
+
+                success_timer.active = false;
+              }
+            }
+
+            var random_x_jitter = 0;
+            var random_y_jitter = 0;
+            if (reaction_timer.active)
+            {
+              reaction_timer.current++;
+              if (reaction_timer.current == reaction_timer.period)
+              {
+                reaction_timer.active = false;
                 tile_change_timer.current = 0;
+                tile_change_timer.active = true;
+                if (user_life == 0)
+                {
+                  currentScreen = gameOverScreen;
+                  return;
+                }
+
+                updateCards();
               }
-
-
-              user_guessing_set = false;
+              random_x_jitter = Math.random() * 9 - 4;
+              random_y_jitter = Math.random() * 9 - 4;
             }
-          }
 
-          var life_color = "rgb(0,128,0)";
-          if (success_timer.active)
-          {
-            success_timer.current++;
-            life_color = "rgb(0," + Math.round(255 - 255 * Math.abs(success_timer.current / success_timer.period - .5)) + ",0)";
-            if (success_timer.current == success_timer.period)
-            {
-
-              success_timer.active = false;
-            }
-          }
-
-          var random_x_jitter = 0;
-          var random_y_jitter = 0;
-          if (reaction_timer.active)
-          {
-            reaction_timer.current++;
-            if (reaction_timer.current == reaction_timer.period)
-            {
-              reaction_timer.active = false;
-              tile_change_timer.current = 0;
-              tile_change_timer.active = true;
-              if (user_life == 0)
-              {
-                paintGameOver();
-                return;
-              }
-
-              updateCards();
-            }
-            random_x_jitter = Math.random() * 9 - 4;
-            random_y_jitter = Math.random() * 9 - 4;
-          }
-
-          if (user_guessing_set)
-          {
-            ctx.beginPath();
-            ctx.fillStyle = "rgb(0,255,0)";
-            ctx.lineWidth = 1;
-            ctx.arc(w / 2, h * .75, 2.1 * cw, 0, Math.PI * 2, false);
-            ctx.fill();
-          }
-
-          ctx.beginPath();
-          ctx.strokeStyle = "rgb(64,64,64)";
-          ctx.lineWidth = 20;
-          ctx.arc(w / 2, h * .75, cw * 2.5, 0, Math.PI * 2, false);
-          ctx.stroke();
-          ctx.fillStyle = "rgb(128,128,128)";
-          ctx.beginPath();
-          ctx.strokeStyle = "rgb(128,128,128)";
-          ctx.lineWidth = 20;
-          ctx.arc(w / 2, h * .75, cw * 2.5, -Math.PI / 2, Math.PI * 2 * tile_change_timer.current / tile_change_timer.period - Math.PI / 2, false);
-          ctx.stroke();
-
-          if (text_pulse_timer.active)
-          {
-            text_pulse_timer.current++;
-            if (text_pulse_timer.current == text_pulse_timer.period)
-            {
-              text_pulse_timer.current = 0;
-            }
-            var text_height = Math.round(35 + Math.cos(2 * Math.PI * text_pulse_timer.current / text_pulse_timer.period));
-            ctx.font = "800 " + text_height + "px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            var button_text = "SET";
-            var button_color = "rgb(224, 224, 224)";
             if (user_guessing_set)
             {
-              button_color = "rgb(0, 0, 0)";
-              button_text = "SET";
+              ctx.beginPath();
+              ctx.fillStyle = "rgb(0,255,0)";
+              ctx.lineWidth = 1;
+              ctx.arc(w / 2, h * .75, 2.1 * cw, 0, Math.PI * 2, false);
+              ctx.fill();
             }
-            ctx.fillStyle = button_color;
-            ctx.fillText(button_text, w / 2, h * .75);
-          }
 
-          if (display_life < user_life)
-          {
-            display_life++;
-          }
-          else if (display_life > user_life)
-          {
-            display_life -= 4;
+            ctx.beginPath();
+            ctx.strokeStyle = "rgb(64,64,64)";
+            ctx.lineWidth = 20;
+            ctx.arc(w / 2, h * .75, cw * 2.5, 0, Math.PI * 2, false);
+            ctx.stroke();
+            ctx.fillStyle = "rgb(128,128,128)";
+            ctx.beginPath();
+            ctx.strokeStyle = "rgb(128,128,128)";
+            ctx.lineWidth = 20;
+            ctx.arc(w / 2, h * .75, cw * 2.5, -Math.PI / 2, Math.PI * 2 * tile_change_timer.current / tile_change_timer.period - Math.PI / 2, false);
+            ctx.stroke();
+
+            if (text_pulse_timer.active)
+            {
+              text_pulse_timer.current++;
+              if (text_pulse_timer.current == text_pulse_timer.period)
+              {
+                text_pulse_timer.current = 0;
+              }
+              var text_height = Math.round(35 + Math.cos(2 * Math.PI * text_pulse_timer.current / text_pulse_timer.period));
+              ctx.font = "800 " + text_height + "px Arial";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              var button_text = "SET";
+              var button_color = "rgb(224, 224, 224)";
+              if (user_guessing_set)
+              {
+                button_color = "rgb(0, 0, 0)";
+                button_text = "SET";
+              }
+              ctx.fillStyle = button_color;
+              ctx.fillText(button_text, w / 2, h * .75);
+            }
+
             if (display_life < user_life)
             {
-              display_life = user_life;
+              display_life++;
             }
-          }
-          ctx.fillStyle = "rgb(128, 0, 0)";
-          ctx.fillRect(cw + random_x_jitter, 2 * cw + random_y_jitter, w - 2 * cw, cw);
-          ctx.fillStyle = life_color;
-          ctx.fillRect(cw + random_x_jitter, 2 * cw + random_y_jitter, (w - 2 * cw) * (display_life) / 100, cw);
+            else if (display_life > user_life)
+            {
+              display_life -= 4;
+              if (display_life < user_life)
+              {
+                display_life = user_life;
+              }
+            }
+            ctx.fillStyle = "rgb(128, 0, 0)";
+            ctx.fillRect(cw + random_x_jitter, 2 * cw + random_y_jitter, w - 2 * cw, cw);
+            ctx.fillStyle = life_color;
+            ctx.fillRect(cw + random_x_jitter, 2 * cw + random_y_jitter, (w - 2 * cw) * (display_life) / 100, cw);
 
-          ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.strokeStyle = "rgb(64, 64, 64)";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
-          ctx.fillStyle = "rgb(64, 64, 64)";
-          ctx.fillRect(16 * cw + cw / 3, 16 * cw + 1 * cw / 4, cw / 3, 3 * cw / 2);
-          ctx.fillRect(17 * cw + cw / 3, 16 * cw + 1 * cw / 4, cw / 3, 3 * cw / 2);
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.fillRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cw, 16 * cw, 2 * cw, 2 * cw);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.fillRect(16 * cw + cw / 3, 16 * cw + 1 * cw / 4, cw / 3, 3 * cw / 2);
+            ctx.fillRect(17 * cw + cw / 3, 16 * cw + 1 * cw / 4, cw / 3, 3 * cw / 2);
+          }
+        };
+
+        //---------------------------------------------------------------------
+        function eventLoop()
+        {
+          var start_time = Date.now();
+
+          if (mouse_click_pending)
+          {
+            mouse_click_pending = false;
+            currentScreen.handleMouseClick();
+          }
+
+          currentScreen.paint();
 
           var end_time = Date.now();
           var comp_time = end_time - start_time;
           if (comp_time > 40 || comp_time < 0)
           {
-            setTimeout(paint, 0);
+            setTimeout(eventLoop, 0);
           }
           else
           {
-            setTimeout(paint, 40 - comp_time);
+            setTimeout(eventLoop, 40 - comp_time);
           }
+
         }
 
+        var currentScreen = titleScreen;
+
+        // start processing events
+        setTimeout(eventLoop, 40);
       })
     </script>
   </body>
