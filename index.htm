@@ -10,25 +10,18 @@
   <body style="background-color: black;">
     <canvas tabindex='1' id="canvas" width="450" height="450"></canvas>
     <p><button onclick="runTests()">Run Tests</button></p>
-    <p><div id="testOutput" style="background-color: white;"></div></p>
-    <!-- Jquery -->
+    <div id="testOutput" style="background-color: white;"></div>
+
     <script>
-      // simulate the WScript object for the testing library
-      WScript = {
-        log: "",
-        Echo: function (text)
-        {
-          this.log += text + "\n";
-          document.getElementById("testOutput").innerText = this.log;
-          //alert(this.log);
-        }
-      };
+      //#######################################################################
+      // The game
 
       var canvas;
       var ctx;
-      var canvasWidth;
-      var canvasHeight;
-      var cellWidth;
+      var canvas_width;
+      var canvas_height;
+      var cell_width;
+      var current_screen;
 
       var mouse_x = 0;
       var mouse_y = 0;
@@ -65,13 +58,13 @@
       var tile_change_timer = {active: true, period: 40, current: 0};
       var animation_cards = [];
       var temp_card = randomCard();
-      animation_cards.push({x: Math.random() * canvasWidth, y: Math.random() * canvasHeight, card: temp_card});
+      animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
       temp_card = randomCard();
-      animation_cards.push({x: Math.random() * canvasWidth, y: Math.random() * canvasHeight, card: temp_card});
+      animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
       temp_card = randomCard();
-      animation_cards.push({x: Math.random() * canvasWidth, y: Math.random() * canvasHeight, card: temp_card});
+      animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
       temp_card = {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}};
-      animation_cards.push({x: canvasWidth / 2, y: canvasHeight / 2, card: temp_card});
+      animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: temp_card});
       var scene_change_timer = {active: true, period: 40, current: 0};
 
       //set up for main game screen
@@ -88,6 +81,33 @@
       var success_timer = {active: false, period: 10, current: 0};
       var text_pulse_timer = {active: true, period: 20, current: 0};
 
+      //---------------------------------------------------------------------
+      function init()
+      {
+        //Canvas stuff
+        canvas = $("#canvas")[0];
+        ctx = canvas.getContext("2d");
+        canvas_width = $("#canvas").width();
+        canvas_height = $("#canvas").height();
+
+        //Lets save the cell width in a variable for easy control
+        cell_width = canvas_height / 19;
+
+        canvas.addEventListener("mousedown", function (event)
+        {
+          var rect = canvas.getBoundingClientRect();
+          mouse_x = event.clientX - rect.left;
+          mouse_y = event.clientY - rect.top;
+          mouse_click_pending = true;
+        }, false);
+
+        current_screen = TitleScreen;
+
+        // start processing events
+        setTimeout(eventLoop, 40);
+      }
+
+      //---------------------------------------------------------------------
       function resetGame()
       {
         randomizeCard(cards[0]);
@@ -118,6 +138,7 @@
         text_pulse_timer.current = 0;
       }
 
+      //---------------------------------------------------------------------
       function compareElements(a, b, c)
       {
         if (a == c)
@@ -137,6 +158,7 @@
         return true;
       }
 
+      //---------------------------------------------------------------------
       function detectSet(cards)
       {
         return compareElements(cards[0].number - 1, cards[1].number - 1, cards[2].number - 1) &&
@@ -145,6 +167,7 @@
           compareElements(cards[0].shape.fill, cards[1].shape.fill, cards[2].shape.fill);
       }
 
+      //---------------------------------------------------------------------
       function completingCard(card_to_change, card_left, card_right)
       {
         var number = card_left.number;
@@ -156,6 +179,7 @@
         completingShape(card_to_change.shape, card_left.shape, card_right.shape);
       }
 
+      //---------------------------------------------------------------------
       function completingShape(shape_to_change, shape_left, shape_right)
       {
         var color = shape_left.color;
@@ -178,9 +202,9 @@
         shape_to_change.shape = shape;
       }
 
-      //Given two numbers in [0,2] choose an unchosen
-      //number
-      function choose_alternate(option1, option2)
+      //---------------------------------------------------------------------
+      // Given two numbers in [0,2] choose an unchosen number
+      function chooseAlternate(option1, option2)
       {
         if (option1 == option2)
         {
@@ -196,7 +220,8 @@
         return 3 - option1 - option2;
       }
 
-      function cards_equal(card1, card2)
+      //---------------------------------------------------------------------
+      function cardsEqual(card1, card2)
       {
         return card1.number == card2.number &&
           card1.shape.shape == card2.shape.shape &&
@@ -204,6 +229,7 @@
           card1.shape.color == card2.shape.color;
       }
 
+      //---------------------------------------------------------------------
       function evilRandom(shape_to_change, shape_left, shape_right)
       {
         var temp_shape =
@@ -219,21 +245,21 @@
         var num_element_to_change = Math.floor(Math.random() * 4);
         if (num_element_to_change == 0)
         {
-          temp_shape.number = 1 + choose_alternate(shape_to_change.number - 1, temp_shape.number - 1);
+          temp_shape.number = 1 + chooseAlternate(shape_to_change.number - 1, temp_shape.number - 1);
         }
         else if (num_element_to_change == 1)
         {
-          temp_shape.shape.shape = choose_alternate(shape_to_change.shape.shape, temp_shape.shape.shape);
+          temp_shape.shape.shape = chooseAlternate(shape_to_change.shape.shape, temp_shape.shape.shape);
         }
         else if (num_element_to_change == 2)
         {
-          temp_shape.shape.fill = choose_alternate(shape_to_change.shape.fill, temp_shape.shape.fill);
+          temp_shape.shape.fill = chooseAlternate(shape_to_change.shape.fill, temp_shape.shape.fill);
         }
         else if (num_element_to_change == 3)
         {
-          temp_shape.shape.color = choose_alternate(shape_to_change.shape.color, temp_shape.shape.color);
+          temp_shape.shape.color = chooseAlternate(shape_to_change.shape.color, temp_shape.shape.color);
         }
-        if (cards_equal(temp_shape, shape_to_change))
+        if (cardsEqual(temp_shape, shape_to_change))
         {
           alert("Equal card condition hit");
         }
@@ -243,6 +269,7 @@
         shape_to_change.shape.fill = temp_shape.shape.fill;
       }
 
+      //---------------------------------------------------------------------
       function randomizeCard(card)
       {
         //generate a 4 bit number, where all 4 bits aren't zero: thus
@@ -286,11 +313,13 @@
         }
       }
 
+      //---------------------------------------------------------------------
       function randomCard()
       {
         return {number: Math.floor(Math.random() * 3 + 1), shape: randomShape()};
       }
 
+      //---------------------------------------------------------------------
       function randomShape()
       {
         return {
@@ -300,6 +329,7 @@
         };
       }
 
+      //---------------------------------------------------------------------
       function paintCard(card, x, y, size)
       {
         var color = 'rgb(255,0,0)';
@@ -328,6 +358,7 @@
         }
       }
 
+      //---------------------------------------------------------------------
       function paintShape(shape, x, y, size)
       {
         var color = 'rgb(255,0,0)';
@@ -342,6 +373,7 @@
         paintShapeAndColor(shape, x, y, size, color);
       }
 
+      //---------------------------------------------------------------------
       function paintShapeAndColor(shape, x, y, size, color)
       {
         ctx.strokeStyle = color;
@@ -421,6 +453,7 @@
         }
       }
 
+      //---------------------------------------------------------------------
       function updateCards()
       {
         var random_choice = 0;
@@ -464,24 +497,27 @@
       }
 
       //---------------------------------------------------------------------
-      var titleScreen = {
+      var TitleScreen = {
+
+        //-------------------------------------------------------------------
         handleMouseClick: function ()
         {
-          if (mouse_y >= 16 * cellWidth &&
-            mouse_y <= 18 * cellWidth &&
-            mouse_x >= 16 * cellWidth &&
-            mouse_x <= 18 * cellWidth)
+          if (mouse_y >= 16 * cell_width &&
+            mouse_y <= 18 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
           {
             resetGame();
-            currentScreen = gameScreen;
+            current_screen = GameScreen;
           }
         },
 
-        paint: function()
+        //-------------------------------------------------------------------
+        paint: function ()
         {
           //Lets paint the canvas now
           ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
 
           var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
           var color = "rgb(255," + other_color + "," + other_color + ")";
@@ -511,12 +547,12 @@
 
           for (var i = 0; i < 3; ++i)
           {
-            paintShape(set_shape[i], cellWidth * (i * 6 + 1), cellWidth * 5, cellWidth * 5);
+            paintShape(set_shape[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
             ctx.lineWidth = 4;
 
             ctx.fillStyle = "rgb(255, 255, 255)";
-            ctx.fillText(set_text[i], cellWidth * (i * 6 + 1) + cellWidth * 5 / 2, cellWidth * 5 + cellWidth * 5 / 2);
-            ctx.strokeText(set_text[i], cellWidth * (i * 6 + 1) + cellWidth * 5 / 2, cellWidth * 5 + cellWidth * 5 / 2);
+            ctx.fillText(set_text[i], cell_width * (i * 6 + 1) + cell_width * 5 / 2, cell_width * 5 + cell_width * 5 / 2);
+            ctx.strokeText(set_text[i], cell_width * (i * 6 + 1) + cell_width * 5 / 2, cell_width * 5 + cell_width * 5 / 2);
           }
 
           paintShape({shape: ShapeEnum.CIRCLE, fill: FillEnum.FULL, color: ColorEnum.GREEN}, 225 - 120, 400, 300);
@@ -531,34 +567,37 @@
 
 
           ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.strokeStyle = "rgb(64, 64, 64)";
           ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.fillStyle = "rgb(64, 64, 64)";
           ctx.beginPath();
-          ctx.moveTo(16 * cellWidth + cellWidth / 3, 16 * cellWidth + 1 * cellWidth / 4);
-          ctx.lineTo(17 * cellWidth + 2 * cellWidth / 3, cellWidth * 17);
-          ctx.lineTo(16 * cellWidth + cellWidth / 3, 16 * cellWidth + 7 * cellWidth / 4);
+          ctx.moveTo(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4);
+          ctx.lineTo(17 * cell_width + 2 * cell_width / 3, cell_width * 17);
+          ctx.lineTo(16 * cell_width + cell_width / 3, 16 * cell_width + 7 * cell_width / 4);
           ctx.closePath();
           ctx.fill();
         }
       };
 
       //---------------------------------------------------------------------
-      var gameOverScreen = {
-        handleMouseClick: function()
+      var GameOverScreen = {
+
+        //-------------------------------------------------------------------
+        handleMouseClick: function ()
         {},
 
-        paint: function()
+        //-------------------------------------------------------------------
+        paint: function ()
         {
           if (scene_change_timer.current == 0)
           {
             for (var i = 0; i < 3; i++)
             {
               randomizeCard(animation_cards[i].card);
-              animation_cards[i].x = Math.random() * canvasWidth;
-              animation_cards[i].y = Math.random() * canvasHeight;
+              animation_cards[i].x = Math.random() * canvas_width;
+              animation_cards[i].y = Math.random() * canvas_height;
             }
           }
 
@@ -568,7 +607,7 @@
             if (scene_change_timer.current == scene_change_timer.period)
             {
               scene_change_timer.current = 0;
-              currentScreen = titleScreen;
+              current_screen = TitleScreen;
               return;
             }
           }
@@ -586,23 +625,26 @@
       };
 
       //---------------------------------------------------------------------
-      var pauseScreen = {
-        handleMouseClick: function()
+      var PauseScreen = {
+
+        //-------------------------------------------------------------------
+        handleMouseClick: function ()
         {
-          if (mouse_y >= 16 * cellWidth &&
-            mouse_y <= 18 * cellWidth &&
-            mouse_x >= 16 * cellWidth &&
-            mouse_x <= 18 * cellWidth)
+          if (mouse_y >= 16 * cell_width &&
+            mouse_y <= 18 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
           {
-            currentScreen = gameScreen;
+            current_screen = GameScreen;
           }
         },
 
-        paint: function()
+        //-------------------------------------------------------------------
+        paint: function ()
         {
           //Lets paint the canvas now
           ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
 
           var other_color = Math.round(255 - ((1 - (Math.abs(floater.fade--) / 100)) * 64));
           var color = "rgb(255," + other_color + "," + other_color + ")";
@@ -629,39 +671,39 @@
             shape: ShapeEnum.CIRCLE,
             fill: FillEnum.FULL,
             color: ColorEnum.GREEN
-          }, canvasWidth / 2 - 300, canvasHeight * 0.382 - 80, 260)
+          }, canvas_width / 2 - 300, canvas_height * 0.382 - 80, 260)
           paintShape({
             shape: ShapeEnum.CIRCLE,
             fill: FillEnum.FULL,
             color: ColorEnum.BLUE
-          }, canvasWidth / 2 + 100, canvasHeight * 0.382 - 50, 160);
+          }, canvas_width / 2 + 100, canvas_height * 0.382 - 50, 160);
           paintShape({
             shape: ShapeEnum.SQUARE,
             fill: FillEnum.FULL,
             color: ColorEnum.RED
-          }, canvasWidth / 2 - 50, canvasHeight * 0.382 - 80, 160);
+          }, canvas_width / 2 - 50, canvas_height * 0.382 - 80, 160);
           paintShape({
             shape: ShapeEnum.SQUARE,
             fill: FillEnum.FULL,
             color: ColorEnum.BLUE
-          }, canvasWidth / 2 - 100, canvasHeight * 0.382 - 50, 100);
+          }, canvas_width / 2 - 100, canvas_height * 0.382 - 50, 100);
 
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillStyle = "rgb(255, 255, 255)";
           ctx.font = "900 120px Arial";
-          ctx.fillText("paused", canvasWidth / 2, canvasHeight * 0.382);
+          ctx.fillText("paused", canvas_width / 2, canvas_height * 0.382);
 
           ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.strokeStyle = "rgb(64, 64, 64)";
           ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.fillStyle = "rgb(64, 64, 64)";
           ctx.beginPath();
-          ctx.moveTo(16 * cellWidth + cellWidth / 3, 16 * cellWidth + 1 * cellWidth / 4);
-          ctx.lineTo(17 * cellWidth + 2 * cellWidth / 3, cellWidth * 17);
-          ctx.lineTo(16 * cellWidth + cellWidth / 3, 16 * cellWidth + 7 * cellWidth / 4);
+          ctx.moveTo(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4);
+          ctx.lineTo(17 * cell_width + 2 * cell_width / 3, cell_width * 17);
+          ctx.lineTo(16 * cell_width + cell_width / 3, 16 * cell_width + 7 * cell_width / 4);
           ctx.closePath();
           ctx.fill();
 
@@ -669,37 +711,40 @@
       };
 
       //---------------------------------------------------------------------
-      var gameScreen = {
-        handleMouseClick: function()
+      var GameScreen = {
+
+        //-------------------------------------------------------------------
+        handleMouseClick: function ()
         {
-          if (mouse_y >= 16 * cellWidth &&
-            mouse_y <= 18 * cellWidth &&
-            mouse_x >= 16 * cellWidth &&
-            mouse_x <= 18 * cellWidth)
+          if (mouse_y >= 16 * cell_width &&
+            mouse_y <= 18 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
           {
-            currentScreen = pauseScreen;
+            current_screen = PauseScreen;
             return;
           }
 
-          var x_distance = (canvasWidth / 2 - mouse_x);
+          var x_distance = (canvas_width / 2 - mouse_x);
           x_distance *= x_distance;
-          var y_distance = (canvasHeight * .75 - mouse_y);
+          var y_distance = (canvas_height * .75 - mouse_y);
           y_distance *= y_distance;
-          if (Math.sqrt(y_distance + x_distance) <= 10 + cellWidth * 2.5)
+          if (Math.sqrt(y_distance + x_distance) <= 10 + cell_width * 2.5)
           {
             user_guessing_set = !user_guessing_set;
           }
         },
 
-        paint: function()
+        //-------------------------------------------------------------------
+        paint: function ()
         {
           // clear the screen
           ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
 
           for (var i = 0; i < 3; ++i)
           {
-            paintCard(cards[i], cellWidth * (i * 6 + 1), cellWidth * 5, cellWidth * 5);
+            paintCard(cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
           }
 
           if (tile_change_timer.active)
@@ -775,7 +820,7 @@
               tile_change_timer.active = true;
               if (user_life == 0)
               {
-                currentScreen = gameOverScreen;
+                current_screen = GameOverScreen;
                 return;
               }
 
@@ -790,20 +835,20 @@
             ctx.beginPath();
             ctx.fillStyle = "rgb(0,255,0)";
             ctx.lineWidth = 1;
-            ctx.arc(canvasWidth / 2, canvasHeight * .75, 2.1 * cellWidth, 0, Math.PI * 2, false);
+            ctx.arc(canvas_width / 2, canvas_height * .75, 2.1 * cell_width, 0, Math.PI * 2, false);
             ctx.fill();
           }
 
           ctx.beginPath();
           ctx.strokeStyle = "rgb(64,64,64)";
           ctx.lineWidth = 20;
-          ctx.arc(canvasWidth / 2, canvasHeight * .75, cellWidth * 2.5, 0, Math.PI * 2, false);
+          ctx.arc(canvas_width / 2, canvas_height * .75, cell_width * 2.5, 0, Math.PI * 2, false);
           ctx.stroke();
           ctx.fillStyle = "rgb(128,128,128)";
           ctx.beginPath();
           ctx.strokeStyle = "rgb(128,128,128)";
           ctx.lineWidth = 20;
-          ctx.arc(canvasWidth / 2, canvasHeight * .75, cellWidth * 2.5, -Math.PI / 2, Math.PI * 2 * tile_change_timer.current / tile_change_timer.period - Math.PI / 2, false);
+          ctx.arc(canvas_width / 2, canvas_height * .75, cell_width * 2.5, -Math.PI / 2, Math.PI * 2 * tile_change_timer.current / tile_change_timer.period - Math.PI / 2, false);
           ctx.stroke();
 
           if (text_pulse_timer.active)
@@ -825,7 +870,7 @@
               button_text = "SET";
             }
             ctx.fillStyle = button_color;
-            ctx.fillText(button_text, canvasWidth / 2, canvasHeight * .75);
+            ctx.fillText(button_text, canvas_width / 2, canvas_height * .75);
           }
 
           if (display_life < user_life)
@@ -841,18 +886,18 @@
             }
           }
           ctx.fillStyle = "rgb(128, 0, 0)";
-          ctx.fillRect(cellWidth + random_x_jitter, 2 * cellWidth + random_y_jitter, canvasWidth - 2 * cellWidth, cellWidth);
+          ctx.fillRect(cell_width + random_x_jitter, 2 * cell_width + random_y_jitter, canvas_width - 2 * cell_width, cell_width);
           ctx.fillStyle = life_color;
-          ctx.fillRect(cellWidth + random_x_jitter, 2 * cellWidth + random_y_jitter, (canvasWidth - 2 * cellWidth) * (display_life) / 100, cellWidth);
+          ctx.fillRect(cell_width + random_x_jitter, 2 * cell_width + random_y_jitter, (canvas_width - 2 * cell_width) * (display_life) / 100, cell_width);
 
           ctx.fillStyle = "rgb(255, 255, 255)";
-          ctx.fillRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.strokeStyle = "rgb(64, 64, 64)";
           ctx.lineWidth = 2;
-          ctx.strokeRect(16 * cellWidth, 16 * cellWidth, 2 * cellWidth, 2 * cellWidth);
+          ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.fillStyle = "rgb(64, 64, 64)";
-          ctx.fillRect(16 * cellWidth + cellWidth / 3, 16 * cellWidth + 1 * cellWidth / 4, cellWidth / 3, 3 * cellWidth / 2);
-          ctx.fillRect(17 * cellWidth + cellWidth / 3, 16 * cellWidth + 1 * cellWidth / 4, cellWidth / 3, 3 * cellWidth / 2);
+          ctx.fillRect(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
+          ctx.fillRect(17 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
         }
       };
 
@@ -864,10 +909,10 @@
         if (mouse_click_pending)
         {
           mouse_click_pending = false;
-          currentScreen.handleMouseClick();
+          current_screen.handleMouseClick();
         }
 
-        currentScreen.paint();
+        current_screen.paint();
 
         var end_time = Date.now();
         var comp_time = end_time - start_time;
@@ -882,49 +927,56 @@
 
       }
 
-      var currentScreen = titleScreen;
+      // launch the game once the document is fully loaded
+      $(document).ready(init);
 
+      Assert.fixupMethodNames(this, "top_level");
+    </script>
+
+    <script>
+      //#######################################################################
+      // testing the game
+
+      //-----------------------------------------------------------------------
+      // simulate the WScript object for the testing library
+      WScript = {
+        log: "",
+        Echo: function (text)
+        {
+          this.log += text + "\n";
+          document.getElementById("testOutput").innerText = this.log;
+          //alert(this.log);
+        }
+      };
+
+
+      //-----------------------------------------------------------------------
       TestSuite = {
-        testSomething: function ()
+
+        //---------------------------------------------------------------------
+        testSuccess: function ()
+        {
+          var v = 0;
+          Assert.eq(v, "v", 0);
+        },
+
+        //---------------------------------------------------------------------
+        testFailure: function ()
         {
           var v = 1;
           Assert.eq(v, "v", 0);
         }
       };
+      Assert.fixupMethodNames(TestSuite, "TestSuite");
 
       //-----------------------------------------------------------------------
       function runTests()
       {
+        WScript.log = "";
         TestingUtil.test(TestSuite);
       }
 
       Assert.fixupMethodNames(this, "top_level");
-
-      //-----------------------------------------------------------------------
-      $(document).ready(function ()
-      {
-        //Canvas stuff
-        canvas = $("#canvas")[0];
-        ctx = canvas.getContext("2d");
-        canvasWidth = $("#canvas").width();
-        canvasHeight = $("#canvas").height();
-
-        //Lets save the cell width in a variable for easy control
-        cellWidth = canvasHeight / 19;
-
-        canvas.addEventListener("mousedown", function (event)
-        {
-          var rect = canvas.getBoundingClientRect();
-          mouse_x = event.clientX - rect.left;
-          mouse_y = event.clientY - rect.top;
-          mouse_click_pending = true;
-        }, false);
-
-        // start processing events
-        setTimeout(eventLoop, 40);
-      });
-
-
     </script>
   </body>
 </html>

@@ -2,12 +2,12 @@
 // Useful assertions.
 // Created 2006-07-09 by Louis Thomas
 
-Assert=new Object();
+Assert={};
 Require=Assert;
 
 Assert.fail=function(sMessage) {
     throw new Error(-1, "AssertionFailure: "+sMessage+"\n"+Assert.getStackTrace());
-}
+};
 
 Assert.formatValue=function(value) {
     if ("string"==typeof value) {
@@ -15,15 +15,15 @@ Assert.formatValue=function(value) {
     } else {
         return ""+value;
     }
-}
+};
 
 Assert.buildMessageAndFail=function(sRel, left, sLeft, right, /*optional*/sRight) {
     if ("undefined"==typeof sRight) {
         Assert.fail("Expected "+sLeft+" "+sRel+" "+Assert.formatValue(right)+", instead "+sLeft+" == "+Assert.formatValue(left)+".");
     } else {
         Assert.fail("Expected "+sLeft+" "+sRel+" "+sRight+", instead "+sLeft+" == "+Assert.formatValue(left)+" and "+sRight+" == "+Assert.formatValue(right)+".");
-     }
-}
+    }
+};
 
 // BTW, it's impossible to create Assert.isDefined, because if the
 // variable is undefined, an exception will be pre-emptively thrown
@@ -31,63 +31,63 @@ Assert.buildMessageAndFail=function(sRel, left, sLeft, right, /*optional*/sRight
 
 Assert.statementNeverExecuted=function() {
     Assert.fail("Expected statement never executed.");
-}
+};
 
 Assert.valueNeverOccurs=function(value, sValue) {
     Assert.fail("Expected "+sValue+" == "+Assert.formatValue(value)+" never occurs.");
-}
+};
 
 Assert.eq=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left==right)) {
         Assert.buildMessageAndFail("==", left, sLeft, right, sRight);
     }
-}
+};
 Assert.neq=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left!=right)) {
         Assert.buildMessageAndFail("!=", left, sLeft, right, sRight);
     }
-}
+};
 
 Assert.gt=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left>right)) {
         Assert.buildMessageAndFail(">", left, sLeft, right, sRight);
     }
-}
+};
 Assert.geq=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left>=right)) {
         Assert.buildMessageAndFail(">=", left, sLeft, right, sRight);
     }
-}
+};
 Assert.lt=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left<right)) {
         Assert.buildMessageAndFail("<", left, sLeft, right, sRight);
     }
-}
+};
 Assert.leq=function(left, sLeft, right, /*optional*/sRight) {
     if (!(left<=right)) {
         Assert.buildMessageAndFail("<=", left, sLeft, right, sRight);
     }
-}
+};
 
-Assert.neqNull=function(value, /*optional*/sValue) { Assert.neq(value, sValue, null); }
-Assert.eqNull=function(value, /*optional*/sValue) { Assert.eq(value, sValue, null); }
-Assert.gtZero=function(value, /*optional*/sValue) { Assert.gt(value, sValue, 0); }
-Assert.geqZero=function(value, /*optional*/sValue) { Assert.geq(value, sValue, 0); }
-Assert.ltZero=function(value, /*optional*/sValue) { Assert.lt(value, sValue, 0); }
-Assert.leqZero=function(value, /*optional*/sValue) { Assert.leq(value, sValue, 0); }
+Assert.neqNull=function(value, /*optional*/sValue) { Assert.neq(value, sValue, null); };
+Assert.eqNull=function(value, /*optional*/sValue) { Assert.eq(value, sValue, null); };
+Assert.gtZero=function(value, /*optional*/sValue) { Assert.gt(value, sValue, 0); };
+Assert.geqZero=function(value, /*optional*/sValue) { Assert.geq(value, sValue, 0); };
+Assert.ltZero=function(value, /*optional*/sValue) { Assert.lt(value, sValue, 0); };
+Assert.leqZero=function(value, /*optional*/sValue) { Assert.leq(value, sValue, 0); };
 
 Assert.isString=function(value, /*optional*/sValue) {
     if ("string"!=typeof value) {
         Assert.buildMessageAndFail("==", typeof value, "typeof "+sValue, "string");
     }
-}
+};
 
 Assert.notEmpty=function(value, /*optional*/sValue) {
     Assert.isString(value, sValue);
     if (0==value.length) {
         Assert.buildMessageAndFail(">", value.length, sValue+".length", 0);
     }
-}
+};
 
 Assert.stringContains=function(sLong, sShort) {
     Assert.isString(sLong, "sLong");
@@ -95,7 +95,7 @@ Assert.stringContains=function(sLong, sShort) {
     if (-1==sLong.indexOf(sShort)) {
         Assert.fail("Expected string \""+sLong+"\" contains string \""+sShort+"\".");
     }
-}
+};
 
 Assert.instanceOf=function(obj, sObj, type, sType) {
     if (!(obj instanceof type)) {
@@ -122,14 +122,14 @@ Assert.instanceOf=function(obj, sObj, type, sType) {
         WScript.Echo("d");
         Assert.fail("Expected "+sObj+" instance of "+sType+", instead "+sObj+" instance of "+sObjType+".");
     }
-}
+};
 //####################################################################
 
 Assert.getStackTrace=function() {
     var sStackTrace="";
 
     var key;
-    var visitedFrames=new Array();
+    var visitedFrames=[];
 
     var frame=Assert.getStackTrace.caller;
     while (true) {
@@ -147,9 +147,11 @@ Assert.getStackTrace=function() {
             return sStackTrace;
         }
     }
-}
+};
 
 //--------------------------------------------------------------------
+/** Set the function names for all function properties on a given
+ * object. Not recursive. */
 Assert.fixupMethodNames=function(obj, sClassName) {
     function fixup() {
         var key;
@@ -164,7 +166,7 @@ Assert.fixupMethodNames=function(obj, sClassName) {
         obj=obj.prototype;
         fixup();
     }
-}
+};
 
 Assert.fixupMethodNames(Assert, "Assert");
 
