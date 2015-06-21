@@ -63,8 +63,6 @@
       animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
       temp_card = randomCard();
       animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
-      temp_card = {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}};
-      animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: temp_card});
       var scene_change_timer = {active: true, period: 40, current: 0};
 
       //set up for main game screen
@@ -101,6 +99,9 @@
           mouse_click_pending = true;
         }, false);
 
+        //can't do this until you've set up canvas_width and canvas_height
+        animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}}});
+        
         current_screen = TitleScreen;
 
         // start processing events
