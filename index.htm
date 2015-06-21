@@ -221,6 +221,15 @@
       }
 
       //---------------------------------------------------------------------
+      function assignCards(lhs_card,rhs_card)
+      {
+        lhs_card.number = rhs_card.number;
+        lhs_card.shape.shape = rhs_card.shape.shape;
+        lhs_card.shape.fill = rhs_card.shape.fill;
+        lhs_card.shape.color = rhs_card.shape.color;
+      }
+
+      //---------------------------------------------------------------------
       function cardsEqual(card1, card2)
       {
         return card1.number == card2.number &&
@@ -472,10 +481,6 @@
           random_right = (random_selection + 2) % 3;
           completingCard(cards[random_selection], cards[random_left], cards[random_right]);
           currently_set = detectSet(cards);
-          if (!currently_set)
-          {
-            alert("Set not detected from complete set!");
-          }
         }
         else if (random_choice == 1)
         {
@@ -484,10 +489,6 @@
           random_right = (random_selection + 2) % 3;
           evilRandom(cards[random_selection], cards[random_left], cards[random_right]);
           currently_set = detectSet(cards);
-          if (currently_set)
-          {
-            alert("Set detected from evil random!");
-          }
         }
         else
         {
@@ -957,17 +958,56 @@
       TestSuite = {
 
         //---------------------------------------------------------------------
-        testSuccess: function ()
+        testAssignCards: function ()
         {
-          var v = 0;
-          Assert.eq(v, "v", 0);
+          var card1 = randomCard();
+          var card2 = randomCard();
+          assignCards(card2,card1);
+          Assert.eq(cardsEqual(card1,card2), "cardsEqual(card1,card2)", true);
         },
 
         //---------------------------------------------------------------------
-        testFailure: function ()
+        testEvilRandomNeverTriggersDetectSet: function()
         {
-          var v = 1;
-          Assert.eq(v, "v", 0);
+          var cardSet = [];
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          for(var i = 0; i < 100; ++i)
+          {
+            evilRandom(cardSet[0],cardSet[1],cardSet[2]);
+            Assert.eq(detectSet(cardSet), "detectSet(cardSet)", false);
+          }
+        },
+
+        //---------------------------------------------------------------------
+        testCompletingCardAlwaysTriggersDetectSet: function()
+        {
+          var cardSet = [];
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          for(var i = 0; i < 100; ++i)
+          {
+            randomizeCard(cardSet[0]);
+            randomizeCard(cardSet[1]);
+            randomizeCard(cardSet[2]);
+            completingCard(cardSet[0],cardSet[1],cardSet[2]);
+            Assert.eq(detectSet(cardSet), "detectSet(cardSet)", true);
+          }
+        },
+
+        //---------------------------------------------------------------------
+        testRandomizeCardCreatesDifferentCard: function ()
+        {
+          var card1 = randomCard();
+          var card2 = randomCard();
+          for(var i = 0; i < 100; ++i)
+          {
+            assignCards(card2,card1);
+            randomizeCard(card1);
+            Assert.eq(cardsEqual(card1,card2), "cardsEqual(card1,card2)", false);
+          }
         }
       };
       Assert.fixupMethodNames(TestSuite, "TestSuite");
