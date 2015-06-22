@@ -1009,6 +1009,8 @@
           cardSet.push(randomCard());
           for(var i = 0; i < 100; ++i)
           {
+            randomizeCard(cardSet[1]);
+            randomizeCard(cardSet[2]);
             assignCards(old_card, cardSet[0]);
             evilRandom(cardSet[0],cardSet[1],cardSet[2]);
             Assert.eq(cardsEqual(cardSet[0],old_card), "cardsEqual(cardSet[0],old_card)", false);
