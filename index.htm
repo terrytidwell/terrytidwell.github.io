@@ -976,6 +976,8 @@
           cardSet.push(randomCard());
           for(var i = 0; i < 100; ++i)
           {
+            randomizeCard(cardSet[1]);
+            randomizeCard(cardSet[2]);
             evilRandom(cardSet[0],cardSet[1],cardSet[2]);
             Assert.eq(detectSet(cardSet), "detectSet(cardSet)", false);
           }
@@ -990,7 +992,6 @@
           cardSet.push(randomCard());
           for(var i = 0; i < 100; ++i)
           {
-            randomizeCard(cardSet[0]);
             randomizeCard(cardSet[1]);
             randomizeCard(cardSet[2]);
             completingCard(cardSet[0],cardSet[1],cardSet[2]);
@@ -998,6 +999,22 @@
           }
         },
 
+        //---------------------------------------------------------------------
+        testEvilRandomCreatesDifferentCard: function ()
+        {
+          var old_card = randomCard();
+          var cardSet = [];
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          cardSet.push(randomCard());
+          for(var i = 0; i < 100; ++i)
+          {
+            assignCards(old_card, cardSet[0]);
+            evilRandom(cardSet[0],cardSet[1],cardSet[2]);
+            Assert.eq(cardsEqual(cardSet[0],old_card), "cardsEqual(cardSet[0],old_card)", false);
+          }       
+        },
+        
         //---------------------------------------------------------------------
         testRandomizeCardCreatesDifferentCard: function ()
         {
