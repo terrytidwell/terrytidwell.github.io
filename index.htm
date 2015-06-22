@@ -74,6 +74,8 @@
       var user_guessing_set = false;
       var user_life = 50;
       var display_life = 50;
+      var current_quota = 0;
+      var quota_goal = 10;
       var tile_change_timer = {active: true, period: 40, current: 0};
       var reaction_timer = {active: false, period: 10, current: 0};
       var success_timer = {active: false, period: 10, current: 0};
@@ -118,6 +120,8 @@
         user_guessing_set = false;
         user_life = 50;
         display_life = 50;
+        current_quota = 0;
+        quota_goal = 10;
         tile_change_timer.active = true;
         /*
          Testing results:
@@ -770,6 +774,13 @@
               {
                 if (currently_set)
                 {
+                  current_quota++;
+                  if(current_quota == quota_goal)
+                  {
+                    current_quota = 0;
+                    quota_goal += 5;
+                    tile_change_timer.period -= 5;
+                  }
                   success_timer.active = true;
                   success_timer.current = 0;
                   user_life += 5;
