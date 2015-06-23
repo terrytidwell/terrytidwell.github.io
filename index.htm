@@ -599,11 +599,17 @@
         {
           if(!scene_change_timer.active)
           {
-            scene_change_timer.active = true;
-            scene_change_timer.current = 0;
-            game_over_fade_in_timer.active = false;
-            game_over_fade_in_timer.current = 0;
-            current_screen = TitleScreen;
+            if (mouse_y >= 16 * cell_width &&
+              mouse_y <= 18 * cell_width &&
+              mouse_x >= 16 * cell_width &&
+              mouse_x <= 18 * cell_width)
+            {
+              scene_change_timer.active = true;
+              scene_change_timer.current = 0;
+              game_over_fade_in_timer.active = false;
+              game_over_fade_in_timer.current = 0;
+              current_screen = TitleScreen;
+            }
           }
         },
 
@@ -667,6 +673,19 @@
             
             ctx.font = "500 74px Arial";
             ctx.fillText("sets: "+total_sets, canvas_width / 2, 240 + canvas_height * 0.382);
+            
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.beginPath();
+            ctx.moveTo(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4);
+            ctx.lineTo(17 * cell_width + 2 * cell_width / 3, cell_width * 17);
+            ctx.lineTo(16 * cell_width + cell_width / 3, 16 * cell_width + 7 * cell_width / 4);
+            ctx.closePath();
+            ctx.fill();
           }
         }
       };
