@@ -64,6 +64,8 @@
       temp_card = randomCard();
       animation_cards.push({x: Math.random() * canvas_width, y: Math.random() * canvas_height, card: temp_card});
       var scene_change_timer = {active: true, period: 40, current: 0};
+      var game_over_fade_in_timer = {active: false, period: 40, current: 0};
+      var fill_amount = 0;
 
       //set up for main game screen
       var cards = [];
@@ -76,6 +78,7 @@
       var display_life = 50;
       var current_quota = 0;
       var quota_goal = 10;
+      var total_sets = 0;
       var tile_change_timer = {active: true, period: 40, current: 0};
       var reaction_timer = {active: false, period: 10, current: 0};
       var success_timer = {active: false, period: 10, current: 0};
@@ -122,6 +125,7 @@
         display_life = 50;
         current_quota = 0;
         quota_goal = 10;
+        total_sets = 0;
         tile_change_timer.active = true;
         /*
          Testing results:
@@ -592,13 +596,24 @@
 
         //-------------------------------------------------------------------
         handleMouseClick: function ()
-        {},
+        {
+          if(!scene_change_timer.active)
+          {
+            scene_change_timer.active = true;
+            scene_change_timer.current = 0;
+            game_over_fade_in_timer.current = 0;
+            current_screen = TitleScreen;
+          }
+        },
 
         //-------------------------------------------------------------------
         paint: function ()
         {
           if (scene_change_timer.current == 0)
           {
+            game_over_fade_in_timer.active = false;
+            game_over_fade_in_timer.current = 0;
+            fill_amount = 0;
             for (var i = 0; i < 3; i++)
             {
               randomizeCard(animation_cards[i].card);
@@ -612,20 +627,45 @@
             scene_change_timer.current++;
             if (scene_change_timer.current == scene_change_timer.period)
             {
-              scene_change_timer.current = 0;
-              current_screen = TitleScreen;
+              scene_change_timer.active = false;
+              game_over_fade_in_timer.active = true;
               return;
             }
+            
+            var size = scene_change_timer.current;
+            size *= size;
+            size *= size;
+            size *= .005;
+            //alert(size);
+            for (var i = 0; i < 4; i++)
+            {
+              paintShape(animation_cards[i].card.shape, animation_cards[i].x - size / 2, animation_cards[i].y - size / 2, size);
+            }
           }
-
-          var size = scene_change_timer.current;
-          size *= size;
-          size *= size;
-          size *= .005;
-          //alert(size);
-          for (var i = 0; i < 4; i++)
+          
+          if (game_over_fade_in_timer.active)
           {
-            paintShape(animation_cards[i].card.shape, animation_cards[i].x - size / 2, animation_cards[i].y - size / 2, size);
+            game_over_fade_in_timer.current++;
+            if (game_over_fade_in_timer.current == game_over_fade_in_timer.period)
+            {
+              game_over_fade_in_timer.active = false;
+            }
+          }
+          
+          if (!scene_change_timer.active)
+          {
+            ctx.fillStyle = "rgb(0, 0, 255)";
+            ctx.fillRect(0, 0, canvas_width, canvas_height);
+            fill_amount = Math.round(255 * (game_over_fade_in_timer.current / game_over_fade_in_timer.period));
+            ctx.fillStyle = "rgb(" + fill_amount + ", " + fill_amount + ", 255)";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "800 120px Arial";
+            ctx.fillText("game", canvas_width / 2, canvas_height * 0.382);
+            ctx.fillText("over", canvas_width / 2, 90 + canvas_height * 0.382);
+            
+            ctx.font = "500 74px Arial";
+            ctx.fillText("sets: "+total_sets, canvas_width / 2, 240 + canvas_height * 0.382);
           }
         }
       };
@@ -775,6 +815,7 @@
                 if (currently_set)
                 {
                   current_quota++;
+                  total_sets++;
                   if(current_quota == quota_goal)
                   {
                     current_quota = 0;
@@ -911,6 +952,12 @@
           ctx.fillStyle = "rgb(64, 64, 64)";
           ctx.fillRect(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
           ctx.fillRect(17 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
+          
+          ctx.fillStyle = "rgb(64,64,64)";
+          ctx.textAlign = "start";
+          ctx.textBaseline = "bottom";
+          ctx.font = "800 " + 2 * cell_width + "px Arial";
+          ctx.fillText(total_sets, cell_width, canvas_height - cell_width / 2);
         }
       };
 
