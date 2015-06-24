@@ -106,6 +106,7 @@
 
         //can't do this until you've set up canvas_width and canvas_height
         animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}}});
+        Tutorial.init();
         
         current_screen = TitleScreen;
 
@@ -507,11 +508,529 @@
       }
 
       //---------------------------------------------------------------------
+      var Tutorial = {
+        
+        scratches : [],
+        countdown : 4,
+        second_countdown_timer : {active: true, period: 25, current: 0},
+        title_sequence_timer : {active: false, period: 25, current: 0},
+        slide_number : 0,
+        demo_repeat_timer : {active: false, period: 25, current: 0},
+        demo_sequence : 0,
+        demo_cards : [],
+        demo_text : [],
+        reset_demo_cards : true,
+      
+        //-------------------------------------------------------------------
+        init: function ()
+        {
+          this.scratches.push({x_top: 30, x_stray:-5, age:0, active:100, period:170});
+          this.scratches.push({x_top: 120, x_stray:5, age:0, active:150, period:190});
+          this.demo_cards.push(randomCard());
+          this.demo_cards.push(randomCard());
+          this.demo_cards.push(randomCard());
+          this.demo_text.push("");
+          this.demo_text.push("");
+          this.demo_text.push("");
+          this.demo_text.push("");
+        },
+        
+        //-------------------------------------------------------------------
+        reset: function ()
+        {
+          this.scratches[0].x_top = 30;
+          this.scratches[0].x_stray = -5;
+          this.scratches[0].age = 0; 
+          this.scratches[0].active = 100;
+          this.scratches[0].period = 170;
+          this.scratches[1].x_top = 120;
+          this.scratches[1].x_stray = 5;
+          this.scratches[1].age = 0; 
+          this.scratches[1].active = 150;
+          this.scratches[1].period = 190;
+          this.countdown = 4;
+          this.second_countdown_timer.active = true;
+          this.second_countdown_timer.current = 0;
+          this.title_sequence_timer.active = false;
+          this.title_sequence_timer.current = 0;
+          this.slide_number = 0;
+          this.demo_repeat_timer.active = false;
+          this.demo_repeat_timer.current = 0;
+          this.demo_sequence = 0;
+          this.reset_demo_cards = true;
+        },
+      
+        //-------------------------------------------------------------------
+        demoText: function (a, b, c, demo_text)
+        {
+          if(compareElements(a, b, c))
+          {
+            if(a == b)
+            {
+              return "Each element's " + demo_text + " is the same"
+            }
+            else
+            {
+              return "Each element's " + demo_text +  " is distinct"
+            }
+          }
+          else
+          {
+            return "Each element's " + demo_text + " is neither the same nor distinct"
+          }
+        },
+      
+        //-------------------------------------------------------------------
+        handleMouseClick: function ()
+        {
+          if(this.demo_repeat_timer.active &&
+            mouse_y >= 16 * cell_width &&
+            mouse_y <= 18 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
+          {
+            resetGame();
+            current_screen = TitleScreen;
+          }
+        },
+        
+        paint: function ()
+        {
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
+          
+          jiggle_x = Math.random() * 1;
+          jiggle_y = Math.random() * 1;
+          ctx.setTransform(1, 0, 0, 1, jiggle_x, jiggle_y);
+          
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = "rgb(0, 0, 0)";
+          ctx.fillStyle = "rgb(128, 128, 128)";
+          
+          //fill
+          if(this.second_countdown_timer.active)
+          {
+            this.second_countdown_timer.current++;
+            if(this.second_countdown_timer.current >= this.second_countdown_timer.period)
+            {
+              this.second_countdown_timer.current = 0;
+              this.countdown--;
+              if(this.countdown == 0)
+              {
+                this.countdown = 1;
+                this.second_countdown_timer.active = false;
+                this.title_sequence_timer.active = true;
+              }
+            }
+          
+          
+            ctx.beginPath();
+            ctx.moveTo(canvas_width / 2, canvas_height / 2);
+            ctx.lineTo(canvas_width / 2, -canvas_height / 2);
+            var percent_covered = 1.5 + 2 * this.second_countdown_timer.current / this.second_countdown_timer.period;
+            ctx.arc(canvas_width / 2, canvas_height / 2, canvas_height, 1.5*Math.PI, percent_covered*Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(canvas_width / 2, canvas_height / 2);
+            ctx.lineTo(canvas_width / 2, -canvas_height / 2);
+            var percent_covered = 1.5 + 2 * this.second_countdown_timer.current / this.second_countdown_timer.period;
+            ctx.arc(canvas_width / 2, canvas_height / 2, canvas_height, 1.5*Math.PI, percent_covered*Math.PI);
+            ctx.closePath();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0,canvas_height / 2);
+            ctx.lineTo(canvas_width, canvas_height / 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(canvas_width / 2, 0);
+            ctx.lineTo(canvas_width / 2, canvas_height);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(canvas_width / 2, canvas_height / 2, 160, 0, 2*Math.PI);
+            ctx.arc(canvas_width / 2, canvas_height / 2, 200, 0, 2*Math.PI);
+            ctx.stroke();
+            
+            ctx.font="300px Arial";
+            ctx.fillStyle = "rgb(0, 0, 0)";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(this.countdown, canvas_width / 2, canvas_height / 2);
+          }
+          
+          if(this.title_sequence_timer.active)
+          {
+            this.title_sequence_timer.current++;
+            if(this.title_sequence_timer.current >= this.title_sequence_timer.period)
+            {
+              this.title_sequence_timer.current = 0;
+              this.slide_number += 1;
+              if (this.slide_number > 64)
+              {
+                this.title_sequence_timer.active = false;
+                this.demo_repeat_timer.active = true;
+              }
+            }
+            if(this.slide_number >= 0 && this.slide_number < 3)
+            {
+              ctx.font="Bold 50px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("SETRONIC", canvas_width / 2, -25 + canvas_height / 2);
+              ctx.fillText("INDUSTRIES", canvas_width / 2, 25 + canvas_height / 2);
+              ctx.font="Bold 20px Arial";
+              ctx.strokeStyle = "rgb(0, 0, 0)";
+              ctx.lineWidth=3;
+              ctx.beginPath();
+              ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
+              ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
+              ctx.stroke();
+              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+            }
+            else if(this.slide_number >= 3 && this.slide_number < 6)
+            {
+              ctx.font="Bold 50px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("NEW EMPLOYEE", canvas_width / 2, -25 + canvas_height / 2);
+              ctx.fillText("ORIENTATION", canvas_width / 2, 25 + canvas_height / 2);
+              ctx.font="Bold 20px Arial";
+              ctx.strokeStyle = "rgb(0, 0, 0)";
+              ctx.lineWidth=3;
+              ctx.beginPath();
+              ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
+              ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
+              ctx.stroke();
+              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+            }
+            else if(this.slide_number >= 6 && this.slide_number < 9)
+            {
+              ctx.font="Bold 50px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("HOW TO", canvas_width / 2, -50 + canvas_height / 2);
+              ctx.fillText("RECOGNIZE", canvas_width / 2,canvas_height / 2);
+              ctx.fillText("A SET", canvas_width / 2, 50 + canvas_height / 2);
+              ctx.font="Bold 20px Arial";
+              ctx.strokeStyle = "rgb(0, 0, 0)";
+              ctx.lineWidth=3;
+              ctx.beginPath();
+              ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
+              ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
+              ctx.stroke();
+              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+            }
+            else if(this.slide_number >= 10 && this.slide_number < 21)
+            {
+              ctx.font="Bold 16px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              ctx.textAlign = "center";
+              ctx.textAlign = "top";
+              ctx.fillText("Each Setronic set is composed of three elements.", canvas_width / 2, cell_width);
+              if(this.slide_number > 11)
+              {
+                ctx.fillText("Each element has four qualities:", canvas_width / 2, 24 + cell_width);
+              }
+              if(this.slide_number >= 13 && this.slide_number < 15)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.RED, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[2] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.GREEN, fill:FillEnum.FULL}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.font="Bold 24px Arial";
+                ctx.fillText("Color", canvas_width / 2, cell_width * 11)
+              }
+              if(this.slide_number >= 15 && this.slide_number < 17)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:1, shape:{shape:ShapeEnum.TRIANGLE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[2] = {number:1, shape:{shape:ShapeEnum.CIRCLE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.font="Bold 24px Arial";
+                ctx.fillText("Shape", canvas_width / 2, cell_width * 11)
+              }
+              if(this.slide_number >= 17 && this.slide_number < 19)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.STRIPED}};
+                this.demo_cards[2] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.EMPTY}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.font="Bold 24px Arial";
+                ctx.fillText("Fill", canvas_width / 2, cell_width * 11)
+              }
+              if(this.slide_number >= 19 && this.slide_number < 21)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:2, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[2] = {number:3, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.font="Bold 24px Arial";
+                ctx.fillText("Quantity", canvas_width / 2, cell_width * 11)
+              }
+            }
+            else if(this.slide_number >= 21 && this.slide_number < 40)
+            {
+              ctx.font="Bold 16px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              ctx.fillText("A Setronic set is a group of three elements in which", canvas_width / 2, cell_width);
+              if(this.slide_number >= 23)
+              {
+                ctx.fillText("Each element's quality is the same", canvas_width / 2, 24 + cell_width);
+              }
+              if(this.slide_number >= 24)
+              {
+                ctx.fillText("-OR-", canvas_width / 2, 48 + cell_width);
+              }
+              if(this.slide_number >= 25)
+              {
+                ctx.fillText("Each element's quality is distinct", canvas_width / 2, 72 + cell_width);
+              }
+              if(this.slide_number >= 27)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:2, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[2] = {number:3, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+              }
+              if(this.slide_number >= 29)
+              {
+                ctx.font="Bold 16px Arial";
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText("This is a set", canvas_width / 2, 11 * cell_width);
+              }
+              if(this.slide_number >= 31)
+              {
+                ctx.fillText("Each element's color is the same", canvas_width / 2, 24 + 11 * cell_width);
+              }
+              if(this.slide_number >= 33)
+              {
+                ctx.fillText("Each element's shape is the same", canvas_width / 2, 48 + 11 * cell_width);
+              }
+              if(this.slide_number >= 35)
+              {
+                ctx.fillText("Each element's fill is the same", canvas_width / 2, 72 + 11 * cell_width);
+              }
+              if(this.slide_number >= 37)
+              {
+                ctx.fillText("Each element's quantity is distinct", canvas_width / 2, 96 + 11 * cell_width);
+              }
+            }
+            else if(this.slide_number >= 40 && this.slide_number < 53)
+            {
+              if(this.slide_number >= 40)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:2, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.RED, fill:FillEnum.STRIPED}};
+                this.demo_cards[2] = {number:3, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.GREEN, fill:FillEnum.EMPTY}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+              }
+              if(this.slide_number >= 42)
+              {
+                ctx.font="Bold 16px Arial";
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText("This is also a set", canvas_width / 2, 11 * cell_width);
+              }
+              if(this.slide_number >= 44)
+              {
+                ctx.fillText("Each element's color is distinct", canvas_width / 2, 24 + 11 * cell_width);
+              }
+              if(this.slide_number >= 46)
+              {
+                ctx.fillText("Each element's shape is the same", canvas_width / 2, 48 + 11 * cell_width);
+              }
+              if(this.slide_number >= 48)
+              {
+                ctx.fillText("Each element's fill is distinct", canvas_width / 2, 72 + 11 * cell_width);
+              }
+              if(this.slide_number >= 50)
+              {
+                ctx.fillText("Each element's quantity is distinct", canvas_width / 2, 96 + 11 * cell_width);
+              }
+            }
+            else if(this.slide_number >= 53 && this.slide_number < 64)
+            {
+              if(this.slide_number >= 53)
+              {
+                this.demo_cards[0] = {number:1, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.BLUE, fill:FillEnum.FULL}};
+                this.demo_cards[1] = {number:2, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.RED, fill:FillEnum.STRIPED}};
+                this.demo_cards[2] = {number:3, shape:{shape:ShapeEnum.SQUARE, color:ColorEnum.GREEN, fill:FillEnum.STRIPED}};
+                for (var i = 0; i < 3; ++i)
+                {
+                  paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+                }
+              }
+              if(this.slide_number >= 55)
+              {
+                ctx.font="Bold 16px Arial";
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText("This is NOT a set", canvas_width / 2, 11 * cell_width);
+              }
+              if(this.slide_number >= 57)
+              {
+                ctx.fillText("Each element's color is distinct", canvas_width / 2, 24 + 11 * cell_width);
+              }
+              if(this.slide_number >= 59)
+              {
+                ctx.fillText("Each element's shape is the same", canvas_width / 2, 48 + 11 * cell_width);
+              }
+              if(this.slide_number >= 61)
+              {
+                ctx.fillText("But each element's fill is neither the same nor distinct", canvas_width / 2, 72 + 11 * cell_width);
+              }
+            }
+          }
+          
+          if (this.demo_repeat_timer.active)
+          {
+            if (this.reset_demo_cards)
+            {
+              this.reset_demo_cards = false;
+              this.demo_text[0] = "This is";
+              randomizeCard(this.demo_cards[0]);
+              randomizeCard(this.demo_cards[1]);
+              if(Math.random() < .5)
+              {
+                evilRandom(this.demo_cards[2], this.demo_cards[0], this.demo_cards[1]);
+                this.demo_text[0] += " NOT a set";
+              }
+              else
+              {
+                completingCard(this.demo_cards[2], this.demo_cards[0], this.demo_cards[1]);
+                this.demo_text[0] += " a set";
+              }
+              this.demo_text[4] = "quantity";
+              this.demo_text[4] = this.demoText(this.demo_cards[0].number - 1, this.demo_cards[1].number - 1, this.demo_cards[2].number - 1, this.demo_text[4]);
+              this.demo_text[2] = "shape";
+              this.demo_text[2] = this.demoText(this.demo_cards[0].shape.shape, this.demo_cards[1].shape.shape, this.demo_cards[2].shape.shape, this.demo_text[2]);
+              this.demo_text[1] = "color";
+              this.demo_text[1] = this.demoText(this.demo_cards[0].shape.color, this.demo_cards[1].shape.color, this.demo_cards[2].shape.color, this.demo_text[1]);
+              this.demo_text[3] = "fill";
+              this.demo_text[3] = this.demoText(this.demo_cards[0].shape.fill, this.demo_cards[1].shape.fill, this.demo_cards[2].shape.fill, this.demo_text[3]);
+            }
+            
+            this.demo_repeat_timer.current++;
+            if (this.demo_repeat_timer.current >= this.demo_repeat_timer.period)
+            {
+              this.demo_repeat_timer.current = 0;
+              this.demo_sequence += 1;
+              
+              if(this.demo_sequence >= 15)
+              {
+                this.demo_sequence = 0;
+                this.reset_demo_cards = true;
+              }
+            }
+            for (var i = 0; i < 3; ++i)
+            {
+              paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+            }
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.beginPath();
+            ctx.moveTo(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4);
+            ctx.lineTo(17 * cell_width + 2 * cell_width / 3, cell_width * 17);
+            ctx.lineTo(16 * cell_width + cell_width / 3, 16 * cell_width + 7 * cell_width / 4);
+            ctx.closePath();
+            ctx.fill();
+            for (var j = 0; j < 5; ++j)
+            {
+              if (this.demo_sequence >= j * 2 + 2)
+              { 
+                ctx.textAlign = "center";
+                ctx.textAlign = "top";
+                ctx.font="Bold 16px Arial";
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText(this.demo_text[j], canvas_width / 2, j * 24 + 11 * cell_width);
+              }
+            }
+          }
+          
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.fillStyle = "rgb(0, 0, 0)";
+          ctx.globalAlpha=0.25
+          if(Math.random() < .15)
+          {
+            ctx.globalAlpha=0.35;
+          }
+          ctx.strokeStyle = "rgb(196, 196, 196)";
+          ctx.fillSytle = ctx.strokeStyle;
+          for(var j = 0; j < 1; j++)
+          {
+            ctx.beginPath();
+            ctx.arc(Math.random()*canvas_height,Math.random()*canvas_height,2,0,2*Math.PI);
+            ctx.fill();
+          }
+          ctx.lineWidth = 1;
+          for(var j = 0; j < 2; j++)
+          {
+            this.scratches[j].age++;
+            if(this.scratches[j].age >= this.scratches[j].period)
+            {
+              this.scratches[j].age = 0;
+              this.scratches[j].x_top = Math.random() * canvas_width;
+              this.scratches[j].x_stray = Math.random() * 9 - 4.5;
+            }
+            if(this.scratches[j].age < this.scratches[j].active && this.scratches[j].age % 10 != 0)
+            {
+              ctx.beginPath();
+              ctx.moveTo(this.scratches[j].x_top,0);
+              ctx.lineTo(this.scratches[j].x_top+this.scratches[j].x_stray,canvas_height);
+              this.scratches[j].x_top += Math.random() * 7 - 3.5;
+              this.scratches[j].x_stray += Math.random() * 2- 1;
+              ctx.stroke();
+            }
+          }
+          ctx.fillStyle = "rgb(0, 0, 0)";
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
+          ctx.globalAlpha=1;
+        }
+      }
+      
+      //---------------------------------------------------------------------
       var TitleScreen = {
 
         //-------------------------------------------------------------------
         handleMouseClick: function ()
         {
+          if (mouse_y >= 13 * cell_width &&
+            mouse_y <= 15 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
+          {
+            Tutorial.reset();
+            current_screen = Tutorial;
+          }
           if (mouse_y >= 16 * cell_width &&
             mouse_y <= 18 * cell_width &&
             mouse_x >= 16 * cell_width &&
@@ -576,6 +1095,16 @@
           ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 
+          ctx.fillStyle = "rgb(255, 255, 255)";
+          ctx.fillRect(16 * cell_width, 13 * cell_width, 2 * cell_width, 2 * cell_width);
+          ctx.strokeStyle = "rgb(64, 64, 64)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(16 * cell_width, 13 * cell_width, 2 * cell_width, 2 * cell_width);
+          ctx.font = Math.round(2 * cell_width) + "px Arial";
+          ctx.fillStyle = "rgb(64, 64, 64)";
+          ctx.fillText("?", 17 * cell_width, 14 * cell_width);
+          
+          
           ctx.fillStyle = "rgb(255, 255, 255)";
           ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
           ctx.strokeStyle = "rgb(64, 64, 64)";
