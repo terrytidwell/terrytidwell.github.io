@@ -520,6 +520,13 @@
         demo_cards : [],
         demo_text : [],
         reset_demo_cards : true,
+        quiz_active : false,
+        quiz_timer : {active: false, period: 75, current: 0},
+        quiz_cards : [],
+        quiz_answer : 0,
+        quiz_correctly_answered : true,
+        quiz_reaction_timer : {active: false, period: 50, current: 0},
+        
       
         //-------------------------------------------------------------------
         init: function ()
@@ -533,6 +540,10 @@
           this.demo_text.push("");
           this.demo_text.push("");
           this.demo_text.push("");
+          this.quiz_cards.push(randomCard());
+          this.quiz_cards.push(randomCard());
+          this.quiz_cards.push(randomCard());
+          this.quiz_cards.push(randomCard());          
         },
         
         //-------------------------------------------------------------------
@@ -558,6 +569,12 @@
           this.demo_repeat_timer.current = 0;
           this.demo_sequence = 0;
           this.reset_demo_cards = true;
+          this.quiz_active = false;
+          this.quiz_timer.active = false;
+          this.quiz_timer.current = 0;
+          this.quiz_correctly_answered = true;
+          this.quiz_reaction_timer.active = false;
+          this.quiz_reaction_timer.current = 0;
         },
       
         //-------------------------------------------------------------------
@@ -583,7 +600,42 @@
         //-------------------------------------------------------------------
         handleMouseClick: function ()
         {
-          if(this.demo_repeat_timer.active &&
+          if(this.quiz_active &&
+             !this.quiz_timer.active &&
+             !this.quiz_reaction_timer.active &&
+             mouse_y >= 13 * cell_width &&
+             mouse_y <= 17 * cell_width)
+          {
+            var quiz_response = false;
+            var quiz_response_value = 2;
+            if(mouse_x >= 4 * cell_width &&
+              mouse_x <= 8 * cell_width)
+            {
+              quiz_response = true;
+              quiz_response_value = 2;
+            }
+            if(mouse_x >= 11 * cell_width &&
+              mouse_x <= 15 * cell_width)
+            {
+              quiz_response = true;
+              quiz_response_value = 3;
+            }
+            if(quiz_response)
+            {
+              this.quiz_reaction_timer.active = true;
+              this.quiz_reaction_timer.current = 0;
+              if(this.quiz_answer != quiz_response_value)
+              {
+                this.quiz_correctly_answered = false;
+              }
+              else
+              {
+                this.quiz_correctly_answered = true;
+              }
+            }
+          }
+          if((this.demo_repeat_timer.active ||
+            this.quiz_active) &&
             mouse_y >= 16 * cell_width &&
             mouse_y <= 18 * cell_width &&
             mouse_x >= 16 * cell_width &&
@@ -670,7 +722,9 @@
               if (this.slide_number > 64)
               {
                 this.title_sequence_timer.active = false;
-                this.demo_repeat_timer.active = true;
+                this.quiz_timer.active = true;
+                this.quiz_active = true;
+                //this.demo_repeat_timer.active = true;
               }
             }
             if(this.slide_number >= 0 && this.slide_number < 3)
@@ -688,7 +742,7 @@
               ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
               ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
               ctx.stroke();
-              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+              ctx.fillText("COPYRIGHT   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
             }
             else if(this.slide_number >= 3 && this.slide_number < 6)
             {
@@ -705,7 +759,7 @@
               ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
               ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
               ctx.stroke();
-              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+              ctx.fillText("COPYRIGHT   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
             }
             else if(this.slide_number >= 6 && this.slide_number < 9)
             {
@@ -723,7 +777,7 @@
               ctx.moveTo(cell_width, canvas_height - 3 * cell_width);
               ctx.lineTo(canvas_width - cell_width, canvas_height - 3 * cell_width);
               ctx.stroke();
-              ctx.fillText("Copyright   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
+              ctx.fillText("COPYRIGHT   MCMLI", canvas_width / 2, canvas_height - 2 * cell_width);
             }
             else if(this.slide_number >= 10 && this.slide_number < 21)
             {
@@ -905,6 +959,106 @@
                 ctx.fillText("But each element's fill is neither the same nor distinct", canvas_width / 2, 72 + 11 * cell_width);
               }
             }
+          }
+          
+          /*
+          quiz_active = true;
+          quiz_timer : {active: false, period: 50, current: 0},
+          quiz_cards : [],
+          quiz_answer : 0,
+          */
+          
+          if(this.quiz_active)
+          {
+            if(this.quiz_timer.active)
+            {
+              if(this.quiz_timer.current == 0)
+              {
+                //reset things
+                randomizeCard(this.quiz_cards[0]);
+                randomizeCard(this.quiz_cards[1]);
+                this.quiz_answer = Math.round(Math.random() + 2);
+                var other_card = 3;
+                if(this.quiz_answer == 3)
+                {
+                  other_card = 2;
+                }
+                completingCard(this.quiz_cards[this.quiz_answer],this.quiz_cards[0],this.quiz_cards[1]);
+                evilRandom(this.quiz_cards[other_card],this.quiz_cards[0],this.quiz_cards[1]);
+              }
+              this.quiz_timer.current++;
+              if(this.quiz_timer.current >= this.quiz_timer.period)
+              {
+                this.quiz_timer.current = this.quiz_timer.period;
+                this.quiz_timer.active = false;
+              }
+            }
+            
+            var card_count = Math.floor(5*this.quiz_timer.current/this.quiz_timer.period);
+            ctx.textAlign = "center";
+            ctx.textAlign = "top";
+            ctx.font="Bold 24px Arial";
+            ctx.fillStyle = "rgb(0,0,0)";
+            ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width*2);
+            ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width*3);
+            for (var i = 0; i < card_count && i < 2; ++i)
+            {
+              paintCard(this.quiz_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
+            }
+            if (card_count > 2)
+            {
+              if(!this.quiz_reaction_timer.active)
+              {
+                ctx.textAlign = "center";
+                ctx.textAlign = "top";
+                ctx.font= Math.round(cell_width * 5) + "px Arial";
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+              }
+              else
+              {
+                paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+              }
+            }
+            //x: 4 - 8 11 - 15
+            //y: 13 - 17
+            for (i = 3; i < card_count && i < 5; ++i)
+            {
+              paintCard(this.quiz_cards[i-1], cell_width * (7 * i - 17), cell_width * 13, cell_width * 4);
+            }
+            if(this.quiz_reaction_timer.active)
+            {
+              this.quiz_reaction_timer.current++;
+              if(this.quiz_reaction_timer.current >= this.quiz_reaction_timer.period)
+              {
+                this.quiz_reaction_timer.current = this.quiz_reaction_timer.period;
+                this.quiz_reaction_timer.active = false;
+                this.quiz_timer.current = 0;
+                this.quiz_timer.active = true;
+              }
+              var response_text = "CORRECT!";
+              if(!this.quiz_correctly_answered)
+              {
+                response_text = "SORRY, THAT IS INCORRECT.";
+              }
+              ctx.textAlign = "center";
+              ctx.textAlign = "top";
+              ctx.font="Bold 24px Arial";
+              ctx.fillStyle = "rgb(0,0,0)";
+              ctx.fillText(response_text,canvas_width/2, cell_width * 12);
+            }
+            ctx.fillStyle = "rgb(255, 255, 255)";
+            ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.strokeStyle = "rgb(64, 64, 64)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+            ctx.fillStyle = "rgb(64, 64, 64)";
+            ctx.beginPath();
+            ctx.moveTo(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4);
+            ctx.lineTo(17 * cell_width + 2 * cell_width / 3, cell_width * 17);
+            ctx.lineTo(16 * cell_width + cell_width / 3, 16 * cell_width + 7 * cell_width / 4);
+            ctx.closePath();
+            ctx.fill();
           }
           
           if (this.demo_repeat_timer.active)
