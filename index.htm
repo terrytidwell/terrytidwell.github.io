@@ -526,6 +526,7 @@
         quiz_answer : 0,
         quiz_correctly_answered : true,
         quiz_reaction_timer : {active: false, period: 50, current: 0},
+        quiz_type : 0,
         
       
         //-------------------------------------------------------------------
@@ -975,6 +976,7 @@
               if(this.quiz_timer.current == 0)
               {
                 //reset things
+                this.quiz_type = Math.round(Math.random());
                 randomizeCard(this.quiz_cards[0]);
                 randomizeCard(this.quiz_cards[1]);
                 this.quiz_answer = Math.round(Math.random() + 2);
@@ -999,32 +1001,65 @@
             ctx.textAlign = "top";
             ctx.font="Bold 24px Arial";
             ctx.fillStyle = "rgb(0,0,0)";
-            ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width*2);
-            ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width*3);
+            if (this.quiz_type == 0)
+            {
+              ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width * 2);
+              ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width * 3);
+            }
+            else
+            {
+              ctx.fillText("IS THIS A SET?", canvas_width / 2, cell_width*2.5);
+            }
             for (var i = 0; i < card_count && i < 2; ++i)
             {
               paintCard(this.quiz_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
             }
             if (card_count > 2)
             {
-              if(!this.quiz_reaction_timer.active)
+              if (this.quiz_type == 0)
               {
-                ctx.textAlign = "center";
-                ctx.textAlign = "top";
-                ctx.font= Math.round(cell_width * 5) + "px Arial";
-                ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+               if (!this.quiz_reaction_timer.active)
+               {
+                 ctx.textAlign = "center";
+                 ctx.textAlign = "top";
+                 ctx.font= Math.round(cell_width * 5) + "px Arial";
+                 ctx.fillStyle = "rgb(0, 0, 0)";
+                 ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+               }
+               else
+               {
+                 paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+               }
               }
               else
               {
-                paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+                paintCard(this.quiz_cards[2], cell_width * 13, cell_width * 5, cell_width * 5);
               }
             }
             //x: 4 - 8 11 - 15
             //y: 13 - 17
-            for (i = 3; i < card_count && i < 5; ++i)
+            if(this.quiz_type == 0)
             {
-              paintCard(this.quiz_cards[i-1], cell_width * (7 * i - 17), cell_width * 13, cell_width * 4);
+              for (i = 3; i < card_count && i < 5; ++i)
+              {
+                paintCard(this.quiz_cards[i-1], cell_width * (7 * i - 17), cell_width * 13, cell_width * 4);
+              }
+            }
+            else
+            {
+              ctx.textAlign = "center";
+              ctx.textAlign = "top";
+              ctx.font= Math.round(cell_width * 4 / 3)  + "px Arial";
+              ctx.fillStyle = "rgb(0, 0, 0)";
+              if(card_count >= 4)
+              {
+                ctx.fillText("SET", cell_width*6, cell_width*15);
+              }
+              if(card_count >= 5)
+              {
+                ctx.fillText("NOT A", cell_width*13, cell_width*15 - (cell_width * 4 / 6));
+                ctx.fillText("SET", cell_width*13, cell_width*15 + (cell_width * 4 / 6));
+              }
             }
             if(this.quiz_reaction_timer.active)
             {
