@@ -602,10 +602,10 @@
         handleMouseClick: function ()
         {
           if(this.quiz_active &&
-             !this.quiz_timer.active &&
-             !this.quiz_reaction_timer.active &&
-             mouse_y >= 13 * cell_width &&
-             mouse_y <= 17 * cell_width)
+            !this.quiz_timer.active &&
+            !this.quiz_reaction_timer.active &&
+            mouse_y >= 13 * cell_width &&
+            mouse_y <= 17 * cell_width)
           {
             var quiz_response = false;
             var quiz_response_value = 2;
@@ -1003,12 +1003,12 @@
             ctx.fillStyle = "rgb(0,0,0)";
             if (this.quiz_type == 0)
             {
-               ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width * 2);
-               ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width * 3);
+              ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width * 2);
+              ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width * 3);
             }
             else
             {
-               ctx.fillText("IS THIS A SET?", canvas_width / 2, cell_width*2.5);
+              ctx.fillText("IS THIS A SET?", canvas_width / 2, cell_width*2.5);
             }
             for (var i = 0; i < card_count && i < 2; ++i)
             {
@@ -1018,23 +1018,23 @@
             {
               if (this.quiz_type == 0)
               {
-                 if (!this.quiz_reaction_timer.active)
-                 {
-                   ctx.textAlign = "center";
-                   ctx.textAlign = "top";
-                   ctx.font= Math.round(cell_width * 5) + "px Arial";
-                   ctx.fillStyle = "rgb(0, 0, 0)";
-                   ctx.fillText("?", cell_width*15.5, cell_width*7.5);
-                 }
-                 else
-                 {
-                   paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
-                 }
-               }
-               else
-               {
-                  paintCard(this.quiz_cards[2], cell_width * 13, cell_width * 5, cell_width * 5);
-               }
+                if (!this.quiz_reaction_timer.active)
+                {
+                  ctx.textAlign = "center";
+                  ctx.textAlign = "top";
+                  ctx.font= Math.round(cell_width * 5) + "px Arial";
+                  ctx.fillStyle = "rgb(0, 0, 0)";
+                  ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+                }
+                else
+                {
+                  paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+                }
+              }
+              else
+              {
+                paintCard(this.quiz_cards[2], cell_width * 13, cell_width * 5, cell_width * 5);
+              }
             }
             //x: 4 - 8 11 - 15
             //y: 13 - 17
