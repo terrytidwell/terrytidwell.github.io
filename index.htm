@@ -800,9 +800,9 @@
                 {
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
+                ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.font="Bold 24px Arial";
-                ctx.fillText("Color", canvas_width / 2, cell_width * 11)
+                ctx.fillText("FIG.1A COLOR", canvas_width / 2, cell_width * 11)
               }
               if(this.slide_number >= 15 && this.slide_number < 17)
               {
@@ -813,9 +813,9 @@
                 {
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
+                ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.font="Bold 24px Arial";
-                ctx.fillText("Shape", canvas_width / 2, cell_width * 11)
+                ctx.fillText("FIG.1B SHAPE", canvas_width / 2, cell_width * 11)
               }
               if(this.slide_number >= 17 && this.slide_number < 19)
               {
@@ -826,9 +826,9 @@
                 {
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
+                ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.font="Bold 24px Arial";
-                ctx.fillText("Fill", canvas_width / 2, cell_width * 11)
+                ctx.fillText("FIG.1C FILL", canvas_width / 2, cell_width * 11)
               }
               if(this.slide_number >= 19 && this.slide_number < 21)
               {
@@ -839,9 +839,9 @@
                 {
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
+                ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.font="Bold 24px Arial";
-                ctx.fillText("Quantity", canvas_width / 2, cell_width * 11)
+                ctx.fillText("FIG.1D QUANTITY", canvas_width / 2, cell_width * 11)
               }
             }
             else if(this.slide_number >= 21 && this.slide_number < 40)
@@ -871,11 +871,11 @@
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
               }
-              if(this.slide_number >= 29)
+              if(this.slide_number >= 27)
               {
                 ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.fillText("This is a set", canvas_width / 2, 11 * cell_width);
+                ctx.fillText("FIG.2A A SET", canvas_width / 2, 11 * cell_width);
               }
               if(this.slide_number >= 31)
               {
@@ -906,11 +906,11 @@
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
               }
-              if(this.slide_number >= 42)
+              if(this.slide_number >= 40)
               {
                 ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.fillText("This is also a set", canvas_width / 2, 11 * cell_width);
+                ctx.fillText("FIG.2B A SET", canvas_width / 2, 11 * cell_width);
               }
               if(this.slide_number >= 44)
               {
@@ -941,11 +941,11 @@
                   paintCard(this.demo_cards[i], cell_width * (i * 6 + 1), cell_width * 5, cell_width * 5);
                 }
               }
-              if(this.slide_number >= 55)
+              if(this.slide_number >= 53)
               {
                 ctx.font="Bold 16px Arial";
                 ctx.fillStyle = "rgb(0, 0, 0)";
-                ctx.fillText("This is NOT a set", canvas_width / 2, 11 * cell_width);
+                ctx.fillText("FIG.3B NOT A SET", canvas_width / 2, 11 * cell_width);
               }
               if(this.slide_number >= 57)
               {
@@ -1003,12 +1003,12 @@
             ctx.fillStyle = "rgb(0,0,0)";
             if (this.quiz_type == 0)
             {
-              ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width * 2);
-              ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width * 3);
+               ctx.fillText("WHAT WOULD COMPLETE", canvas_width / 2, cell_width * 2);
+               ctx.fillText("THE FOLLOWING?", canvas_width / 2, cell_width * 3);
             }
             else
             {
-              ctx.fillText("IS THIS A SET?", canvas_width / 2, cell_width*2.5);
+               ctx.fillText("IS THIS A SET?", canvas_width / 2, cell_width*2.5);
             }
             for (var i = 0; i < card_count && i < 2; ++i)
             {
@@ -1018,23 +1018,23 @@
             {
               if (this.quiz_type == 0)
               {
-               if (!this.quiz_reaction_timer.active)
-               {
-                 ctx.textAlign = "center";
-                 ctx.textAlign = "top";
-                 ctx.font= Math.round(cell_width * 5) + "px Arial";
-                 ctx.fillStyle = "rgb(0, 0, 0)";
-                 ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+                 if (!this.quiz_reaction_timer.active)
+                 {
+                   ctx.textAlign = "center";
+                   ctx.textAlign = "top";
+                   ctx.font= Math.round(cell_width * 5) + "px Arial";
+                   ctx.fillStyle = "rgb(0, 0, 0)";
+                   ctx.fillText("?", cell_width*15.5, cell_width*7.5);
+                 }
+                 else
+                 {
+                   paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+                 }
                }
                else
                {
-                 paintCard(this.quiz_cards[this.quiz_answer], cell_width * 13, cell_width * 5, cell_width * 5);
+                  paintCard(this.quiz_cards[2], cell_width * 13, cell_width * 5, cell_width * 5);
                }
-              }
-              else
-              {
-                paintCard(this.quiz_cards[2], cell_width * 13, cell_width * 5, cell_width * 5);
-              }
             }
             //x: 4 - 8 11 - 15
             //y: 13 - 17
