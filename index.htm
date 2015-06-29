@@ -107,6 +107,7 @@
         //can't do this until you've set up canvas_width and canvas_height
         animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}}});
         Tutorial.init();
+        ClassicZen.init();
         
         current_screen = TitleScreen;
 
@@ -168,6 +169,15 @@
         return true;
       }
 
+      //---------------------------------------------------------------------
+      function detectSet3Cards(card1, card2, card3)
+      {
+        return compareElements(card1.number - 1, card2.number - 1, card3.number - 1) &&
+          compareElements(card1.shape.shape, card2.shape.shape, card3.shape.shape) &&
+          compareElements(card1.shape.color, card2.shape.color, card3.shape.color) &&
+          compareElements(card1.shape.fill, card2.shape.fill, card3.shape.fill);
+      }
+      
       //---------------------------------------------------------------------
       function detectSet(cards)
       {
@@ -506,7 +516,232 @@
           currently_set = detectSet(cards);
         }
       }
+      
+      //---------------------------------------------------------------------
+      var ClassicZen = {
+        board : [],
+        selected : [],
+        selected_count : 0,
+        //selection : [],
+        current_candidate_index : [],
+        user_life : 100,
+        display_life : 0,
 
+        //-------------------------------------------------------------------
+        introduceSet:function(card0)
+        {
+          var random1 = Math.floor(Math.random()*11+1);
+          var card1 = card0 + random1;
+          while(card1 > 11)
+          {
+            card1 -= 12;
+          }
+          var random2 = Math.floor(Math.random()*10+1);
+          random1 = random1 + random2 - 1;
+          if (random1 > 11)
+          {
+            random1 -= 11;
+          }
+          random1 += 1;
+          var card2 = card0 + random1;
+          while(card2 > 11)
+          {
+            card2 -= 12;
+          }
+          completingCard(this.board[card0],
+          this.board[card1],
+          this.board[card2]);
+        },
+        
+        //-------------------------------------------------------------------
+        init:function()
+        {
+          for(var i = 0; i < 12; ++i)
+          {
+            this.board.push(randomCard());
+            this.selected.push(false);
+          }
+          for(i = 0; i < 3; ++i)
+          {
+            this.current_candidate_index.push(0);
+          }
+          this.introduceSet(Math.floor(Math.random()*12));
+        },
+        
+        //-------------------------------------------------------------------
+        reset:function()
+        {
+          for(var i = 0; i < 12; ++i)
+          {
+            randomizeCard(this.board[i]);
+            this.selected[i] = false;
+          }
+          this.selected_count = 0;
+          this.introduceSet(Math.floor(Math.random()*12));
+          total_sets = 0;
+        },
+        
+        //-------------------------------------------------------------------
+        handleMouseClick: function ()
+        {
+          if (mouse_y >= 16 * cell_width &&
+            mouse_y <= 18 * cell_width &&
+            mouse_x >= 16 * cell_width &&
+            mouse_x <= 18 * cell_width)
+          {
+            PauseScreen.return_screen = ClassicZen;
+            current_screen = PauseScreen;
+            return;
+          }
+        
+          var cell_x = Math.floor(mouse_x / cell_width);
+          var cell_y = Math.floor(mouse_y / cell_width);
+          
+          cell_x -= 1;
+          if(cell_x % 4 == 0 || cell_y % 4 == 0)
+          {
+            return;
+          }
+          cell_x /= 4;
+          cell_y /= 4;
+          cell_x = Math.floor(cell_x);
+          cell_y = Math.floor(cell_y);
+          if (cell_x < 0 ||
+            cell_x > 3 ||
+            cell_y < 0 ||
+            cell_y > 2)
+          {
+            return;
+          }
+          var cell_count =cell_x*3+cell_y;
+          
+          if(!this.selected[cell_count])
+          {
+            if(this.selected_count >= 3)
+            {
+              return;
+            }
+            this.selected_count++;
+          }
+          else
+          {
+            this.selected_count--;
+          }
+          this.selected[cell_count] = !this.selected[cell_count];
+        },
+        
+        //-------------------------------------------------------------------
+        paint: function ()
+        {
+          if(this.selected_count == 3)
+          {
+            var current_count = 0;
+            for(var i = 0; i < 12; ++i)
+            {
+              if(this.selected[i])
+              {
+                this.current_candidate_index[current_count] = i;
+                current_count++;
+              }
+            }
+            if(detectSet3Cards(this.board[this.current_candidate_index[0]],
+              this.board[this.current_candidate_index[1]],
+              this.board[this.current_candidate_index[2]]))
+            {
+              this.user_life += 20;
+              if(this.user_life > 100)
+              {
+                this.user_life = 100;
+              }
+              total_sets++;
+              var softball_card = Math.floor(Math.random() * 3);
+              for(var i = 0; i < 3; ++i)
+              {
+                randomizeCard(this.board[this.current_candidate_index[i]]);
+                this.selected[this.current_candidate_index[i]] = false;
+                this.selected_count = 0;
+              }
+              this.introduceSet(this.current_candidate_index[softball_card]);
+            }
+          }
+        
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas_width, canvas_height);
+          var count = 0;
+          for(var x = 2; x < 18; x+=4)
+          {
+            for(var y = 1; y < 12; y+=4)
+            {
+              var random_x = 0;
+              var random_y = 0; 
+              if (this.selected[count])
+              {
+                random_x = Math.random()*6 - 3;
+                random_y = Math.random()*6 - 3;
+              }
+              paintCard(this.board[count], x * cell_width + random_x, y * cell_width + random_y, 3 * cell_width);
+              count++;
+            }
+          }
+          
+          random_x = 0;
+          random_y = 0;
+          if(this.user_life > this.display_life)
+          {
+            this.display_life += 3;
+            if(this.display_life > 100)
+            {
+              this.display_life = 100;
+            }
+            if(this.display_life > this.user_life)
+            {
+              this.display_life = this.user_life;
+            }
+          }
+          else
+          {
+            random_x = Math.random() - .5;
+            random_y = Math.random() - .5;
+            this.user_life-=.05;
+            if(this.user_life < 0)
+            {
+              this.user_life = 0;
+            }
+            if(this.display_life > this.user_life)
+            {
+              this.display_life = this.user_life;
+            }
+            
+          }
+          
+          ctx.fillStyle = "rgb(128, 0, 0)";
+          ctx.fillRect(cell_width + random_x, 13 * cell_width+random_y, canvas_width - 2 * cell_width, cell_width);
+          ctx.fillStyle = "rgb(0, 128, 0)";
+          ctx.fillRect(cell_width + random_x, 13 * cell_width+random_y, (canvas_width - 2 * cell_width) * (this.display_life) / 100, cell_width);
+          
+          ctx.fillStyle = "rgb(255, 255, 255)";
+          ctx.fillRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+          ctx.strokeStyle = "rgb(64, 64, 64)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(16 * cell_width, 16 * cell_width, 2 * cell_width, 2 * cell_width);
+          ctx.fillStyle = "rgb(64, 64, 64)";
+          ctx.fillRect(16 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
+          ctx.fillRect(17 * cell_width + cell_width / 3, 16 * cell_width + 1 * cell_width / 4, cell_width / 3, 3 * cell_width / 2);
+          
+          ctx.fillStyle = "rgb(64,64,64)";
+          ctx.textAlign = "start";
+          ctx.textBaseline = "bottom";
+          ctx.font = "800 " + 2 * cell_width + "px Arial";
+          ctx.fillText(total_sets, cell_width, canvas_height - cell_width / 2);
+          
+          if(this.user_life <= 0)
+          {
+            current_screen = GameOverScreen;
+          }
+          
+        }
+      }
+      
       //---------------------------------------------------------------------
       var Tutorial = {
         
@@ -1375,6 +1610,7 @@
 
       //---------------------------------------------------------------------
       var PauseScreen = {
+        return_screen : GameScreen,
 
         //-------------------------------------------------------------------
         handleMouseClick: function ()
@@ -1384,7 +1620,7 @@
             mouse_x >= 16 * cell_width &&
             mouse_x <= 18 * cell_width)
           {
-            current_screen = GameScreen;
+            current_screen = this.return_screen;
           }
         },
 
@@ -1470,6 +1706,7 @@
             mouse_x >= 16 * cell_width &&
             mouse_x <= 18 * cell_width)
           {
+            PauseScreen.return_screen = GameScreen;
             current_screen = PauseScreen;
             return;
           }
