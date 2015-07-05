@@ -108,6 +108,7 @@
         animation_cards.push({x: canvas_width / 2, y: canvas_height / 2, card: {number: 1, shape: {shape: ShapeEnum.TRIANGLE, color: ColorEnum.BLUE, fill: FillEnum.STRIPED}}});
         Tutorial.init();
         ClassicZen.init();
+        TitleScreen.init();
         TitleScreen.reset();
         current_screen = TitleScreen;
 
@@ -1450,6 +1451,28 @@
 
         second_level : false,
         transition_timer : {active: false, period: 15, current: 0},
+        second_bounding_box : {
+          offset_x: -600,
+          offset_y : 40,
+          zoom : 1.3,
+          x: 600 / 1.3, 
+          y: -40 / 1.3,
+          width : 450 / 1.3,
+          height: 450 / 1.3 },
+        text1 : "Manufacturing",
+        text2 : "Set QA",
+        text1_width : 0,
+        text2_width : 0,
+
+        //-------------------------------------------------------------------
+        init: function ()
+        {
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "Bold 48px Arial";
+          this.size_upper = ctx.measureText(this.text1).width;
+          this.size_lower = ctx.measureText(this.text2).width;
+        },
         
         //-------------------------------------------------------------------
         reset: function ()
@@ -1473,14 +1496,24 @@
           }
           if (this.second_level)
           {
-            
-            if(mouse_y >= 225) {
-              resetGame();
-              current_screen = GameScreen;
-            }
-            if(mouse_y < 225) {
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "Bold 48px Arial";
+            if(mouse_y >= canvas_height/2 - 1 - 36 - 24 * 1.3 &&
+              mouse_y <= canvas_height/2 - 1 - 36 + 24 * 1.3 &&
+              mouse_x >= canvas_width/2 - 1 - this.size_upper / 2 * 1.3 &&
+              mouse_x <= canvas_width/2 - 1 + this.size_upper / 2 * 1.3)
+            {
               ClassicZen.reset();
               current_screen = ClassicZen;
+            }
+            if(mouse_y >= canvas_height/2 - 1 + 36 - 24 * 1.3 &&
+              mouse_y <= canvas_height/2 - 1 + 36 + 24 * 1.3 &&
+              mouse_x >= canvas_width/2 - 1 - this.size_lower / 2 * 1.3 &&
+              mouse_x <= canvas_width/2 - 1 + this.size_lower / 2 * 1.3)
+            {
+              resetGame();
+              current_screen = GameScreen;
             }
             return;
           }
@@ -1513,9 +1546,9 @@
             }
           }
           
-          var translate_x = -600 * this.transition_timer.current/this.transition_timer.period;
-          var translate_y = 40 * this.transition_timer.current/this.transition_timer.period;
-          var zoom = 1 + .3 * this.transition_timer.current/this.transition_timer.period;
+          var translate_x = this.second_bounding_box.offset_x * this.transition_timer.current/this.transition_timer.period;
+          var translate_y = this.second_bounding_box.offset_y * this.transition_timer.current/this.transition_timer.period;
+          var zoom = 1 + (this.second_bounding_box.zoom - 1) * this.transition_timer.current/this.transition_timer.period;
 
           //special translate instructions for floaters
           ctx.translate(translate_x * .3, translate_y * .3);
@@ -1568,7 +1601,7 @@
           ctx.setTransform(1, 0, 0, 1, 0, 0);
           ctx.translate(translate_x, translate_y);
           ctx.scale(zoom, zoom);
-          paintShape({shape: ShapeEnum.CIRCLE, fill: FillEnum.FULL, color: ColorEnum.RED}, 750 - 120, 250, 300);
+          paintShape({shape: ShapeEnum.CIRCLE, fill: FillEnum.FULL, color: ColorEnum.RED}, 750 - 180, 220, 300);
           
           ctx.translate(0, 500);
           ctx.rotate(10 * Math.PI / 180);
@@ -1583,15 +1616,34 @@
           ctx.translate(translate_x, translate_y);
           ctx.scale(zoom, zoom);
 
+          /*
+          second_bounding_box : {
+          offset_x: -600,
+          offset_y : 40,
+          zoom : 1.3,
+          x: 600 / 1.3, 
+          y: -40 / 1.3,
+          width : canvas_width / 1.3,
+          height: canvas_height / 1.3 },
+          */
+          
+          
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.font = "Bold 48px Arial";
-          
           ctx.fillStyle = "rgb(0,0,0)";
-          ctx.fillText("Classic", 640, 120);
-          ctx.fillRect(640,120-24,1,1);
-          ctx.fillRect(640,120+24,1,1);
-          ctx.fillText("New Style", 640, 192);
+          
+          ctx.translate(translate_x, translate_y);
+          ctx.scale(zoom, zoom);
+          
+          var center_x = this.second_bounding_box.x + this.second_bounding_box.width / 2;
+          var center_y = this.second_bounding_box.y + this.second_bounding_box.height / 2;
+
+
+          ctx.fillStyle = "rgb(0,0,0)";
+          ctx.fillText(this.text1, center_x, center_y - 72 / 2 / 1.3);
+          ctx.fillText(this.text2, center_x, center_y + 72 / 2 / 1.3);
 
           ctx.fillStyle = "rgb(255, 255, 255)";
           ctx.fillRect(16 * cell_width, 13 * cell_width, 2 * cell_width, 2 * cell_width);
@@ -1922,12 +1974,6 @@
               reaction_timer.active = false;
               tile_change_timer.current = 0;
               tile_change_timer.active = true;
-              if (user_life == 0)
-              {
-                current_screen = GameOverScreen;
-                return;
-              }
-
               updateCards();
             }
             random_x_jitter = Math.random() * 9 - 4;
@@ -2008,6 +2054,12 @@
           ctx.textBaseline = "bottom";
           ctx.font = "800 " + 2 * cell_width + "px Arial";
           ctx.fillText(total_sets, cell_width, canvas_height - cell_width / 2);
+          
+          if (display_life == 0)
+          {
+            current_screen = GameOverScreen;
+            return;
+          }
         }
       };
 
