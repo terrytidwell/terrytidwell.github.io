@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+</head>
+<body style="background-color: black; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
+<canvas tabindex='1' id="canvas" width="800" height="600"></canvas>
+<script>
+    //##########################################################################
+    // The game
+
+    var g_canvas;
+    var g_ctx;
+    var g_current_screen;
+
+    var mouse_x = 0;
+    var mouse_y = 0;
+    var mouse_click_pending = false;
+    var key_code = 0;
+    var key_press_pending = false;
+
+    //--------------------------------------------------------------------------
+    const GameConstants = {
+      m_grid_size: 10,
+      Z_BACKGROUND: 0,
+      Z_FOREGROUND: 1,
+      MUSIC_VOLUME: 45,
+      VERTICAL_SQUISH: .50,
+    };
+
+    //--------------------------------------------------------------------------
+    // interface, for reference, not enforced
+    // The name is funny because Screen is already declared
+    // and this is just for reference anyway
+    const Screen_ = {
+        init: function (layout) {},
+        reset: function () {},
+        handleMouseClick: function () {},
+        handleKeyPress: function () {},
+        handleTimeStep: function () {},
+        paint: function () {}
+    };
+
+    //--------------------------------------------------------------------------
+    const Util = {
+
+        //----------------------------------------------------------------------
+        forEach: function (obj, fn)
+        {
+            var key;
+            for (key in obj)
+            {
+                if (obj.hasOwnProperty(key))
+                {
+                    fn(obj[key]);
+                }
+            }
+        },
+
+        //----------------------------------------------------------------------
+        randomItem: function (arr)
+        {
+            return arr[Math.floor(Math.random() * arr.length)];
+        },
+
+        //----------------------------------------------------------------------
+        shuffle: function (arr)
+        {
+            var current_index = arr.length, temp, random_index;
+            while (0 != current_index)
+            {
+                // Pick a remaining element.
+                random_index = Math.floor(Math.random() * current_index);
+                current_index -= 1;
+
+                // And swap it with the current element.
+                temp = arr[current_index];
+                arr[current_index] = arr[random_index];
+                arr[random_index] = temp;
+            }
+            return arr;
+        },
+
+        //----------------------------------------------------------------------
+        loadImage: function (url, resource_tracker)
+        {
+            var image = new Image();
+            resource_tracker.add();
+            image.onload = function (event) {
+                resource_tracker.onload(event);
+            };
+            image.src = url;
+            return image;
+        },
+
+        //----------------------------------------------------------------------
+        loadAudio: function (url, resource_tracker)
+        {
+            var audio = new buzz.sound(
+              url, {
+              //formats: [ "wav" ],
+              preload: true,
+              autoplay: false,
+              loop: false
+            });
+            resource_tracker.add();
+            audio.bindOnce("canplay", function (event) {
+                resource_tracker.onload(event)
+            });
+            return audio;
+        }
+    };
+
+    //##########################################################################
+
+    //--------------------------------------------------------------------------
+    const MonsterSteps = {
+        
+        BISHOP: 1,
+        MOVE_DOWN: {
+            m_dx: 0,
+            m_dy: 1,
+            m_rotate_left: "MOVE_RIGHT",
+            m_rotate_right: "MOVE_LEFT",
+            m_char: " \u2193 "
+        },
+        MOVE_LEFT: {
+            m_dx: -1,
+            m_dy: 0,
+            m_rotate_left: "MOVE_DOWN",
+            m_rotate_right: "MOVE_UP",
+            m_char: "\u2190"
+        },
+        MOVE_RIGHT: {
+            m_dx: 1,
+            m_dy: 0,
+            m_rotate_left: "MOVE_UP",
+            m_rotate_right: "MOVE_DOWN",
+            m_char: "\u2192"
+        }
+    };
+    const ALL_MONSTER_STEP_TYPES = [];
+    Util.forEach(MonsterSteps, function (item) { ALL_MONSTER_STEP_TYPES.push(item); } );
+    
+    //##########################################################################
+    
+    const Monster = function (layout){
+      this.m_pos = [8,8],
+      this.m_layout = layout,
+      this.m_width = 0,
+            
+      this.handleTimeStep = function ()
+      {
+      }
+      this.paint = function (y,priority) 
+      {
+      }
+      this.handlePlayerAttack = function(x,y)
+      {
+      }
+      this.handlePlayerCollision = function(x, y, callback)
+      {
+      }
+      this.active = function()
+      {
+        return true;
+      };
+    };
+
+    //##########################################################################
+    
+    const EnemyWave = function (layout){
+      this.ELEMENT_TYPE = 0;
+      this.TIMER_TYPE = 1;
+      this.ON_IDLE_TYPE = 2;
+      this.m_queue = [];
+            
+      this.handleTimeStep = function ()
+      {
+        while(true)
+        {
+          if(this.m_queue.length == 0)
+          {
+            return;
+          }
+          var queue_item = this.m_queue[this.m_queue.length - 1];
+          if(queue_item.type == this.ON_IDLE_TYPE)
+          {
+            if(GameScreen.m_enemies.length <= queue_item.value)
+            {
+              this.m_queue.pop();
+            }
+            else
+            {           
+              return;
+            }
+          }
+          if(queue_item.type == this.TIMER_TYPE)
+          {
+            queue_item.value--;
+            if(queue_item.value <= 0)
+            {
+              this.m_queue.pop();
+            }
+            else
+            {
+              return;
+            }
+          }
+          if(queue_item.type == this.ELEMENT_TYPE)
+          {
+            GameScreen.m_enemies.push(this.m_queue.pop().value);
+          }
+        }
+      }
+      this.addOnIdle = function(level)
+      {
+        this.m_queue.push({type: this.ON_IDLE_TYPE, value: level});
+        return this;
+      }
+      this.addOnTimeout = function(timesteps)
+      {
+        this.m_queue.push({type: this.TIMER_TYPE, value: timesteps});
+        return this;
+      }
+      this.addElement = function(element)
+      {
+        this.m_queue.push({type: this.ELEMENT_TYPE, value: element});
+        return this;
+      }
+      this.paint = function (y,priority) 
+      {
+      }
+      this.handlePlayerAttack = function(x,y)
+      {
+      }
+      this.handlePlayerCollision = function(x, y, callback)
+      {
+      };
+      this.active = function()
+      {
+        return this.m_queue.length > 0;
+      };
+    };
+    
+    //##########################################################################
+    
+    const FlameWave = function (layout){
+      this.m_pos = [8,8],
+      this.m_layout = layout,
+      this.m_width = 0,
+      this.m_timer = 0,
+      this.FLAME_DURATION = 120,
+      this.FLAME_WIDEN_TIME = 10,
+            
+      this.handleTimeStep = function ()
+      {
+        this.m_timer++;
+        if((this.m_timer % this.FLAME_WIDEN_TIME) == 0)
+        {
+          this.m_width++;
+        }
+      }
+      this.paint = function (y,priority) 
+      {
+        if(priority != GameConstants.Z_BACKGROUND)
+        {
+          return;
+        }
+        var offset_y = Math.abs(y-this.m_pos[1]);
+        if(this.m_width < offset_y)
+        {
+          return;
+        }
+        g_ctx.fillStyle = "rgba(255,0,0,.5)";
+        var offset_x = this.m_width - offset_y;
+        if(offset_x != 0)
+        {
+          var x = (this.m_pos[0] + offset_x)
+          if(x <= 8 && x >= 1)
+          {
+            g_ctx.fillRect(
+              (this.m_pos[0] + offset_x) * this.m_layout.m_cell_width,
+              y * this.m_layout.m_cell_height,
+              this.m_layout.m_cell_width,
+              this.m_layout.m_cell_height
+            );
+          }
+        }
+        var x = (this.m_pos[0] - offset_x)
+        if(x <= 8 && x >= 1)
+        {
+          g_ctx.fillRect(
+            x * this.m_layout.m_cell_width,
+            y * this.m_layout.m_cell_height,
+            this.m_layout.m_cell_width,
+            this.m_layout.m_cell_height
+          );
+        }
+      }
+      this.handlePlayerAttack = function(x,y)
+      {
+      }
+      this.handlePlayerCollision = function(x, y, callback)
+      {
+        if(Math.abs(x-this.m_pos[0]) + Math.abs(y-this.m_pos[1]) == this.m_width)
+        {
+          var delta_x = 1;
+          if(this.m_pos[0] > x)
+          {
+            delta_x = -1;
+          }
+          var delta_y = 1;
+          if(this.m_pos[1] > y)
+          {
+            delta_y = -1;
+          }
+          callback.damagePlayer(delta_x, delta_y);
+        }
+      };
+      this.active = function()
+      {
+        return this.m_timer < this.FLAME_DURATION;
+      };
+    };
+    
+    //##########################################################################
+    
+    const MinionSpawn = function (layout){
+      this.m_pos = [8,8],
+      this.m_layout = layout,
+      this.m_timer = 0,
+      this.m_state = 0,
+      this.WARM_UP_DURATION = 30,
+      this.COOL_DOWN_DURATION = 3,
+      this.minion = new Pawn(this.m_layout);
+          
+      this.handleTimeStep = function ()
+      {
+        this.m_timer++;
+        if(this.m_state == 0)
+        {
+          this.minion.m_pos[0] = this.m_pos[0];
+          this.minion.m_pos[1] = this.m_pos[1];
+          if(this.m_timer >= this.WARM_UP_DURATION)
+          {
+            GameScreen.m_enemies.push(this.minion);
+            this.m_timer = 0;
+            this.m_state = 1;
+          }
+        }
+      }
+      this.paint = function (y,priority)  
+      {
+        if(y != this.m_pos[1] || priority != GameConstants.Z_FOREGROUND)
+        {
+          return;
+        }
+        
+        var alpha = (this.m_timer / this.WARM_UP_DURATION) + (Math.random() - .5) * .2;
+        
+        if(this.m_state == 1)
+        {
+          alpha = 1 - (this.m_timer / this.COOL_DOWN_DURATION);
+        }
+        if(this.m_state == 0)
+        {
+          g_ctx.globalAlpha = alpha * alpha * alpha;
+          this.minion.paint(y,priority);
+          g_ctx.globalAlpha = 1;
+        }
+        g_ctx.fillStyle = "rgba(255,255,255,"+.05*alpha+")";
+        g_ctx.strokeStyle = g_ctx.fillStyle;
+
+        for(var x = 0.1; x < .9; x*=1.05)
+        {
+          
+          var width = this.m_layout.m_cell_width * alpha * x;
+          g_ctx.lineCap = "round";
+          g_ctx.lineWidth = width;
+          g_ctx.beginPath();
+          g_ctx.moveTo(
+            (this.m_pos[0] + .5) * this.m_layout.m_cell_width ,
+            -1 * this.m_layout.m_canvas_height);
+          g_ctx.lineTo(
+            (this.m_pos[0] + .5) * this.m_layout.m_cell_width ,
+            (this.m_pos[1] + .5) * this.m_layout.m_cell_height - width * .10);
+          g_ctx.stroke();
+          /*
+          g_ctx.fillRect(
+            (this.m_pos[0] + .5) * this.m_layout.m_cell_width - (width / 2),
+            0,
+            width,
+            (this.m_pos[1] + .75) * this.m_layout.m_cell_height - width
+          );
+          */
+          var cx = (this.m_pos[0] + .5) * this.m_layout.m_cell_width;
+          var cy = (this.m_pos[1] + .5) * this.m_layout.m_cell_height;
+          var rx = width/2;
+          var ry = width/4;
+          g_ctx.save(); // save state
+          g_ctx.beginPath();
+
+          g_ctx.translate(cx-rx, cy-ry);
+          g_ctx.scale(rx, ry);
+          g_ctx.arc(1, 1, 1, 0, 2 * Math.PI, false);
+
+          g_ctx.restore(); // restore to original state
+          g_ctx.fill();
+        }
+
+        if(this.m_state == 2)
+        {
+          g_ctx.globalAlpha = alpha * alpha * alpha;
+          this.minion.paint(y,priority);
+          g_ctx.globalAlpha = 1;
+        }
+      }
+      this.handlePlayerAttack = function(x,y)
+      {
+      }
+      this.handlePlayerCollision = function(x, y, callback)
+      {
+        if(Math.abs(x-this.m_pos[0]) + Math.abs(y-this.m_pos[1]) == this.m_width)
+        {
+          var delta_x = 1;
+          if(this.m_pos[0] > x)
+          {
+            delta_x = -1;
+          }
+          var delta_y = 1;
+          if(this.m_pos[1] > y)
+          {
+            delta_y = -1;
+          }
+          callback.damagePlayer(delta_x, delta_y);
+        }
+      };
+      this.active = function()
+      {
+        return this.m_state != 1 || this.m_timer < this.COOL_DOWN_DURATION;
+      };
+    };
+    
+    //##########################################################################
+    
+    const Pawn = function (layout){
+      this.m_pos = [8,8],
+      this.m_vel = [-1,-1],
+      this.m_layout = layout,
+      this.m_invincible = false,
+      this.m_invincible_timer = 0,
+      this.m_state_timer = 0,
+      this.m_pushed = false,
+      this.m_attack_pos = [8,8],
+      this.m_move_flip_flop = 0,
+      this.m_health = 2,
+      
+      this.INVINCIBLE_TIME = 50,
+      this.STUNNED_TIME = 40,
+      this.ATTACK_TIME = 16;
+      this.MOVE_TIME = 16;
+      this.DELAY_BEFORE_MOVE = 12;
+      this.ATTACK_DELAY = 8;
+      //this.target_x = 2 * Math.floor(Math.random() * 2) - 1;
+      //this.target_y = 2 * Math.floor(Math.random() * 2) - 1;
+      
+      //state machine
+      this.MOVE = 0,
+      this.ATTACK = 1,
+      this.STUNNED = 2,
+      this.m_state = this.MOVE,
+      
+      this.handleTimeStep = function ()
+      {
+        if(this.m_invincible)
+        {
+          this.m_invincible_timer++;
+          if(this.m_invincible_timer >= this.INVINCIBLE_TIME)
+          {
+            this.m_invincible = false;
+            this.m_invincible_timer = 0;
+          }
+        }
+        var move_me = false;
+        var delta_x = GameScreen.player_x - this.m_pos[0];
+        var delta_y = GameScreen.player_y - this.m_pos[1];
+        
+        this.m_state_timer++;
+        
+        if(this.m_state == this.ATTACK && this.m_state_timer >= this.ATTACK_TIME)
+        {
+          this.m_state_timer = 0;
+          this.m_state = this.MOVE;
+          return;
+        }
+        
+        if(this.m_state == this.MOVE && this.m_state_timer >= this.ATTACK_DELAY)
+        {
+          if(Math.abs(delta_x) + Math.abs(delta_y) == 2 &&
+            delta_x != 0 &&
+            delta_y != 0)
+          {
+            this.m_state = this.ATTACK;
+            this.m_state_timer = 0;
+            this.m_attack_pos[0] = GameScreen.player_x;
+            this.m_attack_pos[1] = GameScreen.player_y;
+            return;
+          }
+        }
+        
+        if(this.m_state == this.MOVE && this.m_state_timer >= this.MOVE_TIME)
+        {
+          this.m_state_timer = 0;
+          this.m_vel[0] = 1; 
+          if(delta_x < 0 || (delta_x == 0 && Math.floor(Math.random()*2) == 0))
+          {
+            this.m_vel[0] = -1; 
+          }
+          this.m_vel[1] = 1; 
+          if(delta_y < 0 || (delta_y == 0 && Math.floor(Math.random()*2) == 0))
+          {
+            this.m_vel[1] = -1; 
+          }
+          if(Math.abs(delta_x) + Math.abs(delta_y) < 2)
+          {
+            this.m_vel[0] *= -1;
+            this.m_vel[1] *= -1;
+          }
+          if(Math.random() < .80)
+          {
+            this.m_move_flip_flop = (this.m_move_flip_flop + 1) % 2;
+          }
+          this.m_vel[this.m_move_flip_flop] = 0;
+          move_me = true;
+        }
+        if(this.m_state == this.STUNNED && this.m_state_timer >= this.STUNNED_TIME)
+        {
+          this.m_state = this.MOVE;
+          this.m_state_timer = 0;
+        }
+        if(this.m_pushed)
+        {
+          this.m_vel[0] = 0;
+          this.m_vel[1] = 0;
+          this.m_vel[Math.floor(Math.random()*2)] = 2 * Math.floor(Math.random() * 2) - 1;
+          move_me = true;
+          this.m_pushed = false;
+        }
+        
+        if(move_me)
+        {
+          if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+          {
+            this.m_vel[0] = 1;
+          }
+          if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+          {
+            this.m_vel[0] = -1;
+          }
+          
+          if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+          {
+            this.m_vel[1] = 1;
+          }
+          if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+          {
+            this.m_vel[1] = -1;
+          }
+          this.m_pos[0] += this.m_vel[0];
+          this.m_pos[1] += this.m_vel[1];
+        }       
+      };
+      
+      this.paint = function (y, priority) 
+      {
+        if(y == this.m_attack_pos[1] && priority == GameConstants.Z_BACKGROUND)
+        {
+          if(this.m_state == this.ATTACK)
+          {
+            g_ctx.fillStyle = "rgba(255,0,0,.5)";
+            g_ctx.fillRect(
+              this.m_attack_pos[0] * this.m_layout.m_cell_width,
+              this.m_attack_pos[1] * this.m_layout.m_cell_height,
+              this.m_layout.m_cell_width,
+              this.m_layout.m_cell_height
+            );
+          }
+        }
+
+        if(y != this.m_pos[1] || priority != GameConstants.Z_FOREGROUND)
+        {
+          return;
+        }
+        if(this.m_invincible && this.m_invincible_timer % 2 == 0)
+        {
+          return;
+        }
+        g_ctx.drawImage(
+          GraphicComponents.m_pieces,
+          536,
+          15,
+          100,
+          250,
+          this.m_pos[0] * this.m_layout.m_cell_width,
+          (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+            - Math.floor(2.5 * this.m_layout.m_cell_width),
+          this.m_layout.m_cell_width,
+          Math.floor(2.5 * this.m_layout.m_cell_width)
+        );
+      };
+      
+      this.handlePlayerCollision = function( x, y, callback)
+      {
+        if(this.m_state == this.ATTACK)
+        {
+          if(x == this.m_attack_pos[0] && y == this.m_attack_pos[1])
+          {
+            delta_x = 1;
+            if(this.m_pos[0] > x)
+            {
+              delta_x = -1;
+            }
+            delta_y = 1;
+            if(this.m_pos[1] > y)
+            {
+              delta_y = -1;
+            }
+            callback.damagePlayer(delta_x, delta_y);
+          }
+        }
+        
+        if(!this.m_invincible)
+        {
+          if(x == this.m_pos[0] && y == this.m_pos[1])
+          {
+            callback.damagePlayer(this.m_vel[0], this.m_vel[1]);
+          }
+        }
+      };
+      
+      this.handlePlayerAttack = function(x,y)
+      {
+        if(x != this.m_pos[0] || y != this.m_pos[1])
+        {
+          return;
+        }
+      
+        if(this.m_invincible)
+        {
+          return;
+        }
+        this.m_state = this.STUNNED;
+        this.m_state_timer = 0;
+        this.m_invincible = true;
+        this.m_invincible_timer = 0;
+        this.m_pushed = true;
+        this.m_health--;
+      }
+      
+      this.active = function()
+      {
+         return this.m_health > 0;
+      }
+    };
+    
+    //##########################################################################
+    
+    const BishopShadow = function (layout){
+      this.m_layout = layout;
+      this.LIFETIME = 6;
+      this.pixel_pos = [7,7];
+      this.pos = [7,7];
+      this.m_timer = this.LIFETIME - 1;
+      this.handleTimeStep = function ()
+      {
+        this.m_timer--;
+      }
+      this.paint = function(y, priority)
+      {
+        if(y == this.pos[1] && priority == GameConstants.Z_FOREGROUND)
+        {
+          g_ctx.globalAlpha = this.m_timer/this.LIFETIME;
+          g_ctx.drawImage(
+            GraphicComponents.m_pieces,
+            223,
+            15,
+            100,
+            250,
+            this.pixel_pos[0],
+            this.pixel_pos[1],
+            this.m_layout.m_cell_width,
+            Math.floor(2.5 * this.m_layout.m_cell_width)
+          );
+          g_ctx.globalAlpha = 1;
+        }
+      }
+      this.active = function()
+      {
+        return this.m_timer > 0;
+      }
+    }
+    
+    const Sparkle = function (layout){
+      this.m_layout = layout;
+      this.LIFETIME = 30;
+      this.pixel_pos = [0,0];
+      this.pos = [7,7];
+
+      //initialization continued below
+      this.reset = function()
+      {
+        this.m_timer = 0;
+        this.pixel_pos[0] = Math.random() * this.m_layout.m_cell_width;
+        this.pixel_pos[1] = Math.random() * 2 * this.m_layout.m_cell_height;
+        this.alpha = Math.random();
+        this.plane = Math.floor(2 * Math.random());
+        this.rise_rate = Math.floor(2 * Math.random());
+        this.size = Math.floor(5*Math.random()) + 2;
+      }
+      
+      //end initialization
+      this.reset();
+      
+      this.handleTimeStep = function ()
+      {
+        this.m_timer++;
+        if(this.m_timer >= this.LIFETIME)
+        {
+          if(Math.random() < .1)
+          {
+            this.reset();
+          }
+        }
+        this.alpha+=(Math.random()-.5)*.05;
+        this.pixel_pos[1] -= this.rise_rate;
+        this.pixel_pos[0] += Math.floor(Math.random()*3) - 1;
+        
+      }
+      this.paint = function(y, priority)
+      {
+        if(y == this.pos[1] && priority == this.plane)
+        {
+          //g_ctx.globalAlpha = this.m_timer/this.LIFETIME;
+          g_ctx.fillStyle="rgba(255,255,255,"+this.alpha+")"
+          g_ctx.beginPath();
+          g_ctx.arc(
+            this.pos[0] * this.m_layout.m_cell_width +
+              this.pixel_pos[0],
+            (this.pos[1] - 2) * this.m_layout.m_cell_height +
+              this.pixel_pos[1],
+            this.size + Math.floor(Math.random()*3) - 1,0,2*Math.PI);
+          g_ctx.fill();
+        }
+      }
+    }
+    
+    const Bishop = function (layout){
+      this.CAST_TIME = 30,
+      this.MOVE_TIME = 4,
+      this.INVINCIBLE_TIME = 50,
+      this.FULL_HEALTH = 9,
+    
+      this.m_pos = [7,7],
+      this.m_vel = [-1,-1],
+      this.m_layout = layout,
+      this.m_invincible = false,
+      this.m_invincible_timer = 0,
+      this.m_pushed = false,
+      this.m_health = this.FULL_HEALTH,
+      this.m_x_offset = 0,
+      this.m_y_offset = 0,
+      this.m_shadows = [],
+      this.m_sparkles = [];
+      for(var i = 0; i < 30; i++)
+      {
+        this.m_sparkles.push(new Sparkle(layout));
+      }
+
+      //state machine
+      this.m_state_timers = [12,9,12,9,12,30,45,0,40],
+      this.SLIDE_1 = 0,
+      this.PAUSE_1 = 1,
+      this.SLIDE_2 = 2,
+      this.PAUSE_2 = 3,
+      this.SLIDE_3 = 4,
+      this.CAST = 5,
+      this.REST = 6,
+      this.END_LOOP = 7,
+      this.STUNNED = 8,
+      this.m_state = this.REST,
+      this.m_state_timer = this.m_state_timers[this.REST],
+      this.m_spells_since_summon = 0,
+      
+      this.m_slow = 1;
+      
+      this.handleTimeStep = function ()
+      {
+        if(this.m_slow-- != 0)
+        {
+          return;
+        }
+        this.m_slow = 1;
+        for(var i = 0; i < this.m_shadows.length; i++)
+        {
+          this.m_shadows[i].handleTimeStep();
+        }
+        if(this.m_shadows.length > 0)
+        {
+          if(!this.m_shadows[0].active())
+          {
+            this.m_shadows.shift();
+          }
+        }
+        if(this.m_state == this.CAST)
+        {
+          for(var i = 0; i < this.m_sparkles.length; i++)
+          {
+            this.m_sparkles[i].handleTimeStep();
+          }
+        }
+        
+        if(this.m_invincible)
+        {
+          this.m_invincible_timer++;
+          if(this.m_invincible_timer >= this.INVINCIBLE_TIME)
+          {
+            this.m_invincible = false;
+            this.m_invincible_timer = 0;
+          }
+        }
+        this.m_state_timer++;
+        if(this.m_state_timer >= this.m_state_timers[this.m_state])
+        {
+          //exit state
+          if(this.m_state == this.SLIDE_1 || 
+          this.m_state == this.SLIDE_2 ||
+          this.m_state == this.SLIDE_3)
+          {
+            /*
+            var shadow = new BishopShadow(this.m_layout);
+            shadow.pos[0] = this.m_pos[0];
+            shadow.pos[1] = this.m_pos[1];
+            shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+            shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+              - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+            this.m_shadows.push(shadow);
+            */
+            this.m_x_offset = 0;
+            this.m_y_offset = 0;
+            
+          }
+          if(this.m_state == this.CAST)
+          {
+            if(this.m_spells_since_summon >= 4 && Math.random() <= .33)
+            {
+              this.m_spells_since_summon = 0;
+              var minion = new MinionSpawn(this.m_layout);
+              minion.m_pos[0] = Math.floor(Math.random() * 8) + 1;
+              minion.m_pos[1] = Math.floor(Math.random() * 8) + 1;
+              GameScreen.m_enemies.push(minion);
+            }
+            else
+            {
+              this.m_spells_since_summon++;
+              var flame = new FlameWave(this.m_layout);
+              flame.m_pos[0] = this.m_pos[0];
+              flame.m_pos[1] = this.m_pos[1];
+              GameScreen.m_enemies.push(flame);
+            }
+          }
+          //change state
+          this.m_state = (this.m_state + 1);
+          if(this.m_state >= this.END_LOOP)
+          {
+            this.m_state = 0;
+          }
+          this.m_state_timer = 0;
+          //enter state
+          if(this.m_state == this.CAST)
+          {
+            for(var i = 0; i < this.m_sparkles.length; i++)
+            {
+              this.m_sparkles[i].pos[0] = this.m_pos[0];
+              this.m_sparkles[i].pos[1] = this.m_pos[1];
+            }
+          }
+          if(this.m_state == this.SLIDE_1)
+          {
+            this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+            this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+          }
+          if(this.m_state == this.SLIDE_2 ||
+            this.m_state == this.SLIDE_3)
+          {
+            var direction = Math.floor(Math.random() * 2);
+            this.m_vel[direction] = -1 * this.m_vel[direction];
+          }
+        }
+        
+        var move_me = false;
+        if(this.m_state == this.SLIDE_1 || 
+          this.m_state == this.SLIDE_2 ||
+          this.m_state == this.SLIDE_3)
+        {
+          if((this.m_state_timer % this.MOVE_TIME) == Math.round(this.MOVE_TIME/2))
+          {
+            move_me = true;
+          }
+          if((this.m_state_timer % this.MOVE_TIME) == 0)
+          {
+            if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+            {
+              this.m_vel[0] = 1;
+            }
+            if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+            {
+              this.m_vel[0] = -1;
+            }
+            
+            if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+            {
+              this.m_vel[1] = 1;
+            }
+            if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+            {
+              this.m_vel[1] = -1;
+            }
+          }
+          /*
+          var shadow = new BishopShadow(this.m_layout);
+          shadow.pos[0] = this.m_pos[0];
+          shadow.pos[1] = this.m_pos[1];
+          shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+          shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+            - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+          this.m_shadows.push(shadow);
+          */
+          this.m_x_offset = this.m_layout.m_cell_width * this.m_vel[0] *
+          (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+          this.m_y_offset = this.m_layout.m_cell_height * this.m_vel[1] * 
+            (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+          if((this.m_state_timer % this.MOVE_TIME) >= Math.round(this.MOVE_TIME/2))
+          {
+            this.m_x_offset = this.m_x_offset - this.m_vel[0] * this.m_layout.m_cell_width;
+            this.m_y_offset = this.m_y_offset - this.m_vel[1] * this.m_layout.m_cell_height;
+          }
+        }
+
+        if(this.m_pushed)
+        {
+          move_me = true;
+          this.m_pushed = false;
+          if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+          {
+            this.m_vel[0] = 1;
+          }
+          if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+          {
+            this.m_vel[0] = -1;
+          }
+          
+          if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+          {
+            this.m_vel[1] = 1;
+          }
+          if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+          {
+            this.m_vel[1] = -1;
+          }
+          this.m_x_offset = 0;
+          this.m_y_offset = 0;
+        }
+        
+        if(move_me)
+        {
+          this.m_pos[0] += this.m_vel[0];
+          this.m_pos[1] += this.m_vel[1];
+        }
+      };
+      
+      this.paint = function (y, priority) 
+      {
+        if(y == this.m_pos[1] && priority == GameConstants.Z_BACKGROUND)
+        {
+        /*
+          g_ctx.fillStyle = "rgba(0,0,255,.5)";
+          g_ctx.fillRect(
+            this.m_pos[0] * this.m_layout.m_cell_width,
+            this.m_pos[1] * this.m_layout.m_cell_height,
+            this.m_layout.m_cell_width,
+            this.m_layout.m_cell_height
+          );
+        */
+          g_ctx.fillStyle = "rgba(255,0,0,.5)";
+          g_ctx.fillRect(
+            this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset,
+            (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+              - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset + Math.floor(this.m_layout.m_cell_height/4),
+            Math.floor(this.m_layout.m_cell_width * this.m_health / this.FULL_HEALTH),
+            Math.floor(this.m_layout.m_cell_height/8)
+          );
+        }
+        
+        if(y == this.m_pos[1] && priority == GameConstants.Z_FOREGROUND)
+        {
+          if(!this.m_invincible || this.m_invincible_timer % 2 != 0)
+          {
+            g_ctx.fillStyle = "rgb(255,255,255)";
+            g_ctx.drawImage(
+              GraphicComponents.m_pieces,
+              223,
+              15,
+              100,
+              250,
+              this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset,
+              (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+                - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset,
+              this.m_layout.m_cell_width,
+              Math.floor(2.5 * this.m_layout.m_cell_width)
+            );
+          }
+        }
+        for(var i = this.m_shadows.length-1; i > 0; --i)
+        {
+          this.m_shadows[i].paint(y, priority);
+        }
+        if(y == this.m_pos[1])
+        {
+          if(this.m_state == this.CAST)
+          {
+            for(var i = 0; i < this.m_sparkles.length; i++)
+            {
+              this.m_sparkles[i].paint(y,priority);
+            }
+          }
+        }
+      };
+      
+      this.handlePlayerCollision = function( x, y, callback)
+      {
+        if(!this.m_invincible)
+        {
+          if(x == this.m_pos[0] && y == this.m_pos[1])
+          {
+            callback.damagePlayer(this.m_vel[0], this.m_vel[1]);
+          }
+        }
+      };
+      
+      this.handlePlayerAttack = function(x,y)
+      {
+        if(x != this.m_pos[0] || y != this.m_pos[1])
+        {
+          return;
+        }
+      
+        if(this.m_invincible)
+        {
+          return;
+        }
+        this.m_state = this.STUNNED;
+        this.m_state_timer = 0;
+        this.m_invincible = true;
+        this.m_invincible_timer = 0;
+        this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+        this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+        this.m_pushed = true;
+        this.m_health--;
+      }
+      
+      this.active = function()
+      {
+         return this.m_health > 0;
+      }
+    };
+
+    //--------------------------------------------------------------------------    
+    const GameOver = {
+      m_layout: null,
+      m_timer: 0,
+      m_steps: 1,
+      DIM_STEP_SIZE: .01,
+      TIME_LIMIT: 120,
+      STEP_TIME: 2,
+      MUSIC_VOLUME_STEP_SIZE: 1,
+
+      init: function (layout)
+      {
+        this.m_layout = layout;
+      },
+      reset: function ()
+      {
+        this.m_timer = 0;
+        this.m_steps = 1;
+        var volume = GameConstants.MUSIC_VOLUME 
+            - this.m_steps * this.MUSIC_VOLUME_STEP_SIZE;
+        if(volume < 0)
+        {
+          volume = 0;
+        }
+        AudioComponents.m_bg.setVolume(volume);
+      },
+      handleMouseClick: function () {},
+      handleKeyPress: function () {},
+      handleTimeStep: function ()
+      {
+        this.m_timer++;
+        if(this.m_timer > this.TIME_LIMIT)
+        {
+          switchToScreen(GameScreen);
+        }
+        if((this.m_timer % this.STEP_TIME) == 0)
+        {
+          this.m_steps++;
+          var volume = GameConstants.MUSIC_VOLUME 
+            - this.m_steps * this.MUSIC_VOLUME_STEP_SIZE;
+          if(volume < 0)
+          {
+            volume = 0;
+          }
+          AudioComponents.m_bg.setVolume(volume);
+        }
+        if((this.m_timer % this.m_steps) == 0)
+        {
+          GameScreen.handleTimeStep();
+        }
+      },
+      paint: function ()
+      {
+        GameScreen.paint();
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        var alpha = this.m_timer * this.DIM_STEP_SIZE
+        g_ctx.fillStyle = "rgba(0, 0, 0,"+alpha+")";
+        g_ctx.fillRect(
+            0, 0,
+            this.m_layout.m_canvas_width,
+            this.m_layout.m_canvas_height);
+        g_ctx.font="Bold 80px Arial";
+        g_ctx.fillStyle = "rgba(128, 128, 128,"+alpha+")";
+        g_ctx.textAlign = "center";
+        g_ctx.textBaseline = "middle";
+        g_ctx.fillText(
+            "Game Over",
+            this.m_layout.m_canvas_width / 2,
+            this.m_layout.m_canvas_height / 2
+        );
+      }
+    };
+    
+    //--------------------------------------------------------------------------    
+    const Fanfare = {
+      m_layout: null,
+
+      init: function (layout)
+      {
+        this.m_layout = layout;
+      },
+      reset: function ()
+      {
+        AudioComponents.m_bg.stop();
+        AudioComponents.m_fanfare.setVolume(GameConstants.MUSIC_VOLUME);
+        AudioComponents.m_fanfare.loop().play();
+      },
+      handleMouseClick: function () {},
+      handleKeyPress: function () {},
+      handleTimeStep: function ()
+      {
+      },
+      paint: function ()
+      {
+        GameScreen.paint();
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        g_ctx.fillStyle = "rgba(0, 0, 0, .7)";
+        g_ctx.fillRect(
+            0, 0,
+            this.m_layout.m_canvas_width,
+            this.m_layout.m_canvas_height);
+        g_ctx.font="Bold 80px Arial";
+        g_ctx.fillStyle = "rgb(128, 128, 128)";
+        g_ctx.textAlign = "center";
+        g_ctx.textBaseline = "middle";
+        g_ctx.fillText(
+            "Cleared!",
+            this.m_layout.m_canvas_width / 2,
+            this.m_layout.m_canvas_height / 2
+        );
+      }
+    };
+   
+    //--------------------------------------------------------------------------
+    const GameScreen = {
+      m_layout: null,
+      
+      player_x: 0,
+      player_y: 0,
+      player_stun_timer: 0,
+      player_stun_timer_active: false,
+      player_invincible_timer: 0,
+      player_invincible_timer_active: false,
+      player_health: 0,
+      player_stomp: false,
+      player_pushed: false,
+      player_push_x: 0,
+      player_push_y: 0,
+      PLAYER_STUN_PERIOD: 10,
+      PLAYER_INVINCIBLE_PERIOD: 30,
+      PLAYER_FULL_HEALTH: 20,
+      layout_offset_y: 0,
+      
+      m_enemies: [],
+  
+      init: function (layout)
+      {
+        this.m_layout = layout;
+      },
+      
+      reset: function () {
+        AudioComponents.m_bg.loop().stop();
+        AudioComponents.m_bg.setVolume(GameConstants.MUSIC_VOLUME);
+        AudioComponents.m_bg.loop().play();
+        this.player_x = 1;
+        this.player_y = 1;
+        this.player_stun_timer = 0,
+        this.player_stun_timer_active = false,
+        this.player_invincible_timer = 0,
+        this.player_invincible_timer_active = false;
+        this.player_health = this.PLAYER_FULL_HEALTH;
+        this.player_stomp = false;
+        this.player_pushed = false;
+        this.player_push_x = 0;
+        this.player_push_y = 0;
+        
+        this.m_enemies = [];
+        this.m_enemies.push(new EnemyWave(this.m_layout));
+        var current_wave = this.m_enemies[0];
+        
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        next_minion.minion = new Bishop(this.m_layout);
+        current_wave.addElement(next_minion).addOnTimeout(25).addOnIdle(1);
+        
+        //pawn rush
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        current_wave.addElement(next_minion);
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        current_wave.addElement(next_minion);
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        current_wave.addElement(next_minion);
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        current_wave.addElement(next_minion).addOnIdle(1)
+        
+        var next_minion = new MinionSpawn(this.m_layout);
+        next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+        next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+        current_wave.addElement(next_minion).addOnIdle(1);
+        
+        for(var i = 0; i < 7; i++)
+        {
+          var next_minion = new MinionSpawn(this.m_layout);
+          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+          current_wave.addOnIdle(2).addElement(next_minion);
+        }
+
+        for(var i = 0; i < 2; i++)
+        {
+          var next_minion = new MinionSpawn(this.m_layout);
+          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
+          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+          current_wave.addOnIdle(1).addElement(next_minion);
+        }
+        
+        current_wave.addOnTimeout(75);
+        
+        //this.m_enemies.push(new Bishop(this.m_layout));
+        
+        
+        this.layout_offset_y = Math.floor((1 - GameConstants.VERTICAL_SQUISH) *
+          this.m_layout.m_canvas_width / 2);
+        this.layout_offset_y -= (this.m_layout.m_canvas_width - this.m_layout.m_canvas_height) / 2
+      },
+      
+      handleMouseClick: function ()
+      {
+        if(this.player_stun_timer_active)
+        {
+          return;
+        }
+        var grid_x = Math.floor(mouse_x  / this.m_layout.m_cell_width);
+        var grid_y = Math.floor((mouse_y - this.layout_offset_y) 
+          / this.m_layout.m_cell_height);
+        if(
+          grid_x > 8 ||
+          grid_y > 8 ||
+          grid_x < 1 ||
+          grid_y < 1
+        )
+        {
+          return;
+        }
+        var delta_x = Math.abs(this.player_x - grid_x);
+        var delta_y = Math.abs(this.player_y - grid_y);
+        if(delta_x + delta_y == 3)
+        {
+          if(delta_x != 0 && delta_y != 0)
+          {
+            this.player_x = grid_x;
+            this.player_y = grid_y;
+            this.player_stomp = true;
+          }
+        }
+      },
+      
+      handleKeyPress: function () {},
+      
+      handleTimeStep: function ()
+      {
+        if(g_current_screen == GameScreen)
+        {
+          if(this.player_health == 0)
+          {
+            switchToScreen(GameOver);
+            return;
+          }
+          if(this.m_enemies.length == 0)
+          {
+            switchToScreen(Fanfare);
+            return;
+          }
+        }
+        
+        if(this.player_stun_timer_active)
+        {
+          this.player_stun_timer++;
+          if(this.player_stun_timer >= this.PLAYER_STUN_PERIOD)
+          {
+            this.player_stun_timer_active = false;
+            this.player_stun_timer = 0;
+          }
+        }
+        
+        if(this.player_pushed)
+        {
+          if(this.player_x == 1 && this.player_push_x == -1)
+          {
+            this.player_push_x = 1;
+          }
+          if(this.player_x == 8 && this.player_push_x == 1)
+          {
+            this.player_push_x = -1;
+          }
+          
+          if(this.player_y == 1 && this.player_push_y == -1)
+          {
+            this.player_push_y = 1;
+          }
+          if(this.player_y == 8 && this.player_push_y == 1)
+          {
+            this.player_push_y = -1;
+          }
+          this.player_pushed = false;
+          this.player_x += this.player_push_x;
+          this.player_y += this.player_push_y;
+        }
+        
+        if(this.player_invincible_timer_active)
+        {
+          this.player_invincible_timer++;
+          if(this.player_invincible_timer >= this.PLAYER_INVINCIBLE_PERIOD)
+          {
+            this.player_invincible_timer_active = false;
+            this.player_invincible_timer = 0;
+          }
+        }
+        
+        //cull list
+        for(var index = this.m_enemies.length - 1; index >= 0; index--)
+        {
+         if(!this.m_enemies[index].active())
+         {
+            this.m_enemies.splice(index,1);
+         }
+        }
+        
+        for(var index = 0; index < this.m_enemies.length; index++)
+        {
+         this.m_enemies[index].handleTimeStep();
+        }
+        
+        if(this.player_stomp)
+        {
+          AudioComponents.m_move.stop();
+          AudioComponents.m_move.setVolume(100);
+          AudioComponents.m_move.play();
+          for(var index = 0; index < this.m_enemies.length; index++)
+          {
+            this.m_enemies[index].handlePlayerAttack(this.player_x, this.player_y);
+          }
+          this.player_stomp = false;
+        }
+        else
+        {
+          for(var index = 0; index < this.m_enemies.length; index++)
+          {
+            this.m_enemies[index].handlePlayerCollision(this.player_x, this.player_y, this);
+          }
+        }
+      },
+      
+      paint: function ()
+      {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // paint the background
+        g_ctx.fillStyle = "rgb(0, 0, 0)";
+        g_ctx.fillRect(
+            0, 0,
+            this.m_layout.m_canvas_width,
+            this.m_layout.m_canvas_height);
+        
+        g_ctx.setTransform(1, 0, 0, 1, 0, this.layout_offset_y);
+        
+        for (var board_y = 1; board_y <= 8; board_y++)
+        {
+          for (var board_x = 1; board_x <= 8; board_x++)
+          {
+            var x_pos = Math.floor(board_x * this.m_layout.m_cell_width);
+            var y_pos = Math.floor(board_y * this.m_layout.m_cell_height);
+            if(((board_x + board_y)%2) == 0)
+            {
+              g_ctx.fillStyle = "rgb(128,128,128)";
+            }
+            else
+            {
+              g_ctx.fillStyle = "rgb(192,192,192)";
+            }
+            g_ctx.fillRect(
+              x_pos,
+              y_pos,
+              this.m_layout.m_cell_width,
+              this.m_layout.m_cell_height
+            );
+          }
+        }
+        var edge = Math.round(this.m_layout.m_cell_width / 8);
+        g_ctx.fillStyle = "rgb(96,96,96)";      
+        g_ctx.fillRect(
+          edge,
+          edge,
+          4 * this.m_layout.m_cell_width - 2 * edge,
+          this.m_layout.m_cell_height - 2 * edge
+        );
+        var fill = Math.floor((4 * this.m_layout.m_cell_width - 2 * edge)
+          * this.player_health / this.PLAYER_FULL_HEALTH);
+        g_ctx.fillStyle = "rgb(192,96,96)";
+        g_ctx.fillRect(
+          edge,
+          edge,
+          fill,
+          this.m_layout.m_cell_height - 2 * edge
+        );
+        
+        for(var board_y = 1; board_y < 9; board_y++)
+        {
+          for(var index = 0; index < this.m_enemies.length; index++)
+          {
+              this.m_enemies[index].paint(board_y, GameConstants.Z_BACKGROUND);
+          }
+          var abs_y = Math.abs(board_y - this.player_y);
+          
+          //player objects
+          if(this.player_health != 0 && abs_y < 3 && abs_y > 0)
+          {
+            var offset_x = 3 - abs_y;
+            g_ctx.fillStyle = "rgba(0,255,0,.2)";
+            if(this.player_x - offset_x >= 1)
+            {
+              g_ctx.fillRect(
+                (this.player_x - offset_x) * this.m_layout.m_cell_width,
+                board_y * this.m_layout.m_cell_height,
+                this.m_layout.m_cell_width,
+                this.m_layout.m_cell_height
+              );
+            }
+            if(this.player_x + offset_x <= 8)
+            {
+              g_ctx.fillRect(
+                (this.player_x + offset_x) * this.m_layout.m_cell_width,
+                board_y * this.m_layout.m_cell_height,
+                this.m_layout.m_cell_width,
+                this.m_layout.m_cell_height
+              );
+            }
+          }
+          //player objects
+          
+          for(var index = 0; index < this.m_enemies.length; index++)
+          {
+            this.m_enemies[index].paint(board_y, GameConstants.Z_FOREGROUND);
+          }
+          
+          //player objects
+          if(this.player_y == board_y)
+          {
+            if(!this.player_invincible_timer_active || this.player_invincible_timer % 2 != 0)
+            {
+              if(this.player_health != 0)
+              {
+                g_ctx.drawImage(
+                  GraphicComponents.m_pieces,
+                  436,
+                  15,
+                  100,
+                  250,
+                  this.player_x * this.m_layout.m_cell_width,
+                  (this.player_y + 1) * this.m_layout.m_cell_height
+                    - Math.floor(2.5 * this.m_layout.m_cell_width),
+                  this.m_layout.m_cell_width,
+                  Math.floor(2.5 * this.m_layout.m_cell_width)
+                );
+              }
+            }
+          }
+          //player objects
+        }
+        
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+      },
+      
+      damagePlayer: function (delta_x, delta_y)
+      {
+        if(this.player_invincible_timer_active)
+        {
+          return;
+        }
+        this.player_stun_timer = 0;
+        this.player_stun_timer_active = true;
+        this.player_invincible_timer = 0;
+        this.player_invincible_timer_active = true;
+        this.player_pushed = true;
+        this.player_push_x = delta_x;
+        this.player_push_y = delta_y;
+        if(this.player_health > 0)
+        {
+          this.player_health--;
+        }
+      },
+    };
+    
+    //##########################################################################
+    
+    //--------------------------------------------------------------------------
+    var ResourceTracker = {
+        m_added: 1, // I track myself loading
+        m_loaded: 0,
+        m_layout: null,
+
+        //----------------------------------------------------------------------
+        // from Screen
+        init: function (layout)
+        {
+            this.m_layout = layout;
+            this.onload(null); //and here I'm loaded
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        reset: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleMouseClick: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleKeyPress: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleTimeStep: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        paint: function ()
+        {
+            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.fillStyle = "rgb(0, 0, 0)";
+            g_ctx.fillRect(
+                0, 0,
+                this.m_layout.m_canvas_width,
+                this.m_layout.m_canvas_height);
+
+            g_ctx.font="Bold 80px Arial";
+            g_ctx.fillStyle = "rgb(128, 128, 128)";
+            g_ctx.textAlign = "center";
+            g_ctx.textBaseline = "middle";
+            g_ctx.fillText(
+                Math.floor(100 * this.m_loaded / this.m_added) + "%",
+                this.m_layout.m_canvas_width / 2,
+                this.m_layout.m_canvas_height / 2
+            );
+        },
+
+
+        //----------------------------------------------------------------------
+        add: function ()
+        {
+            ++this.m_added;
+        },
+
+        //----------------------------------------------------------------------
+        // from Image.onload
+        onload: function (event)
+        {
+            ++this.m_loaded;
+            if (this.m_loaded == this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        onAllLoaded: function ()
+        {
+            switchToScreen(GameScreen);
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    var AudioComponents = {
+        m_bg: Util.loadAudio("Assets/Sound/CrunkKnight.mp3",
+            ResourceTracker),
+        m_fanfare: Util.loadAudio("Assets/Sound/Reformat.mp3",
+            ResourceTracker),
+        m_move: Util.loadAudio("Assets/Sound/Bounce-SoundBible.com-12678623.mp3",
+            ResourceTracker),
+    };
+    
+    //--------------------------------------------------------------------------
+    var GraphicComponents = {
+        m_pieces: Util.loadImage("Assets/Graphics/Chess_pieces.png",
+            ResourceTracker),
+    };
+
+    //##########################################################################
+    // game engine
+    
+    //--------------------------------------------------------------------------
+    function init()
+    {
+        //Canvas stuff
+        var canvas_obj = $("#canvas");
+        g_canvas = canvas_obj[0];
+        g_ctx = g_canvas.getContext("2d");
+        g_ctx.textAlign="start";
+        g_ctx.textBaseline="middle";
+
+        var layout = {};
+        layout.m_canvas_width = canvas_obj.width();
+        layout.m_canvas_height = canvas_obj.height();
+        layout.m_cell_width = layout.m_canvas_width / GameConstants.m_grid_size;
+        layout.m_cell_height = 
+          Math.round(GameConstants.VERTICAL_SQUISH * layout.m_cell_width);
+
+        g_canvas.addEventListener("mousedown", function (event) {
+            var rect = g_canvas.getBoundingClientRect();
+            mouse_x = event.clientX - rect.left;
+            mouse_y = event.clientY - rect.top;
+            mouse_click_pending = true;
+        }, false);
+
+        g_canvas.addEventListener("keydown", function (event) {
+            key_code = event.which;
+            key_press_pending = true;
+        }, false);
+
+        // can't do this until you've set up canvas_width and canvas_height
+        //ResourceTracker init must be called after all requests to 
+        //loadImage/loadAudio
+        Fanfare.init(layout);
+        GameOver.init(layout);
+        GameScreen.init(layout);
+        ResourceTracker.init(layout);
+
+        switchToScreen(ResourceTracker);
+
+        // start processing events
+        setTimeout(eventLoop, 40);
+    }
+
+    //--------------------------------------------------------------------------
+    function switchToScreen(screen)
+    {
+        screen.reset();
+        g_current_screen = screen;
+    }
+
+    //--------------------------------------------------------------------------
+    function eventLoop()
+    {
+        var start_time = Date.now();
+
+        if (mouse_click_pending) {
+            mouse_click_pending = false;
+            g_current_screen.handleMouseClick();
+        }
+
+        if (key_press_pending) {
+            key_press_pending = false;
+            g_current_screen.handleKeyPress();
+        }
+
+        g_current_screen.handleTimeStep();
+        g_current_screen.paint();
+
+        var end_time = Date.now();
+        var comp_time = end_time - start_time;
+        if (comp_time > 40 || comp_time < 0) {
+            setTimeout(eventLoop, 0);
+        }
+        else
+        {
+            setTimeout(eventLoop, 40 - comp_time);
+        }
+    }
+
+    // launch the game once the document is fully loaded
+    $(document).ready(init);
+
+</script>
+</body>
+</html>
+
