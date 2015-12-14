@@ -113,37 +113,6 @@
             return audio;
         }
     };
-
-    //##########################################################################
-
-    //--------------------------------------------------------------------------
-    const MonsterSteps = {
-        
-        BISHOP: 1,
-        MOVE_DOWN: {
-            m_dx: 0,
-            m_dy: 1,
-            m_rotate_left: "MOVE_RIGHT",
-            m_rotate_right: "MOVE_LEFT",
-            m_char: " \u2193 "
-        },
-        MOVE_LEFT: {
-            m_dx: -1,
-            m_dy: 0,
-            m_rotate_left: "MOVE_DOWN",
-            m_rotate_right: "MOVE_UP",
-            m_char: "\u2190"
-        },
-        MOVE_RIGHT: {
-            m_dx: 1,
-            m_dy: 0,
-            m_rotate_left: "MOVE_UP",
-            m_rotate_right: "MOVE_DOWN",
-            m_char: "\u2192"
-        }
-    };
-    const ALL_MONSTER_STEP_TYPES = [];
-    Util.forEach(MonsterSteps, function (item) { ALL_MONSTER_STEP_TYPES.push(item); } );
     
     //##########################################################################
     
@@ -243,6 +212,85 @@
       this.active = function()
       {
         return this.m_queue.length > 0;
+      };
+    };
+    
+    //##########################################################################
+    
+    const Coin = function (layout){
+      this.m_pos = [8,8],
+      this.m_pos[0] = Math.floor(Math.random()*8) + 1;
+      this.m_pos[1] = Math.floor(Math.random()*8) + 1;
+      this.m_active = true;
+      this.m_layout = layout,
+      this.m_timer = 0,
+      this.m_frame = 0,
+      this.FRAMES = 8,
+      this.FRAME_WIDTH = 32,
+      this.TIMER_CHECKPOINTS = [25,150,200,250],
+            
+      this.handleTimeStep = function ()
+      {
+        this.m_timer++;
+        this.m_frame++;
+        this.m_frame = this.m_frame % this.FRAMES;
+        if(this.m_timer > this.TIMER_CHECKPOINTS[3])
+        {
+          this.m_pos[0] = Math.floor(Math.random()*8) + 1;
+          this.m_pos[1] = Math.floor(Math.random()*8) + 1;
+          this.m_timer = 0;
+        }
+      }
+      this.paint = function (y,priority) 
+      {
+        if(y == this.m_pos[1] && priority == GameConstants.Z_FOREGROUND)
+        {
+          if(this.m_timer < this.TIMER_CHECKPOINTS[0])
+          {
+            return;
+          }
+          if(this.m_timer > this.TIMER_CHECKPOINTS[1] && this.m_timer % 4 == 0)
+          {
+            return;
+          }
+          if(this.m_timer > this.TIMER_CHECKPOINTS[2] && this.m_timer % 4 == 2)
+          {
+            return;
+          }
+          g_ctx.drawImage(
+            GraphicComponents.m_coins,
+            32 * this.m_frame,
+            0,
+            this.FRAME_WIDTH ,
+            this.FRAME_WIDTH ,
+            Math.floor((this.m_pos[0] + .5) * this.m_layout.m_cell_width) - 16 * 2,
+            Math.floor((this.m_pos[1] + .5) * this.m_layout.m_cell_height) - 28 * 2,
+            this.FRAME_WIDTH * 2,
+            this.FRAME_WIDTH * 2
+          );
+        }
+      }
+      this.handlePlayerAttack = function(x,y)
+      {
+        if(x == this.m_pos[0] && y == this.m_pos[1] && this.m_timer > this.TIMER_CHECKPOINTS[0])
+        {
+          this.m_pos[0] = Math.floor(Math.random()*8) + 1;
+          this.m_pos[1] = Math.floor(Math.random()*8) + 1;
+          this.m_timer = 0;
+        }
+      }
+      this.handlePlayerCollision = function(x, y, callback)
+      {
+        if(x == this.m_pos[0] && y == this.m_pos[1] && this.m_timer > this.TIMER_CHECKPOINTS[0])
+        {
+          this.m_pos[0] = Math.floor(Math.random()*8) + 1;
+          this.m_pos[1] = Math.floor(Math.random()*8) + 1;
+          this.m_timer = 0;
+        }
+      };
+      this.active = function()
+      {
+        return this.m_active;
       };
     };
     
@@ -1285,7 +1333,9 @@
         
         current_wave.addOnTimeout(75);
         
-        //this.m_enemies.push(new Bishop(this.m_layout));
+        current_wave.addOnIdle(0);
+        
+        this.m_enemies.push(new Coin(this.m_layout));
         
         
         this.layout_offset_y = Math.floor((1 - GameConstants.VERTICAL_SQUISH) *
@@ -1659,6 +1709,8 @@
     //--------------------------------------------------------------------------
     var GraphicComponents = {
         m_pieces: Util.loadImage("Assets/Graphics/Chess_pieces.png",
+            ResourceTracker),
+        m_coins: Util.loadImage("Assets/Graphics/coin_gold.png",
             ResourceTracker),
     };
 
