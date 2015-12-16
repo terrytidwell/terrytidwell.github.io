@@ -506,21 +506,24 @@
       this.m_attack_pos = [8,8],
       this.m_move_flip_flop = 0,
       this.m_health = 2,
+      this.offset_x = 0,
+      this.offset_y = 0,
       
       this.INVINCIBLE_TIME = 50,
       this.STUNNED_TIME = 40,
       this.ATTACK_TIME = 16;
-      this.MOVE_TIME = 16;
+      this.MOVE_TIME = 4;
       this.DELAY_BEFORE_MOVE = 12;
       this.ATTACK_DELAY = 8;
       //this.target_x = 2 * Math.floor(Math.random() * 2) - 1;
       //this.target_y = 2 * Math.floor(Math.random() * 2) - 1;
       
       //state machine
-      this.MOVE = 0,
-      this.ATTACK = 1,
-      this.STUNNED = 2,
-      this.m_state = this.MOVE,
+      this.PREMOVE = 0,
+      this.MOVE = 1,
+      this.ATTACK = 2,
+      this.STUNNED = 3,
+      this.m_state = this.PREMOVE,
       
       this.handleTimeStep = function ()
       {
@@ -539,14 +542,20 @@
         
         this.m_state_timer++;
         
+        if(this.m_state != this.MOVE)
+        {
+          this.offset_x = 0;
+          this.offset_y = 0;
+        }
+        
         if(this.m_state == this.ATTACK && this.m_state_timer >= this.ATTACK_TIME)
         {
           this.m_state_timer = 0;
-          this.m_state = this.MOVE;
+          this.m_state = this.PREMOVE;
           return;
         }
         
-        if(this.m_state == this.MOVE && this.m_state_timer >= this.ATTACK_DELAY)
+        if(this.m_state == this.PREMOVE && this.m_state_timer >= this.DELAY_BEFORE_MOVE)
         {
           if(Math.abs(delta_x) + Math.abs(delta_y) == 2 &&
             delta_x != 0 &&
@@ -558,36 +567,73 @@
             this.m_attack_pos[1] = GameScreen.player_y;
             return;
           }
+          else
+          {
+            this.m_state = this.MOVE;
+            this.m_state_timer = 0;
+            this.m_vel[0] = 1; 
+            if(delta_x < 0 || (delta_x == 0 && Math.floor(Math.random()*2) == 0))
+            {
+              this.m_vel[0] = -1; 
+            }
+            this.m_vel[1] = 1; 
+            if(delta_y < 0 || (delta_y == 0 && Math.floor(Math.random()*2) == 0))
+            {
+              this.m_vel[1] = -1; 
+            }
+            if(Math.abs(delta_x) + Math.abs(delta_y) < 2)
+            {
+              this.m_vel[0] *= -1;
+              this.m_vel[1] *= -1;
+            }
+            if(Math.random() < .80)
+            {
+              this.m_move_flip_flop = (this.m_move_flip_flop + 1) % 2;
+            }
+            this.m_vel[this.m_move_flip_flop] = 0;
+            if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+            {
+              this.m_vel[0] = 1;
+            }
+            if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+            {
+              this.m_vel[0] = -1;
+            }
+            
+            if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+            {
+              this.m_vel[1] = 1;
+            }
+            if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+            {
+              this.m_vel[1] = -1;
+            }
+            return;
+          }
         }
         
-        if(this.m_state == this.MOVE && this.m_state_timer >= this.MOVE_TIME)
+        if(this.m_state == this.MOVE)
         {
-          this.m_state_timer = 0;
-          this.m_vel[0] = 1; 
-          if(delta_x < 0 || (delta_x == 0 && Math.floor(Math.random()*2) == 0))
+          if(this.m_state_timer == Math.round(this.MOVE_TIME / 2))
           {
-            this.m_vel[0] = -1; 
+            move_me = true;
           }
-          this.m_vel[1] = 1; 
-          if(delta_y < 0 || (delta_y == 0 && Math.floor(Math.random()*2) == 0))
+          var ratio = this.m_state_timer / this.MOVE_TIME;
+          if(this.m_state_timer >= Math.round(this.MOVE_TIME / 2))
           {
-            this.m_vel[1] = -1; 
+            ratio = ratio - 1;
           }
-          if(Math.abs(delta_x) + Math.abs(delta_y) < 2)
+          this.offset_x = this.m_vel[0] * ratio;
+          this.offset_y = this.m_vel[1] * ratio;
+          if(this.m_state_timer >= this.MOVE_TIME)
           {
-            this.m_vel[0] *= -1;
-            this.m_vel[1] *= -1;
+            this.m_state_timer = 0;
+            this.m_state = this.PREMOVE;
           }
-          if(Math.random() < .80)
-          {
-            this.m_move_flip_flop = (this.m_move_flip_flop + 1) % 2;
-          }
-          this.m_vel[this.m_move_flip_flop] = 0;
-          move_me = true;
         }
         if(this.m_state == this.STUNNED && this.m_state_timer >= this.STUNNED_TIME)
         {
-          this.m_state = this.MOVE;
+          this.m_state = this.PREMOVE;
           this.m_state_timer = 0;
         }
         if(this.m_pushed)
@@ -595,12 +641,6 @@
           this.m_vel[0] = 0;
           this.m_vel[1] = 0;
           this.m_vel[Math.floor(Math.random()*2)] = 2 * Math.floor(Math.random() * 2) - 1;
-          move_me = true;
-          this.m_pushed = false;
-        }
-        
-        if(move_me)
-        {
           if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
           {
             this.m_vel[0] = 1;
@@ -618,6 +658,12 @@
           {
             this.m_vel[1] = -1;
           }
+          move_me = true;
+          this.m_pushed = false;
+        }
+        
+        if(move_me)
+        {
           this.m_pos[0] += this.m_vel[0];
           this.m_pos[1] += this.m_vel[1];
         }       
@@ -653,8 +699,8 @@
           15,
           100,
           250,
-          this.m_pos[0] * this.m_layout.m_cell_width,
-          (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+          Math.round((this.m_pos[0] + this.offset_x) * this.m_layout.m_cell_width),
+          Math.round((this.m_pos[1] + this.offset_y + 1) * this.m_layout.m_cell_height)
             - Math.floor(2.5 * this.m_layout.m_cell_width),
           this.m_layout.m_cell_width,
           Math.floor(2.5 * this.m_layout.m_cell_width)
@@ -843,15 +889,8 @@
       this.m_state_timer = this.m_state_timers[this.REST],
       this.m_spells_since_summon = 0,
       
-      this.m_slow = 1;
-      
       this.handleTimeStep = function ()
       {
-        if(this.m_slow-- != 0)
-        {
-          return;
-        }
-        this.m_slow = 1;
         for(var i = 0; i < this.m_shadows.length; i++)
         {
           this.m_shadows[i].handleTimeStep();
