@@ -71,15 +71,26 @@ $(document).ready(function(){
   //set up character array
   var radius = 450 / 19 * .75;
   var static_words = [];
-  static_words.push(makeBubbleWord(w/2,2*radius,radius,"CROW"));
-  static_words.push(makeBubbleWord(w/2,8*radius,radius,"KNIGHT"));
-  static_words.push(makeBubbleWord(w/2,14*radius,radius,"WIDOW"));
-  static_words.push(makeBubbleWord(w/2,20*radius,radius,"SUMMIT"));
   var mystery_words = [];
-  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROOK"));
-  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"BLACK"));
-  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"PEAK"));
   var current_mystery = null;
+  
+  /*
+  static_words.push(makeBubbleWord(w/2,2*radius,radius,"CROW"));
+  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROOK"));
+  static_words.push(makeBubbleWord(w/2,8*radius,radius,"KNIGHT"));
+  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"BLACK"));
+  static_words.push(makeBubbleWord(w/2,14*radius,radius,"WIDOW"));
+  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"PEAK"));
+  static_words.push(makeBubbleWord(w/2,20*radius,radius,"SUMMIT"));
+  */
+  
+  static_words.push(makeBubbleWord(w/2,2*radius,radius,"STALL"));
+  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"PEN"));
+  static_words.push(makeBubbleWord(w/2,8*radius,radius,"FOUNTAIN"));
+  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"SPRAY"));
+  static_words.push(makeBubbleWord(w/2,14*radius,radius,"BUG"));
+  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"DEFECT"));
+  static_words.push(makeBubbleWord(w/2,20*radius,radius,"DESERT"));
  
  //contract
  //letter.x, letter.y, letter.color, letter.blank
