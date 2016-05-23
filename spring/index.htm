@@ -5,7 +5,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
      </head>
     <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
-<canvas tabindex='1'  id="canvas" width="374" height="550"></canvas>
+<canvas tabindex='1'  id="canvas" width="375" height="450"></canvas>
 
 <!-- Jquery -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
@@ -18,7 +18,7 @@ $(document).ready(function(){
  var h = $("#canvas").height();
 
  //Lets save the cell width in a variable for easy control
- var cw = w/19;
+ var cw = h/19;
  var mouse_x = 0;
  var mouse_y = 0;
  var mouse_click_pending = false;
@@ -73,11 +73,9 @@ $(document).ready(function(){
   static_words.push(makeBubbleWord(w/2,2*radius,radius,"CROW"));
   static_words.push(makeBubbleWord(w/2,8*radius,radius,"KNIGHT"));
   static_words.push(makeBubbleWord(w/2,14*radius,radius,"WIDOW"));
-  static_words.push(makeBubbleWord(w/2,20*radius,radius,"SUMMIT"));
   var mystery_words = [];
   mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROOK"));
   mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"BLACK"));
-  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"PEAK"));
   var current_mystery = null;
  
  //contract
@@ -315,9 +313,9 @@ $(document).ready(function(){
         cell_y = -1
       }
       
-      if (cell_x >= 0 && cell_x < 6 && cell_y >= 7 && cell_y < 9)
+      if (cell_x >= 0 && cell_x < 6 && cell_y >= 4 && cell_y < 6)
       {
-        if(cell_y == 7 &&
+        if(cell_y == 4 &&
           !current_mystery.letters[cell_x].used &&
           current_mystery.num_used < current_mystery.correct_word.length)
         {
@@ -329,7 +327,7 @@ $(document).ready(function(){
           
         }
         
-        if(cell_y == 8 &&
+        if(cell_y == 5 &&
           !current_mystery.letters[cell_x + 6].used &&
           current_mystery.num_used < current_mystery.correct_word.length)
         {
@@ -353,7 +351,7 @@ $(document).ready(function(){
     for(i = 0; i < 6; ++i)
     {
       var offset_x = cw*(i*3+1);
-      var offset_y = cw*(7*3+1);
+      var offset_y = cw*(4*3+1);
       
       ctx.textAlign="center";
       ctx.textBaseline="middle";
@@ -369,7 +367,7 @@ $(document).ready(function(){
         ctx.fillText(current_mystery.letters[i].char, offset_x+cw, offset_y+cw);
       }
       
-      offset_y = cw*(8*3+1);
+      offset_y = cw*(5*3+1);
       if(!current_mystery.letters[i+6].used)
       {
         ctx.fillStyle = current_mystery.letters[i+6].color;
