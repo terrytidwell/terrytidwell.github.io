@@ -252,24 +252,6 @@ $(document).ready(function(){
   return return_word;
  }
  
- function drawWord(offset_y, word, length)
- {
-  for(i = 0; i < length; ++i)
-  {
-    word_offset = cw * (i - (length-1)/2)
-    ctx.textAlign="center";
-    ctx.font=Math.floor(4/3*cw)+"px Arial"
-    if(i < word.length)
-    {
-      ctx.fillText(word.charAt(i), w/2 + word_offset, offset_y+cw);
-    }
-    else
-    {
-      ctx.fillText("_", w/2 + word_offset, offset_y+cw);
-    }
-  }
- }
- 
  function init()
  {
   setTimeout(paint, 60);
