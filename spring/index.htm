@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+     </head>
+    <body style="background-color: white;">
+<canvas tabindex='1'  id="canvas" width="450" height="450"></canvas>
+
+<!-- Jquery -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+        <script>
+$(document).ready(function(){
+ //Canvas stuff
+ var canvas = $("#canvas")[0];
+ var ctx = canvas.getContext("2d");
+ var w = $("#canvas").width();
+ var h = $("#canvas").height();
+
+ //Lets save the cell width in a variable for easy control
+ var cw = h/19;
+ var mouse_x = 0;
+ var mouse_y = 0;
+ var mouse_click_pending = false;
+ 
+ canvas.addEventListener("mousedown", function(event) {
+	mouse_x = event.offsetX;
+	mouse_y = event.offsetY;
+	mouse_click_pending = true;
+ }, false);
+ 
+  function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+  }
+ 
+ function randomLetter()
+ {
+  //letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  //relative frequency of english
+  var letters = "EEEETTTAAAOOOIIINNNSSSHHHRRRDDLLCUMWFGYPBVKJXQZ"
+  return letters.charAt(Math.floor(Math.random()*letters.length));
+ }
+ 
+ function randomColor()
+ {
+  var color_bubble = ["#5B89C4","#89E761","#935BC7","#FFC66B","#F46780"];
+  return color_bubble[Math.floor(Math.random()*color_bubble.length)];
+ }
+ 
+ function greyColor()
+ {
+  return "#E0E0E0";
+ }
+
+  //set up character array
+  var radius = cw*.75;
+  var static_words = [];
+  static_words.push(makeBubbleWord(w/2,2*radius,radius,"CROW"));
+  static_words.push(makeBubbleWord(w/2,8*radius,radius,"KNIGHT"));
+  static_words.push(makeBubbleWord(w/2,14*radius,radius,"WIDOW"));
+  var mystery_words = [];
+  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROOK"));
+  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"BLACK"));
+  var current_mystery = null;
+ 
+ //contract
+ //letter.x, letter.y, letter.color, letter.blank
+ function drawBubbleLetter(letter)
+ {
+  circle_radius = Math.floor(.98*letter.r);
+  letter_radius = Math.floor(2*.70*letter.r);
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.font=letter_radius+"px Arial"
+  ctx.fillStyle = letter.color;
+  if(letter.blank)
+  {
+    ctx.fillStyle = greyColor();
+  }
+  ctx.beginPath();
+  ctx.arc(letter.x, letter.y, circle_radius, 0, 2*Math.PI);
+  ctx.fill();
+  if(!letter.blank)
+  {
+    ctx.fillStyle = "white";
+    ctx.fillText(letter.char, letter.x, letter.y);
+  }
+ }
+ 
+ function clickBubbleLetter(mouse_x, mouse_y, letter)
+ {
+  var x_diff = letter.x - mouse_x;
+  x_diff *= x_diff;
+  var y_diff = letter.y - mouse_y;
+  y_diff *= y_diff;
+  return letter.r >= Math.sqrt(x_diff+y_diff);
+ }
+ 
+ //contract
+ //word.letters
+ function drawBubbleWord(word)
+ {
+  for(var i = 0; i < word.letters.length; ++i)
+  {
+    drawBubbleLetter(word.letters[i]);
+  }
+ }
+ 
+ function clickBubbleWord(mouse_x, mouse_y, word)
+ {
+  for(var i = 0; i < word.letters.length; ++i)
+  {
+    if(clickBubbleLetter(mouse_x, mouse_y, word.letters[i]))
+    {
+      //word.letters[i].blank = !word.letters[i].blank;
+      return true;
+    }
+  }
+  return false;
+ }
+ 
+ function makeBubbleWord(x,y,r,word)
+ {
+  var return_word = {x:x, y:y, r:r, letters:[]}
+  for(var i = 0; i < word.length; ++i)
+  {
+    var center = word.length - 1;
+    var offset = r * ((i * 2) - center);
+    return_word.letters.push({x:x+offset, y:y, r:r, color:randomColor(), char:word.charAt(i), blank:false})
+  }
+  return return_word;
+ }
+ 
+ function drawConnector(word1, word2)
+ {
+  ctx.strokeStyle = greyColor();
+  ctx.fillStyle = greyColor();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(Math.floor(word1.x), Math.floor(word1.y));
+  ctx.lineTo(Math.floor(word2.x), Math.floor(word2.y));
+  ctx.stroke();
+ }
+ 
+ function clickMysteryWord(mouse_x, mouse_y, word)
+ {
+  return clickBubbleWord(mouse_x, mouse_y, word.word) && !word.solved && !word.locked;
+ }
+ 
+ function drawMysteryWord(word)
+ {
+  if(word.solved && word.timer > 0)
+  {
+    if(word.timer % 5 == 0)
+    {
+      for(var i = 0; i < word.word.letters.length; ++i)
+      {
+        word.word.letters[i].color = randomColor();
+      }
+    }
+    word.timer--;
+  }
+  if(word.locked && word.timer > 0)
+  {
+    if(word.timer % 5 == 0)
+    {
+      word.num_used--
+      word.word.letters[word.num_used].blank = true;
+    }
+    word.timer--;
+    if(word.timer == 0)
+    {
+      word.locked = false;
+      resetMysteryWord(word);
+    }
+  }
+  drawBubbleWord(word.word);
+ }
+ 
+ function isMysterWordSolved(word)
+ {
+  if(word.solved)
+  {
+    return true;
+  }
+  if(word.num_used != word.correct_word.length)
+  {
+    return false;
+  }
+  for(var i = 0; i < word.correct_word.length; ++i)
+  {
+    if(word.correct_word.charAt(i) != word.word.letters[i].char)
+    {
+      word.locked = true;
+      word.timer = word.correct_word.length*5 - 1;
+      return false;
+    }
+  }
+  word.solved = true;
+  word.timer = 15;
+  return true;
+ }
+ 
+ function resetMysteryWord(word)
+ {
+  word.locked = false;
+  word.timer = 0;
+  for(var i = 0; i < word.word.letters.length; ++i)
+  {
+    word.word.letters[i].blank = true;
+  }
+  for(var i = 0; i < 12; ++i)
+  {
+    word.letters[i].used = false;
+  }
+  word.num_used = 0;
+ }
+ 
+ function makeMysteryWord(x,y,r,word)
+ {
+  var inner_word = {x:x, y:y, r:r, letters:[]}
+  var letter_set = [];
+  for(var i = 0; i < word.length; ++i)
+  {
+    var center = word.length - 1;
+    var offset = r * ((i * 2) - center);
+    var c = randomColor();
+    inner_word.letters.push({x:x+offset, y:y, r:r, color:c, char:word.charAt(i), blank:true})
+    letter_set.push({color:c, char:word.charAt(i), used:false});
+  }
+  for(var i = 0; i < 12 - word.length; ++i)
+  {
+    letter_set.push({color:randomColor(), char:randomLetter(), used:false});
+  }
+  shuffle(letter_set);
+  var return_word = {word:inner_word, letters:letter_set, correct_word:word, num_used:0, solved:false, locked:false, timer:0};
+  return return_word;
+ }
+ 
+ function drawWord(offset_y, word, length)
+ {
+  for(i = 0; i < length; ++i)
+  {
+    word_offset = cw * (i - (length-1)/2)
+    ctx.textAlign="center";
+    ctx.font=Math.floor(4/3*cw)+"px Arial"
+    if(i < word.length)
+    {
+      ctx.fillText(word.charAt(i), w/2 + word_offset, offset_y+cw);
+    }
+    else
+    {
+      ctx.fillText("_", w/2 + word_offset, offset_y+cw);
+    }
+  }
+ }
+ 
+ function init()
+ {
+  setTimeout(paint, 60);
+ }
+ init();
+
+ function paint()
+ {
+  var start_time = Date.now()
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, w, h);
+  
+  //drawConnector(words,words2);
+  for(var i = 0; i < static_words.length; ++i)
+  {
+    drawBubbleWord(static_words[i]);
+  }
+  for(var i = 0; i < mystery_words.length; ++i)
+  {
+    drawMysteryWord(mystery_words[i]);
+  }
+    
+  if (mouse_click_pending)
+  {
+    mouse_click_pending = false;
+    
+    for(var i = 0; i < mystery_words.length; ++i)
+    {
+      if (clickMysteryWord(mouse_x, mouse_y, mystery_words[i]))
+      {
+        if(current_mystery != null)
+        {
+          resetMysteryWord(current_mystery);
+        }
+        current_mystery = mystery_words[i];
+      }
+    }
+    
+    if(current_mystery != null && !current_mystery.locked)
+    {
+      var cell_x = Math.floor(mouse_x / (cw));
+      var cell_y = Math.floor(mouse_y / (cw));
+      
+      if (cell_x % 3 != 0)
+      {
+        cell_x = Math.floor(cell_x / 3);
+      }
+      else
+      {
+        cell_x = -1
+      }
+      
+      if (cell_y % 3 != 0)
+      {
+        cell_y = Math.floor(cell_y / 3);
+      }
+      else
+      {
+        cell_y = -1
+      }
+      
+      if (cell_x >= 0 && cell_x < 6 && cell_y >= 4 && cell_y < 6)
+      {
+        if(cell_y == 4 &&
+          !current_mystery.letters[cell_x].used &&
+          current_mystery.num_used < current_mystery.correct_word.length)
+        {
+          current_mystery.letters[cell_x].used = true;
+          current_mystery.word.letters[current_mystery.num_used].char = current_mystery.letters[cell_x].char;
+          current_mystery.word.letters[current_mystery.num_used].color = current_mystery.letters[cell_x].color;
+          current_mystery.word.letters[current_mystery.num_used].blank = false;
+          current_mystery.num_used += 1;
+          
+        }
+        
+        if(cell_y == 5 &&
+          !current_mystery.letters[cell_x + 6].used &&
+          current_mystery.num_used < current_mystery.correct_word.length)
+        {
+          current_mystery.letters[cell_x + 6].used = true;
+          current_mystery.word.letters[current_mystery.num_used].char = current_mystery.letters[cell_x + 6].char;
+          current_mystery.word.letters[current_mystery.num_used].color = current_mystery.letters[cell_x + 6].color;
+          current_mystery.word.letters[current_mystery.num_used].blank = false;
+          current_mystery.num_used += 1;
+        }
+        
+        if (isMysterWordSolved(current_mystery))
+        {
+          current_mystery = null;
+        }
+      }
+    }
+  }
+
+  if(current_mystery != null)
+  {
+    for(i = 0; i < 6; ++i)
+    {
+      var offset_x = cw*(i*3+1);
+      var offset_y = cw*(4*3+1);
+      
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.font=Math.floor(2*cw)+"px Arial"
+      
+      if(!current_mystery.letters[i].used)
+      {
+        ctx.fillStyle = current_mystery.letters[i].color;
+        ctx.beginPath();
+        ctx.arc(offset_x + cw, offset_y + cw, cw*23/16, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.fillText(current_mystery.letters[i].char, offset_x+cw, offset_y+cw);
+      }
+      
+      offset_y = cw*(5*3+1);
+      if(!current_mystery.letters[i+6].used)
+      {
+        ctx.fillStyle = current_mystery.letters[i+6].color;
+        ctx.beginPath();
+        ctx.arc(offset_x + cw, offset_y + cw, cw*23/16, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.fillText(current_mystery.letters[i+6].char, offset_x+cw, offset_y+cw);
+      }
+    }
+  }
+  
+  var end_time =  Date.now();
+  var comp_time = end_time - start_time;
+  if (comp_time > 60 || comp_time < 0)
+  {
+   setTimeout(paint, 0);
+  }
+  else
+  {
+   setTimeout(paint, 60 - comp_time);
+  }
+ }
+
+})
+        </script>
+    </body>
+</html>
