@@ -133,6 +133,42 @@ $(document).ready(function(){
 	}
   }
   
+  function getUrlParameters(parameter){
+    /*
+    Function: getUrlParameters
+    Description: Get the value of URL parameters either from 
+    current URL or static URL
+    Author: Tirumal
+    URL: www.code-tricks.com
+    */
+    var currLocation = window.location.search,
+    parArr = currLocation.split("?");
+    if(parArr.length == 1)
+    {
+      return false;
+    }
+    parArr = parArr[1].split("&");
+      
+    for(var i = 0; i < parArr.length; i++){
+      parr = parArr[i].split("=");
+      if(parr[0] == parameter){
+        return decodeURIComponent(parr[1]);
+      }
+    }
+
+    return false;  
+  }
+  
+  str = getUrlParameters("custom");
+  if(str)
+  {
+    word_list = decodeWordList(str);
+  }
+  else
+  {
+    word_list = ["MOUNTAINS","ROCKY","ROAD","CROSS","BOW","RAIN","STORM"];
+  }
+  
   /*
   var word_list = decodeWordList("U0FMVCxTRUEsQkxBQ0s=");
   */
@@ -144,8 +180,6 @@ $(document).ready(function(){
   /*
   word_list = ["STALL","PEN","FOUNTAIN","SPRAY","BUG","DEFECT","DESERT"];
   */
-  
-  word_list = ["MOUNTAINS","ROCKY","ROAD","CROSS","BOW","RAIN","STORM"];
   
   
   populateWordList(word_list);
