@@ -74,34 +74,82 @@ $(document).ready(function(){
   var mystery_words = [];
   var current_mystery = null;
   
+  function parseError()
+  {
+	static_words = [];
+	mystery_words = [];
+	static_words.push(makeBubbleWord(w/2,11*radius,radius,"ERROR"));
+  }
+  
+  function decodeWordList(str)
+  {
+	str = window.atob(str);
+	if (!/^[A-Z,]+$/.test(str))
+	{
+		return [];
+	}
+	return str.split(",")
+  }
+  
+  function isLegalWord(word)
+  {
+	return /^[A-Z]+$/.test(word);
+  }
+  
+  function populateWordList(words)
+  {
+	var start_offset = 0
+	switch(words.length)
+	{
+		case 3:
+			start_offset = 8;
+			break;
+		case 5:
+			start_offset = 5;
+			break;
+		case 7:
+			start_offset = 2;
+			break;
+		default:
+			parseError();
+			return;
+	}
+	for(var i = 0; i < words.length; ++i)
+	{
+		if(words[i].length > 10 || words[i].length <= 0 || !isLegalWord(words[i]))
+		{
+			parseError();
+			return;
+		}
+		if(i % 2 == 0)
+		{
+			static_words.push(makeBubbleWord(w/2,start_offset*radius,radius,words[i]));
+		}
+		else
+		{
+			mystery_words.push(makeMysteryWord(w/2,start_offset*radius,radius,words[i]));
+		}
+		start_offset += 3;
+	}
+  }
+  
   /*
-  static_words.push(makeBubbleWord(w/2,2*radius,radius,"CROW"));
-  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROOK"));
-  static_words.push(makeBubbleWord(w/2,8*radius,radius,"KNIGHT"));
-  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"BLACK"));
-  static_words.push(makeBubbleWord(w/2,14*radius,radius,"WIDOW"));
-  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"PEAK"));
-  static_words.push(makeBubbleWord(w/2,20*radius,radius,"SUMMIT"));
+  var word_list = decodeWordList("U0FMVCxTRUEsQkxBQ0s=");
   */
   
   /*
-  static_words.push(makeBubbleWord(w/2,2*radius,radius,"STALL"));
-  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"PEN"));
-  static_words.push(makeBubbleWord(w/2,8*radius,radius,"FOUNTAIN"));
-  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"SPRAY"));
-  static_words.push(makeBubbleWord(w/2,14*radius,radius,"BUG"));
-  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"DEFECT"));
-  static_words.push(makeBubbleWord(w/2,20*radius,radius,"DESERT"));
+  word_list = ["CROW","ROOK","KNIGHT","BLACK","WIDOW","PEAK","SUMMIT"];
   */
   
-  static_words.push(makeBubbleWord(w/2,2*radius,radius,"MOUNTAINS"));
-  mystery_words.push(makeMysteryWord(w/2,5*radius,radius,"ROCKY"));
-  static_words.push(makeBubbleWord(w/2,8*radius,radius,"ROAD"));
-  mystery_words.push(makeMysteryWord(w/2,11*radius,radius,"CROSS"));
-  static_words.push(makeBubbleWord(w/2,14*radius,radius,"BOW"));
-  mystery_words.push(makeMysteryWord(w/2,17*radius,radius,"RAIN"));
-  static_words.push(makeBubbleWord(w/2,20*radius,radius,"STORM"));
- 
+  /*
+  word_list = ["STALL","PEN","FOUNTAIN","SPRAY","BUG","DEFECT","DESERT"];
+  */
+  
+  word_list = ["MOUNTAINS","ROCKY","ROAD","CROSS","BOW","RAIN","STORM"];
+  
+  
+  populateWordList(word_list);
+  
  //contract
  //letter.x, letter.y, letter.color, letter.blank
  function drawBubbleLetter(letter)
