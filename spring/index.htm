@@ -83,7 +83,13 @@ $(document).ready(function(){
   
   function decodeWordList(str)
   {
-	str = window.atob(str);
+	try {
+    str = window.atob(str);
+  }
+  catch(err)
+  {
+    return [];
+  }
 	if (!/^[A-Z,]+$/.test(str))
 	{
 		return [];
