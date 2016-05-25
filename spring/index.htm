@@ -56,9 +56,10 @@
         puzzles = [
           "V0FUQ0gsU1dJU1MsQkFOSyxURUxMRVIsRk9SVFVORQ%3D%3D",
           "Q1JPVyxST09LLEtOSUdIVCxCTEFDSyxXSURPVyxQRUFLLFNVTU1JVA",
-          "TU9VTlRBSU5TLFJPQ0tZLFJPQUQsQ1JPU1MsQk9XLFJBSU4sU1RPUk0%3D"
+          "TU9VTlRBSU5TLFJPQ0tZLFJPQUQsQ1JPU1MsQk9XLFJBSU4sU1RPUk0%3D",
+          "TVVTSUNBTCxCRUFULEhFQVJULEFUVEFDSyxBU1NBVUxULEJBVFRFUlksQ0hBUkdFUg%3D%3D"
         ]
-        return puzzles[Math.floor(Math.random() * puzzles.length)];
+        return decodeURIComponent(puzzles[Math.floor(Math.random() * puzzles.length)]);
       }
 
       function randomLetter() {
@@ -164,22 +165,8 @@
       if (str) {
         word_list = decodeWordList(str);
       } else {
-        word_list = decodeWordList(decodeURIComponent(randomEncodedPuzzle()));
-        //word_list = ["MOUNTAINS","ROCKY","ROAD","CROSS","BOW","RAIN","STORM"];
+        word_list = decodeWordList(randomEncodedPuzzle());
       }
-
-      /*
-      var word_list = decodeWordList("U0FMVCxTRUEsQkxBQ0s=");
-      */
-
-      /*
-      word_list = ["CROW","ROOK","KNIGHT","BLACK","WIDOW","PEAK","SUMMIT"];
-      */
-
-      /*
-      word_list = ["STALL","PEN","FOUNTAIN","SPRAY","BUG","DEFECT","DESERT"];
-      */
-
 
       populateWordList(word_list);
 
