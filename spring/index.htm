@@ -4,11 +4,11 @@
 <head>
   <title></title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=374, initial-scale=1" />
+  <meta name="viewport" content="width=320, initial-scale=1" />
 </head>
 
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
-  <canvas tabindex='1' id="canvas" width="374" height="550"></canvas>
+  <canvas tabindex='1' id="canvas" width="320" height="480"></canvas>
 
   <!-- Jquery -->
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
@@ -58,7 +58,8 @@
           "Q1JPVyxST09LLEtOSUdIVCxCTEFDSyxXSURPVyxQRUFLLFNVTU1JVA",
           "TU9VTlRBSU5TLFJPQ0tZLFJPQUQsQ1JPU1MsQk9XLFJBSU4sU1RPUk0%3D",
           "TVVTSUNBTCxCRUFULEhFQVJULEFUVEFDSyxBU1NBVUxULEJBVFRFUlksQ0hBUkdFUg%3D%3D",
-          "RElOTkVSLFJPTEwsUk9DSyxTVE9ORSxLSURORVksQkVBTixHUkVFTg%3D%3D"
+          "RElOTkVSLFJPTEwsUk9DSyxTVE9ORSxLSURORVksQkVBTixHUkVFTg%3D%3D",
+          "RkxBRyxQT0xFLFBPU0lUSU9OLEpPQixHRU5FU0lTLEJJUlRILERFTElWRVJZ"
         ]
         return decodeURIComponent(puzzles[Math.floor(Math.random() * puzzles.length)]);
       }
@@ -88,7 +89,7 @@
       function parseError() {
         static_words = [];
         mystery_words = [];
-        static_words.push(makeBubbleWord(w / 2, 11 * radius, radius, "ERROR"));
+        static_words.push(makeBubbleWord(w / 2, 9.5 * radius, radius, "ERROR"));
       }
 
       function decodeWordList(str) {
@@ -111,10 +112,10 @@
         var start_offset = 0
         switch (words.length) {
           case 3:
-            start_offset = 8;
+            start_offset = 7;
             break;
           case 5:
-            start_offset = 5;
+            start_offset = 4.5;
             break;
           case 7:
             start_offset = 2;
@@ -133,7 +134,7 @@
           } else {
             mystery_words.push(makeMysteryWord(w / 2, start_offset * radius, radius, words[i]));
           }
-          start_offset += 3;
+          start_offset += 2.5;
         }
       }
 
