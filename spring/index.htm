@@ -176,7 +176,7 @@
         ctx.beginPath();
         ctx.arc(letter.x, letter.y, circle_radius, 0, 2 * Math.PI);
         ctx.fill();
-        if (!letter.blank) {
+        if (!letter.blank || letter.clue_used) {
           ctx.fillStyle = "white";
           ctx.fillText(letter.char, letter.x, letter.y);
         }
@@ -224,7 +224,8 @@
             r: Math.floor(r),
             color: randomColor(),
             char: word.charAt(i),
-            blank: false
+            blank: false,
+            clue_used: false
           })
         }
         return return_word;
@@ -291,6 +292,7 @@
         word.timer = 0;
         for (var i = 0; i < word.word.letters.length; ++i) {
           word.word.letters[i].blank = true;
+          word.word.letters[i].char = word.correct_word.charAt(i);
         }
         for (var i = 0; i < 12; ++i) {
           word.letters[i].used = false;
@@ -316,7 +318,8 @@
             r: r,
             color: c,
             char: word.charAt(i),
-            blank: true
+            blank: true,
+            clue_used: false,
           })
           letter_set.push({
             color: c,
