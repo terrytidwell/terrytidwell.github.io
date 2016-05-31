@@ -9,7 +9,7 @@ function randomEncodedPuzzle() {
     "UEFMLE1BVEUsQ0hFQ0ssTUFSSyxTVEFJTg%3D%3D",
     "R1JVREdFLEJFRUYsQlVSR0VSLEtJTkcsQ1JPV04sSEVBRCxMRUFERVI%3D",
     "RkxPV0VSLEJVTEIsRkxBU0gsTElHSFQsSEVBVlk%3D",
-    "CkNIQUlOLE1BSUwsTEVUVEVSLFNDQVJMRVQsRkVWRVI%3D",
+    "Q0hBSU4sTUFJTCxMRVRURVIsU0NBUkxFVCxGRVZFUg%3D%3D",
     "VVAsRE9XTixQSUxMT1csQ1VTSElPTixTSElFTEQ%3D"
   ]
   return decodeURIComponent(puzzles[Math.floor(Math.random() * puzzles.length)]);
