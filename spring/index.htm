@@ -26,6 +26,11 @@
     }
     */
     
+    var SavedState = {
+      version : 0,
+      completed_levels : []
+    }
+    
     var LevelSelectScene =
     {
       levels : [],
@@ -58,6 +63,10 @@
             clue_used: true,
             used: false
           });
+        }
+        for (var i = 0; i < SavedState.completed_levels.length; ++i)
+        {
+          LevelSelectScene.levels[SavedState.completed_levels[i]].blank = true;
         }
       },
       
@@ -102,8 +111,10 @@
       {
         if (LevelSelectScene.current_level != null)
         {
+          SavedState.completed_levels.push(LevelSelectScene.current_level);
+          sessionStorage.completed_levels = JSON.stringify(SavedState.completed_levels);
           LevelSelectScene.levels[LevelSelectScene.current_level].blank = true;
-          LevelSelectScene.current_level = null
+          LevelSelectScene.current_level = null;
         }
       }
     }
@@ -221,6 +232,20 @@
           GameEngine.mouse_y = event.offsetY;
           GameEngine.mouse_click_pending = true;
         }, false);
+        
+        if (sessionStorage.version && sessionStorage.version == SavedState.version)
+        {
+          if (sessionStorage.completed_levels)
+          {
+            SavedState.completed_levels = JSON.parse(sessionStorage.completed_levels);
+          }
+        }
+        else
+        {
+          sessionStorage.clear();
+          sessionStorage.version = SavedState.version;
+        }
+        
         
         LevelScene.init();
         LevelSelectScene.init();
