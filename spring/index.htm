@@ -14,493 +14,572 @@
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
   <script src="puzzles.js" type="text/javascript"></script>
   <script>
-    $(document).ready(function() {
-      //Canvas stuff
-      var canvas = $("#canvas")[0];
-      var ctx = canvas.getContext("2d");
-      var w = $("#canvas").width();
-      var h = $("#canvas").height();
-
-      //Lets save the cell width in a variable for easy control
-      var cw = w / 19;
-      var mouse_x = 0;
-      var mouse_y = 0;
-      var mouse_click_pending = false;
-
-      canvas.addEventListener("mousedown", function(event) {
-        mouse_x = event.offsetX;
-        mouse_y = event.offsetY;
-        mouse_click_pending = true;
-      }, false);
-
-      function shuffle(array) {
-        var currentIndex = array.length,
-          temporaryValue, randomIndex;
-
-        // While there remain elements to shuffle...
-        while (0 !== currentIndex) {
-
-          // Pick a remaining element...
-          randomIndex = Math.floor(Math.random() * currentIndex);
-          currentIndex -= 1;
-
-          // And swap it with the current element.
-          temporaryValue = array[currentIndex];
-          array[currentIndex] = array[randomIndex];
-          array[randomIndex] = temporaryValue;
-        }
-
-        return array;
-      }
-
-      function randomLetter() {
-        //letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        //relative frequency of english
-        var letters = "EEEETTTAAAOOOIIINNNSSSHHHRRRDDLLCUMWFGYPBVKJXQZ"
-        return letters.charAt(Math.floor(Math.random() * letters.length));
-      }
-
-      function randomColor() {
-        var color_bubble = ["#5B89C4", "#89E761", "#935BC7", "#FFC66B", "#F46780"];
-        return color_bubble[Math.floor(Math.random() * color_bubble.length)];
-      }
-
-      function greyColor() {
-        return "#E0E0E0";
-      }
-
-      //set up character array
-      var radius = 450 / 19 * .75;
-      var static_words = [];
-      var mystery_words = [];
-      var current_mystery = null;
-      var hint_button = makeTextButton(w,h,w/12,greyColor(),"HINT")
-
-      function parseError() {
-        static_words = [];
-        mystery_words = [];
-        static_words.push(makeBubbleWord(w / 2, 9.5 * radius, radius, "ERROR"));
-      }
-
-      function decodeWordList(str) {
-        try {
-          str = window.atob(str);
-        } catch (err) {
-          return [];
-        }
-        if (!/^[A-Z,]+$/.test(str)) {
-          return [];
-        }
-        return str.split(",")
-      }
-
-      function isLegalWord(word) {
-        return /^[A-Z]+$/.test(word);
-      }
-
-      function populateWordList(words) {
-        var start_offset = 0
-        switch (words.length) {
-          case 3:
-            start_offset = 7;
-            break;
-          case 5:
-            start_offset = 4.5;
-            break;
-          case 7:
-            start_offset = 2;
-            break;
-          default:
-            parseError();
-            return;
-        }
-        for (var i = 0; i < words.length; ++i) {
-          if (words[i].length > 10 || words[i].length <= 0 || !isLegalWord(words[i])) {
-            parseError();
-            return;
-          }
-          if (i % 2 == 0) {
-            static_words.push(makeBubbleWord(w / 2, start_offset * radius, radius, words[i]));
-          } else {
-            mystery_words.push(makeMysteryWord(w / 2, start_offset * radius, radius, words[i]));
-          }
-          start_offset += 2.5;
-        }
-      }
-
-      function getUrlParameters(parameter) {
-        /*
-        Function: getUrlParameters
-        Description: Get the value of URL parameters either from 
-        current URL or static URL
-        Author: Tirumal
-        URL: www.code-tricks.com
-        */
-        var currLocation = window.location.search,
-          parArr = currLocation.split("?");
-        if (parArr.length == 1) {
-          return false;
-        }
-        parArr = parArr[1].split("&");
-
-        for (var i = 0; i < parArr.length; i++) {
-          parr = parArr[i].split("=");
-          if (parr[0] == parameter) {
-            return decodeURIComponent(parr[1]);
-          }
-        }
-
-        return false;
-      }
-
-      str = getUrlParameters("custom");
-      if (str) {
-        word_list = decodeWordList(str);
-      } else {
-        word_list = decodeWordList(randomEncodedPuzzle());
-      }
-
-      populateWordList(word_list);
-
-      //contract
-      //letter.x, letter.y, letter.color, letter.blank
-      function drawBubbleLetter(letter) {
-        if(letter.used)
-        {
-          return;
-        }
-        circle_radius = Math.floor(.98 * letter.r);
-        letter_radius = Math.floor(2 * .70 * letter.r);
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = letter_radius + "px Arial"
-        ctx.fillStyle = letter.color;
-        if (letter.blank) {
-          ctx.fillStyle = greyColor();
-        }
-        ctx.beginPath();
-        ctx.arc(letter.x, letter.y, circle_radius, 0, 2 * Math.PI);
-        ctx.fill();
-        if (!letter.blank || letter.clue_used) {
-          ctx.fillStyle = "white";
-          ctx.fillText(letter.char, letter.x, letter.y);
-        }
-      }
-
-      function clickBubbleLetter(mouse_x, mouse_y, letter) {
-        var x_diff = letter.x - mouse_x;
-        x_diff *= x_diff;
-        var y_diff = letter.y - mouse_y;
-        y_diff *= y_diff;
-        return letter.r >= Math.sqrt(x_diff + y_diff);
-      }
-
-      //contract
-      //word.letters
-      function drawBubbleWord(word) {
-        for (var i = 0; i < word.letters.length; ++i) {
-          drawBubbleLetter(word.letters[i]);
-        }
-      }
-
-      function clickBubbleWord(mouse_x, mouse_y, word) {
-        for (var i = 0; i < word.letters.length; ++i) {
-          if (clickBubbleLetter(mouse_x, mouse_y, word.letters[i])) {
-            return true;
-          }
-        }
-        return false;
-      }
-      
-      function clickTextButton(mouse_x, mouse_y, button)
+  
+    /*
+    var Scene =
+    {
+      init : function() {},
+      reset : function() {},
+      handleMouseClick : function(mouse_x, mouse_y) {},
+      handleTimeStep : function() {},
+      paint : function() {}
+    }
+    */
+  
+    var LevelScene =
+    {
+      radius : 0,
+      static_words : [],
+      mystery_words : [],
+      current_mystery : null,
+      hint_button : null,
+    
+      init : function()
       {
-        if(mouse_x <= button.x && mouse_x >= button.x - button.width &&
-          mouse_y <= button.y && mouse_y >= button.y - button.height)
-        {
-          return true;
+        LevelScene.radius = 450 / 19 * .75;
+        LevelScene.hint_button = 
+          makeTextButton(GameEngine.cavnas_width,GameEngine.cavnas_height,GameEngine.cavnas_width/12,greyColor(),"HINT");
+        var str = getUrlParameters("custom");
+        var word_list;
+        if (str) {
+          word_list = decodeWordList(str);
+        } else {
+          word_list = decodeWordList(randomEncodedPuzzle());
         }
-        return false;
-      }
+
+        populateWordList(word_list);
+      },
       
-      function drawTextButton(button)
+      reset : function()
       {
-        ctx.font = Math.floor(button.height * .7) + "px Arial";
-        ctx.textBaseline = button.baseline;
-        ctx.textAlign = button.align;
-        ctx.fillStyle = button.color;
-        ctx.fillText(button.word,button.x,button.y);
-      }
+        LevelScene.static_words = [];
+        LevelScene.mystery_words = [];
+        LevelScene.current_mystery = null;
+        var word_list = decodeWordList(randomEncodedPuzzle());
+        populateWordList(word_list);
+      },
       
-      function makeTextButton(x,y,height,color,word)
+      handleMouseClick : function(mouse_x, mouse_y)
       {
-        ctx.font = Math.floor(height) + "px Arial";
-        ctx.fillStyle = color;
-        
-        var text_button = {
-          x: x,
-          y: y,
-          height: height,
-          width: ctx.measureText(word).width,
-          align: "right",
-          baseline: "bottom",
-          color: color,
-          word: word
+        for (var i = 0; i < LevelScene.mystery_words.length; ++i) {
+          clickMysteryWord(mouse_x, mouse_y, LevelScene.mystery_words[i]);
         }
-        return text_button;
-      }
-
-      function makeBubbleWord(x, y, r, word) {
-        var return_word = {
-          x: x,
-          y: y,
-          r: r,
-          letters: []
-        }
-        for (var i = 0; i < word.length; ++i) {
-          var center = word.length - 1;
-          var offset = r * ((i * 2) - center);
-          return_word.letters.push({
-            x: Math.floor(x + offset),
-            y: Math.floor(y),
-            r: Math.floor(r),
-            color: randomColor(),
-            char: word.charAt(i),
-            blank: false,
-            clue_used: false,
-            used: false
-          })
-        }
-        return return_word;
-      }
-      
-      function drawConnector(word1, word2) {
-        ctx.strokeStyle = greyColor();
-        ctx.fillStyle = greyColor();
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(Math.floor(word1.x), Math.floor(word1.y));
-        ctx.lineTo(Math.floor(word2.x), Math.floor(word2.y));
-        ctx.stroke();
-      }
-
-      function clickMysteryWord(mouse_x, mouse_y, word) {
-        if(clickBubbleWord(mouse_x, mouse_y, word.word) && !word.solved && !word.locked)
-        {
-          if(current_mystery != null)
-          {
-            resetMysteryWord(current_mystery);
-          }
-          current_mystery = word;
-        }
-        if(current_mystery == word)
-        {
-          for(var i = 0; i < word.keyboard.length; i++)
-          {
-            if (clickBubbleLetter(mouse_x,mouse_y,word.keyboard[i]))
-            {
-              if ( !word.keyboard[i].used && 
-                word.num_used < word.correct_word.length) {
-                word.keyboard[i].used = true;
-                word.word.letters[word.num_used].char = word.keyboard[i].char;
-                word.word.letters[word.num_used].color = word.keyboard[i].color;
-                word.word.letters[word.num_used].blank = word.keyboard[i].false;
-                word.num_used += 1;
-              }
-            }
-          }
-          if (isMysterWordSolved(word)) {
-            current_mystery = null;
-          }
-        }
-      }
-
-      function drawMysteryWord(word) {
-        if (word.solved && word.timer > 0) {
-          if (word.timer % 5 == 0) {
-            for (var i = 0; i < word.word.letters.length; ++i) {
-              word.word.letters[i].color = randomColor();
-            }
-          }
-          word.timer--;
-        }
-        if (word.locked && word.timer > 0) {
-          if (word.timer % 5 == 0) {
-            word.num_used--;
-            word.word.letters[word.num_used].blank = true;
-            word.word.letters[word.num_used].char = word.correct_word.charAt(word.num_used);
-          }
-          word.timer--;
-          if (word.timer == 0) {
-            word.locked = false;
-            resetMysteryWord(word);
-          }
-        }
-        drawBubbleWord(word.word);
-        if(current_mystery == word)
-        {
-          for (var i = 0; i < word.keyboard.length; ++i) {
-            drawBubbleLetter(word.keyboard[i]);
-          }
-        }
-      }
-
-      function isMysterWordSolved(word) {
-        if (word.solved) {
-          return true;
-        }
-        if (word.num_used != word.correct_word.length) {
-          return false;
-        }
-        for (var i = 0; i < word.correct_word.length; ++i) {
-          if (word.correct_word.charAt(i) != word.word.letters[i].char) {
-            word.locked = true;
-            word.timer = word.correct_word.length * 5 - 1;
-            return false;
-          }
-        }
-        word.solved = true;
-        word.timer = 15;
-        return true;
-      }
-      
-      function revealHint(word)
-      {
-        if(word == null)
-        {
-          return false;
-        }
-        for(var i = 0; i < word.word.letters.length; ++i)
-        {
-          if(!word.word.letters[i].clue_used)
-          {
-            word.word.letters[i].clue_used = true;
-            return true;
-          }
-        }
-        return false;
-      }
-
-      function resetMysteryWord(word) {
-        word.locked = false;
-        word.timer = 0;
-        for (var i = 0; i < word.word.letters.length; ++i) {
-          word.word.letters[i].blank = true;
-          word.word.letters[i].char = word.correct_word.charAt(i);
-        }
-        for (var i = 0; i < 12; ++i) {
-          word.keyboard[i].used = false;
-        }
-        word.num_used = 0;
-      }
-
-      function makeMysteryWord(x, y, r, word) {
-        var inner_word = {
-          x: x,
-          y: y,
-          r: r,
-          letters: []
-        }
-        var letter_set = [];
-        var keyboard_letters = [];
-        for (var i = 0; i < word.length; ++i) {
-          var center = word.length - 1;
-          var offset = r * ((i * 2) - center);
-          var c = randomColor();
-          inner_word.letters.push({
-            x: x + offset,
-            y: y,
-            r: r,
-            color: c,
-            char: word.charAt(i),
-            blank: true,
-            clue_used: false,
-            used: false
-          })
-          letter_set.push({
-            color: c,
-            char: word.charAt(i),
-            used: false
-          });
-        }
-        for (var i = 0; i < 12 - word.length; ++i) {
-          letter_set.push({
-            color: randomColor(),
-            char: randomLetter()
-          });
-        }
-        shuffle(letter_set);
-        for (var i = 0; i < 12; ++i) {
-          var keyboard_radius = w/12;
-          var y_offset = h - 4 * keyboard_radius;
-          if (i < 6)
-          {
-            y_offset = h - 2 * keyboard_radius;
-          }
-          keyboard_letters.push({
-            x : 2 * (i % 6) * keyboard_radius + keyboard_radius,
-            y : y_offset,
-            r : keyboard_radius,
-            color : letter_set[i].color,
-            char : letter_set[i].char,
-            blank: false,
-            clue_used: false,
-            used: false
-          })
-        }
-        var return_word = {
-          word: inner_word,
-          keyboard: keyboard_letters,
-          correct_word: word,
-          num_used: 0,
-          solved: false,
-          locked: false,
-          timer: 0,
-        };
-        return return_word;
-      }
-
-      function init() {
-        setTimeout(paint, 60);
-      }
-      init();
-
-      function paint() {
-        var start_time = Date.now()
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, w, h);
-
-        //drawConnector(words,words2);
-        for (var i = 0; i < static_words.length; ++i) {
-          drawBubbleWord(static_words[i]);
-        }
-        for (var i = 0; i < mystery_words.length; ++i) {
-          drawMysteryWord(mystery_words[i]);
-        }
-        drawTextButton(hint_button);
-
-        if (mouse_click_pending) {
-          mouse_click_pending = false;
-
-          for (var i = 0; i < mystery_words.length; ++i) {
-            clickMysteryWord(mouse_x, mouse_y, mystery_words[i]);
-          }
           
-          if(clickTextButton(mouse_x, mouse_y, hint_button))
-          {
-            revealHint(current_mystery);
-          }
+        if(clickTextButton(mouse_x, mouse_y, LevelScene.hint_button))
+        {
+          revealHint(LevelScene.current_mystery);
         }
+      },
+      
+      handleTimeStep : function()
+      {
+        var solved = true;
+        for (var i = 0; i < LevelScene.mystery_words.length; ++i)
+        {
+          if (!LevelScene.mystery_words[i].solved)
+          {
+            solved = false;
+          }
+          else if (LevelScene.mystery_words[i].solved && LevelScene.mystery_words[i].timer > 0)
+          {
+            solved = false;
+          }            
+        }
+        if (solved)
+        {
+          LevelScene.reset();
+        }
+      },
+      
+      paint : function()
+      {
+        GameEngine.ctx.fillStyle = "white";
+        GameEngine.ctx.fillRect(0, 0, GameEngine.cavnas_width, GameEngine.cavnas_height);
 
+        for (var i = 0; i < LevelScene.static_words.length; ++i) {
+          drawBubbleWord(LevelScene.static_words[i]);
+        }
+        for (var i = 0; i < LevelScene.mystery_words.length; ++i) {
+          drawMysteryWord(LevelScene.mystery_words[i]);
+        }
+        drawTextButton(LevelScene.hint_button);
+      }
+    }
+  
+    var GameEngine =
+    {
+      canvas : null,
+      ctx : null,
+      canvas_width : 0,
+      canvas_height : 0,
+      mouse_x : 0,
+      mouse_y : 0,
+      mouse_click_pending : false,
+      current_scene : null,
+      
+      init : function()
+      {
+        GameEngine.canvas = $("#canvas")[0];
+        GameEngine.ctx = GameEngine.canvas.getContext("2d");
+        GameEngine.cavnas_width = $("#canvas").width();
+        GameEngine.cavnas_height = $("#canvas").height();
+        GameEngine.mouse_x = 0;
+        GameEngine.mouse_y = 0;
+        GameEngine.mouse_click_pending = false;
+      
+        GameEngine.canvas.addEventListener("mousedown", function(event) {
+          GameEngine.mouse_x = event.offsetX;
+          GameEngine.mouse_y = event.offsetY;
+          GameEngine.mouse_click_pending = true;
+        }, false);
+        
+        LevelScene.init();
+        
+        current_scene = LevelScene;
+        
+        var str = getUrlParameters("custom");
+        if (str)
+        {
+          current_scene = LevelScene;
+        }
+        
+        
+        
+        setTimeout(GameEngine.gameLoop, 0);
+      },
+      
+      gameLoop: function()
+      {
+        var start_time = Date.now();
+        
+        if (GameEngine.mouse_click_pending)
+        {
+          GameEngine.mouse_click_pending = false;
+          current_scene.handleMouseClick(GameEngine.mouse_x, GameEngine.mouse_y);
+        }
+        
+        current_scene.handleTimeStep();
+        current_scene.paint();
+        
         var end_time = Date.now();
         var comp_time = end_time - start_time;
-        if (comp_time > 60 || comp_time < 0) {
-          setTimeout(paint, 0);
+        if (comp_time > 40 || comp_time < 0)
+        {
+          setTimeout(GameEngine.gameLoop, 0);
+        }
+        else
+        {
+          setTimeout(GameEngine.gameLoop, 40 - comp_time)
+        }
+      }
+    };
+    
+    //init the GameEngine when ready
+    $(document).ready(GameEngine.init);
+    
+    function shuffle(array) {
+      var currentIndex = array.length,
+        temporaryValue, randomIndex;
+
+      // While there remain elements to shuffle...
+      while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
+    }
+
+    function randomLetter() {
+      //letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      //relative frequency of english
+      var letters = "EEEETTTAAAOOOIIINNNSSSHHHRRRDDLLCUMWFGYPBVKJXQZ"
+      return letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+
+    function randomColor() {
+      var color_bubble = ["#5B89C4", "#89E761", "#935BC7", "#FFC66B", "#F46780"];
+      return color_bubble[Math.floor(Math.random() * color_bubble.length)];
+    }
+
+    function greyColor() {
+      return "#E0E0E0";
+    }
+
+    function parseError() {
+      LevelScene.static_words = [];
+      LevelScene.mystery_words = [];
+      LevelScene.static_words.push(makeBubbleWord(GameEngine.cavnas_width / 2, 9.5 * LevelScene.radius, LevelScene.radius, "ERROR"));
+    }
+
+    function decodeWordList(str) {
+      try {
+        str = window.atob(str);
+      } catch (err) {
+        return [];
+      }
+      if (!/^[A-Z,]+$/.test(str)) {
+        return [];
+      }
+      return str.split(",")
+    }
+
+    function isLegalWord(word) {
+      return /^[A-Z]+$/.test(word);
+    }
+
+    function populateWordList(words) {
+      var start_offset = 0
+      switch (words.length) {
+        case 3:
+          start_offset = 7;
+          break;
+        case 5:
+          start_offset = 4.5;
+          break;
+        case 7:
+          start_offset = 2;
+          break;
+        default:
+          parseError();
+          return;
+      }
+      for (var i = 0; i < words.length; ++i) {
+        if (words[i].length > 10 || words[i].length <= 0 || !isLegalWord(words[i])) {
+          parseError();
+          return;
+        }
+        if (i % 2 == 0) {
+          LevelScene.static_words.push(makeBubbleWord(GameEngine.cavnas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
         } else {
-          setTimeout(paint, 60 - comp_time);
+          LevelScene.mystery_words.push(makeMysteryWord(GameEngine.cavnas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
+        }
+        start_offset += 2.5;
+      }
+    }
+
+    function getUrlParameters(parameter) {
+      /*
+      Function: getUrlParameters
+      Description: Get the value of URL parameters either from 
+      current URL or static URL
+      Author: Tirumal
+      URL: www.code-tricks.com
+      */
+      var currLocation = window.location.search,
+        parArr = currLocation.split("?");
+      if (parArr.length == 1) {
+        return false;
+      }
+      parArr = parArr[1].split("&");
+
+      for (var i = 0; i < parArr.length; i++) {
+        parr = parArr[i].split("=");
+        if (parr[0] == parameter) {
+          return decodeURIComponent(parr[1]);
         }
       }
 
-    })
+      return false;
+    }
+
+    //contract
+    //letter.x, letter.y, letter.color, letter.blank
+    function drawBubbleLetter(letter) {
+      if(letter.used)
+      {
+        return;
+      }
+      circle_radius = Math.floor(.98 * letter.r);
+      letter_radius = Math.floor(2 * .70 * letter.r);
+      GameEngine.ctx.textAlign = "center";
+      GameEngine.ctx.textBaseline = "middle";
+      GameEngine.ctx.font = letter_radius + "px Arial"
+      GameEngine.ctx.fillStyle = letter.color;
+      if (letter.blank) {
+        GameEngine.ctx.fillStyle = greyColor();
+      }
+      GameEngine.ctx.beginPath();
+      GameEngine.ctx.arc(letter.x, letter.y, circle_radius, 0, 2 * Math.PI);
+      GameEngine.ctx.fill();
+      if (!letter.blank || letter.clue_used) {
+        GameEngine.ctx.fillStyle = "white";
+        GameEngine.ctx.fillText(letter.char, letter.x, letter.y);
+      }
+    }
+
+    function clickBubbleLetter(mouse_x, mouse_y, letter) {
+      var x_diff = letter.x - mouse_x;
+      x_diff *= x_diff;
+      var y_diff = letter.y - mouse_y;
+      y_diff *= y_diff;
+      return letter.r >= Math.sqrt(x_diff + y_diff);
+    }
+
+    //contract
+    //word.letters
+    function drawBubbleWord(word) {
+      for (var i = 0; i < word.letters.length; ++i) {
+        drawBubbleLetter(word.letters[i]);
+      }
+    }
+
+    function clickBubbleWord(mouse_x, mouse_y, word) {
+      for (var i = 0; i < word.letters.length; ++i) {
+        if (clickBubbleLetter(mouse_x, mouse_y, word.letters[i])) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    function clickTextButton(mouse_x, mouse_y, button)
+    {
+      if(mouse_x <= button.x && mouse_x >= button.x - button.width &&
+        mouse_y <= button.y && mouse_y >= button.y - button.height)
+      {
+        return true;
+      }
+      return false;
+    }
+    
+    function drawTextButton(button)
+    {
+      GameEngine.ctx.font = Math.floor(button.height * .7) + "px Arial";
+      GameEngine.ctx.textBaseline = button.baseline;
+      GameEngine.ctx.textAlign = button.align;
+      GameEngine.ctx.fillStyle = button.color;
+      GameEngine.ctx.fillText(button.word,button.x,button.y);
+    }
+    
+    function makeTextButton(x,y,height,color,word)
+    {
+      GameEngine.ctx.font = Math.floor(height) + "px Arial";
+      GameEngine.ctx.fillStyle = color;
+      
+      var text_button = {
+        x: x,
+        y: y,
+        height: height,
+        width: GameEngine.ctx.measureText(word).width,
+        align: "right",
+        baseline: "bottom",
+        color: color,
+        word: word
+      }
+      return text_button;
+    }
+
+    function makeBubbleWord(x, y, r, word) {
+      var return_word = {
+        x: x,
+        y: y,
+        r: r,
+        letters: []
+      }
+      for (var i = 0; i < word.length; ++i) {
+        var center = word.length - 1;
+        var offset = r * ((i * 2) - center);
+        return_word.letters.push({
+          x: Math.floor(x + offset),
+          y: Math.floor(y),
+          r: Math.floor(r),
+          color: randomColor(),
+          char: word.charAt(i),
+          blank: false,
+          clue_used: false,
+          used: false
+        })
+      }
+      return return_word;
+    }
+    
+    function clickMysteryWord(mouse_x, mouse_y, word) {
+      if(clickBubbleWord(mouse_x, mouse_y, word.word) && !word.solved && !word.locked)
+      {
+        if(LevelScene.current_mystery != null)
+        {
+          resetMysteryWord(LevelScene.current_mystery);
+        }
+        LevelScene.current_mystery = word;
+      }
+      if(LevelScene.current_mystery == word)
+      {
+        for(var i = 0; i < word.keyboard.length; i++)
+        {
+          if (clickBubbleLetter(mouse_x,mouse_y,word.keyboard[i]))
+          {
+            if ( !word.keyboard[i].used && 
+              word.num_used < word.correct_word.length) {
+              word.keyboard[i].used = true;
+              word.word.letters[word.num_used].char = word.keyboard[i].char;
+              word.word.letters[word.num_used].color = word.keyboard[i].color;
+              word.word.letters[word.num_used].blank = word.keyboard[i].false;
+              word.num_used += 1;
+            }
+          }
+        }
+        if (isMysterWordSolved(word)) {
+          LevelScene.current_mystery = null;
+        }
+      }
+    }
+
+    function drawMysteryWord(word) {
+      if (word.solved && word.timer > 0) {
+        if (word.timer % 5 == 0) {
+          for (var i = 0; i < word.word.letters.length; ++i) {
+            word.word.letters[i].color = randomColor();
+          }
+        }
+        word.timer--;
+      }
+      if (word.locked && word.timer > 0) {
+        if (word.timer % 5 == 0) {
+          word.num_used--;
+          word.word.letters[word.num_used].blank = true;
+          word.word.letters[word.num_used].char = word.correct_word.charAt(word.num_used);
+        }
+        word.timer--;
+        if (word.timer == 0) {
+          word.locked = false;
+          resetMysteryWord(word);
+        }
+      }
+      drawBubbleWord(word.word);
+      if(LevelScene.current_mystery == word)
+      {
+        for (var i = 0; i < word.keyboard.length; ++i) {
+          drawBubbleLetter(word.keyboard[i]);
+        }
+      }
+    }
+
+    function isMysterWordSolved(word) {
+      if (word.solved) {
+        return true;
+      }
+      if (word.num_used != word.correct_word.length) {
+        return false;
+      }
+      for (var i = 0; i < word.correct_word.length; ++i) {
+        if (word.correct_word.charAt(i) != word.word.letters[i].char) {
+          word.locked = true;
+          word.timer = word.correct_word.length * 5 - 1;
+          return false;
+        }
+      }
+      word.solved = true;
+      word.timer = 15;
+      return true;
+    }
+    
+    function revealHint(word)
+    {
+      if(word == null)
+      {
+        return false;
+      }
+      for(var i = 0; i < word.word.letters.length; ++i)
+      {
+        if(!word.word.letters[i].clue_used)
+        {
+          word.word.letters[i].clue_used = true;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function resetMysteryWord(word) {
+      word.locked = false;
+      word.timer = 0;
+      for (var i = 0; i < word.word.letters.length; ++i) {
+        word.word.letters[i].blank = true;
+        word.word.letters[i].char = word.correct_word.charAt(i);
+      }
+      for (var i = 0; i < 12; ++i) {
+        word.keyboard[i].used = false;
+      }
+      word.num_used = 0;
+    }
+
+    function makeMysteryWord(x, y, r, word) {
+      var inner_word = {
+        x: x,
+        y: y,
+        r: r,
+        letters: []
+      }
+      var letter_set = [];
+      var keyboard_letters = [];
+      for (var i = 0; i < word.length; ++i) {
+        var center = word.length - 1;
+        var offset = r * ((i * 2) - center);
+        var c = randomColor();
+        inner_word.letters.push({
+          x: x + offset,
+          y: y,
+          r: r,
+          color: c,
+          char: word.charAt(i),
+          blank: true,
+          clue_used: false,
+          used: false
+        })
+        letter_set.push({
+          color: c,
+          char: word.charAt(i),
+          used: false
+        });
+      }
+      for (var i = 0; i < 12 - word.length; ++i) {
+        letter_set.push({
+          color: randomColor(),
+          char: randomLetter()
+        });
+      }
+      shuffle(letter_set);
+      for (var i = 0; i < 12; ++i) {
+        var keyboard_radius = GameEngine.cavnas_width/12;
+        var y_offset = GameEngine.cavnas_height - 4 * keyboard_radius;
+        if (i < 6)
+        {
+          y_offset = GameEngine.cavnas_height - 2 * keyboard_radius;
+        }
+        keyboard_letters.push({
+          x : 2 * (i % 6) * keyboard_radius + keyboard_radius,
+          y : y_offset,
+          r : keyboard_radius,
+          color : letter_set[i].color,
+          char : letter_set[i].char,
+          blank: false,
+          clue_used: false,
+          used: false
+        })
+      }
+      var return_word = {
+        word: inner_word,
+        keyboard: keyboard_letters,
+        correct_word: word,
+        num_used: 0,
+        solved: false,
+        locked: false,
+        timer: 0,
+      };
+      return return_word;
+    }
+
+    function paint() {
+
+    }
   </script>
 </body>
 
