@@ -25,6 +25,78 @@
       paint : function() {}
     }
     */
+    
+    var LevelSelectScene =
+    {
+      levels : [],
+      level_select_height : 0,
+      level_select_offset : 0,
+      
+      init : function()
+      {
+        LevelSelectScene.level_select_height = Math.floor(.85 * GameEngine.canvas_height);
+        LevelSelectScene.level_select_offset = 
+          GameEngine.canvas_height - LevelSelectScene.level_select_height;
+        var num_levels = puzzles.length;
+        var num_cols = 3;
+        var num_rows = Math.ceil(num_levels/num_cols);
+        var row_size = Math.floor(LevelSelectScene.level_select_height / num_rows);
+        var col_size = Math.floor(GameEngine.canvas_width / num_cols);
+        var stage_radius = Math.min(row_size/2, col_size/2);
+        for (var i = 0; i < num_levels; ++i)
+        {
+          var cur_col = Math.floor(i % num_cols);
+          var cur_row = Math.floor(i / num_cols);
+          LevelSelectScene.levels.push({
+            x: Math.floor(cur_col * col_size + col_size / 2),
+            y: Math.floor(cur_row * row_size + row_size / 2) + LevelSelectScene.level_select_offset,
+            r: stage_radius,
+            color: randomColor(),
+            char: i+1,
+            blank: false,
+            clue_used: true,
+            used: false
+          });
+        }
+      },
+      reset : function()
+      {
+      },
+      
+      handleMouseClick : function(mouse_x, mouse_y)
+      {
+        for (var i = 0; i < LevelSelectScene.levels.length; ++i)
+        {
+          if (clickBubbleLetter(mouse_x, mouse_y,LevelSelectScene.levels[i]))
+          {
+            LevelSelectScene.levels[i].blank = true;
+            LevelScene.reset();
+            LevelScene.setWords(getPuzzle(i));
+            GameEngine.current_scene = LevelScene;
+          }
+        }
+      },
+      
+      handleTimeStep : function() {},
+      
+      paint : function()
+      {
+        GameEngine.ctx.fillStyle = "white";
+        GameEngine.ctx.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
+       
+        GameEngine.ctx.font = Math.floor(LevelSelectScene.level_select_offset * .4) + "px " + GameEngine.game_font;
+        GameEngine.ctx.textBaseline = "middle";
+        GameEngine.ctx.textAlign = "center";
+        GameEngine.ctx.fillStyle = greyColor();
+        GameEngine.ctx.fillText("PUZZLE SELECT",Math.floor(GameEngine.canvas_width/2),Math.floor(LevelSelectScene.level_select_offset/2));
+        
+       
+        for (var i = 0; i < LevelSelectScene.levels.length; ++i)
+        {
+          drawBubbleLetter(LevelSelectScene.levels[i]);
+        }
+      }
+    }
   
     var LevelScene =
     {
@@ -38,16 +110,7 @@
       {
         LevelScene.radius = 450 / 19 * .75;
         LevelScene.hint_button = 
-          makeTextButton(GameEngine.cavnas_width,GameEngine.cavnas_height,GameEngine.cavnas_width/12,greyColor(),"HINT");
-        var str = getUrlParameters("custom");
-        var word_list;
-        if (str) {
-          word_list = decodeWordList(str);
-        } else {
-          word_list = decodeWordList(randomEncodedPuzzle());
-        }
-
-        populateWordList(word_list);
+          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,GameEngine.canvas_width/12,greyColor(),"HINT");
       },
       
       reset : function()
@@ -55,8 +118,11 @@
         LevelScene.static_words = [];
         LevelScene.mystery_words = [];
         LevelScene.current_mystery = null;
-        var word_list = decodeWordList(randomEncodedPuzzle());
-        populateWordList(word_list);
+      },
+      
+      setWords : function(str)
+      {
+        populateWordList(decodeWordList(str));
       },
       
       handleMouseClick : function(mouse_x, mouse_y)
@@ -87,14 +153,14 @@
         }
         if (solved)
         {
-          LevelScene.reset();
+          GameEngine.current_scene = LevelSelectScene;
         }
       },
       
       paint : function()
       {
         GameEngine.ctx.fillStyle = "white";
-        GameEngine.ctx.fillRect(0, 0, GameEngine.cavnas_width, GameEngine.cavnas_height);
+        GameEngine.ctx.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
 
         for (var i = 0; i < LevelScene.static_words.length; ++i) {
           drawBubbleWord(LevelScene.static_words[i]);
@@ -116,13 +182,14 @@
       mouse_y : 0,
       mouse_click_pending : false,
       current_scene : null,
+      game_font : "Arial",
       
       init : function()
       {
         GameEngine.canvas = $("#canvas")[0];
         GameEngine.ctx = GameEngine.canvas.getContext("2d");
-        GameEngine.cavnas_width = $("#canvas").width();
-        GameEngine.cavnas_height = $("#canvas").height();
+        GameEngine.canvas_width = $("#canvas").width();
+        GameEngine.canvas_height = $("#canvas").height();
         GameEngine.mouse_x = 0;
         GameEngine.mouse_y = 0;
         GameEngine.mouse_click_pending = false;
@@ -134,16 +201,16 @@
         }, false);
         
         LevelScene.init();
+        LevelSelectScene.init();
         
-        current_scene = LevelScene;
+        GameEngine.current_scene = LevelSelectScene;
         
         var str = getUrlParameters("custom");
         if (str)
         {
-          current_scene = LevelScene;
+          LevelScene.setWords(str);
+          GameEngine.current_scene = LevelScene;
         }
-        
-        
         
         setTimeout(GameEngine.gameLoop, 0);
       },
@@ -155,11 +222,11 @@
         if (GameEngine.mouse_click_pending)
         {
           GameEngine.mouse_click_pending = false;
-          current_scene.handleMouseClick(GameEngine.mouse_x, GameEngine.mouse_y);
+          GameEngine.current_scene.handleMouseClick(GameEngine.mouse_x, GameEngine.mouse_y);
         }
         
-        current_scene.handleTimeStep();
-        current_scene.paint();
+        GameEngine.current_scene.handleTimeStep();
+        GameEngine.current_scene.paint();
         
         var end_time = Date.now();
         var comp_time = end_time - start_time;
@@ -216,7 +283,7 @@
     function parseError() {
       LevelScene.static_words = [];
       LevelScene.mystery_words = [];
-      LevelScene.static_words.push(makeBubbleWord(GameEngine.cavnas_width / 2, 9.5 * LevelScene.radius, LevelScene.radius, "ERROR"));
+      LevelScene.static_words.push(makeBubbleWord(GameEngine.canvas_width / 2, 9.5 * LevelScene.radius, LevelScene.radius, "ERROR"));
     }
 
     function decodeWordList(str) {
@@ -257,9 +324,9 @@
           return;
         }
         if (i % 2 == 0) {
-          LevelScene.static_words.push(makeBubbleWord(GameEngine.cavnas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
+          LevelScene.static_words.push(makeBubbleWord(GameEngine.canvas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
         } else {
-          LevelScene.mystery_words.push(makeMysteryWord(GameEngine.cavnas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
+          LevelScene.mystery_words.push(makeMysteryWord(GameEngine.canvas_width / 2, start_offset * LevelScene.radius, LevelScene.radius, words[i]));
         }
         start_offset += 2.5;
       }
@@ -301,7 +368,7 @@
       letter_radius = Math.floor(2 * .70 * letter.r);
       GameEngine.ctx.textAlign = "center";
       GameEngine.ctx.textBaseline = "middle";
-      GameEngine.ctx.font = letter_radius + "px Arial"
+      GameEngine.ctx.font = letter_radius + "px " + GameEngine.game_font;
       GameEngine.ctx.fillStyle = letter.color;
       if (letter.blank) {
         GameEngine.ctx.fillStyle = greyColor();
@@ -352,7 +419,7 @@
     
     function drawTextButton(button)
     {
-      GameEngine.ctx.font = Math.floor(button.height * .7) + "px Arial";
+      GameEngine.ctx.font = Math.floor(button.height * .7) + "px " + GameEngine.game_font;
       GameEngine.ctx.textBaseline = button.baseline;
       GameEngine.ctx.textAlign = button.align;
       GameEngine.ctx.fillStyle = button.color;
@@ -361,7 +428,7 @@
     
     function makeTextButton(x,y,height,color,word)
     {
-      GameEngine.ctx.font = Math.floor(height) + "px Arial";
+      GameEngine.ctx.font = Math.floor(height) + "px " + GameEngine.game_font;
       GameEngine.ctx.fillStyle = color;
       
       var text_button = {
@@ -548,11 +615,11 @@
       }
       shuffle(letter_set);
       for (var i = 0; i < 12; ++i) {
-        var keyboard_radius = GameEngine.cavnas_width/12;
-        var y_offset = GameEngine.cavnas_height - 4 * keyboard_radius;
+        var keyboard_radius = GameEngine.canvas_width/12;
+        var y_offset = GameEngine.canvas_height - 4 * keyboard_radius;
         if (i < 6)
         {
-          y_offset = GameEngine.cavnas_height - 2 * keyboard_radius;
+          y_offset = GameEngine.canvas_height - 2 * keyboard_radius;
         }
         keyboard_letters.push({
           x : 2 * (i % 6) * keyboard_radius + keyboard_radius,
@@ -575,10 +642,6 @@
         timer: 0,
       };
       return return_word;
-    }
-
-    function paint() {
-
     }
   </script>
 </body>
