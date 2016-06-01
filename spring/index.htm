@@ -59,14 +59,14 @@
             r: stage_radius,
             color: randomColor(),
             char: i+1,
-            blank: false,
+            blank: true,
             clue_used: true,
             used: false
           });
         }
         for (var i = 0; i < SavedState.completed_levels.length; ++i)
         {
-          LevelSelectScene.levels[SavedState.completed_levels[i]].blank = true;
+          LevelSelectScene.levels[SavedState.completed_levels[i]].blank = false;
         }
       },
       
@@ -113,7 +113,7 @@
         {
           SavedState.completed_levels.push(LevelSelectScene.current_level);
           sessionStorage.completed_levels = JSON.stringify(SavedState.completed_levels);
-          LevelSelectScene.levels[LevelSelectScene.current_level].blank = true;
+          LevelSelectScene.levels[LevelSelectScene.current_level].blank = false;
           LevelSelectScene.current_level = null;
         }
       }
