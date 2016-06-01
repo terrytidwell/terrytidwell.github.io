@@ -31,6 +31,7 @@
       levels : [],
       level_select_height : 0,
       level_select_offset : 0,
+      current_level : null,
       
       init : function()
       {
@@ -59,6 +60,7 @@
           });
         }
       },
+      
       reset : function()
       {
       },
@@ -69,7 +71,7 @@
         {
           if (clickBubbleLetter(mouse_x, mouse_y,LevelSelectScene.levels[i]))
           {
-            LevelSelectScene.levels[i].blank = true;
+            LevelSelectScene.current_level = i;
             LevelScene.reset();
             LevelScene.setWords(getPuzzle(i));
             GameEngine.current_scene = LevelScene;
@@ -89,11 +91,19 @@
         GameEngine.ctx.textAlign = "center";
         GameEngine.ctx.fillStyle = greyColor();
         GameEngine.ctx.fillText("PUZZLE SELECT",Math.floor(GameEngine.canvas_width/2),Math.floor(LevelSelectScene.level_select_offset/2));
-        
        
         for (var i = 0; i < LevelSelectScene.levels.length; ++i)
         {
           drawBubbleLetter(LevelSelectScene.levels[i]);
+        }
+      },
+      
+      completeCurrentLevel : function()
+      {
+        if (LevelSelectScene.current_level != null)
+        {
+          LevelSelectScene.levels[LevelSelectScene.current_level].blank = true;
+          LevelSelectScene.current_level = null
         }
       }
     }
@@ -105,12 +115,15 @@
       mystery_words : [],
       current_mystery : null,
       hint_button : null,
+      back_button : null,
     
       init : function()
       {
         LevelScene.radius = 450 / 19 * .75;
         LevelScene.hint_button = 
-          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,GameEngine.canvas_width/12,greyColor(),"HINT");
+          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"HINT");
+        LevelScene.back_button = 
+          makeTextButton(0,GameEngine.canvas_height,"left","bottom",GameEngine.canvas_width/12*.8,greyColor(),"BACK");
       },
       
       reset : function()
@@ -135,6 +148,10 @@
         {
           revealHint(LevelScene.current_mystery);
         }
+        if(clickTextButton(mouse_x, mouse_y, LevelScene.back_button))
+        {
+          GameEngine.current_scene = LevelSelectScene;
+        }
       },
       
       handleTimeStep : function()
@@ -153,6 +170,7 @@
         }
         if (solved)
         {
+          LevelSelectScene.completeCurrentLevel();
           GameEngine.current_scene = LevelSelectScene;
         }
       },
@@ -168,7 +186,11 @@
         for (var i = 0; i < LevelScene.mystery_words.length; ++i) {
           drawMysteryWord(LevelScene.mystery_words[i]);
         }
-        drawTextButton(LevelScene.hint_button);
+        if(LevelScene.current_mystery != null)
+        {
+          drawTextButton(LevelScene.hint_button);
+        }
+        drawTextButton(LevelScene.back_button);
       }
     }
   
@@ -409,8 +431,8 @@
     
     function clickTextButton(mouse_x, mouse_y, button)
     {
-      if(mouse_x <= button.x && mouse_x >= button.x - button.width &&
-        mouse_y <= button.y && mouse_y >= button.y - button.height)
+      if(mouse_x <= button.max_x && mouse_x >= button.min_x &&
+        mouse_y <= button.max_y && mouse_y >= button.min_y)
       {
         return true;
       }
@@ -419,27 +441,68 @@
     
     function drawTextButton(button)
     {
-      GameEngine.ctx.font = Math.floor(button.height * .7) + "px " + GameEngine.game_font;
+      GameEngine.ctx.font = Math.floor(button.height * 1) + "px " + GameEngine.game_font;
       GameEngine.ctx.textBaseline = button.baseline;
       GameEngine.ctx.textAlign = button.align;
       GameEngine.ctx.fillStyle = button.color;
+      //GameEngine.ctx.fillRect(button.min_x,button.min_y,button.max_x-button.min_x,button.max_y-button.min_y);
+      //GameEngine.ctx.fillStyle = "white";
       GameEngine.ctx.fillText(button.word,button.x,button.y);
+      
     }
     
-    function makeTextButton(x,y,height,color,word)
+    function makeTextButton(x,y,align,baseline,height,color,word)
     {
       GameEngine.ctx.font = Math.floor(height) + "px " + GameEngine.game_font;
       GameEngine.ctx.fillStyle = color;
+      
+      var text_width = GameEngine.ctx.measureText(word).width
+      
+      if (align == "right" || align == "end")
+      {
+        var min_x = x - text_width;
+        var max_x = x;
+      }
+      else if (align == "left" || align == "start")
+      {
+        var min_x = x;
+        var max_x = x + text_width;
+      }
+      else if (align == "center")
+      {
+        var min_x = Math.floor(x - text_width/2);
+        var max_x = Math.floor(x + text_width/2);
+      }
+      
+      if (baseline == "bottom")
+      {
+        var min_y = y - height;
+        var max_y = y;
+      }
+      else if (baseline == "top")
+      {
+        var min_y = y;
+        var max_y = y+height;
+      }
+      else if (baseline == "middle")
+      {
+        var min_y = Math.floor(y - height/2);
+        var min_y = Math.floor(y + height/2);
+      }
       
       var text_button = {
         x: x,
         y: y,
         height: height,
-        width: GameEngine.ctx.measureText(word).width,
-        align: "right",
-        baseline: "bottom",
+        width: text_width,
+        align: align,
+        baseline: baseline,
         color: color,
-        word: word
+        word: word,
+        min_x : min_x,
+        max_x : max_x,
+        min_y : min_y,
+        max_y : max_y
       }
       return text_button;
     }
