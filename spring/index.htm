@@ -32,18 +32,182 @@
       completed_levels : []
     }
     
+    var LevelEditScene =
+    {
+      word_list : [],
+      word : null,
+      timer : 0,
+      radius : 450 / 19 * .75,
+      link_button : null,
+      back_button : null,
+      current_words : 0,
+      
+      init : function()
+      {
+        LevelEditScene.reset();
+        LevelEditScene.link_button = 
+          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"LINK");
+        LevelEditScene.back_button = 
+          makeTextButton(0,GameEngine.canvas_height,"left","bottom",GameEngine.canvas_width/12*.8,greyColor(),"BACK");
+      },
+      reset : function()
+      {
+        LevelEditScene.word_list = [];
+        var offset = 2.5;
+        for(var i = 0; i < 7; ++i, offset += 2.5)
+        {
+          LevelEditScene.word_list.push(makeBubbleWord(
+            GameEngine.canvas_width / 2,
+            offset * LevelEditScene.radius,
+            LevelEditScene.radius,
+            "_"));
+        }
+        
+        LevelEditScene.word = LevelEditScene.word_list[3];
+        LevelEditScene.timer = 0;
+        LevelEditScene.current_words = 0;
+      },
+      
+      handleMouseClick : function(mouse_x, mouse_y)
+      {
+        for (var i=0; i < LevelEditScene.word_list.length; ++i)
+        {
+          if (clickBubbleWord(mouse_x, mouse_y, LevelEditScene.word_list[i]))
+          {
+            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = false;
+            LevelEditScene.word = LevelEditScene.word_list[i];
+            LevelEditScene.timer = 0;
+            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].clue_used = true;
+            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = true;
+            return;
+          }
+        }
+        if (clickTextButton(mouse_x,mouse_y,LevelEditScene.link_button))
+        {
+          LevelEditScene.displayUrl();
+          return;
+        }
+        if (clickTextButton(mouse_x,mouse_y,LevelEditScene.back_button))
+        {
+          GameEngine.current_scene = LevelSelectScene;
+          return;
+        }
+      },
+      
+      handleKeyStroke : function(key_codes)
+      {
+        for(var i=0; i < key_codes.length; ++i)
+        {
+          if (key_codes[i] >= 65 && key_codes[i] <= 90)
+          {
+            var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            if (1 == LevelEditScene.word.letters.length)
+            {
+              LevelEditScene.current_words++;
+            }
+            if (9 > LevelEditScene.word.letters.length)
+            {
+              LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].char = alphabet[key_codes[i]-65];
+              LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = false;
+              addLetterBubbleWord(LevelEditScene.word,"_");
+            }
+            else if (9 == LevelEditScene.word.letters.length)
+            {
+              LevelEditScene.word.letters[8].char = alphabet[key_codes[i]-65];
+            }
+          }
+          
+          if (key_codes[i] == 8)
+          {
+            if (2 == LevelEditScene.word.letters.length)
+            {
+              LevelEditScene.current_words--;
+            }
+            if (1 == LevelEditScene.word.letters.length)
+            {
+              LevelEditScene.word.letters[0].char = "_";
+            }
+            else if (9 == LevelEditScene.word.letters.length && LevelEditScene.word.letters[8].char != "_")
+            {
+              LevelEditScene.word.letters[8].char = "_";
+            }
+            else
+            {
+              removeLetterBubbleWord(LevelEditScene.word)
+              LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].char = "_";
+            }
+          }
+        }
+      },
+      
+      handleTimeStep : function()
+      {
+        LevelEditScene.timer = ++LevelEditScene.timer % 30;
+        if (LevelEditScene.timer == 0)
+        {
+          LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].clue_used = true;
+          LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = 
+            !LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank;
+        }
+      },
+      
+      paint : function()
+      {
+        GameEngine.ctx.fillStyle = "white";
+        GameEngine.ctx.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
+        for(var i = 0; i < LevelEditScene.word_list.length; ++i)
+        {
+          drawBubbleWord(LevelEditScene.word_list[i]);
+        }
+        drawTextButton(LevelEditScene.link_button);
+        drawTextButton(LevelEditScene.back_button);
+      },
+      
+      displayUrl : function()
+      {
+        var words = "";
+        for (var i = 0; i < LevelEditScene.word_list.length; ++i)
+        {
+          var current_word = LevelEditScene.word_list[i];
+          if(current_word.letters.length != 1)
+          {
+            if(words.length != 0)
+            {
+              words += ",";
+            }
+            for (var j = 0; j < current_word.letters.length; ++j)
+            {
+              if(current_word.letters[j].char != "_")
+              {
+                words += current_word.letters[j].char;
+              }
+            }
+          }
+        }
+        if(LevelEditScene.current_words == 3 || LevelEditScene.current_words == 5 || LevelEditScene.current_words == 7)
+        {
+          window.open(window.location.protocol + "//" + window.location.pathname + "?custom=" + encodeURIComponent(window.btoa(words)));
+        }
+        else
+        {
+          alert("Puzzles must be 3, 5 or 7 words, currently this puzzle has " + LevelEditScene.current_words);
+        }
+      }
+    }
+    
     var LevelSelectScene =
     {
       levels : [],
       level_select_height : 0,
       level_select_offset : 0,
       current_level : null,
+      custom_button : null,
       
       init : function()
       {
-        LevelSelectScene.level_select_height = Math.floor(.85 * GameEngine.canvas_height);
-        LevelSelectScene.level_select_offset = 
-          GameEngine.canvas_height - LevelSelectScene.level_select_height;
+        LevelSelectScene.level_select_height = 
+          Math.floor(.85 * GameEngine.canvas_height) - GameEngine.canvas_width/12;
+        LevelSelectScene.level_select_offset = Math.floor(.15 * GameEngine.canvas_height);
         var num_levels = puzzles.length;
         var num_cols = 3;
         var num_rows = Math.ceil(num_levels/num_cols);
@@ -69,6 +233,8 @@
         {
           LevelSelectScene.levels[SavedState.completed_levels[i]].blank = false;
         }
+        LevelSelectScene.custom_button =
+          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"CUSTOM");
       },
       
       reset : function()
@@ -79,13 +245,20 @@
       {
         for (var i = 0; i < LevelSelectScene.levels.length; ++i)
         {
-          if (clickBubbleLetter(mouse_x, mouse_y,LevelSelectScene.levels[i]))
+          if (clickBubbleLetter(mouse_x, mouse_y, LevelSelectScene.levels[i]))
           {
             LevelSelectScene.current_level = i;
             LevelScene.reset();
             LevelScene.setWords(getPuzzle(i));
             GameEngine.current_scene = LevelScene;
+            return;
           }
+        }
+        if (clickTextButton(mouse_x, mouse_y, LevelSelectScene.custom_button))
+        {
+          LevelEditScene.reset();
+          GameEngine.current_scene = LevelEditScene;
+          return;
         }
       },
       
@@ -110,6 +283,7 @@
         {
           drawBubbleLetter(LevelSelectScene.levels[i]);
         }
+        drawTextButton(LevelSelectScene.custom_button);
       },
       
       completeCurrentLevel : function()
@@ -272,8 +446,8 @@
           sessionStorage.version = SavedState.version;
         }
         
-        
         LevelScene.init();
+        LevelEditScene.init();
         LevelSelectScene.init();
         
         GameEngine.current_scene = LevelSelectScene;
@@ -399,7 +573,7 @@
           return;
       }
       for (var i = 0; i < words.length; ++i) {
-        if (words[i].length > 10 || words[i].length <= 0 || !isLegalWord(words[i])) {
+        if (words[i].length > 9 || words[i].length <= 0 || !isLegalWord(words[i])) {
           parseError();
           return;
         }
@@ -564,7 +738,41 @@
       }
       return text_button;
     }
+    
+    function removeLetterBubbleWord(word)
+    {
+      word.letters.splice(word.letters.length - 1)
+      var center = word.letters.length - 1;
+      for (var i = 0; i < word.letters.length; ++i)
+      {
+        var offset = word.r * ((i * 2) - center);
+        word.letters[i].x = word.x + offset;
+      }
+      
+    }
 
+    function addLetterBubbleWord(word,c)
+    {
+      new_index = word.letters.length;
+      var center = word.letters.length;
+      for (var i = 0; i < word.letters.length; ++i)
+      {
+        var offset = word.r * ((i * 2) - center);
+        word.letters[i].x = word.x + offset;
+      }
+      var new_offset = word.r * ((new_index * 2) - center);
+      word.letters.push({
+          x: Math.floor(word.x + new_offset),
+          y: Math.floor(word.y),
+          r: Math.floor(word.r),
+          color: randomColor(),
+          char: c,
+          blank: false,
+          clue_used: false,
+          used: false
+      })
+    }
+    
     function makeBubbleWord(x, y, r, word) {
       var return_word = {
         x: x,
@@ -572,8 +780,9 @@
         r: r,
         letters: []
       }
-      for (var i = 0; i < word.length; ++i) {
-        var center = word.length - 1;
+      var center = word.length - 1;
+      for (var i = 0; i < word.length; ++i)
+      {
         var offset = r * ((i * 2) - center);
         return_word.letters.push({
           x: Math.floor(x + offset),
