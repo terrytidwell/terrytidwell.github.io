@@ -186,7 +186,7 @@
         }
         if(LevelEditScene.current_words == 3 || LevelEditScene.current_words == 5 || LevelEditScene.current_words == 7)
         {
-          window.open(window.location.protocol + "//" + window.location.pathname + "?custom=" + encodeURIComponent(window.btoa(words)));
+          window.open(window.location.protocol + "//" + window.location.host + window.location.pathname + "?custom=" + encodeURIComponent(window.btoa(words)));
         }
         else
         {
