@@ -168,7 +168,7 @@
         for (var i = 0; i < LevelEditScene.word_list.length; ++i)
         {
           var current_word = LevelEditScene.word_list[i];
-          if(current_word.letters.length != 1)
+          if(current_word.letters.length != 1 || current_word.letters[0].char != "_")
           {
             if(words.length != 0)
             {
