@@ -250,6 +250,11 @@
         }, false);
         
         GameEngine.document.addEventListener("keydown", function(event) {
+          if (event.keyCode == 8)
+          {
+            //eat backspace
+            event.preventDefault();
+          }
           GameEngine.key_codes.push(event.keyCode);
           GameEngine.key_press_pending = true;
         }, false);
