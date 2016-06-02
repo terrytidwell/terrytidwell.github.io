@@ -8,7 +8,7 @@
 </head>
 
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
-  <canvas id="canvas" width="320" height="480"></canvas>
+  <canvas id="canvas" width="320" height="480" style = "-webkit-tap-highlight-color:rgba(0,0,0,0);"></canvas>
 
   <!-- Jquery -->
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
@@ -21,6 +21,7 @@
       init : function() {},
       reset : function() {},
       handleMouseClick : function(mouse_x, mouse_y) {},
+      handleKeyStroke : function(key_codes) {},
       handleTimeStep : function() {},
       paint : function() {}
     }
@@ -86,6 +87,10 @@
             GameEngine.current_scene = LevelScene;
           }
         }
+      },
+      
+      handleKeyStroke : function(key_codes)
+      {
       },
       
       handleTimeStep : function() {},
@@ -165,6 +170,14 @@
         }
       },
       
+      handleKeyStroke : function(key_codes)
+      {
+        if(LevelScene.current_mystery != null)
+        {
+          keyStrokeMysteryWord(key_codes,LevelScene.current_mystery);
+        }
+      },
+      
       handleTimeStep : function()
       {
         var solved = true;
@@ -214,11 +227,14 @@
       mouse_x : 0,
       mouse_y : 0,
       mouse_click_pending : false,
+      key_codes : [],
+      key_press_pending : false,
       current_scene : null,
       game_font : "Arial",
       
       init : function()
       {
+        GameEngine.document = $(document)[0];
         GameEngine.canvas = $("#canvas")[0];
         GameEngine.ctx = GameEngine.canvas.getContext("2d");
         GameEngine.canvas_width = $("#canvas").width();
@@ -231,6 +247,11 @@
           GameEngine.mouse_x = event.offsetX;
           GameEngine.mouse_y = event.offsetY;
           GameEngine.mouse_click_pending = true;
+        }, false);
+        
+        GameEngine.document.addEventListener("keydown", function(event) {
+          GameEngine.key_codes.push(event.keyCode);
+          GameEngine.key_press_pending = true;
         }, false);
         
         if (sessionStorage.version && sessionStorage.version == SavedState.version)
@@ -270,6 +291,13 @@
         {
           GameEngine.mouse_click_pending = false;
           GameEngine.current_scene.handleMouseClick(GameEngine.mouse_x, GameEngine.mouse_y);
+        }
+        
+        if (GameEngine.key_press_pending)
+        {
+          GameEngine.key_press_pending = false;
+          GameEngine.current_scene.handleKeyStroke(GameEngine.key_codes);
+          GameEngine.key_codes = [];
         }
         
         GameEngine.current_scene.handleTimeStep();
@@ -556,6 +584,42 @@
       return return_word;
     }
     
+    function activateKeyboard(i,word)
+    {
+      if ( !word.keyboard[i].used && 
+        word.num_used < word.correct_word.length)
+      {
+        word.keyboard[i].used = true;
+        word.word.letters[word.num_used].char = word.keyboard[i].char;
+        word.word.letters[word.num_used].color = word.keyboard[i].color;
+        word.word.letters[word.num_used].blank = word.keyboard[i].false;
+        word.num_used += 1;
+      }
+      if (isMysterWordSolved(word))
+      {
+        LevelScene.current_mystery = null;
+      }
+    }
+    
+    function keyStrokeMysteryWord(key_codes, word)
+    {
+      for(var i=0; i < key_codes.length; ++i)
+      {
+        if(key_codes[i] >= 65 && key_codes[i] <= 90)
+        {
+          var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          for(var j = 0; j < word.keyboard.length; j++)
+          {
+            if (!word.keyboard[j].used && word.keyboard[j].char == alphabet[key_codes[i]-65])
+            {
+              activateKeyboard(j,word);
+              return;
+            }
+          }
+        }
+      }
+    }
+    
     function clickMysteryWord(mouse_x, mouse_y, word) {
       if(clickBubbleWord(mouse_x, mouse_y, word.word) && !word.solved && !word.locked)
       {
@@ -571,18 +635,8 @@
         {
           if (clickBubbleLetter(mouse_x,mouse_y,word.keyboard[i]))
           {
-            if ( !word.keyboard[i].used && 
-              word.num_used < word.correct_word.length) {
-              word.keyboard[i].used = true;
-              word.word.letters[word.num_used].char = word.keyboard[i].char;
-              word.word.letters[word.num_used].color = word.keyboard[i].color;
-              word.word.letters[word.num_used].blank = word.keyboard[i].false;
-              word.num_used += 1;
-            }
+            activateKeyboard(i,word);
           }
-        }
-        if (isMysterWordSolved(word)) {
-          LevelScene.current_mystery = null;
         }
       }
     }
