@@ -36,6 +36,7 @@
     {
       word_list : [],
       word : null,
+      word_index : 0,
       timer : 0,
       radius : 450 / 19 * .75,
       link_button : null,
@@ -63,7 +64,8 @@
             "_"));
         }
         
-        LevelEditScene.word = LevelEditScene.word_list[3];
+        LevelEditScene.word_index = 3;
+        LevelEditScene.word = LevelEditScene.word_list[LevelEditScene.word_index];
         LevelEditScene.timer = 0;
         LevelEditScene.current_words = 0;
       },
@@ -74,11 +76,7 @@
         {
           if (clickBubbleWord(mouse_x, mouse_y, LevelEditScene.word_list[i]))
           {
-            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = false;
-            LevelEditScene.word = LevelEditScene.word_list[i];
-            LevelEditScene.timer = 0;
-            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].clue_used = true;
-            LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = true;
+            LevelEditScene.switchToWord(i);
             return;
           }
         }
@@ -125,7 +123,8 @@
             }
             if (1 == LevelEditScene.word.letters.length)
             {
-              LevelEditScene.word.letters[0].char = "_";
+              LevelEditScene.deleteWord();
+              //LevelEditScene.word.letters[0].char = "_";
             }
             else if (9 == LevelEditScene.word.letters.length && LevelEditScene.word.letters[8].char != "_")
             {
@@ -192,6 +191,59 @@
         {
           alert("Puzzles must be 3, 5 or 7 words, currently this puzzle has " + LevelEditScene.current_words);
         }
+      },
+      
+      deleteWord : function ()
+      {
+        if (LevelEditScene.word_index < LevelEditScene.word_list.length / 2)
+        {
+          //move up
+          for(var i = LevelEditScene.word_index; i < LevelEditScene.word_list.length - 1; i++)
+          {
+            LevelEditScene.word_list[i] = LevelEditScene.word_list[i+1];
+            changeHeightBubbleWord((i + 1) * 2.5 * LevelEditScene.radius, LevelEditScene.word_list[i])
+          }
+          LevelEditScene.word_list[LevelEditScene.word_list.length - 1] = LevelEditScene.word;
+          changeHeightBubbleWord(LevelEditScene.word_list.length * 2.5 * LevelEditScene.radius, LevelEditScene.word)
+          LevelEditScene.word.letters[0].color = randomColor();
+          var old_index = LevelEditScene.word_index;
+          LevelEditScene.word_index = LevelEditScene.word_list.length - 1;
+          LevelEditScene.switchToWord(old_index);
+        }
+        else
+        {
+          for(var i = LevelEditScene.word_index; i > 0; i--)
+          {
+            LevelEditScene.word_list[i] = LevelEditScene.word_list[i-1];
+            changeHeightBubbleWord((i + 1) * 2.5 * LevelEditScene.radius, LevelEditScene.word_list[i])
+          }
+          LevelEditScene.word_list[0] = LevelEditScene.word;
+          changeHeightBubbleWord(2.5 * LevelEditScene.radius, LevelEditScene.word)
+          LevelEditScene.word.letters[0].color = randomColor();
+          var old_index = LevelEditScene.word_index;
+          LevelEditScene.word_index = 0;
+          LevelEditScene.switchToWord(old_index);
+        }
+      },
+      
+      switchToWord : function (new_word)
+      {
+        if(LevelEditScene.word.letters.length != 1 &&
+          LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].char == "_")
+        {
+          removeLetterBubbleWord(LevelEditScene.word);
+        }
+        LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = false;
+        LevelEditScene.word_index = new_word;
+        LevelEditScene.word = LevelEditScene.word_list[new_word];
+        LevelEditScene.timer = 0;
+        if(LevelEditScene.word.letters.length != 9 &&
+          LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].char != "_")
+        {
+          addLetterBubbleWord(LevelEditScene.word,"_");
+        }
+        LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].clue_used = true;
+        LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].blank = true;
       }
     }
     
@@ -737,6 +789,15 @@
         max_y : max_y
       }
       return text_button;
+    }
+    
+    function changeHeightBubbleWord(y, word)
+    {
+      word.y = Math.floor(y);
+      for (var i = 0; i < word.letters.length; ++i)
+      {
+        word.letters[i].y = Math.floor(y);
+      }
     }
     
     function removeLetterBubbleWord(word)
