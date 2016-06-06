@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title></title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=320, initial-scale=1" />
+</head>
+
+<body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
+  <canvas id="canvas" width="640" height="640" style = "-webkit-tap-highlight-color:rgba(0,0,0,0);"></canvas>
+
+  <!-- Jquery -->
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+  <script>
+  
+    /*
+    var Scene =
+    {
+      init : function() {},
+      reset : function() {},
+      handleMouseClick : function(mouse_x, mouse_y) {},
+      handleKeyDown : function(key_codes) {},
+      handleKeyUp : function(key_codes) {},
+      handleTimeStep : function() {},
+      paint : function() {}
+    }
+    */
+    
+    var SavedState = {
+      version : 0,
+      completed_levels : []
+    }
+    
+    var MazeScene =
+    {
+      movables : [],
+      bumpers : [],
+      gravity_x : 0,
+      gravity_y : .3,
+      gravity_magnitude : .3,
+      theta : 0,
+      key_left : false,
+      key_right : false,
+      key_flip : true,
+      
+      init : function()
+      {
+        MazeScene.reset();
+      },
+      reset : function()
+      {
+        MazeScene.movables = [];
+        MazeScene.bumpers = [];
+        for (var i = 0; i < 1; ++i)
+        {
+          MazeScene.movables.push({
+            x : Math.random()*GameEngine.canvas_width,
+            y : Math.random()*GameEngine.canvas_height/2,
+            dx : Math.random()*6-3,
+            dy : 0,
+            r : 10
+          });
+        }
+        for (var i = 0; i < 30; ++i)
+        {
+          MazeScene.bumpers.push({
+            x : Math.random()*GameEngine.canvas_width,
+            y : Math.random()*GameEngine.canvas_height,
+            dx : 0,
+            dy : 0,
+            r : 30
+          });
+        }
+      },
+      
+      handleMouseClick : function(mouse_x, mouse_y)
+      {
+      },
+      
+      handleKeyDown : function(key_codes)
+      {
+        //37 left
+        //38 up
+        //39 right
+        //40 down
+        if(key_codes[0] == 37)
+        {
+          MazeScene.key_left = true;
+        }
+        if(key_codes[0] == 39)
+        {
+          MazeScene.key_right = true;
+        }
+        if(key_codes[0] == 40 || key_codes[0] == 38)
+        {
+          MazeScene.key_flip = true;
+        }
+      },
+      
+      handleKeyUp : function(key_codes)
+      {
+        //37 left
+        //38 up
+        //39 right
+        //40 down
+        if(key_codes[0] == 37)
+        {
+          MazeScene.key_left = false;
+        }
+        if(key_codes[0] == 39)
+        {
+          MazeScene.key_right = false;
+        }
+      },
+      
+      handleTimeStep : function()
+      {
+        if(MazeScene.key_right)
+        {
+          MazeScene.theta = (MazeScene.theta + 1) % 128;
+        }
+        if(MazeScene.key_left)
+        {
+          MazeScene.theta = (MazeScene.theta - 1) % 128;
+        }
+        if(MazeScene.key_flip)
+        {
+          MazeScene.key_flip = false;
+          MazeScene.theta = (MazeScene.theta + 64) % 128;
+        }
+        var rads = MazeScene.theta / 64 * Math.PI;
+        var cs = Math.cos(rads);
+        var sn = Math.sin(rads);
+
+        MazeScene.gravity_x = 0 * cs + .2 * sn;
+        MazeScene.gravity_y = 0 * sn + .2 * cs;
+        
+        for (var i = 0; i < MazeScene.movables.length; ++i)
+        {
+          MazeScene.movables[i].y += MazeScene.movables[i].dy + MazeScene.gravity_y / 2;
+          MazeScene.movables[i].dy += MazeScene.gravity_y;
+          MazeScene.movables[i].x += MazeScene.movables[i].dx + MazeScene.gravity_x / 2;
+          MazeScene.movables[i].dx += MazeScene.gravity_x;
+          //collisions
+          if(MazeScene.movables[i].y >= GameEngine.canvas_height - MazeScene.movables[i].r)
+          {
+            MazeScene.movables[i].y = GameEngine.canvas_height - MazeScene.movables[i].r;
+            var loss = 1;
+            if (Math.abs(MazeScene.movables[i].dy) > .3)
+            {
+              alert("energy!");
+              loss = 1.2;
+            }
+            MazeScene.movables[i].dy = -1 * MazeScene.movables[i].dy * loss;
+          }
+          if(MazeScene.movables[i].y <= MazeScene.movables[i].r)
+          {
+            MazeScene.movables[i].y = MazeScene.movables[i].r;
+            MazeScene.movables[i].dy = -1 * (MazeScene.movables[i].dy * .80);
+          }
+          if(MazeScene.movables[i].x >= GameEngine.canvas_width - MazeScene.movables[i].r)
+          {
+            MazeScene.movables[i].x = GameEngine.canvas_width - MazeScene.movables[i].r;
+            MazeScene.movables[i].dx = MazeScene.movables[i].dx * -.8;
+          }
+          if(MazeScene.movables[i].x <= MazeScene.movables[i].r)
+          {
+            MazeScene.movables[i].x = MazeScene.movables[i].r;
+            MazeScene.movables[i].dx = MazeScene.movables[i].dx * -.8;
+          }
+          for (var j = 0; j < MazeScene.bumpers.length; ++j)
+          {
+            var dx = MazeScene.movables[i].x - MazeScene.bumpers[j].x;
+            var dy = MazeScene.movables[i].y - MazeScene.bumpers[j].y;
+            var distance = Math.sqrt(dy * dy + dx * dx);
+            var combined_r = MazeScene.bumpers[j].r + MazeScene.movables[i].r;
+            if (distance <= combined_r)
+            {
+              //Move the colliding mover outside the bumper
+              MazeScene.movables[i].x = dx * combined_r / distance + MazeScene.bumpers[j].x;
+              MazeScene.movables[i].y = dy * combined_r / distance + MazeScene.bumpers[j].y;
+              
+              var perpendicular = (MazeScene.movables[i].dx * dx + MazeScene.movables[i].dy * dy) / distance;
+              //alert(perpendicular);
+              var loss = 1;
+              if (Math.abs(perpendicular) > .3)
+              {
+                loss = .5;
+              }
+              MazeScene.movables[i].dx = (-2 * perpendicular / distance * dx + MazeScene.movables[i].dx)*loss;
+              MazeScene.movables[i].dy = (-2 * perpendicular / distance * dy + MazeScene.movables[i].dy)*loss;
+              
+            }
+          }
+        }
+      },
+      
+      paint : function()
+      {
+        GameEngine.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        GameEngine.ctx.fillStyle = "grey";
+        GameEngine.ctx.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
+        
+        GameEngine.ctx.translate(GameEngine.canvas_width/2, GameEngine.canvas_height/2);
+        GameEngine.ctx.rotate(MazeScene.theta / 64 * Math.PI);
+        /*
+        GameEngine.ctx.translate(-GameEngine.canvas_width/2, -GameEngine.canvas_height/2);
+        GameEngine.ctx.translate(-MazeScene.movables[0].x + GameEngine.canvas_width/2, -MazeScene.movables[0].y + GameEngine.canvas_height/2);
+        */
+        GameEngine.ctx.translate(-MazeScene.movables[0].x, -MazeScene.movables[0].y);
+        
+        GameEngine.ctx.fillStyle = "white";
+        GameEngine.ctx.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
+        
+        GameEngine.ctx.fillStyle = "black";
+        for (var i = 0; i < MazeScene.movables.length; ++i)
+        {
+          GameEngine.ctx.beginPath();
+          GameEngine.ctx.arc(MazeScene.movables[i].x, MazeScene.movables[i].y, MazeScene.movables[i].r, 0, 2 * Math.PI);
+          GameEngine.ctx.fill();
+        }
+        GameEngine.ctx.fillStyle = "red";
+        for (var i = 0; i < MazeScene.bumpers.length; ++i)
+        {
+          GameEngine.ctx.beginPath();
+          GameEngine.ctx.arc(MazeScene.bumpers[i].x, MazeScene.bumpers[i].y, MazeScene.bumpers[i].r, 0, 2 * Math.PI);
+          GameEngine.ctx.fill();
+        }
+      },
+      
+      
+    }
+  
+    var GameEngine =
+    {
+      canvas : null,
+      ctx : null,
+      canvas_width : 0,
+      canvas_height : 0,
+      mouse_x : 0,
+      mouse_y : 0,
+      mouse_click_pending : false,
+      key_down_codes : [],
+      key_down_pending : false,
+      key_up_codes : [],
+      key_up_pending : false,
+      current_scene : null,
+      game_font : "Arial",
+      
+      init : function()
+      {
+        GameEngine.document = $(document)[0];
+        GameEngine.canvas = $("#canvas")[0];
+        GameEngine.ctx = GameEngine.canvas.getContext("2d");
+        GameEngine.canvas_width = $("#canvas").width();
+        GameEngine.canvas_height = $("#canvas").height();
+        GameEngine.mouse_x = 0;
+        GameEngine.mouse_y = 0;
+        GameEngine.mouse_click_pending = false;
+      
+        GameEngine.canvas.addEventListener("mousedown", function(event) {
+          GameEngine.mouse_x = event.offsetX;
+          GameEngine.mouse_y = event.offsetY;
+          GameEngine.mouse_click_pending = true;
+        }, false);
+        
+        GameEngine.document.addEventListener("keydown", function(event) {
+          if (event.keyCode == 8)
+          {
+            //eat backspace
+            event.preventDefault();
+          }
+          GameEngine.key_down_codes.push(event.keyCode);
+          GameEngine.key_down_pending = true;
+        }, false);
+        
+        GameEngine.document.addEventListener("keyup", function(event) {
+          if (event.keyCode == 8)
+          {
+            //eat backspace
+            event.preventDefault();
+          }
+          GameEngine.key_up_codes.push(event.keyCode);
+          GameEngine.key_up_pending = true;
+        }, false);
+        
+        MazeScene.init();
+        
+        GameEngine.current_scene = MazeScene;
+        
+        setTimeout(GameEngine.gameLoop, 0);
+      },
+      
+      gameLoop: function()
+      {
+        var start_time = Date.now();
+        
+        if (GameEngine.mouse_click_pending)
+        {
+          GameEngine.mouse_click_pending = false;
+          GameEngine.current_scene.handleMouseClick(GameEngine.mouse_x, GameEngine.mouse_y);
+        }
+        
+        if (GameEngine.key_down_pending)
+        {
+          GameEngine.key_down_pending = false;
+          GameEngine.current_scene.handleKeyDown(GameEngine.key_down_codes);
+          GameEngine.key_down_codes = [];
+        }
+        
+        if (GameEngine.key_up_pending)
+        {
+          GameEngine.key_up_pending = false;
+          GameEngine.current_scene.handleKeyUp(GameEngine.key_up_codes);
+          GameEngine.key_up_codes = [];
+        }
+        
+        GameEngine.current_scene.handleTimeStep();
+        GameEngine.current_scene.paint();
+        
+        var end_time = Date.now();
+        var comp_time = end_time - start_time;
+        if (comp_time > 40 || comp_time < 0)
+        {
+          setTimeout(GameEngine.gameLoop, 0);
+        }
+        else
+        {
+          setTimeout(GameEngine.gameLoop, 40 - comp_time)
+        }
+      }
+    };
+    
+    //init the GameEngine when ready
+    $(document).ready(GameEngine.init);    
+    
+  </script>
+</body>
+
+</html>
