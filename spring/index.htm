@@ -136,6 +136,18 @@
               LevelEditScene.word.letters[LevelEditScene.word.letters.length-1].char = "_";
             }
           }
+          
+          if (key_codes[i] == 9 || key_codes[i] == 13 || key_codes[i] == 40)
+          {
+            var new_word = (LevelEditScene.word_index + 1) % LevelEditScene.word_list.length;
+            LevelEditScene.switchToWord(new_word);
+          }
+          
+          if (key_codes[i] == 38)
+          {
+            var new_word = (LevelEditScene.word_index + LevelEditScene.word_list.length - 1) % LevelEditScene.word_list.length;
+            LevelEditScene.switchToWord(new_word);
+          }
         }
       },
       
@@ -476,7 +488,7 @@
         }, false);
         
         GameEngine.document.addEventListener("keydown", function(event) {
-          if (event.keyCode == 8)
+          if (event.keyCode == 8 || event.keyCode == 9 || event.keyCode == 13)
           {
             //eat backspace
             event.preventDefault();
