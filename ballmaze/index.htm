@@ -149,8 +149,7 @@
             var loss = 1;
             if (Math.abs(MazeScene.movables[i].dy) > .3)
             {
-              alert("energy!");
-              loss = 1.2;
+              loss = .8;
             }
             MazeScene.movables[i].dy = -1 * MazeScene.movables[i].dy * loss;
           }
