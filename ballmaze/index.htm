@@ -198,11 +198,13 @@
             var reflection_time;
             if (corrected_y == MazeScene.movables[i].y)
             {
-              reflection_time=(MazeScene.movables[i].x-corrected_x) / (old_dx + MazeScene.gravity_x / 2);
+              reflection_time=Math.min((MazeScene.movables[i].dx + Math.sqrt( MazeScene.movables[i].dx * MazeScene.movables[i].dx -2 * MazeScene.gravity_x * (MazeScene.movables[i].x-corrected_x)) )/ MazeScene.gravity_x ,
+                (MazeScene.movables[i].dx - Math.sqrt( MazeScene.movables[i].dx * MazeScene.movables[i].dx -2 * MazeScene.gravity_x * (MazeScene.movables[i].x-corrected_x)) )/ MazeScene.gravity_x);
             }
             else
             {
-              reflection_time=(MazeScene.movables[i].y-corrected_y) / (old_dy + MazeScene.gravity_y / 2);
+              reflection_time=Math.min((MazeScene.movables[i].dy + Math.sqrt( MazeScene.movables[i].dy * MazeScene.movables[i].dy -2 * MazeScene.gravity_y * (MazeScene.movables[i].y-corrected_y)) )/ MazeScene.gravity_y ,
+                (MazeScene.movables[i].dy - Math.sqrt( MazeScene.movables[i].dy * MazeScene.movables[i].dy -2 * MazeScene.gravity_y * (MazeScene.movables[i].y-corrected_y)) )/ MazeScene.gravity_y);
             }
             
             var collision_dx = MazeScene.movables[i].dx - reflection_time * MazeScene.gravity_x;
@@ -220,9 +222,9 @@
             
             var reflected_dx = (-2 * perpendicular * surface_norm_x + collision_dx) * loss;
             var reflected_dy = (-2 * perpendicular * surface_norm_y + collision_dy) * loss;
-            MazeScene.movables[i].y = corrected_y + (reflected_dy + MazeScene.gravity_y / 2) * reflection_time;
+            MazeScene.movables[i].y = corrected_y + (reflected_dy + MazeScene.gravity_y * reflection_time / 2) * reflection_time;
             MazeScene.movables[i].dy = reflected_dy + MazeScene.gravity_y * reflection_time;
-            MazeScene.movables[i].x = corrected_x + (reflected_dx + MazeScene.gravity_x / 2) * reflection_time;
+            MazeScene.movables[i].x = corrected_x + (reflected_dx + MazeScene.gravity_x * reflection_time / 2) * reflection_time;
             MazeScene.movables[i].dx = reflected_dx + MazeScene.gravity_x * reflection_time;
             
           }
