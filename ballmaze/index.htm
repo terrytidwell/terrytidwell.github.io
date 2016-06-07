@@ -198,12 +198,12 @@
             var reflection_time;
             if (corrected_y == MazeScene.movables[i].y)
             {
-              reflection_time=Math.min((MazeScene.movables[i].dx + Math.sqrt( MazeScene.movables[i].dx * MazeScene.movables[i].dx -2 * MazeScene.gravity_x * (MazeScene.movables[i].x-corrected_x)) )/ MazeScene.gravity_x ,
+              reflection_time=Math.min((MazeScene.movables[i].dx + Math.sqrt( MazeScene.movables[i].dx * MazeScene.movables[i].dx - 2 * MazeScene.gravity_x * (MazeScene.movables[i].x-corrected_x)) )/ MazeScene.gravity_x ,
                 (MazeScene.movables[i].dx - Math.sqrt( MazeScene.movables[i].dx * MazeScene.movables[i].dx -2 * MazeScene.gravity_x * (MazeScene.movables[i].x-corrected_x)) )/ MazeScene.gravity_x);
             }
             else
             {
-              reflection_time=Math.min((MazeScene.movables[i].dy + Math.sqrt( MazeScene.movables[i].dy * MazeScene.movables[i].dy -2 * MazeScene.gravity_y * (MazeScene.movables[i].y-corrected_y)) )/ MazeScene.gravity_y ,
+              reflection_time=Math.min((MazeScene.movables[i].dy + Math.sqrt( MazeScene.movables[i].dy * MazeScene.movables[i].dy - 2 * MazeScene.gravity_y * (MazeScene.movables[i].y-corrected_y)) )/ MazeScene.gravity_y ,
                 (MazeScene.movables[i].dy - Math.sqrt( MazeScene.movables[i].dy * MazeScene.movables[i].dy -2 * MazeScene.gravity_y * (MazeScene.movables[i].y-corrected_y)) )/ MazeScene.gravity_y);
             }
             
