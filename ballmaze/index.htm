@@ -218,8 +218,8 @@
               loss = 1;
             }
             
-            var reflected_dx = (-2 * perpendicular * surface_norm_x + collision_dx)loss;
-            var reflected_dy = (-2 * perpendicular * surface_norm_y + collision_dy)loss;
+            var reflected_dx = (-2 * perpendicular * surface_norm_x + collision_dx) * loss;
+            var reflected_dy = (-2 * perpendicular * surface_norm_y + collision_dy) * loss;
             MazeScene.movables[i].y = corrected_y + (reflected_dy + MazeScene.gravity_y / 2) * reflection_time;
             MazeScene.movables[i].dy = reflected_dy + MazeScene.gravity_y * reflection_time;
             MazeScene.movables[i].x = corrected_x + (reflected_dx + MazeScene.gravity_x / 2) * reflection_time;
