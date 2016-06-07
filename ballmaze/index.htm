@@ -212,7 +212,7 @@
             var perpendicular = (collision_dx * surface_norm_x + collision_dy * surface_norm_y);
             MazeScene.collision_speed = "" + perpendicular;
             
-            var loss = .8
+            var loss = .8;
             if(Math.abs(perpendicular) <.3)
             {
               loss = 1;
