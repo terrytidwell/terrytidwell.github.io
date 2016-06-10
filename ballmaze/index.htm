@@ -11,7 +11,7 @@
   <canvas id="canvas" width="640" height="640" style = "-webkit-tap-highlight-color:rgba(0,0,0,0);"></canvas>
 
   <!-- Jquery -->
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+  <!--script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"--><!--/script-->
   <script>
   
     /*
@@ -315,11 +315,11 @@
       
       init : function()
       {
-        GameEngine.document = $(document)[0];
-        GameEngine.canvas = $("#canvas")[0];
+        //GameEngine.document = $(document)[0];
+        GameEngine.canvas = document.getElementById("canvas"); //$("#canvas")[0];
         GameEngine.ctx = GameEngine.canvas.getContext("2d");
-        GameEngine.canvas_width = $("#canvas").width();
-        GameEngine.canvas_height = $("#canvas").height();
+        GameEngine.canvas_width = GameEngine.canvas.width;
+        GameEngine.canvas_height = GameEngine.canvas.height;
         GameEngine.mouse_x = 0;
         GameEngine.mouse_y = 0;
         GameEngine.mouse_click_pending = false;
@@ -330,7 +330,7 @@
           GameEngine.mouse_click_pending = true;
         }, false);
         
-        GameEngine.document.addEventListener("keydown", function(event) {
+        document.addEventListener("keydown", function(event) {
           if (event.keyCode == 8)
           {
             //eat backspace
@@ -340,7 +340,7 @@
           GameEngine.key_down_pending = true;
         }, false);
         
-        GameEngine.document.addEventListener("keyup", function(event) {
+        document.addEventListener("keyup", function(event) {
           if (event.keyCode == 8)
           {
             //eat backspace
@@ -398,7 +398,11 @@
     };
     
     //init the GameEngine when ready
-    $(document).ready(GameEngine.init);    
+    window.addEventListener("load", function(event)
+      {
+        GameEngine.init();
+      }
+    );
     
   </script>
 </body>
