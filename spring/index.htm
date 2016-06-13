@@ -272,7 +272,7 @@
           Math.floor(.85 * GameEngine.canvas_height) - GameEngine.canvas_width/12;
         LevelSelectScene.level_select_offset = Math.floor(.15 * GameEngine.canvas_height);
         var num_levels = puzzles.length;
-        var num_cols = 4;
+        var num_cols = 5;
         var num_rows = Math.ceil(num_levels/num_cols);
         var row_size = Math.floor(LevelSelectScene.level_select_height / num_rows);
         var col_size = Math.floor(GameEngine.canvas_width / num_cols);
@@ -297,7 +297,7 @@
           LevelSelectScene.levels[SavedState.completed_levels[i]].blank = false;
         }
         LevelSelectScene.custom_button =
-          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"CUSTOM");
+          makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"CREATE");
       },
       
       reset : function()
