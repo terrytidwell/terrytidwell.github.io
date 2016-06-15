@@ -264,7 +264,9 @@
       level_select_height : 0,
       level_select_offset : 0,
       current_level : null,
+      create_button : null,
       custom_button : null,
+      custom_string : null,
       
       init : function()
       {
@@ -296,8 +298,10 @@
         {
           LevelSelectScene.levels[SavedState.completed_levels[i]].blank = false;
         }
-        LevelSelectScene.custom_button =
+        LevelSelectScene.create_button =
           makeTextButton(GameEngine.canvas_width,GameEngine.canvas_height,"right","bottom",GameEngine.canvas_width/12*.8,greyColor(),"CREATE");
+        LevelSelectScene.custom_button =
+          makeTextButton(0,GameEngine.canvas_height,"left","bottom",GameEngine.canvas_width/12*.8,greyColor(),"CUSTOM");
       },
       
       reset : function()
@@ -317,11 +321,19 @@
             return;
           }
         }
-        if (clickTextButton(mouse_x, mouse_y, LevelSelectScene.custom_button))
+        if (clickTextButton(mouse_x, mouse_y, LevelSelectScene.create_button))
         {
           LevelEditScene.reset();
           GameEngine.current_scene = LevelEditScene;
           return;
+        }
+        if (LevelSelectScene.custom_string && clickTextButton(mouse_x, mouse_y, LevelSelectScene.custom_button))
+        {
+            LevelSelectScene.current_level = null;
+            LevelScene.reset();
+            LevelScene.setWords(LevelSelectScene.custom_string);
+            GameEngine.current_scene = LevelScene;
+            return;
         }
       },
       
@@ -346,7 +358,11 @@
         {
           drawBubbleLetter(LevelSelectScene.levels[i]);
         }
-        drawTextButton(LevelSelectScene.custom_button);
+        drawTextButton(LevelSelectScene.create_button);
+        if (LevelSelectScene.custom_string)
+        {
+          drawTextButton(LevelSelectScene.custom_button);
+        }
       },
       
       completeCurrentLevel : function()
@@ -514,10 +530,10 @@
         
         GameEngine.current_scene = LevelSelectScene;
         
-        var str = getUrlParameters("custom");
-        if (str)
+        LevelSelectScene.custom_string = getUrlParameters("custom");
+        if (LevelSelectScene.custom_string)
         {
-          LevelScene.setWords(str);
+          LevelScene.setWords(LevelSelectScene.custom_string);
           GameEngine.current_scene = LevelScene;
         }
         
