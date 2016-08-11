@@ -48,6 +48,7 @@
                 PuzzleScene.cells = [];
                 PuzzleScene.noteMode = false;
                 PuzzleScene.noteFont = Math.round(PuzzleScene.cellSize/3 * INVERSE_PHI) + "px " + GameEngine.game_font;
+                /* 
                 var puzzle_input = 
                     "   " + " 3 " + "  7" +
                     "28 " + "   " + "   " +
@@ -60,6 +61,19 @@
                     " 3 " + " 6 " + "48 " +
                     "   " + "   " + " 51" +
                     "1  " + " 7 " + "   " ;
+                */
+                var puzzle_input = 
+                    " 13" + "59 " + "   " +
+                    " 9 " + " 7 " + " 32" +
+                    "   " + "  1" + "  9" +
+                    
+                    "  9" + "   " + "  4" +
+                    "12 " + "   " + " 86" +
+                    "7  " + "   " + "5  " +
+                    
+                    "6  " + "9  " + "   " +
+                    "97 " + " 2 " + " 6 " +
+                    "   " + " 84" + "97 " ;
                 for (var i = 0; i < 81; i++) {
                     PuzzleScene.cells.push({
                         set: false,
