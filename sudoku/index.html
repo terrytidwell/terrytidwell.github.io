@@ -28,28 +28,7 @@
         var PuzzleScene = {
             init: function() {
                 PuzzleScene.puzzle = 0;
-                PuzzleScene.reset();
-            },
-            reset: function() {
-                PuzzleScene.repaint = true;
-                PuzzleScene.tick = 0;
-                PuzzleScene.number = 1;
-                PuzzleScene.puzzleControls = Math.round(.05 * GameEngine.canvas_height);
-                PuzzleScene.controlFont = Math.round(PuzzleScene.puzzleControls * INVERSE_PHI) + "px " + GameEngine.game_font;
-                PuzzleScene.puzzleSectionHeight = Math.round(.95 * GameEngine.canvas_height);
-                PuzzleScene.puzzleSize = Math.round(.95 * Math.min(PuzzleScene.puzzleSectionHeight, GameEngine.canvas_width));
-                PuzzleScene.puzzleX = Math.round(GameEngine.canvas_width / 2 - PuzzleScene.puzzleSize / 2);
-                PuzzleScene.puzzleY = Math.round(PuzzleScene.puzzleSectionHeight / 2 - PuzzleScene.puzzleSize / 2);
-                PuzzleScene.cellSize = Math.round(PuzzleScene.puzzleSize / 9);
-                PuzzleScene.puzzleSize = 9 * PuzzleScene.cellSize;
-                PuzzleScene.textFont = Math.round(PuzzleScene.cellSize * INVERSE_PHI) + "px " + GameEngine.game_font;
-                PuzzleScene.thickLine = Math.round(PuzzleScene.cellSize / 16);
-                PuzzleScene.thinLine = Math.round(PuzzleScene.thickLine / 3);
-                PuzzleScene.highlighted = null;
-                PuzzleScene.cells = [];
-                PuzzleScene.noteMode = false;
-                PuzzleScene.noteFont = Math.round(PuzzleScene.cellSize/3 * INVERSE_PHI) + "px " + GameEngine.game_font;
-                var puzzle_input = [
+                PuzzleScene.puzzle_input = [
                     "   " + " 3 " + "  7" +
                     "28 " + "   " + "   " +
                     " 53" + " 1 " + " 2 " +
@@ -73,6 +52,34 @@
                     "6  " + "9  " + "   " +
                     "97 " + " 2 " + " 6 " +
                     "   " + " 84" + "97 " ];
+                PuzzleScene.reset();
+            },
+            reset: function() {
+                PuzzleScene.repaint = true;
+                PuzzleScene.tick = 0;
+                PuzzleScene.number = 1;
+                PuzzleScene.noteMode = false;
+                PuzzleScene.puzzleControls = Math.round(.05 * GameEngine.canvas_height);
+                PuzzleScene.controlFont = Math.round(PuzzleScene.puzzleControls * INVERSE_PHI) + "px " + GameEngine.game_font;
+                PuzzleScene.backText = "<<";
+                PuzzleScene.backTextSize = 0;
+                PuzzleScene.forwardText = ">>";
+                PuzzleScene.forwardTextSize = 0;
+                PuzzleScene.noteText = "Note Taking: "+ (PuzzleScene.noteMode?"On":"Off");
+                PuzzleScene.noteTextSize = 0;
+                PuzzleScene.puzzleSectionHeight = Math.round(.95 * GameEngine.canvas_height);
+                PuzzleScene.puzzleSize = Math.round(.95 * Math.min(PuzzleScene.puzzleSectionHeight, GameEngine.canvas_width));
+                PuzzleScene.puzzleX = Math.round(GameEngine.canvas_width / 2 - PuzzleScene.puzzleSize / 2);
+                PuzzleScene.puzzleY = Math.round(PuzzleScene.puzzleSectionHeight / 2 - PuzzleScene.puzzleSize / 2);
+                PuzzleScene.cellSize = Math.round(PuzzleScene.puzzleSize / 9);
+                PuzzleScene.puzzleSize = 9 * PuzzleScene.cellSize;
+                PuzzleScene.textFont = Math.round(PuzzleScene.cellSize * INVERSE_PHI) + "px " + GameEngine.game_font;
+                PuzzleScene.thickLine = Math.round(PuzzleScene.cellSize / 16);
+                PuzzleScene.thinLine = Math.round(PuzzleScene.thickLine / 3);
+                PuzzleScene.highlighted = null;
+                PuzzleScene.cells = [];
+                
+                PuzzleScene.noteFont = Math.round(PuzzleScene.cellSize/3 * INVERSE_PHI) + "px " + GameEngine.game_font;
                 for (var i = 0; i < 81; i++) {
                     PuzzleScene.cells.push({
                         set: false,
@@ -80,8 +87,8 @@
                         conflict: false,
                         notes: [false, false, false, false, false, false, false, false, false]
                     });
-                    if (puzzle_input[PuzzleScene.puzzle][i] != " ") {
-                        PuzzleScene.cells[i].value = Number(puzzle_input[PuzzleScene.puzzle][i]);
+                    if (PuzzleScene.puzzle_input[PuzzleScene.puzzle][i] != " ") {
+                        PuzzleScene.cells[i].value = Number(PuzzleScene.puzzle_input[PuzzleScene.puzzle][i]);
                         PuzzleScene.cells[i].set = true;
                     }
                 }
@@ -111,8 +118,33 @@
                     PuzzleScene.repaint = true;
                     if(mouse_y >= PuzzleScene.puzzleY + PuzzleScene.puzzleSize)
                     {
-                      PuzzleScene.noteMode = !PuzzleScene.noteMode;
-                        PuzzleScene.repaint = true;
+                      if(mouse_x >= PuzzleScene.puzzleX &&
+                        mouse_x <= PuzzleScene.puzzleX + PuzzleScene.backTextSize)
+                      {
+                        PuzzleScene.puzzle--;
+                        if(PuzzleScene.puzzle < 0)
+                        {
+                          PuzzleScene.puzzle = PuzzleScene.puzzle_input.length - 1;
+                        }
+                        PuzzleScene.reset();
+                        return;
+                      } else if (mouse_x >= GameEngine.canvas_width/2 - PuzzleScene.noteTextSize/2 &&
+                        mouse_x <= GameEngine.canvas_width/2 + PuzzleScene.noteTextSize/2)
+                      {
+                        PuzzleScene.noteMode = !PuzzleScene.noteMode;
+                          PuzzleScene.repaint = true;
+                      } else if (mouse_x >= PuzzleScene.puzzleX + PuzzleScene.puzzleSize - PuzzleScene.forwardTextSize &&
+                        mouse_x <= PuzzleScene.puzzleX + PuzzleScene.puzzleSize)
+                      {
+                        PuzzleScene.puzzle++;
+                        if(PuzzleScene.puzzle >= PuzzleScene.puzzle_input.length)
+                        {
+                          PuzzleScene.puzzle = 0;
+                        }
+                        PuzzleScene.reset();
+                        return;
+                      }
+                      
                     }
                 }
             },
@@ -291,8 +323,20 @@
                 }
                 context.fillStyle = "Black";
                 context.font = PuzzleScene.controlFont;
-                context.fillText("Note Taking: "+(PuzzleScene.noteMode?"On":"Off"), 
+                PuzzleScene.noteText = "Note Taking: "+(PuzzleScene.noteMode?"On":"Off");
+                PuzzleScene.noteTextSize = context.measureText(PuzzleScene.noteText).width;
+                context.fillText(PuzzleScene.noteText, 
                   GameEngine.canvas_width/2,
+                  GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
+                context.textAlign = "left";
+                PuzzleScene.backTextSize = context.measureText(PuzzleScene.backText).width;
+                context.fillText(PuzzleScene.backText, 
+                  PuzzleScene.puzzleX,
+                  GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
+                context.textAlign = "right";
+                PuzzleScene.forwardTextSize = context.measureText(PuzzleScene.forwardText).width;
+                context.fillText(PuzzleScene.forwardText, 
+                  PuzzleScene.puzzleX + PuzzleScene.puzzleSize,
                   GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
                 PuzzleScene.repaint = false;
             },
