@@ -27,6 +27,7 @@
 
         var PuzzleScene = {
             init: function() {
+                PuzzleScene.puzzle = 0;
                 PuzzleScene.reset();
             },
             reset: function() {
@@ -48,8 +49,7 @@
                 PuzzleScene.cells = [];
                 PuzzleScene.noteMode = false;
                 PuzzleScene.noteFont = Math.round(PuzzleScene.cellSize/3 * INVERSE_PHI) + "px " + GameEngine.game_font;
-                /* 
-                var puzzle_input = 
+                var puzzle_input = [
                     "   " + " 3 " + "  7" +
                     "28 " + "   " + "   " +
                     " 53" + " 1 " + " 2 " +
@@ -60,9 +60,8 @@
                     
                     " 3 " + " 6 " + "48 " +
                     "   " + "   " + " 51" +
-                    "1  " + " 7 " + "   " ;
-                */
-                var puzzle_input = 
+                    "1  " + " 7 " + "   " ,
+                    
                     " 13" + "59 " + "   " +
                     " 9 " + " 7 " + " 32" +
                     "   " + "  1" + "  9" +
@@ -73,7 +72,7 @@
                     
                     "6  " + "9  " + "   " +
                     "97 " + " 2 " + " 6 " +
-                    "   " + " 84" + "97 " ;
+                    "   " + " 84" + "97 " ];
                 for (var i = 0; i < 81; i++) {
                     PuzzleScene.cells.push({
                         set: false,
@@ -81,8 +80,8 @@
                         conflict: false,
                         notes: [false, false, false, false, false, false, false, false, false]
                     });
-                    if (puzzle_input[i] != " ") {
-                        PuzzleScene.cells[i].value = Number(puzzle_input[i]);
+                    if (puzzle_input[PuzzleScene.puzzle][i] != " ") {
+                        PuzzleScene.cells[i].value = Number(puzzle_input[PuzzleScene.puzzle][i]);
                         PuzzleScene.cells[i].set = true;
                     }
                 }
