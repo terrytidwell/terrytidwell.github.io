@@ -117,25 +117,30 @@
                     }
                 }
             },
+            handleNumberPress : function(number) {
+                if (PuzzleScene.highlighted != null &&
+                    !PuzzleScene.cells[PuzzleScene.highlighted].set) {
+                    if(!PuzzleScene.noteMode)
+                    {
+                      PuzzleScene.cells[PuzzleScene.highlighted].value = number;
+                    }
+                    else
+                    {
+                      PuzzleScene.cells[PuzzleScene.highlighted].notes[number - 1] = 
+                        !PuzzleScene.cells[PuzzleScene.highlighted].notes[number - 1];
+                    }
+                    PuzzleScene.repaint = true;
+                    PuzzleScene.checkConflict();
+                }
+            },
 
             handleKeyStroke: function(key_codes) {
                 for (var i = 0; i < key_codes.length; i++) {
                     var key_code = key_codes[i];
                     if (key_code >= 49 && key_code <= 57) {
-                        if (PuzzleScene.highlighted != null &&
-                            !PuzzleScene.cells[PuzzleScene.highlighted].set) {
-                            if(!PuzzleScene.noteMode)
-                            {
-                              PuzzleScene.cells[PuzzleScene.highlighted].value = key_code - 48;
-                            }
-                            else
-                            {
-                              PuzzleScene.cells[PuzzleScene.highlighted].notes[key_code - 49] = 
-                                !PuzzleScene.cells[PuzzleScene.highlighted].notes[key_code - 49];
-                            }
-                            PuzzleScene.repaint = true;
-                            PuzzleScene.checkConflict();
-                        }
+                        PuzzleScene.handleNumberPress(key_code - 48);
+                    } else if (key_code >= 97 && key_code <= 105) {
+                        PuzzleScene.handleNumberPress(key_code - 96);
                     } else if (key_code == 46 || key_code == 8) {
                         if (PuzzleScene.highlighted != null &&
                             !PuzzleScene.cells[PuzzleScene.highlighted].set) {
@@ -147,7 +152,7 @@
                             PuzzleScene.repaint = true;
                             PuzzleScene.checkConflict();
                         }
-                    } else if (key_code == 27) {
+                    } else if (key_code == 16) {
                         PuzzleScene.noteMode = !PuzzleScene.noteMode;
                         PuzzleScene.repaint = true;
                     } else {
