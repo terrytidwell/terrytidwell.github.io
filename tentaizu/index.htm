@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=320, initial-scale=1" />
+</head>
+
+<body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
+    <canvas  oncontextmenu="return false;" id="canvas" width="480" height="480" style="-webkit-tap-highlight-color:rgba(0,0,0,0);"></canvas>
+    <script>
+        /*
+                 var Scene =
+                 {
+                   init : function() {},
+                   reset : function() {},
+                   handleMouseClick : function(mouse_x, mouse_y) {},
+                   handleKeyStroke : function(key_codes) {},
+                   handleTimeStep : function() {},
+                   paint : function() {}
+                 }
+                 */
+
+        var PHI = 21 / 13;
+        var INVERSE_PHI = 13 / 21;
+
+        var PuzzleScene = {
+            init: function() {
+                PuzzleScene.puzzle = 0;
+                PuzzleScene.puzzle_input = [
+                /*
+                Invariants: 1
+                Tilings   : 1
+                Guesses   : 0
+                */
+                //   0123456
+                    "  3    " +
+                    " 1  4 2" +
+                    "   2 3 " +
+                    "   3   " +
+                    "1  2  1" +
+                    "    1  " +
+                    "  1   1" ,                
+                /*
+                Invariants: 1
+                Tilings   : 1
+                Guesses   : 0
+                */
+                //   0123456
+                    "     2 " +
+                    "     3 " +
+                    "     21" +
+                    " 221  3" +
+                    "  1    " +
+                    " 12 2  " +
+                    "      1" ,
+                /*
+                Invariants: 2
+                Tilings   : 1
+                Guesses   : 0
+                */
+                //   0123456
+                    "    4  " +
+                    " 3   3 " +
+                    " 335   " +
+                    "  1    " +
+                    "    1  " +
+                    "      1" +
+                    "     1 " ,
+                /*
+                Invariants: 1
+                Tilings   : 1
+                Guesses   : 0
+                */
+                    "    2  " +
+                    "  31   " +
+                    "2   1  " +
+                    "  3   1" +
+                    "   221 " +
+                    "   2  2" +
+                    "   1 2 " ];
+                PuzzleScene.reset();
+            },
+            reset: function() {
+                PuzzleScene.STAR = 9;
+                PuzzleScene.NOT_STAR = 10;
+                PuzzleScene.EMPTY = 11;
+                PuzzleScene.starsSet = 0;
+                PuzzleScene.repaint = true;
+                PuzzleScene.tick = 0;
+                PuzzleScene.number = 1;
+                PuzzleScene.puzzleControls = Math.round(.05 * GameEngine.canvas_height);
+                PuzzleScene.controlFont = Math.round(PuzzleScene.puzzleControls * INVERSE_PHI) + "px " + GameEngine.game_font;
+                PuzzleScene.backText = "<<";
+                PuzzleScene.backTextSize = 0;
+                PuzzleScene.forwardText = ">>";
+                PuzzleScene.forwardTextSize = 0;
+                PuzzleScene.puzzleSectionHeight = Math.round(.90 * GameEngine.canvas_height);
+                PuzzleScene.puzzleSize = Math.round(.95 * Math.min(PuzzleScene.puzzleSectionHeight, GameEngine.canvas_width));
+                PuzzleScene.puzzleX = Math.round(GameEngine.canvas_width / 2 - PuzzleScene.puzzleSize / 2);
+                PuzzleScene.puzzleY = Math.round(PuzzleScene.puzzleSectionHeight / 2 - PuzzleScene.puzzleSize / 2 + PuzzleScene.puzzleControls);
+                PuzzleScene.cellSize = Math.round(PuzzleScene.puzzleSize / 7);
+                PuzzleScene.puzzleSize = 7 * PuzzleScene.cellSize;
+                PuzzleScene.textFont = Math.round(PuzzleScene.cellSize * INVERSE_PHI) + "px " + GameEngine.game_font;
+                PuzzleScene.thickLine = Math.round(PuzzleScene.cellSize / 16);
+                PuzzleScene.thinLine = Math.round(PuzzleScene.thickLine / 3);
+                PuzzleScene.highlighted = null;
+                PuzzleScene.cells = [];
+                
+                for (var i = 0; i < 49; i++) {
+                    PuzzleScene.cells.push({
+                        value: PuzzleScene.EMPTY,
+                        starsAdjacent: 0
+                    });
+                    if (PuzzleScene.puzzle_input[PuzzleScene.puzzle][i] != " ") {
+                        PuzzleScene.cells[i].value = Number(PuzzleScene.puzzle_input[PuzzleScene.puzzle][i]);
+                    }
+                }
+            },
+            
+            changeValue : function(x, y, increment) {
+                if(x < 7 && x >= 0 && y < 7 && y >= 0)
+                {
+                    PuzzleScene.cells[x + y * 7].starsAdjacent += increment;
+                }
+            },
+            
+            changeValues : function(x, y, increment) {
+                PuzzleScene.changeValue(x-1, y-1, increment);
+                PuzzleScene.changeValue(x, y-1, increment);
+                PuzzleScene.changeValue(x+1, y-1, increment);
+                PuzzleScene.changeValue(x-1, y, increment);
+                PuzzleScene.changeValue(x+1, y, increment);
+                PuzzleScene.changeValue(x-1, y+1, increment);
+                PuzzleScene.changeValue(x, y+1, increment);
+                PuzzleScene.changeValue(x+1, y+1, increment);
+            },
+            
+            handleMouseDown: function (event) {
+                var mouse_x = event.offsetX;
+                var mouse_y = event.offsetY;
+                if (mouse_x >= PuzzleScene.puzzleX &&
+                    mouse_y >= PuzzleScene.puzzleY &&
+                    mouse_x <= PuzzleScene.puzzleX + PuzzleScene.puzzleSize &&
+                    mouse_y <= PuzzleScene.puzzleY + PuzzleScene.puzzleSize) {
+                    var h_x = Math.floor((mouse_x - PuzzleScene.puzzleX) / PuzzleScene.cellSize);
+                    var h_y = Math.floor((mouse_y - PuzzleScene.puzzleY) / PuzzleScene.cellSize);
+                    var chosen = h_x + h_y * 7;
+                    if (chosen < 49 && chosen >= 0)
+                    {
+                      var rightclick = false;
+                      if (event.which) {rightclick = (event.which == 3);}
+                      if (event.button) {rightclick = (event.button == 2);}
+                      if (rightclick)
+                      {
+                        if(PuzzleScene.cells[chosen].value == PuzzleScene.EMPTY)
+                        {
+                          PuzzleScene.cells[chosen].value = PuzzleScene.NOT_STAR;
+                        } else if(PuzzleScene.cells[chosen].value == PuzzleScene.NOT_STAR)
+                        {
+                          PuzzleScene.cells[chosen].value = PuzzleScene.EMPTY;
+                        }
+                        PuzzleScene.repaint = true;
+                        return false;
+                      }
+                      if(PuzzleScene.cells[chosen].value == PuzzleScene.EMPTY ||
+                        PuzzleScene.cells[chosen].value == PuzzleScene.NOT_STAR
+                      )
+                      {
+                        PuzzleScene.cells[chosen].value = PuzzleScene.STAR;
+                        PuzzleScene.starsSet++;
+                        PuzzleScene.changeValues(h_x, h_y, 1);
+                      } else if(PuzzleScene.cells[chosen].value == PuzzleScene.STAR)
+                      {
+                        PuzzleScene.cells[chosen].value = PuzzleScene.EMPTY;
+                        PuzzleScene.starsSet--;
+                        PuzzleScene.changeValues(h_x, h_y, -1);
+                      }
+                      PuzzleScene.checkConflict();
+                      event.preventDefault();
+                      PuzzleScene.repaint = true;
+                    }
+                } else {
+                    PuzzleScene.repaint = true;
+                    if(mouse_y >= PuzzleScene.puzzleY + PuzzleScene.puzzleSize)
+                    {
+                      if(mouse_x >= PuzzleScene.puzzleX &&
+                        mouse_x <= PuzzleScene.puzzleX + PuzzleScene.backTextSize)
+                      {
+                        PuzzleScene.puzzle--;
+                        if(PuzzleScene.puzzle < 0)
+                        {
+                          PuzzleScene.puzzle = PuzzleScene.puzzle_input.length - 1;
+                        }
+                        PuzzleScene.reset();
+                        return false;
+                      } else if (mouse_x >= PuzzleScene.puzzleX + PuzzleScene.puzzleSize - PuzzleScene.forwardTextSize &&
+                        mouse_x <= PuzzleScene.puzzleX + PuzzleScene.puzzleSize)
+                      {
+                        PuzzleScene.puzzle++;
+                        if(PuzzleScene.puzzle >= PuzzleScene.puzzle_input.length)
+                        {
+                          PuzzleScene.puzzle = 0;
+                        }
+                        PuzzleScene.reset();
+                        return false;
+                      }
+                      
+                    }
+                }
+                return false;
+            },
+            
+            handleKeyStroke: function(key_codes) {
+                for (var i = 0; i < key_codes.length; i++) {
+                    var key_code = key_codes[i];
+                    //alert(key_code);
+                }
+            },
+
+            handleTimeStep: function() {},
+            checkConflict: function() {
+            
+            },
+            paint: function(context) {
+                if (!PuzzleScene.repaint) {
+                    return;
+                }
+                context.fillStyle = "white";
+                context.fillRect(0, 0, GameEngine.canvas_width, GameEngine.canvas_height);
+                if (PuzzleScene.highlighted != null) {
+                    var h_x = PuzzleScene.highlighted % 7;
+                    var h_y = Math.floor(PuzzleScene.highlighted / 7);
+                    context.fillStyle = "rgba(0,0,0,.2)";
+                    context.fillRect(PuzzleScene.puzzleX + h_x * PuzzleScene.cellSize,
+                        PuzzleScene.puzzleY + h_y * PuzzleScene.cellSize,
+                        PuzzleScene.cellSize, PuzzleScene.cellSize);
+                }
+                context.fillStyle = "black";
+                context.strokeStyle = "black";
+                for (var i = 0; i < 8; i++) {
+                    context.lineWidth = PuzzleScene.thinLine;
+                    context.lineCap = "round";
+                    if (i % 7 == 0) {
+                        context.lineWidth = PuzzleScene.thickLine;
+                    }
+                    context.beginPath();
+                    context.moveTo(PuzzleScene.puzzleX + i * PuzzleScene.cellSize, PuzzleScene.puzzleY);
+                    context.lineTo(PuzzleScene.puzzleX + i * PuzzleScene.cellSize,
+                        PuzzleScene.puzzleY + PuzzleScene.puzzleSize);
+                    context.stroke();
+                    context.beginPath();
+                    context.moveTo(PuzzleScene.puzzleX, PuzzleScene.puzzleY + i * PuzzleScene.cellSize);
+                    context.lineTo(PuzzleScene.puzzleX + PuzzleScene.puzzleSize,
+                        PuzzleScene.puzzleY + i * PuzzleScene.cellSize);
+                    context.stroke();
+                }
+                for (var i = 0; i < 49; i++) {
+                    if(PuzzleScene.cells[i].value != PuzzleScene.EMPTY)
+                    {
+                        context.fillStyle = "black";
+                        if(PuzzleScene.cells[i].value <= 8)
+                        {
+                            if(PuzzleScene.cells[i].value == PuzzleScene.cells[i].starsAdjacent)
+                            {
+                              context.fillStyle = "blue";
+                            } else if(PuzzleScene.cells[i].value < PuzzleScene.cells[i].starsAdjacent)
+                            {
+                              context.fillStyle = "red";
+                            }
+                        }
+                        var text = PuzzleScene.cells[i].value;
+                        if(PuzzleScene.cells[i].value == PuzzleScene.STAR)
+                        {
+                            var text = "#";
+                        } else if(PuzzleScene.cells[i].value == PuzzleScene.NOT_STAR)
+                        {
+                            var text = "-";
+                        }
+                        var h_x = i % 7 + .5;
+                        var h_y = Math.floor(i / 7) + .5;
+                        context.font = PuzzleScene.textFont;
+                        context.textBaseline = "middle";
+                        context.textAlign = "center";
+                        context.fillText(text,
+                            Math.floor(h_x * PuzzleScene.cellSize + PuzzleScene.puzzleX),
+                            Math.floor(h_y * PuzzleScene.cellSize + PuzzleScene.puzzleY));
+                    }
+                }
+                context.fillStyle = "Black";
+                if (PuzzleScene.starsSet > 10)
+                {
+                  context.fillStyle = "Red";
+                }
+                if (PuzzleScene.starsSet == 10)
+                {
+                  context.fillStyle = "Blue"
+                }
+                context.font = PuzzleScene.controlFont;
+                var text = PuzzleScene.starsSet;
+                if(text < 10)
+                {
+                  text = " " + text;
+                }
+                context.fillText("Placed " + text + " / 10" , 
+                  GameEngine.canvas_width/2,
+                  GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
+                context.textAlign = "left";
+                context.fillStyle = "Black";
+                context.fillText("Puzzle #"+(PuzzleScene.puzzle+1),
+                  PuzzleScene.puzzleX,
+                  PuzzleScene.puzzleControls / 2);
+                PuzzleScene.backTextSize = context.measureText(PuzzleScene.backText).width;
+                context.fillText(PuzzleScene.backText, 
+                  PuzzleScene.puzzleX,
+                  GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
+                context.textAlign = "right";
+                PuzzleScene.forwardTextSize = context.measureText(PuzzleScene.forwardText).width;
+                context.fillText(PuzzleScene.forwardText, 
+                  PuzzleScene.puzzleX + PuzzleScene.puzzleSize,
+                  GameEngine.canvas_height - PuzzleScene.puzzleControls / 2);
+                PuzzleScene.repaint = false;
+            },
+        }
+
+        var GameEngine = {
+            canvas: null,
+            ctx: null,
+            canvas_width: 0,
+            canvas_height: 0,
+            mouse_x: 0,
+            mouse_y: 0,
+            mouse_click_pending: false,
+            key_codes: [],
+            key_press_pending: false,
+            current_scene: null,
+            game_font: "Arial",
+
+            init: function() {
+                GameEngine.canvas = document.getElementById("canvas");
+                GameEngine.ctx = GameEngine.canvas.getContext("2d");
+                GameEngine.canvas_width = GameEngine.canvas.width;
+                GameEngine.canvas_height = GameEngine.canvas.height;
+                
+                PuzzleScene.init();
+
+                GameEngine.current_scene = PuzzleScene;
+
+                GameEngine.canvas.addEventListener("mousedown", function(event) {
+                    return GameEngine.current_scene.handleMouseDown(event);
+                }, false);
+
+                document.addEventListener("keydown", function(event) {
+                    if (event.keyCode == 8 || event.keyCode == 9 || event.keyCode == 13) {
+                        //eat backspace
+                        event.preventDefault();
+                    }
+                    GameEngine.key_codes.push(event.keyCode);
+                    GameEngine.key_press_pending = true;
+                }, false);
+
+                
+
+                setTimeout(GameEngine.gameLoop, 0);
+            },
+
+            gameLoop: function() {
+                var start_time = Date.now();
+
+                if (GameEngine.key_press_pending) {
+                    GameEngine.key_press_pending = false;
+                    GameEngine.current_scene.handleKeyStroke(GameEngine.key_codes);
+                    GameEngine.key_codes = [];
+                }
+
+                GameEngine.current_scene.handleTimeStep();
+                GameEngine.current_scene.paint(GameEngine.ctx);
+
+                var end_time = Date.now();
+                var comp_time = end_time - start_time;
+                if (comp_time > 40 || comp_time < 0) {
+                    setTimeout(GameEngine.gameLoop, 0);
+                } else {
+                    setTimeout(GameEngine.gameLoop, 40 - comp_time)
+                }
+            }
+        };
+
+        //init the GameEngine when ready
+        window.addEventListener("load", function(event) {
+            GameEngine.init();
+        });
+    </script>
+</body>
+
+</html>
