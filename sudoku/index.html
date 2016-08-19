@@ -43,6 +43,18 @@
                     "   " + "   " + "   " ,
                     */
                     
+                    " 3 " + " 4 " + " 5 " +
+                    "2  " + " 5 " + "  9" +
+                    "   " + "3 7" + "   " +
+                     
+                    "  1" + " 7 " + "9  " +
+                    "86 " + "9 2" + " 41" +
+                    "  3" + " 8 " + "5  " +
+                    
+                    "   " + "1 4" + "   " +
+                    "6  " + " 9 " + "  5" +
+                    " 1 " + " 2 " + " 6 " ,
+                    
                     "   " + " 85" + "   " +
                     "5  " + "   " + "8 6" +
                     "21 " + "  4" + " 3 " +
@@ -129,10 +141,10 @@
                 PuzzleScene.forwardTextSize = 0;
                 PuzzleScene.noteText = "Note Taking: "+ (PuzzleScene.noteMode?"On":"Off");
                 PuzzleScene.noteTextSize = 0;
-                PuzzleScene.puzzleSectionHeight = Math.round(.95 * GameEngine.canvas_height);
+                PuzzleScene.puzzleSectionHeight = Math.round(.90 * GameEngine.canvas_height);
                 PuzzleScene.puzzleSize = Math.round(.95 * Math.min(PuzzleScene.puzzleSectionHeight, GameEngine.canvas_width));
                 PuzzleScene.puzzleX = Math.round(GameEngine.canvas_width / 2 - PuzzleScene.puzzleSize / 2);
-                PuzzleScene.puzzleY = Math.round(PuzzleScene.puzzleSectionHeight / 2 - PuzzleScene.puzzleSize / 2);
+                PuzzleScene.puzzleY = Math.round(PuzzleScene.puzzleSectionHeight / 2 - PuzzleScene.puzzleSize / 2 + PuzzleScene.puzzleControls);
                 PuzzleScene.cellSize = Math.round(PuzzleScene.puzzleSize / 9);
                 PuzzleScene.puzzleSize = 9 * PuzzleScene.cellSize;
                 PuzzleScene.textFont = Math.round(PuzzleScene.cellSize * INVERSE_PHI) + "px " + GameEngine.game_font;
@@ -383,8 +395,13 @@
                       }
                     }
                 }
-                context.fillStyle = "Black";
                 context.font = PuzzleScene.controlFont;
+                context.fillStyle = "Black";
+                context.textAlign = "left";
+                context.fillText("Puzzle #"+(PuzzleScene.puzzle+1),
+                  PuzzleScene.puzzleX,
+                  PuzzleScene.puzzleControls / 2);
+                context.textAlign = "center";
                 PuzzleScene.noteText = "Note Taking: "+(PuzzleScene.noteMode?"On":"Off");
                 PuzzleScene.noteTextSize = context.measureText(PuzzleScene.noteText).width;
                 context.fillText(PuzzleScene.noteText, 
