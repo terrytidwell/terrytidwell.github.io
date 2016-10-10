@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+</head>
+<body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
+<canvas id="canvas" width="800" height="600"></canvas>
+<script>
+    //##########################################################################
+    // The game
+
+    var g_canvas;
+    var g_ctx;
+    var g_current_screen;
+
+    //--------------------------------------------------------------------------
+    // interface, for reference, not enforced
+    // The name is funny because Screen is already declared
+    // and this is just for reference anyway
+    const Screen_ = {
+        init: function () {},
+        reset: function () {},
+        handleIoEvent: function (event_type, event) {}, //optional
+        handleTimeStep: function () {}, //optional
+        paint: function () {}
+    };
+
+    //--------------------------------------------------------------------------
+    const Util = {
+
+        //----------------------------------------------------------------------
+        forEach: function (obj, fn)
+        {
+            var key;
+            for (key in obj)
+            {
+                if (obj.hasOwnProperty(key))
+                {
+                    fn(obj[key]);
+                }
+            }
+        },
+
+        //----------------------------------------------------------------------
+        randomItem: function (arr)
+        {
+            return arr[Math.floor(Math.random() * arr.length)];
+        },
+
+        //----------------------------------------------------------------------
+        shuffle: function (arr)
+        {
+            var current_index = arr.length, temp, random_index;
+            while (0 != current_index)
+            {
+                // Pick a remaining element.
+                random_index = Math.floor(Math.random() * current_index);
+                current_index -= 1;
+
+                // And swap it with the current element.
+                temp = arr[current_index];
+                arr[current_index] = arr[random_index];
+                arr[random_index] = temp;
+            }
+            return arr;
+        },
+        
+        //----------------------------------------------------------------------
+        loadImage: function (url, resource_tracker)
+        {
+            var image = new Image();
+            resource_tracker.add();
+            image.onload = function (event) {
+                resource_tracker.onload(event);
+            };
+            image.src = url;
+            return image;
+        },
+
+        //----------------------------------------------------------------------
+        loadAudio: function (url, resource_tracker)
+        {
+            var audio = new buzz.sound(
+              url, {
+              //formats: [ "wav" ],
+              preload: true,
+              autoplay: false,
+              loop: false
+            });
+            resource_tracker.add();
+            audio.bindOnce("canplay", function (event) {
+                resource_tracker.onload(event)
+            });
+            return audio;
+        },
+        
+        //----------------------------------------------------------------------
+        //random in [min,max)
+        getRandomInt: function (min, max)
+        {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min)) + min;
+        },
+        
+        //----------------------------------------------------------------------
+        aabbCollision: function (x1, y1, w1, h1, x2, y2, w2, h2)
+        {
+            return x1 < x2 + w2 &&
+                x1 + w1 > x2 &&
+                y1 < y2 + h2 &&
+                h1 + y1 > y2;
+        }
+    };
+    
+    var Bullet = function(x, y)
+    {
+        this.active = true;
+        this.x = x;
+        this.y = y;
+        this.color = Util.randomItem(["red", "blue", "green"])
+
+        this.handleTimeStep = function() {
+            this.y+=1;
+        };
+        this.paint = function(ctx) {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x + 1,this.y + 1,30,30);
+        };
+        this.checkPulse = function(){
+            return this.active && this.y < 600;
+        };
+    };
+    
+    var GameOver = {
+        init: function () {},
+        reset: function () {
+            this.fadeTimer = 0;
+            this.otherScreen = null;
+        },
+        //handleIoEvent: function (event_type, event) {}, //optional/
+        handleTimeStep: function () {
+            this.fadeTimer++;
+            if(this.fadeTimer % 2 == 0)
+            {
+                this.otherScreen.handleTimeStep();
+            }
+            if(this.fadeTimer == 100)
+            {
+                switchToScreen(GameScreen);
+            }
+        }, //optional
+        paint: function () {
+            this.otherScreen.paint();
+            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+          
+          // paint the background
+            g_ctx.fillStyle = "rgba(255,255,255,"+this.fadeTimer/100+")";
+            //alert(g_ctx.fillStyle);
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+        }
+    };
+    
+    //##########################################################################
+    var GameScreen = {
+        init: function () {
+            this.reset();
+        },
+        reset: function () {
+            this.bounds = {x: 0, y: 0, w:800, h:600};
+            this.lanes = [this.bounds.w/2 - 16, this.bounds.w/2 - 48, this.bounds.w/2 + 16];
+            this.ship_tiles = []
+            for(var i = 0; i < 8; ++i)
+            {
+                this.ship_tiles.push({pulse: true, color: Util.randomItem(["red", "blue", "green"])});
+            }
+            this.ship_tiles_start = 0;
+            this.ship_tiles_pos = [];
+            this.ship_center_pulse = true;
+            this.ship_tiles_pos.push({x: -32, y:0});
+            this.ship_tiles_pos.push({x: -32, y:32});
+            this.ship_tiles_pos.push({x: 0, y:32});
+            this.ship_tiles_pos.push({x: 32, y:32});
+            this.ship_tiles_pos.push({x: 32, y:0});
+            this.ship_tiles_pos.push({x: 32, y:-32});
+            this.ship_tiles_pos.push({x: 0, y:-32});
+            this.ship_tiles_pos.push({x: -32, y:-32});
+            this.timestep_list = [];
+            this.paint_list = [];
+            this.bullets = [];
+            this.bullet_cooldown = 0;
+            this.rumble = 0;
+        },
+        handleIoEvent(event_type, event)
+        {
+            if("mousedown" == event_type)
+            {
+                this.handleMouseDown(event);
+            }
+            else if("keydown" == event_type) 
+            {
+                this.handleKeyDown(event);
+            }
+            else if("keyup" == event_type) 
+            {
+                this.handleKeyUp(event);
+            }
+        },
+        handleMouseDown: function (event) {
+          //alert(this.current_player.x + ", "+this.current_player.y);
+        },
+        handleKeyDown: function (event) {
+          var key_code = event.which;
+          if(key_code == 39)
+          {
+            this.ship_tiles_start++;
+            if(this.ship_tiles_start > 7)
+            {
+                this.ship_tiles_start = 0;
+            }
+          }
+          else if(key_code == 37)
+          {
+            this.ship_tiles_start--;
+            if(this.ship_tiles_start < 0)
+            {
+                this.ship_tiles_start = 7;
+            }
+          }          
+          event.preventDefault();
+        },
+        handleKeyUp: function (event) {},
+        handleTimeStep: function () {
+            if(this.rumble > 0)
+            {
+                this.rumble--;
+            }
+            this.bullet_cooldown++;
+            if (this.timestep_list.length < 3 && this.paint_list.length < 3 && this.bullet_cooldown > 40)
+            {
+                var bullet = new Bullet(Util.randomItem(this.lanes),-32);
+                this.timestep_list.push(bullet);
+                this.paint_list.push(bullet);
+                this.bullets.push(bullet);
+                this.bullet_cooldown = 0;
+            }
+            
+            for(var i = this.timestep_list.length - 1; i>=0; i--)
+            {
+                if(!this.timestep_list[i].checkPulse())
+                {
+                    this.timestep_list.splice(i,1);
+                }
+                else
+                {
+                    this.timestep_list[i].handleTimeStep();
+                }
+            }
+            //check collisions
+            for(var i = this.bullets.length - 1; i>=0; i--)
+            {
+                if(this.bullets[i].checkPulse && this.ship_center_pulse)
+                {
+                    var x1 = this.bounds.w/2 - 16 + 1;
+                    var y1 = this.bounds.h/2 - 16 + 1;
+                    var x2 = this.bullets[i].x + 1;
+                    var y2 = this.bullets[i].y + 1;
+                    if (Util.aabbCollision(x1,y1,30,30,x2,y2,30,30))
+                    {
+                        this.bullets[i].active = false;
+                        this.rumble = 45;
+                        var current = this;
+                        switchToScreen(GameOver);
+                        g_current_screen.otherScreen = current;
+                        this.ship_center_pulse = false;
+                    }
+                    else
+                    {
+                        var index = this.ship_tiles_start;
+                        for(var j = 0; j < 8; j++)
+                        {
+                            if(this.ship_tiles[index].pulse && this.bullets[i].checkPulse())
+                            {
+                                x1 = this.bounds.w/2 - 16 + this.ship_tiles_pos[j].x + 1;
+                                y1 = this.bounds.h/2 - 16 + this.ship_tiles_pos[j].y + 1;
+                                x2 = this.bullets[i].x + 1;
+                                y2 = this.bullets[i].y + 1;
+                                if(Util.aabbCollision(x1,y1,30,30,x2,y2,30,30))
+                                {
+                                    if (this.bullets[i].color == this.ship_tiles[index].color)
+                                    {
+                                        this.bullets[i].active = false;
+                                        j = 8; //short circuit inner loop
+                                    } 
+                                    else
+                                    {
+                                        this.bullets[i].active = false;
+                                        this.ship_tiles[index].pulse = false;
+                                        this.rumble = 45;
+                                        j = 8;
+                                    }
+                                }
+                            }
+                            index++
+                            if(index > 7)
+                            {
+                                index = 0;
+                            }
+                        }
+                    }
+                }
+                if(!this.bullets[i].checkPulse())
+                {
+                    this.bullets.splice(i,1);
+                }
+            }
+        },
+        paint: function () {
+            var dx = 0;
+            var dy = 0;
+            if(this.rumble > 0)
+            {
+                dx = Util.randomItem([-1,0,1]);
+                dy = Util.randomItem([-1,0,1]);
+            }
+            g_ctx.setTransform(1, 0, 0, 1, dx, dy);
+          
+          // paint the background
+            g_ctx.fillStyle = "#f0f0f0";
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+          
+            for(var i = this.paint_list.length - 1; i>=0; i--)
+            {
+                if(!this.paint_list[i].checkPulse())
+                {
+                    this.paint_list.splice(i,1);
+                }
+                else
+                {
+                    this.paint_list[i].paint(g_ctx);
+                }
+            }
+            var index = this.ship_tiles_start
+            for(var i = 0; i < 8; i++)
+            {
+                if(this.ship_tiles[index].pulse)
+                {
+                    var x = this.ship_tiles_pos[i].x;
+                    var y = this.ship_tiles_pos[i].y;
+                    g_ctx.fillStyle = this.ship_tiles[index].color;
+                    g_ctx.fillRect(this.bounds.w/2 - 16 + x + 1, this.bounds.h/2 - 16 + y + 1, 30, 30)
+                }
+                index++
+                if(index > 7)
+                {
+                    index = 0;
+                }
+            }
+            if (this.ship_center_pulse)
+            {
+                g_ctx.fillStyle = "gray";
+                g_ctx.fillRect(this.bounds.w/2 - 16 + 1, this.bounds.h/2 - 16 + 1, 30, 30);
+            }
+        }
+    };
+    
+    //##########################################################################
+    
+    //--------------------------------------------------------------------------
+    var ResourceTracker = {
+        m_added: 1, // I track myself loading
+        m_loaded: 0,
+        m_layout: null,
+
+        //----------------------------------------------------------------------
+        // from Screen
+        init: function ()
+        {
+            this.onload(null); //and here I'm loaded
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        reset: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleTimeStep: function ()
+        {
+          if (this.m_loaded == this.m_added)
+          {
+            this.onAllLoaded();
+          }
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        paint: function ()
+        {
+            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.fillStyle = "rgb(0, 0, 0)";
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+
+            g_ctx.font="Bold 80px Arial";
+            g_ctx.fillStyle = "rgb(128, 128, 128)";
+            g_ctx.textAlign = "center";
+            g_ctx.textBaseline = "middle";
+            g_ctx.fillText(
+                Math.floor(100 * this.m_loaded / this.m_added) + "%",
+                g_canvas.width / 2,
+                g_canvas.height / 2
+            );
+        },
+
+
+        //----------------------------------------------------------------------
+        add: function ()
+        {
+            ++this.m_added;
+        },
+
+        //----------------------------------------------------------------------
+        // from Image.onload
+        onload: function (event)
+        {
+            ++this.m_loaded;
+            if (this.m_loaded == this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        onAllLoaded: function ()
+        {
+            switchToScreen(GameScreen);
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    var AudioComponents = {
+    };
+    
+    //--------------------------------------------------------------------------
+    var GraphicComponents = {
+        //m_player: Util.loadImage("assets/images/CV1_SimonBelmont.png",
+        //    ResourceTracker),
+    };
+
+    //##########################################################################
+    // game engine
+    
+    //--------------------------------------------------------------------------
+    function init()
+    {
+        //Canvas stuff
+        var canvas_obj = $("#canvas");
+        g_canvas = canvas_obj[0];
+        g_ctx = g_canvas.getContext("2d");
+        g_ctx.textAlign="start";
+        g_ctx.textBaseline="middle";
+
+        g_canvas.addEventListener("mousedown", function (event) {
+            if(g_current_screen.handleIoEvent)
+            {
+                g_current_screen.handleIoEvent("mousedown", event);
+            }
+        }, false);
+
+        document.addEventListener("keydown", function (event) {
+            if(g_current_screen.handleIoEvent)
+            {
+                g_current_screen.handleIoEvent("keydown", event);
+            }
+        }, false);
+        
+        document.addEventListener("keyup", function (event) {
+            if(g_current_screen.handleIoEvent)
+            {
+                g_current_screen.handleIoEvent("keyup", event);
+            }
+        }, false);
+
+        // can't do this until you've set up canvas_width and canvas_height
+        //ResourceTracker init must be called after all requests to 
+        //loadImage/loadAudio
+        ResourceTracker.init();
+        GameScreen.init();
+
+        switchToScreen(ResourceTracker);
+
+        // start processing events
+        setTimeout(eventLoop, 17);
+    }
+
+    //--------------------------------------------------------------------------
+    function switchToScreen(screen)
+    {
+        screen.reset();
+        g_current_screen = screen;
+    }
+
+    //--------------------------------------------------------------------------
+    function eventLoop()
+    {
+        var start_time = Date.now();
+
+        if(g_current_screen.handleTimeStep)
+        {
+            g_current_screen.handleTimeStep();
+        }
+        g_current_screen.paint(g_ctx);
+
+        var end_time = Date.now();
+        var comp_time = end_time - start_time;
+        if (comp_time > 17 || comp_time < 0) {
+            setTimeout(eventLoop, 0);
+        }
+        else
+        {
+            setTimeout(eventLoop, 17 - comp_time);
+        }
+    }
+
+    // launch the game once the document is fully loaded
+    window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
