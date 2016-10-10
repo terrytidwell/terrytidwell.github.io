@@ -116,22 +116,49 @@
         }
     };
     
-    var Bullet = function(x, y)
+    var Bullet = function(x, y, dy)
     {
         this.active = true;
         this.x = x;
         this.y = y;
+        this.dy = dy
         this.color = Util.randomItem(["red", "blue", "green"])
 
         this.handleTimeStep = function() {
-            this.y+=1;
+            this.y+=dy;
         };
         this.paint = function(ctx) {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x + 1,this.y + 1,30,30);
+            if (dy > 0)
+            {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(this.x+5,this.y+1);
+                ctx.lineTo(this.x+25,this.y+1);
+                ctx.lineTo(this.x+16,this.y+31);
+                ctx.fill();
+            }
+            else
+            {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(this.x+4,this.y+31);
+                ctx.lineTo(this.x+27,this.y+31);
+                ctx.lineTo(this.x+16,this.y+1);
+                ctx.fill();
+            }
+            //ctx.fillRect(this.x + 10,this.y + 1,12,30);
         };
         this.checkPulse = function(){
-            return this.active && this.y < 600;
+            if(dy > 0)
+            {
+              return this.active && this.y < 600;
+            }
+            else if(dy < 0)
+            {
+              return this.active && this.y > -32;
+            }
+            
+            
         };
     };
     
@@ -244,7 +271,16 @@
             this.bullet_cooldown++;
             if (this.timestep_list.length < 3 && this.paint_list.length < 3 && this.bullet_cooldown > 40)
             {
-                var bullet = new Bullet(Util.randomItem(this.lanes),-32);
+            
+                if (Util.getRandomInt(0,2) == 0) 
+                {
+                  var bullet = new Bullet(Util.randomItem(this.lanes),-32, 1);
+                } 
+                else
+                {
+                  bullet = new Bullet(Util.randomItem(this.lanes),632, -1);
+                }
+                
                 this.timestep_list.push(bullet);
                 this.paint_list.push(bullet);
                 this.bullets.push(bullet);
@@ -265,7 +301,7 @@
             //check collisions
             for(var i = this.bullets.length - 1; i>=0; i--)
             {
-                if(this.bullets[i].checkPulse && this.ship_center_pulse)
+                if (this.bullets[i].checkPulse() && this.ship_center_pulse)
                 {
                     var x1 = this.bounds.w/2 - 16 + 1;
                     var y1 = this.bounds.h/2 - 16 + 1;
@@ -280,38 +316,38 @@
                         g_current_screen.otherScreen = current;
                         this.ship_center_pulse = false;
                     }
-                    else
+                }
+                if (this.bullets[i].checkPulse())
+                {
+                    var index = this.ship_tiles_start;
+                    for(var j = 0; j < 8; j++)
                     {
-                        var index = this.ship_tiles_start;
-                        for(var j = 0; j < 8; j++)
+                        if(this.ship_tiles[index].pulse && this.bullets[i].checkPulse())
                         {
-                            if(this.ship_tiles[index].pulse && this.bullets[i].checkPulse())
+                            x1 = this.bounds.w/2 - 16 + this.ship_tiles_pos[j].x + 1;
+                            y1 = this.bounds.h/2 - 16 + this.ship_tiles_pos[j].y + 1;
+                            x2 = this.bullets[i].x + 1;
+                            y2 = this.bullets[i].y + 1;
+                            if(Util.aabbCollision(x1,y1,30,30,x2,y2,30,30))
                             {
-                                x1 = this.bounds.w/2 - 16 + this.ship_tiles_pos[j].x + 1;
-                                y1 = this.bounds.h/2 - 16 + this.ship_tiles_pos[j].y + 1;
-                                x2 = this.bullets[i].x + 1;
-                                y2 = this.bullets[i].y + 1;
-                                if(Util.aabbCollision(x1,y1,30,30,x2,y2,30,30))
+                                if (this.bullets[i].color == this.ship_tiles[index].color)
                                 {
-                                    if (this.bullets[i].color == this.ship_tiles[index].color)
-                                    {
-                                        this.bullets[i].active = false;
-                                        j = 8; //short circuit inner loop
-                                    } 
-                                    else
-                                    {
-                                        this.bullets[i].active = false;
-                                        this.ship_tiles[index].pulse = false;
-                                        this.rumble = 45;
-                                        j = 8;
-                                    }
+                                    this.bullets[i].active = false;
+                                    j = 8; //short circuit inner loop
+                                } 
+                                else
+                                {
+                                    this.bullets[i].active = false;
+                                    this.ship_tiles[index].pulse = false;
+                                    this.rumble = 45;
+                                    j = 8;
                                 }
                             }
-                            index++
-                            if(index > 7)
-                            {
-                                index = 0;
-                            }
+                        }
+                        index++
+                        if(index > 7)
+                        {
+                            index = 0;
                         }
                     }
                 }
