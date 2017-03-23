@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
 </head>
 <body style="background-color: black; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
-<canvas tabindex='1' id="canvas" width="800" height="600"></canvas>
+<canvas id="canvas" width="800" height="600"></canvas>
 <script>
     //##########################################################################
     // The game
@@ -852,6 +852,322 @@
       }
     }
     
+    //--------------------------------------------------------------------------    
+    const Rook = function (layout){
+      this.CAST_TIME = 30,
+      this.MOVE_TIME = 4,
+      this.INVINCIBLE_TIME = 50,
+      this.FULL_HEALTH = 9,
+    
+      this.m_pos = [7,7],
+      this.m_vel = [-1,-1],
+      this.m_layout = layout,
+      this.m_invincible = false,
+      this.m_invincible_timer = 0,
+      this.m_pushed = false,
+      this.m_health = this.FULL_HEALTH,
+      this.m_x_offset = 0,
+      this.m_y_offset = 0,
+      this.m_shadows = [],
+      this.m_sparkles = [];
+      for(var i = 0; i < 30; i++)
+      {
+        this.m_sparkles.push(new Sparkle(layout));
+      }
+
+      //state machine
+      this.m_state_timers = [12,9,12,9,12,30,45,0,40],
+      this.SLIDE_1 = 0,
+      this.PAUSE_1 = 1,
+      this.SLIDE_2 = 2,
+      this.PAUSE_2 = 3,
+      this.SLIDE_3 = 4,
+      this.CAST = 5,
+      this.REST = 6,
+      this.END_LOOP = 7,
+      this.STUNNED = 8,
+      this.m_state = this.REST,
+      this.m_state_timer = this.m_state_timers[this.REST],
+      this.m_spells_since_summon = 0,
+      
+      this.handleTimeStep = function ()
+      {
+        for(var i = 0; i < this.m_shadows.length; i++)
+        {
+          this.m_shadows[i].handleTimeStep();
+        }
+        if(this.m_shadows.length > 0)
+        {
+          if(!this.m_shadows[0].active())
+          {
+            this.m_shadows.shift();
+          }
+        }
+        if(this.m_state == this.CAST)
+        {
+          for(var i = 0; i < this.m_sparkles.length; i++)
+          {
+            this.m_sparkles[i].handleTimeStep();
+          }
+        }
+        
+        if(this.m_invincible)
+        {
+          this.m_invincible_timer++;
+          if(this.m_invincible_timer >= this.INVINCIBLE_TIME)
+          {
+            this.m_invincible = false;
+            this.m_invincible_timer = 0;
+          }
+        }
+        this.m_state_timer++;
+        if(this.m_state_timer >= this.m_state_timers[this.m_state])
+        {
+          //exit state
+          if(this.m_state == this.SLIDE_1 || 
+          this.m_state == this.SLIDE_2 ||
+          this.m_state == this.SLIDE_3)
+          {
+            /*
+            var shadow = new BishopShadow(this.m_layout);
+            shadow.pos[0] = this.m_pos[0];
+            shadow.pos[1] = this.m_pos[1];
+            shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+            shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+              - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+            this.m_shadows.push(shadow);
+            */
+            this.m_x_offset = 0;
+            this.m_y_offset = 0;
+            
+          }
+          if(this.m_state == this.CAST)
+          {
+            if(this.m_spells_since_summon >= 4 && Math.random() <= .33)
+            {
+              this.m_spells_since_summon = 0;
+              var minion = new MinionSpawn(this.m_layout);
+              minion.m_pos[0] = Math.floor(Math.random() * 8) + 1;
+              minion.m_pos[1] = Math.floor(Math.random() * 8) + 1;
+              GameScreen.m_enemies.push(minion);
+            }
+            else
+            {
+              this.m_spells_since_summon++;
+              var flame = new FlameWave(this.m_layout);
+              flame.m_pos[0] = this.m_pos[0];
+              flame.m_pos[1] = this.m_pos[1];
+              GameScreen.m_enemies.push(flame);
+            }
+          }
+          //change state
+          this.m_state = (this.m_state + 1);
+          if(this.m_state >= this.END_LOOP)
+          {
+            this.m_state = 0;
+          }
+          this.m_state_timer = 0;
+          //enter state
+          if(this.m_state == this.CAST)
+          {
+            for(var i = 0; i < this.m_sparkles.length; i++)
+            {
+              this.m_sparkles[i].pos[0] = this.m_pos[0];
+              this.m_sparkles[i].pos[1] = this.m_pos[1];
+            }
+          }
+          if(this.m_state == this.SLIDE_1)
+          {
+            this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+            this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+          }
+          if(this.m_state == this.SLIDE_2 ||
+            this.m_state == this.SLIDE_3)
+          {
+            var direction = Math.floor(Math.random() * 2);
+            this.m_vel[direction] = -1 * this.m_vel[direction];
+          }
+        }
+        
+        var move_me = false;
+        if(this.m_state == this.SLIDE_1 || 
+          this.m_state == this.SLIDE_2 ||
+          this.m_state == this.SLIDE_3)
+        {
+          if((this.m_state_timer % this.MOVE_TIME) == Math.round(this.MOVE_TIME/2))
+          {
+            move_me = true;
+          }
+          if((this.m_state_timer % this.MOVE_TIME) == 0)
+          {
+            if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+            {
+              this.m_vel[0] = 1;
+            }
+            if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+            {
+              this.m_vel[0] = -1;
+            }
+            
+            if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+            {
+              this.m_vel[1] = 1;
+            }
+            if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+            {
+              this.m_vel[1] = -1;
+            }
+          }
+          /*
+          var shadow = new BishopShadow(this.m_layout);
+          shadow.pos[0] = this.m_pos[0];
+          shadow.pos[1] = this.m_pos[1];
+          shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+          shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+            - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+          this.m_shadows.push(shadow);
+          */
+          this.m_x_offset = this.m_layout.m_cell_width * this.m_vel[0] *
+          (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+          this.m_y_offset = this.m_layout.m_cell_height * this.m_vel[1] * 
+            (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+          if((this.m_state_timer % this.MOVE_TIME) >= Math.round(this.MOVE_TIME/2))
+          {
+            this.m_x_offset = this.m_x_offset - this.m_vel[0] * this.m_layout.m_cell_width;
+            this.m_y_offset = this.m_y_offset - this.m_vel[1] * this.m_layout.m_cell_height;
+          }
+        }
+
+        if(this.m_pushed)
+        {
+          move_me = true;
+          this.m_pushed = false;
+          if(this.m_pos[0] == 1 && this.m_vel[0] == -1)
+          {
+            this.m_vel[0] = 1;
+          }
+          if(this.m_pos[0] == 8 && this.m_vel[0] == 1)
+          {
+            this.m_vel[0] = -1;
+          }
+          
+          if(this.m_pos[1] == 1 && this.m_vel[1] == -1)
+          {
+            this.m_vel[1] = 1;
+          }
+          if(this.m_pos[1] == 8 && this.m_vel[1] == 1)
+          {
+            this.m_vel[1] = -1;
+          }
+          this.m_x_offset = 0;
+          this.m_y_offset = 0;
+        }
+        
+        if(move_me)
+        {
+          this.m_pos[0] += this.m_vel[0];
+          this.m_pos[1] += this.m_vel[1];
+        }
+      };
+      
+      this.paint = function (y, priority) 
+      {
+        if(y == this.m_pos[1] && priority == GameConstants.Z_BACKGROUND)
+        {
+        /*
+          g_ctx.fillStyle = "rgba(0,0,255,.5)";
+          g_ctx.fillRect(
+            this.m_pos[0] * this.m_layout.m_cell_width,
+            this.m_pos[1] * this.m_layout.m_cell_height,
+            this.m_layout.m_cell_width,
+            this.m_layout.m_cell_height
+          );
+        */
+          g_ctx.fillStyle = "rgba(255,0,0,.5)";
+          g_ctx.fillRect(
+            this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset,
+            (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+              - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset + Math.floor(this.m_layout.m_cell_height/4),
+            Math.floor(this.m_layout.m_cell_width * this.m_health / this.FULL_HEALTH),
+            Math.floor(this.m_layout.m_cell_height/8)
+          );
+        }
+        
+        if(y == this.m_pos[1] && priority == GameConstants.Z_FOREGROUND)
+        {
+          if(!this.m_invincible || this.m_invincible_timer % 2 != 0)
+          {
+            g_ctx.fillStyle = "rgb(255,255,255)";
+            g_ctx.drawImage(
+              GraphicComponents.m_pieces,
+              327, //rook
+              //121, //queen
+              15,
+              100,
+              250,
+              this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset,
+              (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+                - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset,
+              this.m_layout.m_cell_width,
+              Math.floor(2.5 * this.m_layout.m_cell_width)
+            );
+          }
+        }
+        for(var i = this.m_shadows.length-1; i > 0; --i)
+        {
+          this.m_shadows[i].paint(y, priority);
+        }
+        if(y == this.m_pos[1])
+        {
+          if(this.m_state == this.CAST)
+          {
+            for(var i = 0; i < this.m_sparkles.length; i++)
+            {
+              this.m_sparkles[i].paint(y,priority);
+            }
+          }
+        }
+      };
+      
+      this.handlePlayerCollision = function( x, y, callback)
+      {
+        if(!this.m_invincible)
+        {
+          if(x == this.m_pos[0] && y == this.m_pos[1])
+          {
+            callback.damagePlayer(this.m_vel[0], this.m_vel[1]);
+          }
+        }
+      };
+      
+      this.handlePlayerAttack = function(x,y)
+      {
+        if(x != this.m_pos[0] || y != this.m_pos[1])
+        {
+          return;
+        }
+      
+        if(this.m_invincible)
+        {
+          return;
+        }
+        this.m_state = this.STUNNED;
+        this.m_state_timer = 0;
+        this.m_invincible = true;
+        this.m_invincible_timer = 0;
+        this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+        this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+        this.m_pushed = true;
+        this.m_health--;
+      }
+      
+      this.active = function()
+      {
+         return this.m_health > 0;
+      }
+    };
+
+    //--------------------------------------------------------------------------       
     const Bishop = function (layout){
       this.CAST_TIME = 30,
       this.MOVE_TIME = 4,
@@ -1367,6 +1683,7 @@
           var next_minion = new MinionSpawn(this.m_layout);
           next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
           next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
+          //next_minion.minion = new Rook(this.m_layout);
           current_wave.addOnIdle(1).addElement(next_minion);
         }
         
