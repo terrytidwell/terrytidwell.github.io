@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<style>
+</style>
+<body style="background-color: white;">
+
+<!--testing-->
+<div id="testing_div"></div>
+
+<script type="text/javascript" src="jut.js"></script>
+<script type="text/javascript">
+
+window.addEventListener("load", function(event)
+  {
+    new jut.test_instance(document.getElementById("testing_div"),my_tests);
+  }
+);
+
+function does_throw()
+{
+  throw new Error("This is only a test.");
+}
+
+function no_throw()
+{
+  return;
+}
+
+function my_tests()
+{
+  jut.test("Sanity Check", true);
+  jut.display("<br>These 2 tests should fail<br>");
+  jut.test("Insanity Check", false);
+  jut.test("Insanity Check 2", false);
+  jut.display("<br>");
+  jut.test("Expect near succeeds 1", jut.expect_near(1,.5,.5));
+  jut.test("Expect near succeeds 2", jut.expect_near(0,.5,.5));
+  jut.test("Expect near fails 1", !jut.expect_near(1,.5,.49));
+  jut.test("Expect near fails 2", !jut.expect_near(0,.5,.49));
+  jut.test("Expect throw", jut.expect_throw(does_throw));
+  jut.test("Expect no throw", !jut.expect_throw(no_throw));
+  for (var j = 0; j < 10; ++j)
+  {
+    //for (var i = 0; i < 1000000000; ++i)
+    {
+      //do nothing
+    }
+  }
+}
+
+</script>
+</body>
+</html>
+
