@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!--script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+</head>
+<body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
+<canvas id="canvas" width="800" height="600"></canvas>
+<script>
+    //##########################################################################
+    // The game
+
+    var g_ctx;
+
+    //--------------------------------------------------------------------------
+    // interface, for reference, not enforced
+    // The name is funny because Screen is already declared
+    // and this is just for reference anyway
+    const Screen_ = {
+        init: function () {},
+        reset: function () {},
+        handleIoEvent: function (event_type, event) {}, //optional
+        handleTimeStep: function () {}, //optional
+        paint: function () {}
+    };
+
+    //--------------------------------------------------------------------------
+    const Util = {
+
+        //----------------------------------------------------------------------
+        forEach: function (obj, fn)
+        {
+            var key;
+            for (key in obj)
+            {
+                if (obj.hasOwnProperty(key))
+                {
+                    fn(obj[key]);
+                }
+            }
+        },
+
+        //----------------------------------------------------------------------
+        randomItem: function (arr)
+        {
+            return arr[Math.floor(Math.random() * arr.length)];
+        },
+
+        //----------------------------------------------------------------------
+        shuffle: function (arr)
+        {
+            var current_index = arr.length, temp, random_index;
+            while (0 != current_index)
+            {
+                // Pick a remaining element.
+                random_index = Math.floor(Math.random() * current_index);
+                current_index -= 1;
+
+                // And swap it with the current element.
+                temp = arr[current_index];
+                arr[current_index] = arr[random_index];
+                arr[random_index] = temp;
+            }
+            return arr;
+        },
+        
+        //----------------------------------------------------------------------
+        loadImage: function (url, resource_tracker)
+        {
+            var image = new Image();
+            resource_tracker.add();
+            image.onload = function (event) {
+                resource_tracker.onload(event);
+            };
+            image.src = url;
+            return image;
+        },
+
+        //----------------------------------------------------------------------
+        loadAudio: function (url, resource_tracker)
+        {
+            var audio = new buzz.sound(
+              url, {
+              //formats: [ "wav" ],
+              preload: true,
+              autoplay: false,
+              loop: false
+            });
+            resource_tracker.add();
+            audio.bindOnce("canplay", function (event) {
+                resource_tracker.onload(event)
+            });
+            return audio;
+        },
+        
+        //----------------------------------------------------------------------
+        //random in [min,max)
+        getRandomInt: function (min, max)
+        {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min)) + min;
+        },
+        
+        //----------------------------------------------------------------------
+        aabbCollision: function (x1, y1, w1, h1, x2, y2, w2, h2)
+        {
+            return x1 < x2 + w2 &&
+                x1 + w1 > x2 &&
+                y1 < y2 + h2 &&
+                h1 + y1 > y2;
+        }
+    };
+    
+    //##########################################################################
+    var GameScreen = {
+        init: function () {
+            this.dz = 48;
+            this.dy = Math.round(this.dz * Math.sin(30 / 180 * Math.PI));
+            this.dx = Math.round(this.dz * Math.cos(30 / 180 * Math.PI));
+            this.center_x = g_ctx.canvas.width / 2;
+            this.center_y = g_ctx.canvas.height / 2;
+            this.reset();
+        },
+        reset: function () {
+            this.theta = 0;
+            this.cubes = [];
+            
+            /*
+            this.addCubeToScene(0,3,4);
+            this.addCubeToScene(0,4,4);
+            this.addCubeToScene(0,3,4);
+            this.addCubeToScene(0,2,4);
+            this.addCubeToScene(0,1,4);
+            this.addCubeToScene(0,4,4);
+            this.addCubeToScene(0,0,4);
+            this.addCubeToScene(0,0,3);
+            this.addCubeToScene(0,0,2);
+            this.addCubeToScene(0,0,1);
+            this.addCubeToScene(0,0,0);
+            this.addCubeToScene(-1,0,0);
+            this.addCubeToScene(-2,0,0);
+            this.addCubeToScene(-3,0,0);
+            this.addCubeToScene(-4,0,0);
+            */
+            for(var i = 0; i < 8; i++)
+            {
+              for(var j = 0; j < 8; j++)
+              {
+                if(i == 7 || i==0 || j==0 || j==7)
+                {
+                  this.addCubeToScene(0+i,0+j,4,Math.random()*2*Math.PI);
+                }
+                else
+                {
+                  this.addCubeToScene(0+i,0+j,4,0);
+                  this.addCubeToScene(0+i,0+j,3,0);
+                }
+              }
+            }
+            /*
+            this.addCubeToScene(0,0,3);
+            this.addCubeToScene(4,0,3);
+            this.addCubeToScene(0,4,3);
+            this.addCubeToScene(4,4,3);
+            */
+            /*
+            this.addCubeToScene(0,0,4);
+            this.addCubeToScene(1,0,4);
+            this.addCubeToScene(0,1,4);
+            */
+        },
+        addCubeToScene(cube_x,cube_y,cube_z,dz)
+        {
+          this.cubes.push({x:cube_x, y:cube_y, z:cube_z, z_wiggle: dz});
+        },
+        handleIoEvent(event_type, event)
+        {
+        },
+        handleTimeStep: function () {
+            this.counter++;
+            this.counter %= 30;
+            this.theta += .005;
+            this.dy = Math.round(this.dz * Math.sin(30 / 180 * Math.PI)) * ((Math.cos(this.theta)/4 + .75));
+            this.cubes.sort(function(a,b){
+              if(a.z > b.z) {
+                return -1; }
+              if(a.z < b.z) {
+                return 1;
+              }
+              if(a.x + a.y > b.x + b.y) {
+                return -1;
+              }
+              if(a.x + a.y < b.x + b.y) {
+                return 1;
+              }
+              return 0;
+                
+              })
+        },
+        drawCube3D : function(cube) {
+            var x = this.center_x;
+            var y = this.center_y;
+            x -= cube.x * this.dx;
+            y -= cube.x * this.dy;
+            x += cube.y * this.dx;
+            y -= cube.y * this.dy;
+            cube.z_wiggle += .03;
+            if(cube.z_wiggle > 2*Math.PI)
+            {
+              cube.z_wiggle -= 2*Math.PI;
+            }
+            y += (cube.z + .05*Math.cos(cube.z_wiggle)) * this.dz;
+            
+            g_ctx.context.fillStyle = "#e0e0e0";
+            g_ctx.context.beginPath();
+            g_ctx.context.moveTo(x,y);
+            g_ctx.context.lineTo(x+this.dx,y-this.dy);
+            g_ctx.context.lineTo(x,y-2*this.dy);
+            g_ctx.context.lineTo(x-this.dx,y-this.dy);
+            g_ctx.context.fill();
+            
+            g_ctx.context.fillStyle = "#808080";
+            g_ctx.context.beginPath();
+            g_ctx.context.moveTo(x,y);
+            g_ctx.context.lineTo(x-this.dx,y-this.dy);
+            g_ctx.context.lineTo(x-this.dx,y-this.dy+this.dz);
+            g_ctx.context.lineTo(x,y+this.dz);
+            g_ctx.context.fill();
+            
+            g_ctx.context.fillStyle = "#c0c0c0";
+            g_ctx.context.beginPath();
+            g_ctx.context.moveTo(x,y);
+            g_ctx.context.lineTo(x+this.dx,y-this.dy);
+            g_ctx.context.lineTo(x+this.dx,y-this.dy+this.dz);
+            g_ctx.context.lineTo(x,y+this.dz);
+            g_ctx.context.fill();
+        },
+        paint: function () {
+            g_ctx.context.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.context.fillStyle = "rgb(255,255,255)";
+            g_ctx.context.fillRect(
+                0, 0,
+                g_ctx.canvas.width,
+                g_ctx.canvas.height);
+            var draw_distance = this.cubes[0].x + this.cubes[0].y;
+            var new_draw_distance = this.cubes[0].x + this.cubes[0].y;
+            
+            for(var i = 0; i < this.cubes.length; ++i)
+            {
+              new_draw_distance = this.cubes[i].x + this.cubes[i].y;
+              for(;draw_distance > new_draw_distance; draw_distance--)
+              {
+                /*
+                g_ctx.context.fillStyle = "rgba(255,255,255,.15)";
+                g_ctx.context.fillRect(
+                  0, 0,
+                  g_ctx.canvas.width,
+                  g_ctx.canvas.height);
+                //  */
+              }
+              this.drawCube3D(this.cubes[i]);
+            }
+
+        }
+    };
+    
+    //##########################################################################
+    
+    //--------------------------------------------------------------------------
+    var ResourceTracker = {
+        m_added: 1, // I track myself loading
+        m_loaded: 0,
+        m_layout: null,
+
+        //----------------------------------------------------------------------
+        // from Screen
+        init: function ()
+        {
+            this.onload(null); //and here I'm loaded
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        reset: function ()
+        {},
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleTimeStep: function ()
+        {
+            if (this.m_loaded == this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        paint: function ()
+        {
+            g_ctx.context.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.context.fillStyle = "rgb(0, 0, 0)";
+            g_ctx.context.fillRect(
+                0, 0,
+                g_ctx.canvas.width,
+                g_ctx.canvas.height);
+
+            g_ctx.context.font="Bold 80px Arial";
+            g_ctx.context.fillStyle = "rgb(128, 128, 128)";
+            g_ctx.context.textAlign = "center";
+            g_ctx.context.textBaseline = "middle";
+            g_ctx.context.fillText(
+                Math.floor(100 * this.m_loaded / this.m_added) + "%",
+                g_ctx.canvas.width / 2,
+                g_ctx.canvas.height / 2
+            );
+        },
+
+
+        //----------------------------------------------------------------------
+        add: function ()
+        {
+            ++this.m_added;
+        },
+
+        //----------------------------------------------------------------------
+        // from Image.onload
+        onload: function (event)
+        {
+            ++this.m_loaded;
+            if (this.m_loaded == this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        onAllLoaded: function ()
+        {
+            switchToScreen(g_ctx.screens.game_screen);
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    var AudioComponents = {
+    };
+    
+    //--------------------------------------------------------------------------
+    var GraphicComponents = {
+        //m_player: Util.loadImage("assets/images/CV1_SimonBelmont.png",
+        //    ResourceTracker),
+    };
+
+    //##########################################################################
+    // game engine
+    
+    //--------------------------------------------------------------------------
+    function init()
+    {
+        //var canvas_obj = document.getElementById("canvas");
+        g_ctx = {
+            canvas: document.getElementById("canvas"),
+            context: this.canvas.getContext("2d"),
+            current_screen: null
+        };
+                
+        // can't do this until you've set up canvas_width and canvas_height
+        //ResourceTracker init must be called after all requests to 
+        //loadImage/loadAudio
+        g_ctx.screens = {
+          resource_tracker: ResourceTracker,
+          game_screen : GameScreen
+        };
+        
+        g_ctx.screens.resource_tracker.init();
+        g_ctx.screens.game_screen.init();
+        
+        switchToScreen(g_ctx.screens.resource_tracker);
+        g_ctx.canvas.addEventListener("mousedown", function (event) {
+            if(g_ctx.current_screen.handleIoEvent)
+            {
+                g_ctx.current_screen.handleIoEvent("mousedown", event);
+            }
+        }, false);
+
+        document.addEventListener("keydown", function (event) {
+            if(g_ctx.current_screen.handleIoEvent)
+            {
+                g_ctx.current_screen.handleIoEvent("keydown", event);
+            }
+        }, false);
+        
+        document.addEventListener("keyup", function (event) {
+            if(g_ctx.current_screen.handleIoEvent)
+            {
+                g_ctx.current_screen.handleIoEvent("keyup", event);
+            }
+        }, false);
+
+        // start processing events
+        setTimeout(eventLoop, 17);
+    }
+
+    //--------------------------------------------------------------------------
+    function switchToScreen(screen)
+    {
+        screen.reset();
+        g_ctx.current_screen = screen;
+    }
+
+    //--------------------------------------------------------------------------
+    function eventLoop()
+    {
+        var start_time = Date.now();
+
+        if(g_ctx.current_screen.handleTimeStep)
+        {
+            g_ctx.current_screen.handleTimeStep();
+        }
+        g_ctx.current_screen.paint();
+
+        var end_time = Date.now();
+        var comp_time = end_time - start_time;
+        if (comp_time > 17 || comp_time < 0) {
+            setTimeout(eventLoop, 0);
+        }
+        else
+        {
+            setTimeout(eventLoop, 17 - comp_time);
+        }
+    }
+
+    // launch the game once the document is fully loaded
+    window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
