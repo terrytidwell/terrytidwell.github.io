@@ -1687,51 +1687,9 @@
           current_wave.addOnIdle(1).addElement(next_minion);
         }
         
-        current_wave.addOnIdle(1);
-        
-        for(var i = 0; i < 2; i++)
-        {
-          var next_minion = new MinionSpawn(this.m_layout);
-          next_minion.minion = new Bishop(this.m_layout);
-          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
-          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
-          current_wave.addElement(next_minion);
-          current_wave.addOnTimeout(25);
-        }
-        
-        current_wave.addOnIdle(1);
-        
-        for(var i = 0; i < 4; i++)
-        {
-          var next_minion = new MinionSpawn(this.m_layout);
-          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
-          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
-          current_wave.addElement(next_minion);
-        }
-        
-        current_wave.addOnTimeout(250);
-        
-        {
-          var next_minion = new MinionSpawn(this.m_layout);
-          next_minion.minion = new Bishop(this.m_layout);
-          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
-          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
-          current_wave.addElement(next_minion);
-        }
-        
-        current_wave.addOnTimeout(150);
-        
-        for(var i = 0; i < 4; i++)
-        {
-          var next_minion = new MinionSpawn(this.m_layout);
-          next_minion.m_pos[0] = Math.floor(Math.random()*8)+1;
-          next_minion.m_pos[1] = Math.floor(Math.random()*8)+1;
-          current_wave.addElement(next_minion);
-        }
-        
         current_wave.addOnTimeout(75);
         
-        //current_wave.addOnIdle(1)
+        //current_wave.addOnIdle(0)
         
         //this.m_enemies.push(new Coin(this.m_layout));
         
