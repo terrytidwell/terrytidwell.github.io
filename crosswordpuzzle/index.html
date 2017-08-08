@@ -15,6 +15,8 @@
     var g_canvas;
     var g_ctx;
     var g_current_screen;
+    var g_level;
+    var g_level_cap;
     
     var PHI = 1.61803398875;
     var INVERSE_PHI = 0.61803398875;
@@ -148,12 +150,13 @@
         ctx.textBaseline="middle";
         ctx.textAlign="center";
         this.font_height = Math.round(INVERSE_PHI * (this.size - 5));
-        ctx.font = Math.round(INVERSE_PHI * (this.size - 5)) + "px Verdana";
+        ctx.font = this.font_height + "px Verdana";
         var text = "GRID: " + (this.visible ? "ON" : "OFF");
         this.font_width = ctx.measureText(text).width;
         this.font_center_x = Math.round(g_canvas.width / 2);
         this.font_center_y = g_canvas.height - this.size * 2;
         ctx.fillText(text, this.font_center_x, this.font_center_y)
+
         if (!this.visible)
         {
           return;
@@ -298,12 +301,14 @@
 
         populateLevel: function (stage) {
 
+          g_level_cap = 2;
+
           var letter_box_collection = new LetterBoxCollection();
           var x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
           var y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
 
           switch (stage) {
-            case 1:
+            case 0:
               letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "D"));
               letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "O"));
               letter_box_collection.snap(35);
@@ -502,7 +507,7 @@
               this.name = "THE FARM";
 
               break;
-            case 2:
+            case 1:
 
               letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "B"));
               letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "E"));
@@ -732,8 +737,11 @@
           this.dragged_item = null;
           this.mouse_pos = [null, null];
           this.name = "";
+          this.backTextSize = null;
+          this.forwardTextSize = null;
+          this.textHeight = null;
 
-          this.populateLevel(2);
+          this.populateLevel(g_level);
           
           //this.current_target = new MysteryBox(g_canvas.width - 60, g_canvas.height - 60, 50, Util.randomItem(this.color_list));
           //this.current_target.revealed = true;
@@ -765,6 +773,32 @@
             {
               if(this.clickable_list[i].handleMouseDown(event))
               {
+                return true;
+              }
+            }
+          }
+          
+          if (this.backTextSize &&
+            this.forwardTextSize &&
+            this.textHeight)
+          {
+            if(event.offsetY > g_canvas.height - this.textHeight)
+            {
+              if(event.offsetX < this.backTextSize)
+              {
+                if(g_level === 0)
+                {
+                  g_level = g_level_cap;
+                }
+                g_level--;
+                this.reset();
+                return true;
+              }
+              if(event.offsetX > g_canvas.width - this.forwardTextSize)
+              {
+                g_level++;
+                g_level %= g_level_cap;
+                this.reset();
                 return true;
               }
             }
@@ -818,8 +852,17 @@
           g_ctx.fillStyle = "black";
           g_ctx.textBaseline="middle";
           g_ctx.textAlign="center";
-          g_ctx.font = Math.round(INVERSE_PHI * 30) + "px Verdana";
+          this.textHeight = Math.round(INVERSE_PHI * 30);
+          g_ctx.font = this.textHeight + "px Verdana";
           g_ctx.fillText(this.name,Math.round(g_canvas.width/2),Math.round(70));
+          g_ctx.textBaseline = "bottom";
+          g_ctx.textAlign = "left"
+          this.backTextSize = g_ctx.measureText("<<").width;
+          g_ctx.fillText("<<", 0, g_canvas.height);
+          g_ctx.textAlign = "right";
+          this.forwardTextSize = g_ctx.measureText(">>").width;
+          g_ctx.fillText(">>", g_canvas.width, g_canvas.height);
+
           for(var i = this.paint_list.length - 1; i>=0; i--)
           {
             if(!this.paint_list[i].checkPulse())
@@ -953,6 +996,8 @@
         g_ctx = g_canvas.getContext("2d");
         g_ctx.textAlign="start";
         g_ctx.textBaseline="middle";
+        g_level = 0;
+        g_level_cap = 1;
 
         g_canvas.addEventListener("mousedown", function (event) {
             g_current_screen.handleMouseDown(event);
