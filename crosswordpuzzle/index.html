@@ -299,428 +299,118 @@
           this.reset();
         },
 
+        makePiece: function (letters) {
+          var letter_box_collection = new LetterBoxCollection();
+          var x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
+          var y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
+          for (var i = 0; i < letters.length; i++)
+          {
+            for (var j = 0; j < letters[i].length; j++)
+            {
+              if (letters[i].charAt(j) !== " ")
+              {
+                letter_box_collection.letterBoxList.push(
+                  new LetterBox(x + (35 * j), y + (35 * i), 30, letters[i].charAt(j)));
+              }
+            }
+          }
+          letter_box_collection.snap(35);
+          this.paint_list.push(letter_box_collection);
+          this.draggable_list.push(letter_box_collection);
+        },
+
+        makeGrid: function (lines, offsetX, offsetY) {
+          var grid = new Grid();
+          for (var i = 0; i < lines.length; i++)
+          {
+            for (var j = 0; j < lines[i].length; j++)
+            {
+              if (lines[i].charAt(j) !== " ")
+              {
+                grid.squares.push([j + offsetX,i + offsetY]);
+              }
+            }
+          }
+          this.paint_list.push(grid);
+          this.clickable_list.push(grid);
+        },
+
         populateLevel: function (stage) {
 
           g_level_cap = 2;
 
-          var letter_box_collection = new LetterBoxCollection();
-          var x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-          var y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-
           switch (stage) {
             case 0:
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "D"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
+              this.makePiece(["DO"]);
+              this.makePiece(["G","O"]);
+              this.makePiece(["O ","SH","E "]);
+              this.makePiece(["EEP","Y  "]);
+              this.makePiece(["I ","GO"]);
+              this.makePiece(["AT","T "]);
+              this.makePiece(["C"]);
+              this.makePiece(["T ","U ","RO","K "]);
+              this.makePiece([" R","OS"," E"]);
+              this.makePiece([" K ","TER"," N "]);
+              this.makePiece(["H","O"]);
+              this.makePiece(["DU"]);
+              this.makePiece(["CK","H "]);
+              this.makePiece(["I ","CO"]);
+              this.makePiece(["W"]);
               
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "G"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "O"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "S"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 70, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y + 35, 30, "H"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "Y"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 70, y, 30, "P"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "I"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "G"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y + 35, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "A"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "T"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "T"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "C"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "T"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "U"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 70, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 105, 30, "K"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y + 70, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "O"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "S"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y - 35, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y + 35, 30, "E"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "N"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 35, 30, "K"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "T"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "H"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "D"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "U"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "C"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "H"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "K"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "I"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "C"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y + 35, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "W"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              var grid = new Grid();
-              grid.squares.push([13,3]);
-              grid.squares.push([14,3]);
-              grid.squares.push([15,3]);
-              grid.squares.push([16,3]);
-              grid.squares.push([15,4]);
-              grid.squares.push([15,5]);
-              grid.squares.push([15,6]);
-              grid.squares.push([16,6]);
-              grid.squares.push([17,6]);
-              grid.squares.push([15,7]);
-              grid.squares.push([10,8]);
-              grid.squares.push([11,8]);
-              grid.squares.push([12,8]);
-              grid.squares.push([13,8]);
-              grid.squares.push([14,8]);
-              grid.squares.push([15,8]);
-              grid.squares.push([16,8]);
-              grid.squares.push([15,9]);
-              grid.squares.push([13,5]);
-              grid.squares.push([13,6]);
-              grid.squares.push([13,7]);
-              grid.squares.push([13,9]);
-              grid.squares.push([10,6]);
-              grid.squares.push([10,7]);
-              grid.squares.push([10,9]);
-              grid.squares.push([10,10]);
-              grid.squares.push([10,11]);
-              grid.squares.push([8,10]);
-              grid.squares.push([9,10]);
-              grid.squares.push([11,10]);
-              grid.squares.push([12,10]);
-              grid.squares.push([12,11]);
-              grid.squares.push([12,12]);
-              grid.squares.push([13,12]);
-              grid.squares.push([14,11]);
-              grid.squares.push([14,12]);
-              grid.squares.push([14,13]);
-              grid.squares.push([15,12]);
-              grid.squares.push([6,7]);
-              grid.squares.push([7,7]);
-              grid.squares.push([8,7]);
-              grid.squares.push([8,8]);
-              grid.squares.push([8,9]);
-              grid.squares.push([8,11]);
-              
-              this.paint_list.push(grid);
-              this.clickable_list.push(grid);
+
+              this.makeGrid(
+              [
+              "       OOOO ",
+              "         O  ",
+              "       O O  ",
+              "    O  O OOO",
+              "OOO O  O O  ",
+              "  O OOOOOOO ",
+              "  O O  O O  ",
+              "  OOOOO     ",
+              "  O O O O   ",
+              "      OOOO  ",
+              "        O   "
+              ], 6, 3);
 
               this.name = "THE FARM";
 
               break;
             case 1:
+              this.makePiece(["BE"]);
+              this.makePiece(["AT","R "]);
+              this.makePiece([" I","RA"]);
+              this.makePiece(["  V","OPE"]);
+              this.makePiece(["NO"]);
+              this.makePiece(["CO"]);
+              this.makePiece([" R"," S","TE"]);
+              this.makePiece([" T","RE"," N"]);
+              this.makePiece(["  O","HAR"]);
+              this.makePiece(["M","E"]);
+              this.makePiece(["T","E"]);
+              this.makePiece(["RD"]);
+              this.makePiece(["IC"]);
+              this.makePiece(["M  ","P  ","ONY"]);
+              this.makePiece(["  L","CHO"]);
+              this.makePiece([" D ","LYR"]);
 
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "B"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "E"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "A"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "T"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "R"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "I"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "A"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y + 35, 30, "R"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y - 35, 30, "V"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "P"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "N"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "C"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "O"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "S"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 35, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y + 35, 30, "T"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "E"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 35, 30, "T"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "N"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "A"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y  - 35, 30, "O"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "H"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "M"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "E"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "T"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y + 35, 30, "E"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);                            
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "D"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);              
-              
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "I"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "C"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);              
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "O"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 35, 30, "P"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 70, 30, "M"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "N"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 70, y, 30, "Y"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "H"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "C"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "O"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y - 35, 30, "L"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              letter_box_collection = new LetterBoxCollection();
-              x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-              y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y, 30, "Y"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x - 35, y, 30, "L"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x + 35, y, 30, "R"));
-              letter_box_collection.letterBoxList.push(new LetterBox(x, y - 35, 30, "D"));
-              letter_box_collection.snap(35);
-              this.paint_list.push(letter_box_collection);
-              this.draggable_list.push(letter_box_collection);
-
-              var grid = new Grid();
-              grid.squares.push([9,3]);
-              grid.squares.push([10,3]);
-              grid.squares.push([11,3]);
-              grid.squares.push([12,3]);
-              grid.squares.push([11,4]);
-              grid.squares.push([11,5]);
-              grid.squares.push([11,6]);
-              grid.squares.push([10,6]);
-              grid.squares.push([9,6]);
-              grid.squares.push([8,6]);
-              grid.squares.push([7,6]);
-              grid.squares.push([9,5]);
-              grid.squares.push([9,7]);
-              grid.squares.push([9,8]);
-              grid.squares.push([9,9]);
-              grid.squares.push([8,9]);
-              grid.squares.push([7,9]);
-              grid.squares.push([6,9]);
-
-              grid.squares.push([10,8]);
-              grid.squares.push([11,8]);
-              grid.squares.push([12,8]);
-              grid.squares.push([13,8]);
-              grid.squares.push([13,7]);
-              grid.squares.push([13,9]);
-              grid.squares.push([13,10]);
-              grid.squares.push([13,11]);
-              grid.squares.push([15,7]);
-              grid.squares.push([15,8]);
-              grid.squares.push([15,9]);
-              grid.squares.push([15,10]);
-              grid.squares.push([15,11]);
-              grid.squares.push([11,11]);
-              grid.squares.push([12,11]);
-              grid.squares.push([14,11]);
-              grid.squares.push([16,11]);
-              grid.squares.push([17,11]);
-              grid.squares.push([14,12]);
-              grid.squares.push([14,13]);
-              grid.squares.push([14,14]);
-              grid.squares.push([12,14]);
-              grid.squares.push([13,14]);
-              grid.squares.push([15,14]);
-              grid.squares.push([16,14]);
-              grid.squares.push([14,15]);
-              grid.squares.push([14,16]);
-              grid.squares.push([13,16]);
-              grid.squares.push([15,16]);
-              grid.squares.push([16,16]);
-              grid.squares.push([17,16]);
-
-              this.paint_list.push(grid);
-              this.clickable_list.push(grid);
+              this.makeGrid(
+              [
+              "   OOOO     ",
+              "     O      ",
+              "   O O      ",
+              " OOOOO      ",
+              "   O   O O  ",
+              "   OOOOO O  ",
+              "OOOO   O O  ",
+              "       O O  ",
+              "     OOOOOOO",
+              "        O   ",
+              "        O   ",
+              "      OOOOO ",
+              "        O   ",
+              "       OOOOO"
+              ], 6, 3);
 
               this.name = "MUSIC";
               break;
