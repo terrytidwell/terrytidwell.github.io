@@ -337,7 +337,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 2;
+          g_level_cap = 3;
 
           switch (stage) {
             case 0:
@@ -356,7 +356,6 @@
               this.makePiece(["CK","H "]);
               this.makePiece(["I ","CO"]);
               this.makePiece(["W"]);
-              
 
               this.makeGrid(
               [
@@ -414,7 +413,46 @@
 
               this.name = "MUSIC";
               break;
+            case 2:
+              this.makePiece(["H","A"]);
+              this.makePiece(["R  ","PET"]);
+              this.makePiece([" T","TR"," O"]);
+              this.makePiece(["UM"]);
+              this.makePiece(["M  ","BAG"]);
+              this.makePiece([" V","PI"," O"]);
+              this.makePiece(["PE"]);
+              this.makePiece(["L ","I ","NO"]);
+              this.makePiece(["PIA"]);
+              this.makePiece(["NJO","  N"]);
+              this.makePiece(["BA"]);
+              this.makePiece(["ELE"]);
+              this.makePiece(["UL"]);
+              this.makePiece(["G ","UK","I "]);
+              this.makePiece([" T"," A","DR"]);
+              this.makePiece(["UMS"]);
+
+              this.makeGrid(
+              [
+              "          O   ",
+              "          O   ",
+              "       O  O   ",
+              "      OOOOOOO ",
+              "       O      ",
+              "       O   O  ",
+              "       OOOOOOO",
+              "   OOOOO   O  ",
+              " O     O   O  ",
+              " OOOOOOO   O  ",
+              " O      OOOOO ",
+              " O            ",
+              " O            ",
+              "OOOOO         "
+              ], 5, 2);
+
+              this.name = "INSTRUMENTS";
+              break;
             default:
+              this.name = "INVALID PUZZLE";
               break;
           }
         },
