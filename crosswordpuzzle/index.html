@@ -342,7 +342,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 3;
+          g_level_cap = 4;
 
           switch (stage) {
             case 0:
@@ -456,6 +456,44 @@
 
               this.name = "INSTRUMENTS";
               break;
+            case 3:
+              this.makePiece(["P","E"], 5, 2);
+              this.makePiece(["A ","CH","H "], 19, 7);
+              this.makePiece(["ER"," I"], 19, 2);
+              this.makePiece(["AP","P "], 16, 2);
+              this.makePiece(["  P","PLE"], 2, 5);
+              this.makePiece(["A","R"], 8, 13);
+              this.makePiece(["RY"], 19, 5);
+              this.makePiece(["C ","OR","T "], 6, 9);
+              this.makePiece(["AN"," A"], 5, 13);
+              this.makePiece(["GE"], 16, 5);
+              this.makePiece(["B","A"], 20, 11);
+              this.makePiece(["GR"], 16, 9);
+              this.makePiece(["GO"], 16, 7);
+              this.makePiece(["N ","AP"], 2, 13);
+              this.makePiece(["MAN","E  "], 2, 8);
+              this.makePiece(["MON"], 2, 11);
+              this.makePiece(["LE","O ","N "], 2, 2);
+              
+              
+              this.makeGrid(
+              [
+              "O      O     ",
+              "O  OOOOO     ",
+              "O  O   O     ",
+              "OOOOOO O     ",
+              "O  O  O      ",
+              "   O  O      ",
+              "   OOOOOO    ",
+              "   O  O      ",
+              "      O OOOOO",
+              "    OOOOO    ",
+              "        OOOOO",
+              "        O    ",
+              "        O    "
+              ], 6, 3);
+              this.name = "THE GOOD KIND OF SALAD";
+              break;
             default:
               this.name = "INVALID PUZZLE";
               break;
@@ -489,7 +527,7 @@
             box.color = STATIC_COLOR;
             this.paint_list.push(box);
           }
-          */
+          //*/
         },
         handleMouseDown: function (event) {
           for(var i = this.draggable_list.length - 1; i>=0; i--)
