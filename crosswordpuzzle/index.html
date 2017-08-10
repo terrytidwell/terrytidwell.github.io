@@ -299,10 +299,15 @@
           this.reset();
         },
 
-        makePiece: function (letters) {
+        makePiece: function (letters, x = 0, y = 0) {
           var letter_box_collection = new LetterBoxCollection();
-          var x = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-          var y = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
+          var defaultX = 0;
+          var defaultY = 0;
+          if ( x === 0 && y === 0)
+          {
+            defaultX = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
+            defaultY = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
+          }
           for (var i = 0; i < letters.length; i++)
           {
             for (var j = 0; j < letters[i].length; j++)
@@ -310,7 +315,7 @@
               if (letters[i].charAt(j) !== " ")
               {
                 letter_box_collection.letterBoxList.push(
-                  new LetterBox(x + (35 * j), y + (35 * i), 30, letters[i].charAt(j)));
+                  new LetterBox(defaultX + 35 * (j + x),defaultY + 35 * (i + y), 30, letters[i].charAt(j)));
               }
             }
           }
@@ -341,21 +346,21 @@
 
           switch (stage) {
             case 0:
-              this.makePiece(["DO"]);
-              this.makePiece(["G","O"]);
-              this.makePiece(["O ","SH","E "]);
-              this.makePiece(["EEP","Y  "]);
-              this.makePiece(["I ","GO"]);
-              this.makePiece(["AT","T "]);
-              this.makePiece(["C"]);
-              this.makePiece(["T ","U ","RO","K "]);
-              this.makePiece([" R","OS"," E"]);
-              this.makePiece([" K ","TER"," N "]);
-              this.makePiece(["H","O"]);
-              this.makePiece(["DU"]);
-              this.makePiece(["CK","H "]);
-              this.makePiece(["I ","CO"]);
-              this.makePiece(["W"]);
+              this.makePiece(["DO"], 17, 14);
+              this.makePiece(["G","O"], 20, 4);
+              this.makePiece(["O ","SH","E "], 19, 7);
+              this.makePiece(["EEP","Y  "], 18, 2);
+              this.makePiece(["I ","GO"], 7, 13);
+              this.makePiece(["AT","T "], 5, 2);
+              this.makePiece(["C"], 4, 12);
+              this.makePiece(["T ","U ","RO","K "], 2, 2);
+              this.makePiece([" R","OS"," E"], 19, 11);
+              this.makePiece([" K ","TER"," N "], 7, 3);
+              this.makePiece(["H","O"],2, 13);
+              this.makePiece(["DU"], 4, 14);
+              this.makePiece(["CK","H "], 2, 10);
+              this.makePiece(["I ","CO"], 2, 7);
+              this.makePiece(["W"], 17, 12);
 
               this.makeGrid(
               [
@@ -376,22 +381,22 @@
 
               break;
             case 1:
-              this.makePiece(["BE"]);
-              this.makePiece(["AT","R "]);
-              this.makePiece([" I","RA"]);
-              this.makePiece(["  V","OPE"]);
-              this.makePiece(["NO"]);
-              this.makePiece(["CO"]);
-              this.makePiece([" R"," S","TE"]);
-              this.makePiece([" T","RE"," N"]);
-              this.makePiece(["  O","HAR"]);
-              this.makePiece(["M","E"]);
-              this.makePiece(["T","E"]);
-              this.makePiece(["RD"]);
-              this.makePiece(["IC"]);
-              this.makePiece(["M  ","P  ","ONY"]);
-              this.makePiece(["  L","CHO"]);
-              this.makePiece([" D ","LYR"]);
+              this.makePiece(["BE"], 2, 12);
+              this.makePiece(["AT","R "], 2, 2);
+              this.makePiece([" I","RA"], 17, 5);
+              this.makePiece(["  V","OPE"], 2, 9);
+              this.makePiece(["NO"], 2, 7);
+              this.makePiece(["CO"], 16, 2);
+              this.makePiece([" R"," S","TE"], 19, 7);
+              this.makePiece([" T","RE"," N"], 19, 2);
+              this.makePiece(["  O","HAR"], 18, 13);
+              this.makePiece(["M","E"], 5, 2);
+              this.makePiece(["T","E"], 5, 5);
+              this.makePiece(["RD"], 19, 11);
+              this.makePiece(["IC"], 2, 5);
+              this.makePiece(["M  ","P  ","ONY"], 14, 2);
+              this.makePiece(["  L","CHO"], 3, 13);
+              this.makePiece([" D ","LYR"], 7, 12);
 
               this.makeGrid(
               [
@@ -414,22 +419,22 @@
               this.name = "MUSIC";
               break;
             case 2:
-              this.makePiece(["H","A"]);
-              this.makePiece(["R  ","PET"]);
-              this.makePiece([" T","TR"," O"]);
-              this.makePiece(["UM"]);
-              this.makePiece(["M  ","BAG"]);
-              this.makePiece([" V","PI"," O"]);
-              this.makePiece(["PE"]);
-              this.makePiece(["L ","I ","NO"]);
-              this.makePiece(["PIA"]);
-              this.makePiece(["NJO","  N"]);
-              this.makePiece(["BA"]);
-              this.makePiece(["ELE"]);
-              this.makePiece(["UL"]);
-              this.makePiece(["G ","UK","I "]);
-              this.makePiece([" T"," A","DR"]);
-              this.makePiece(["UMS"]);
+              this.makePiece(["H","A"], 20, 9);
+              this.makePiece(["R  ","PET"], 2, 7);
+              this.makePiece([" T","TR"," O"], 19, 5);
+              this.makePiece(["UM"], 2, 2);
+              this.makePiece(["M  ","BAG"], 2, 4);
+              this.makePiece([" V","PI"," O"], 5, 2);
+              this.makePiece(["PE"], 9, 7);
+              this.makePiece(["L ","I ","NO"], 2, 12);
+              this.makePiece(["PIA"], 14, 14);
+              this.makePiece(["NJO","  N"], 18, 2);
+              this.makePiece(["BA"], 2, 10);
+              this.makePiece(["ELE"], 8, 3);
+              this.makePiece(["UL"], 8, 5);
+              this.makePiece(["G ","UK","I "], 6, 6);
+              this.makePiece([" T"," A","DR"], 19, 12);
+              this.makePiece(["UMS"], 8, 13);
 
               this.makeGrid(
               [
@@ -470,6 +475,19 @@
           this.textHeight = null;
 
           this.populateLevel(g_level);
+          
+          for (var i = 0; i < g_canvas.width; i += 35)
+          {
+            var box = new LetterBox(i, 0, 30, "0123456789".charAt((i / 35) % 10));
+            box.color = STATIC_COLOR;
+            this.paint_list.push(box);
+          }
+          for (var i = 35; i < g_canvas.height; i += 35)
+          {
+            var box = new LetterBox(0, i, 30, "0123456789".charAt((i / 35) % 10));
+            box.color = STATIC_COLOR;
+            this.paint_list.push(box);
+          }
           
           //this.current_target = new MysteryBox(g_canvas.width - 60, g_canvas.height - 60, 50, Util.randomItem(this.color_list));
           //this.current_target.revealed = true;
@@ -591,7 +609,7 @@
           this.forwardTextSize = g_ctx.measureText(">>").width;
           g_ctx.fillText(">>", g_canvas.width, g_canvas.height);
 
-          for(var i = this.paint_list.length - 1; i>=0; i--)
+          for (var i = this.paint_list.length - 1; i>=0; i--)
           {
             if(!this.paint_list[i].checkPulse())
             {
