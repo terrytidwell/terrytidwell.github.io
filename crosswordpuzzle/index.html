@@ -476,6 +476,7 @@
 
           this.populateLevel(g_level);
           
+          /*
           for (var i = 0; i < g_canvas.width; i += 35)
           {
             var box = new LetterBox(i, 0, 30, "0123456789".charAt((i / 35) % 10));
@@ -488,10 +489,7 @@
             box.color = STATIC_COLOR;
             this.paint_list.push(box);
           }
-          
-          //this.current_target = new MysteryBox(g_canvas.width - 60, g_canvas.height - 60, 50, Util.randomItem(this.color_list));
-          //this.current_target.revealed = true;
-          //this.paint_list.push(this.current_target);
+          */
         },
         handleMouseDown: function (event) {
           for(var i = this.draggable_list.length - 1; i>=0; i--)
