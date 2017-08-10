@@ -342,7 +342,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 4;
+          g_level_cap = 5;
 
           switch (stage) {
             case 0:
@@ -493,6 +493,38 @@
               "        O    "
               ], 6, 3);
               this.name = "THE GOOD KIND OF SALAD";
+              break;
+            case 4:
+              this.makePiece(["PU","I "], 17, 2);
+              this.makePiece(["N","K"], 2, 4);
+              this.makePiece(["B ","RP","O "], 2, 10);
+              this.makePiece(["W","N"], 20, 9);
+              this.makePiece(["Y ","E ","LE"], 18, 11);
+              this.makePiece(["L ","OR","W "], 17, 5);
+              this.makePiece([" E"," E","AN"], 19, 2);
+              this.makePiece(["G","R"], 5, 2);
+              this.makePiece([" I"," T","GE"], 4, 11);
+              this.makePiece(["W","H"], 20, 6);
+              this.makePiece([" R","LA"," Y"], 7, 11);
+              this.makePiece(["CK"], 2, 2);
+              this.makePiece(["B","L"], 16, 12);
+              this.makePiece([" U","RE"], 2, 7);
+              this.makePiece(["D"], 18, 9);
+
+              this.makeGrid(
+              [
+              "    O  O O ",
+              "  O O  O O ",
+              "OOOOOO O O ",
+              "O O O  O O ",
+              "O O OOOOOO ",
+              "O O O   O  ",
+              "      OOOOO",
+              "      O O  ",
+              "      O    ",
+              "     OOO   "
+              ], 6, 3);
+              this.name = "COLORS";
               break;
             default:
               this.name = "INVALID PUZZLE";
