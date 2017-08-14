@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<style>
+</style>
+<body style="background-color: white;">
+
+<canvas id="canvas" width="800" height="600"></canvas>
+
+<!--testing-->
+<div id="testing_div"></div>
+
+<script type="text/javascript" src="jut.js"></script>
+<script type="text/javascript">
+
+window.addEventListener("load", function(event)
+  {
+    new jut.test_instance(document.getElementById("testing_div"),my_tests);
+  }
+);
+
+function chooseRandomly(list)
+{
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function removeRandomly(list)
+{
+  var index = Math.floor(Math.random() * list.length);
+  var item = list[index];
+  list.splice(index, 1);
+  return item;
+}
+
+var OrientationEnum = {
+  VERTICAL: 0,
+  HORIZONTAL: 1,
+  properties: {
+    0: {name: "vertical", value: 0},
+    1: {name: "horizontal", value: 1},
+    random: function() { if (Math.random() < 0.5) { return 0; } return 1; } 
+  }
+};
+
+function placeFirstWord(word, puzzle)
+{
+  var offset = word.length / 2;
+  //var puzzleWidth = puzzle.grid.length;
+  //var puzzleHeight = puzzle.grid[0].length;
+  var y = 0;
+  var x = 0;
+  var orientation = OrientationEnum.properties.random();
+  if (orientation === OrientationEnum.VERTICAL)
+  {
+    y -= offset;
+  }
+  else if (orientation === OrientationEnum.HORIZONTAL)
+  {
+    x -= offset;
+  }
+  placeWord(Math.floor(x), Math.floor(y), orientation, word, puzzle);
+}
+
+function findOverlaps(word,puzzle)
+{
+  var i = 0;
+  var j = 0;
+  var k = 0;
+  var hits = [];
+  var placedWord;
+  
+  for (i = 0; i < word.length; ++i)
+  {
+    for(j = 0; j < puzzle.placedWords.length; ++j)
+    {
+      placedWord = puzzle.placedWords[j];
+      for(k = 0; k < placedWord.word.length; ++k)
+      {
+        if(word[i] === placedWord.word[k])
+        {
+          var x = placedWord.x;
+          var y = placedWord.y;
+          var orientation;
+          if (placedWord.orientation === OrientationEnum.VERTICAL)
+          {
+            y += k;
+            x -= i;
+            orientation = OrientationEnum.HORIZONTAL;
+          }
+          else if (placedWord.orientation === OrientationEnum.HORIZONTAL)
+          {
+            x += k;
+            y -= i;
+            orientation = OrientationEnum.VERTICAL;
+          }
+          hits.push([x,y,orientation]);
+          //jut.display(" " + x + " " + y + " " + orientation + "<br>");
+        }
+      }
+    }
+  }
+  return hits;
+}
+
+function intersects(x, y, word_x, word_y, word_orientation, word_length)
+{
+  if (word_orientation == OrientationEnum.VERTICAL)
+  {
+    if (x === word_x && y >= word_y && y < word_y + word_length)
+    {
+      return true;
+    }
+  }
+  else if (word_orientation == OrientationEnum.HORIZONTAL)
+  {
+    if (y === word_y && x >= word_x && x < word_x + word_length)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+function findLetterAt(x, y, puzzle)
+{
+  var i = 0;
+  for (; i < puzzle.placedWords.length; ++i)
+  {
+    var placedWord = puzzle.placedWords[i];
+    if (placedWord.orientation === OrientationEnum.VERTICAL)
+    {
+      if (x === placedWord.x && y >= placedWord.y && y < placedWord.y + placedWord.word.length)
+      {
+        return placedWord.word[y - placedWord.y];
+      }
+    }
+    else if (placedWord.orientation === OrientationEnum.HORIZONTAL)
+    {
+      if (y === placedWord.y && x >= placedWord.x && x < placedWord.x + placedWord.word.length)
+      {
+        return placedWord.word[x - placedWord.x];
+      }
+    }
+  }
+  return "";
+}
+
+function paint(puzzle, ctx)
+{
+  var PHI = 1.61803398875;
+  var INVERSE_PHI = 0.61803398875;
+  var j = 0;
+  var i = 0;
+  for (j = 0; j < puzzle.placedWords.length; j++)
+  {
+    var placedWord = puzzle.placedWords[j];
+    var x = placedWord.x;
+    var y = placedWord.y;
+    for (i = 0; i < placedWord.word.length; i++)
+    {
+      var size = 16;
+      var size_plus_border = 20;
+      ctx.strokeStyle = "black";
+      ctx.fillStyle = "black";
+      ctx.lineJoin ="round";
+      ctx.lineWidth = Math.round(size / (10*PHI));
+      ctx.strokeRect(x * size_plus_border, y * size_plus_border, size, size);
+      ctx.textBaseline="middle";
+      ctx.textAlign="center";
+      ctx.font = Math.round(INVERSE_PHI * size) + "px Verdana";
+      ctx.fillText(placedWord.word[i], x * size_plus_border + size/2, y * size_plus_border + size/2);
+      
+      if (placedWord.orientation === OrientationEnum.VERTICAL)
+      {
+        y++;
+      }
+      else if(placedWord.orientation === OrientationEnum.HORIZONTAL)
+      {
+        x++
+      }
+    }
+  }
+}
+
+function maxOrNotNull(a, b)
+{
+  if (!a && !(a === 0))
+  {
+    return b;
+  }
+  if (!b && !(b === 0))
+  {
+    return a;
+  }
+  if (a > b)
+  {
+    return a;
+  }
+  return b;
+}
+
+function minOrNotNull(a, b)
+{
+  if (!a && !(a === 0))
+  {
+    return b;
+  }
+  if (!b && !(b === 0))
+  {
+    return a;
+  }
+  if (a < b)
+  {
+    return a;
+  }
+  return b;
+}
+
+function justifyPuzzle(puzzle)
+{
+  var dim = findDimensions(puzzle);
+  var current_x = dim[0];
+  var current_y = dim[1];
+  transposePuzzle(puzzle, Math.floor(-current_x), Math.floor(-current_y));
+}
+
+function centerPuzzle(puzzle, center_x, center_y)
+{
+  var dim = findDimensions(puzzle);
+  var current_x = dim[0] + dim[2] / 2;
+  var current_y = dim[1] + dim[3] / 2;
+  transposePuzzle(puzzle, Math.floor(center_x - current_x), Math.floor(center_y - current_y));
+}
+
+function transposePuzzle(puzzle, dx, dy)
+{
+  var j = 0;
+  for (; j < puzzle.placedWords.length; j++)
+  {
+    puzzle.placedWords[j].x += dx;
+    puzzle.placedWords[j].y += dy;
+  }
+}
+
+function findDimensions(puzzle)
+{
+  if (puzzle.placedWords.length == 0)
+  {
+    return [0, 0, 0, 0];
+  }
+  var j = 0;
+  var max_x = null;
+  var min_x = null;
+  var max_y = null;
+  var min_y = null;
+  for (j = 0; j < puzzle.placedWords.length; j++)
+  {
+    var placedWord = puzzle.placedWords[j];
+    min_x = minOrNotNull(min_x, placedWord.x);
+    min_y = minOrNotNull(min_y, placedWord.y);
+    
+    if (placedWord.orientation === OrientationEnum.VERTICAL)
+    {
+      max_x = maxOrNotNull(max_x, placedWord.x);
+      max_y = maxOrNotNull(max_y, placedWord.y + placedWord.word.length);
+    }
+    else if(placedWord.orientation === OrientationEnum.HORIZONTAL)
+    {
+      max_y = maxOrNotNull(max_y, placedWord.y);
+      max_x = maxOrNotNull(max_x, placedWord.x + placedWord.word.length);
+    }
+  }
+  return [min_x, min_y, 1 + max_x - min_x, 1 + max_y - min_y];
+}
+
+function testWord(x, y, orientation, word, puzzle)
+{
+  var i = 0;
+  var j = 0;
+  if (orientation == OrientationEnum.VERTICAL)
+  {
+    if (findLetterAt(x, y-1, puzzle) !== "" || findLetterAt(x, y+word.length, puzzle) !== "")
+    {
+      return false;
+    }
+  }
+  else if (orientation == OrientationEnum.HORIZONTAL)
+  {
+    if (findLetterAt(x-1, y, puzzle) !== "" || findLetterAt(x+word.length, y, puzzle) !== "")
+    {
+      return false;
+    }
+  }
+  for (i = 0; i < puzzle.placedWords.length; i++)
+  {
+    var placedWord = puzzle.placedWords[i];
+    if (placedWord.orientation == OrientationEnum.VERTICAL)
+    {
+      if(intersects(placedWord.x, placedWord.y - 1, x, y, orientation, word.length) ||
+        intersects(placedWord.x, placedWord.y + placedWord.word.length - 1, x, y, orientation, word.length))
+      {
+        return false;
+      }
+    }
+    else if (placedWord.orientation == OrientationEnum.HORIZONTAL)
+    {
+      if(intersects(placedWord.x - 1, placedWord.y, x, y, orientation, word.length) ||
+        intersects(placedWord.x + placedWord.word.length - 1, placedWord.y, x, y, orientation, word.length))
+      {
+        return false;
+      }
+    }
+  }
+  var new_x = x;
+  var new_y = y
+  for (i = 0; i < word.length; i++)
+  {
+    var letter = findLetterAt(new_x, new_y, puzzle);
+    if (letter !== "" && letter !== word[i])
+    {
+      return false;
+    }
+    if (orientation === OrientationEnum.VERTICAL)
+    {
+      new_y++;
+    }
+    else if (orientation === OrientationEnum.HORIZONTAL)
+    {
+      new_x++;
+    }
+  }
+  
+  for (i = 0; i < word.length; i++)
+  {
+    var check_adjacent = true;
+    for (j = 0; j < puzzle.placedWords.length; j++)
+    {
+      var placedWord = puzzle.placedWords[j];
+      if (orientation === OrientationEnum.HORIZONTAL)
+      {
+        if (placedWord.orientation === OrientationEnum.VERTICAL)
+        {
+          if (intersects(x + i, y, placedWord.x, placedWord.y, placedWord.orientation, placedWord.word.length))
+          {
+            check_adjacent = false;
+          }
+        }
+      }
+      else if (orientation === OrientationEnum.VERTICAL)
+      {
+        if (placedWord.orientation === OrientationEnum.HORIZONTAL)
+        {
+          if (intersects(x, y + i, placedWord.x, placedWord.y, placedWord.orientation, placedWord.word.length))
+          {
+            check_adjacent = false;
+          }
+        }
+      }
+    }
+    if (check_adjacent)
+    {
+      if (orientation == OrientationEnum.HORIZONTAL)
+      {
+        if (findLetterAt(x + i, y - 1, puzzle) !== "" || findLetterAt(x + i, y + 1, puzzle) !== "")
+        {
+          return false;
+        }
+      }
+      else if(orientation == OrientationEnum.VERTICAL)
+      {
+        if (findLetterAt(x - 1, y + i, puzzle) !== "" || findLetterAt(x + 1, y + i, puzzle) !== "")
+        {
+          return false;
+        }      
+      }
+    }
+  }
+  
+  return true;
+}
+
+function placeWord(x, y, orientation, word, puzzle)
+{
+  var i = 0;
+  puzzle.placedWords.push({x: x, y: y, orientation: orientation, word: word});
+  /*
+  for (; i < word.length; i++)
+  {
+    puzzle.grid[x][y] = word[i];
+    if (orientation === OrientationEnum.VERTICAL)
+    {
+      y++;
+    }
+    else if (orientation === OrientationEnum.HORIZONTAL)
+    {
+      x++;
+    }
+  }
+  */
+}
+
+function createPuzzle(words)
+{
+  var wordList = words.slice(0);
+  var puzzle = {placedWords: []}
+  var i, j;
+  var grid_size = [46, 33];
+  
+  placeFirstWord(removeRandomly(wordList),puzzle);
+  var unplaced_streak = 0;
+  while(wordList.length != 0)
+  {
+    var next = removeRandomly(wordList);
+    var hits = findOverlaps(next, puzzle);
+  
+    var placed = false;
+  
+    while(hits.length !== 0)
+    {
+      var position = removeRandomly(hits);
+      if(testWord(position[0], position[1], position[2], next, puzzle))
+      {
+        placeWord(position[0], position[1], position[2], next, puzzle);
+        placed = true;
+        //jut.display("Placed word " + puzzle.placedWords.length + "<br>");
+        unplaced_streak = 0;
+        hits = [];
+      }
+      //
+    }
+    
+    if (!placed)
+    {
+      unplaced_streak++;
+      //jut.display("Failed to place, " + unplaced_streak + " " + wordList.length + "<br>")
+      
+      if (unplaced_streak <= wordList.length)
+      {
+        wordList.push(next);
+      }
+      else if (unplaced_streak > wordList.length)
+      {
+        wordList = [];
+      }
+    }
+  }
+  justifyPuzzle(puzzle);
+  return puzzle;
+}
+
+function maxPuzzle(puzzleA, puzzleB)
+{
+  if(puzzleA.placedWords.length > puzzleB.placedWords.length)
+  {
+    return puzzleA;
+  }
+  if(puzzleA.placedWords.length < puzzleB.placedWords.length)
+  {
+    return puzzleB;
+  }
+  var dimA = findDimensions(puzzleA);
+  var dimB = findDimensions(puzzleB);
+  var areaA = dimA[2]*dimA[2] + dimA[3]*dimA[3];
+  var areaB = dimB[2]*dimB[2] + dimB[3]*dimB[3];
+  if (areaA < areaB)
+  {
+    return puzzleA;
+  }
+  return puzzleB;
+}
+
+function createPuzzles(wordList, ctx, cavnas)
+{
+  var best_puzzle = createPuzzle(wordList);
+  for(var i = 0; i < 250; i++)
+  {
+    var next_puzzle = createPuzzle(wordList);
+    best_puzzle = maxPuzzle(best_puzzle, next_puzzle);
+  }
+  return best_puzzle;
+}
+
+function canMerge(a, b)
+{
+  if (a % 2 === 0)
+  {
+    return a + 1 !== b;
+  }
+  if (a % 2 === 1)
+  {
+    return a - 1 !== b;
+  }
+}
+
+const EMPTY_TILE = -1;
+const NO_GROUP_TILE = -2;
+
+function createNewGroup(x,y,groups,grid)
+{
+  grid[x][y] = groups.length;
+  groups.push([[x,y]])
+}
+
+function paintGrid(grid,ctx)
+{
+  var PHI = 1.61803398875;
+  var INVERSE_PHI = 0.61803398875;
+  var i = 0;
+  var j = 0;
+  for (i = 0; i < grid.length; i++)
+  {
+    for(j = 0; j < grid[i].length; j++)
+    {
+      if(grid[i][j] !== EMPTY_TILE)
+      {
+        var size = 16;
+        var size_plus_border = 20;
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "black";
+        ctx.lineJoin ="round";
+        ctx.lineWidth = Math.round(size / (10*PHI));
+        ctx.strokeRect(i * size_plus_border, j * size_plus_border, size, size);
+        ctx.textBaseline="middle";
+        ctx.textAlign="center";
+        ctx.font = Math.round(INVERSE_PHI * size) + "px Verdana";
+        ctx.fillText(grid[i][j], i * size_plus_border + size/2, j * size_plus_border + size/2);
+      }
+    }
+  }
+}
+
+function addGrid(puzzle)
+{
+  var i = 0;
+  var j = 0;
+  var grid = [];
+  var dim = findDimensions(puzzle);
+  var tile_counter = 0;
+  for (i = 0; i < dim[2]; i++)
+  {
+    grid.push([]);
+    for(j = 0; j < dim[3]; j++)
+    {
+      var value = EMPTY_TILE;
+      if(findLetterAt(i,j,puzzle) !== "")
+      {
+        value = NO_GROUP_TILE;
+        tile_counter++;
+      }
+      grid[i].push(value);
+    }
+  }
+  puzzle.grid = grid;
+  puzzle.tile_count = tile_counter;
+}
+
+function scoreGrouping(puzzle, groups)
+{
+  var score = 0;
+  var i = 0;
+  for (i = 0; i < puzzle.placedWords.length; ++i)
+  {
+    var placedWord = puzzle.placedWords[i];
+    var end_group;
+    if (placedWord.orientation === OrientationEnum.HORIZONTAL)
+    {
+      end_group = puzzle.grid[placedWord.x + placedWord.word.length - 1][placedWord.y];
+    }
+    else if (placedWord.orientation === OrientationEnum.VERTICAL)
+    {
+      end_group = puzzle.grid[placedWord.x][placedWord.y + placedWord.word.length - 1];
+    }
+    if (puzzle.grid[placedWord.x][placedWord.y] == end_group)
+    {
+      score -= 100;
+    }
+  }
+  for (i = 0; i < groups.length; ++i)
+  {
+    if (groups[i].length === 1)
+    {
+      score -= 5;
+    }
+    else if (groups[i].length > 4)
+    {
+      score -= (groups[i].length - 4) * 5;
+    }
+  }
+  return score;
+}
+
+function expandRandomGroup(puzzle, groups)
+{ 
+  var i = 0;
+  var j = 0;
+  var options = [];
+  for(j = 0; j < groups.length; ++j)
+  {
+    var group = groups[j];
+    for (i = 0; i < group.length; ++i)
+    {
+      var tile = group[i];
+      if (tile[0] !== 0 && puzzle.grid[tile[0]-1][tile[1]] === NO_GROUP_TILE)
+      {
+        options.push([tile[0]-1, tile[1], j]);
+      }
+      if (tile[1] !== 0 && puzzle.grid[tile[0]][tile[1]-1] === NO_GROUP_TILE)
+      {
+        options.push([tile[0], tile[1]-1, j]);
+      }
+      if (tile[0] + 1 < puzzle.grid.length && puzzle.grid[tile[0]+1][tile[1]] === NO_GROUP_TILE)
+      {
+        options.push([tile[0]+1, tile[1], j]);
+      }
+      if (tile[1] + 1 < puzzle.grid[tile[0]].length && puzzle.grid[tile[0]][tile[1]+1] === NO_GROUP_TILE)
+      {
+        options.push([tile[0], tile[1]+1, j]);
+      }
+    }
+  }
+  return chooseRandomly(options);
+}
+
+function randomUngroupedTile(puzzle, ungrouped_count)
+{
+  var index = Math.floor(Math.random() * ungrouped_count);
+  var i = 0;
+  var j = 0;
+  var current_count = 0;
+  for (i = 0; i < puzzle.grid.length; i++)
+  {
+    for (j = 0; j < puzzle.grid[i].length; j++)
+    {
+      if (puzzle.grid[i][j] === NO_GROUP_TILE)
+      {
+        if (current_count === index)
+        {
+          return [i, j];
+        }
+        current_count++;
+      }
+    }
+  }
+  return null;
+}
+
+function resetGrid(puzzle)
+{
+  var i = 0;
+  var j = 0;
+  for (i = 0; i < puzzle.grid.length; i++)
+  {
+    for (j = 0; j < puzzle.grid[i].length; j++)
+    {
+      if (puzzle.grid[i][j] !== EMPTY_TILE)
+      {
+        puzzle.grid[i][j] = NO_GROUP_TILE;
+      }
+    }
+  }
+}
+
+function setGrouping(puzzle, groups)
+{
+  var i = 0;
+  var j = 0;
+  for (i = 0; i < groups.length; i++)
+  {
+    for (j = 0; j < groups[i].length; j++)
+    {
+      puzzle.grid[groups[i][j][0]][groups[i][j][1]] = i;
+    }
+  }
+}
+
+function tileGrid(puzzle)
+{
+  var threshold = Math.random();
+  var groups = [];
+  var ungrouped_count = puzzle.tile_count
+  while(ungrouped_count !== 0)
+  {
+    if(groups.length === 0 || Math.random() < threshold)
+    {
+      var location = randomUngroupedTile(puzzle, ungrouped_count);
+      var group_index = groups.length;
+      puzzle.grid[location[0]][location[1]] = group_index;
+      groups.push([]);
+      groups[group_index].push([location[0],location[1]]);
+      ungrouped_count--;
+    }
+    else {  
+      var group_expansion = expandRandomGroup(puzzle, groups);
+      puzzle.grid[ group_expansion[0] ][ group_expansion[1] ] = group_expansion[2];
+      groups[group_expansion[2]].push([group_expansion[0],group_expansion[1]]);
+      ungrouped_count--;
+    }
+  }
+  return groups;
+}
+
+function createGroups(puzzle)
+{
+  addGrid(puzzle);
+  var best_grouping = tileGrid(puzzle);
+  var best_score = scoreGrouping(puzzle, best_grouping);
+  var i = 0;
+  for (; i < 20000; i++)
+  {
+    resetGrid(puzzle);
+    var next_grouping = tileGrid(puzzle);
+    var next_score = scoreGrouping(puzzle, next_grouping);
+    if (best_score < next_score)
+    {
+      best_grouping = next_grouping;
+      best_score = next_score;
+    }
+  }
+  setGrouping(puzzle, best_grouping);
+  jut.display("Best Score: " + best_score +"<br>");
+}
+
+function my_tests()
+{
+  var g_canvas = document.getElementById("canvas");
+  var g_ctx = g_canvas.getContext("2d");
+  g_ctx.fillStyle = "#f0f0f0";
+  g_ctx.fillRect(
+      0, 0,
+      g_canvas.width,
+      g_canvas.height);
+
+  
+  var wordList = [
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa",
+  "aaaaa"
+	];
+  var wordList = ["pepper","house","octopus","bones","watson","moreau","lecter","jekyll","who","frankenstein","indiana"];
+  //var wordList = ["pink", "purple", "brown", "yellow", "orange", "green", "white", "gray", "black", "blue", "red"];
+  var puzzle = createPuzzles(wordList, g_ctx, g_canvas);
+  createGroups(puzzle);
+  //tileGrid(puzzle);
+  //paint(puzzle, g_ctx);
+  paintGrid(puzzle.grid, g_ctx);
+  
+  jut.display("Placed " + puzzle.placedWords.length + "/" + wordList.length + "<br>");
+  
+  jut.test("Sanity Check", true);
+  jut.test("Min",  0 === minOrNotNull(null, 0));
+  jut.test("Min",  0 === minOrNotNull(0, null));
+  jut.test("Min",  0 === minOrNotNull(0, 1));
+  jut.test("Min",  0 === minOrNotNull(1, 0));
+  jut.test("Cannot merge 0 with 1", !canMerge(0,1));
+  jut.test("Cannot merge 2 with 3", !canMerge(2,3));
+  jut.test("Can merge 1 with 2", canMerge(1,2));
+  jut.test("Can merge 3 with 4", canMerge(3,4));
+}
+
+</script>
+</body>
+</html>
+
