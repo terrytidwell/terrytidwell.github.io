@@ -9,6 +9,18 @@
 <body style="background-color: white;">
 
 <canvas id="canvas" width="800" height="600"></canvas>
+<div>
+<textarea id="text" rows="1" cols="100">TEXT,FOR,SAMPLE,DISPLAY,ONLY</textarea>
+<div>
+<div width="800">
+  <button type="button" onclick="puzzleButton()">Create Puzzle</button>
+  <button type="button" onclick="showPuzzleButton()">Show Puzzle</button>
+  <button type="button" onclick="tileButton()">Create Tiling</button>
+  <button type="button" onclick="showTileButton()">Show Tiling</button>
+  <button type="button" onclick="toJsonButton()">To JSON</button>
+</div>
+<div id = "statusWindow" width="800">
+</div>
 
 <!--testing-->
 <div id="testing_div"></div>
@@ -16,11 +28,157 @@
 <script type="text/javascript" src="jut.js"></script>
 <script type="text/javascript">
 
+var g_canvas;
+var g_ctx;
+var g_status_window;
+var g_puzzle = null;
+var g_groups = null;
+
+function display(string)
+{
+  g_status_window.innerHTML = string;
+}
+
+function clearCanvas(ctx, canvas)
+{
+  ctx.fillStyle = "#f0f0f0";
+  ctx.fillRect(
+      0, 0,
+      canvas.width,
+      canvas.height);
+}
+
 window.addEventListener("load", function(event)
   {
     new jut.test_instance(document.getElementById("testing_div"),my_tests);
+    g_canvas = document.getElementById("canvas");
+    g_status_window = document.getElementById("statusWindow");
+    g_ctx = g_canvas.getContext("2d");
+    
+    g_canvas.addEventListener("mousedown", function (event) {
+      handleMouseDown(event);
+    }, false);
   }
 );
+
+function toJsonButton()
+{
+  if (g_groups === null)
+  {
+    return;
+  }
+  var i = 0;
+  var j = 0;
+  var str = "this.makeGrid(<br>";
+  str += "[<br>";
+  var dim = findDimensions(g_puzzle)
+  for (i = 0; i < dim[3]; i++)
+  {
+    if (i !== 0)
+    {
+      str += '",<br>'
+    }
+    str += '"';
+    for(j = 0; j < dim[2]; j++)
+    {
+      if(g_puzzle.grid[j][i] === EMPTY_TILE)
+      {
+        str += ".";
+      }
+      else
+      {
+        str += "O";
+      }
+    }
+  }
+  str += '"<br>], ' + dim[0] + ', ' + dim[1] + ');';
+  display(str);
+}
+
+function handleMouseDown(event)
+{
+  if (g_puzzle && g_puzzle.grid)
+  {
+    var x = Math.floor(event.offsetX / 35);
+    var y = Math.floor(event.offsetY / 35);
+    var dim = findDimensions(g_puzzle);
+    x -= dim[0];
+    y -= dim[1];
+    if (x < g_puzzle.grid.length && y < g_puzzle.grid[x].length)
+    {
+      if(g_puzzle.grid[x][y] === EMPTY_TILE)
+      {
+        //do nothing
+      }
+      else if(g_puzzle.grid[x][y] === RED)
+      {
+        g_puzzle.grid[x][y] = BLUE;
+      }
+      else if(g_puzzle.grid[x][y] === BLUE)
+      {
+        g_puzzle.grid[x][y] = YELLOW;
+      }
+      else if(g_puzzle.grid[x][y] === YELLOW)
+      {
+        g_puzzle.grid[x][y] = GREEN;
+      }
+      else
+      {
+        g_puzzle.grid[x][y] = RED;
+      }
+      clearCanvas(g_ctx, g_canvas);
+      paintGrid(g_puzzle, g_ctx);
+    }
+  }
+}
+
+function showPuzzleButton()
+{
+  if (g_puzzle === null)
+  {
+    return;
+  }
+  clearCanvas(g_ctx,g_canvas);
+  paint(g_puzzle, g_ctx);
+}
+
+function puzzleButton()
+{
+  var wordList = [];
+  var str = document.getElementById("text").value;
+  var t = str.split(",")
+  for (var i = 0; i < t.length; ++i)
+  {
+    wordList.push(t[i]);
+  }
+  g_puzzle = createPuzzles(wordList, g_ctx, g_canvas);
+  g_groups = null;
+  addGrid(g_puzzle);
+  clearCanvas(g_ctx,g_canvas);
+  paintGrid(g_puzzle, g_ctx);
+}
+
+function tileButton()
+{
+  if (g_puzzle === null)
+  {
+    return;
+  }
+  g_groups = createGroupFromColoring(g_puzzle);
+  //createGroups(g_puzzle);
+  clearCanvas(g_ctx,g_canvas);
+  paintGrid(g_puzzle, g_ctx);
+}
+
+function showTileButton()
+{
+  if (g_puzzle === null || !g_puzzle.grid)
+  {
+    return;
+  }
+  clearCanvas(g_ctx,g_canvas);
+  paintGrid(g_puzzle, g_ctx);
+}
 
 function chooseRandomly(list)
 {
@@ -148,10 +306,32 @@ function findLetterAt(x, y, puzzle)
   return "";
 }
 
-function paint(puzzle, ctx)
+function paintLetter(letter, x, y, bg_color, ctx)
 {
   var PHI = 1.61803398875;
   var INVERSE_PHI = 0.61803398875;
+  var size = 30;
+  var size_plus_border = 35;
+  var offset = Math.round((size_plus_border - size)/2)
+  ctx.strokeStyle = "black";
+  if(bg_color)
+  {
+    ctx.fillStyle = bg_color;
+    ctx.fillRect(x * size_plus_border + offset, y * size_plus_border + offset, size, size);
+  }
+  ctx.fillStyle = "black";
+  ctx.lineJoin ="round";
+  ctx.lineWidth = Math.round(size / (10*PHI));
+  ctx.strokeRect(x * size_plus_border + offset, y * size_plus_border + offset, size, size);
+  ctx.textBaseline="middle";
+  ctx.textAlign="center";
+  ctx.font = Math.round(INVERSE_PHI * size) + "px Verdana";
+  ctx.fillText(letter, x * size_plus_border + size/2 + offset, y * size_plus_border + size/2 + offset);
+}
+
+function paint(puzzle, ctx)
+{
+  
   var j = 0;
   var i = 0;
   for (j = 0; j < puzzle.placedWords.length; j++)
@@ -161,17 +341,7 @@ function paint(puzzle, ctx)
     var y = placedWord.y;
     for (i = 0; i < placedWord.word.length; i++)
     {
-      var size = 16;
-      var size_plus_border = 20;
-      ctx.strokeStyle = "black";
-      ctx.fillStyle = "black";
-      ctx.lineJoin ="round";
-      ctx.lineWidth = Math.round(size / (10*PHI));
-      ctx.strokeRect(x * size_plus_border, y * size_plus_border, size, size);
-      ctx.textBaseline="middle";
-      ctx.textAlign="center";
-      ctx.font = Math.round(INVERSE_PHI * size) + "px Verdana";
-      ctx.fillText(placedWord.word[i], x * size_plus_border + size/2, y * size_plus_border + size/2);
+      paintLetter(placedWord.word[i], x, y, "#f0f0f0", ctx)
       
       if (placedWord.orientation === OrientationEnum.VERTICAL)
       {
@@ -265,12 +435,12 @@ function findDimensions(puzzle)
     if (placedWord.orientation === OrientationEnum.VERTICAL)
     {
       max_x = maxOrNotNull(max_x, placedWord.x);
-      max_y = maxOrNotNull(max_y, placedWord.y + placedWord.word.length);
+      max_y = maxOrNotNull(max_y, placedWord.y + placedWord.word.length - 1);
     }
     else if(placedWord.orientation === OrientationEnum.HORIZONTAL)
     {
       max_y = maxOrNotNull(max_y, placedWord.y);
-      max_x = maxOrNotNull(max_x, placedWord.x + placedWord.word.length);
+      max_x = maxOrNotNull(max_x, placedWord.x + placedWord.word.length - 1);
     }
   }
   return [min_x, min_y, 1 + max_x - min_x, 1 + max_y - min_y];
@@ -378,7 +548,6 @@ function testWord(x, y, orientation, word, puzzle)
       }
     }
   }
-  
   return true;
 }
 
@@ -386,20 +555,6 @@ function placeWord(x, y, orientation, word, puzzle)
 {
   var i = 0;
   puzzle.placedWords.push({x: x, y: y, orientation: orientation, word: word});
-  /*
-  for (; i < word.length; i++)
-  {
-    puzzle.grid[x][y] = word[i];
-    if (orientation === OrientationEnum.VERTICAL)
-    {
-      y++;
-    }
-    else if (orientation === OrientationEnum.HORIZONTAL)
-    {
-      x++;
-    }
-  }
-  */
 }
 
 function createPuzzle(words)
@@ -447,7 +602,8 @@ function createPuzzle(words)
       }
     }
   }
-  justifyPuzzle(puzzle);
+  //justifyPuzzle(puzzle);
+  centerPuzzle(puzzle, 23/2, 17/2);
   return puzzle;
 }
 
@@ -480,53 +636,55 @@ function createPuzzles(wordList, ctx, cavnas)
     var next_puzzle = createPuzzle(wordList);
     best_puzzle = maxPuzzle(best_puzzle, next_puzzle);
   }
+  display("Placed " + best_puzzle.placedWords.length + "/" + wordList.length + "<br>");
   return best_puzzle;
-}
-
-function canMerge(a, b)
-{
-  if (a % 2 === 0)
-  {
-    return a + 1 !== b;
-  }
-  if (a % 2 === 1)
-  {
-    return a - 1 !== b;
-  }
 }
 
 const EMPTY_TILE = -1;
 const NO_GROUP_TILE = -2;
+const RED = -3;
+const GREEN = -4;
+const YELLOW = -5;
+const BLUE = -6;
 
-function createNewGroup(x,y,groups,grid)
+function paintGrid(puzzle,ctx)
 {
-  grid[x][y] = groups.length;
-  groups.push([[x,y]])
-}
-
-function paintGrid(grid,ctx)
-{
-  var PHI = 1.61803398875;
-  var INVERSE_PHI = 0.61803398875;
   var i = 0;
   var j = 0;
-  for (i = 0; i < grid.length; i++)
+  var dim = findDimensions(puzzle);
+  for (i = 0; i < puzzle.grid.length; i++)
   {
-    for(j = 0; j < grid[i].length; j++)
+    for(j = 0; j < puzzle.grid[i].length; j++)
     {
-      if(grid[i][j] !== EMPTY_TILE)
+      var x = dim[0] + i;
+      var y = dim[1] + j;
+      if(puzzle.grid[i][j] === RED ||
+      puzzle.grid[i][j] === GREEN || 
+      puzzle.grid[i][j] === YELLOW || 
+      puzzle.grid[i][j] === BLUE)
       {
-        var size = 16;
-        var size_plus_border = 20;
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "black";
-        ctx.lineJoin ="round";
-        ctx.lineWidth = Math.round(size / (10*PHI));
-        ctx.strokeRect(i * size_plus_border, j * size_plus_border, size, size);
-        ctx.textBaseline="middle";
-        ctx.textAlign="center";
-        ctx.font = Math.round(INVERSE_PHI * size) + "px Verdana";
-        ctx.fillText(grid[i][j], i * size_plus_border + size/2, j * size_plus_border + size/2);
+        var bg_color = "red";
+        if(puzzle.grid[i][j] === GREEN)
+        {
+          bg_color = "green";
+        }
+        if(puzzle.grid[i][j] === YELLOW)
+        {
+          bg_color = "yellow";
+        }
+        if(puzzle.grid[i][j] === BLUE)
+        {
+          bg_color = "blue";
+        }
+        paintLetter(findLetterAt(x, y, puzzle), x, y, bg_color, ctx);
+      }
+      else if(puzzle.grid[i][j] >= 0)
+      {
+        paintLetter(puzzle.grid[i][j], x, y, "#f0f0f0", ctx);
+      }
+      else if(puzzle.grid[i][j] !== EMPTY_TILE)
+      {
+        paintLetter(findLetterAt(x, y, puzzle), x, y, "#f0f0f0", ctx);
       }
     }
   }
@@ -545,9 +703,9 @@ function addGrid(puzzle)
     for(j = 0; j < dim[3]; j++)
     {
       var value = EMPTY_TILE;
-      if(findLetterAt(i,j,puzzle) !== "")
+      if(findLetterAt(i + dim[0],j + dim[1],puzzle) !== "")
       {
-        value = NO_GROUP_TILE;
+        value = RED;
         tile_counter++;
       }
       grid[i].push(value);
@@ -561,19 +719,20 @@ function scoreGrouping(puzzle, groups)
 {
   var score = 0;
   var i = 0;
+  var dim = findDimensions(puzzle)
   for (i = 0; i < puzzle.placedWords.length; ++i)
   {
     var placedWord = puzzle.placedWords[i];
     var end_group;
     if (placedWord.orientation === OrientationEnum.HORIZONTAL)
     {
-      end_group = puzzle.grid[placedWord.x + placedWord.word.length - 1][placedWord.y];
+      end_group = puzzle.grid[placedWord.x + placedWord.word.length - 1 - dim[0]][placedWord.y - dim[1]];
     }
     else if (placedWord.orientation === OrientationEnum.VERTICAL)
     {
-      end_group = puzzle.grid[placedWord.x][placedWord.y + placedWord.word.length - 1];
+      end_group = puzzle.grid[placedWord.x - dim[0]][placedWord.y + placedWord.word.length - 1 - dim[1]];
     }
-    if (puzzle.grid[placedWord.x][placedWord.y] == end_group)
+    if (puzzle.grid[placedWord.x - dim[0]][placedWord.y - dim[1]] == end_group)
     {
       score -= 100;
     }
@@ -592,34 +751,40 @@ function scoreGrouping(puzzle, groups)
   return score;
 }
 
+function expandGroup(puzzle, groups, index, options)
+{
+  var i = 0;
+  var group = groups[index];
+  for (i = 0; i < group.length; ++i)
+  {
+    var tile = group[i];
+    if (tile[0] !== 0 && puzzle.grid[tile[0]-1][tile[1]] === NO_GROUP_TILE)
+    {
+      options.push([tile[0]-1, tile[1], index]);
+    }
+    if (tile[1] !== 0 && puzzle.grid[tile[0]][tile[1]-1] === NO_GROUP_TILE)
+    {
+      options.push([tile[0], tile[1]-1, index]);
+    }
+    if (tile[0] + 1 < puzzle.grid.length && puzzle.grid[tile[0]+1][tile[1]] === NO_GROUP_TILE)
+    {
+      options.push([tile[0]+1, tile[1], index]);
+    }
+    if (tile[1] + 1 < puzzle.grid[tile[0]].length && puzzle.grid[tile[0]][tile[1]+1] === NO_GROUP_TILE)
+    {
+      options.push([tile[0], tile[1]+1, index]);
+    }
+  }
+  return options;
+}
+
 function expandRandomGroup(puzzle, groups)
 { 
-  var i = 0;
   var j = 0;
   var options = [];
   for(j = 0; j < groups.length; ++j)
   {
-    var group = groups[j];
-    for (i = 0; i < group.length; ++i)
-    {
-      var tile = group[i];
-      if (tile[0] !== 0 && puzzle.grid[tile[0]-1][tile[1]] === NO_GROUP_TILE)
-      {
-        options.push([tile[0]-1, tile[1], j]);
-      }
-      if (tile[1] !== 0 && puzzle.grid[tile[0]][tile[1]-1] === NO_GROUP_TILE)
-      {
-        options.push([tile[0], tile[1]-1, j]);
-      }
-      if (tile[0] + 1 < puzzle.grid.length && puzzle.grid[tile[0]+1][tile[1]] === NO_GROUP_TILE)
-      {
-        options.push([tile[0]+1, tile[1], j]);
-      }
-      if (tile[1] + 1 < puzzle.grid[tile[0]].length && puzzle.grid[tile[0]][tile[1]+1] === NO_GROUP_TILE)
-      {
-        options.push([tile[0], tile[1]+1, j]);
-      }
-    }
+    expandGroup(puzzle, groups, j, options);
   }
   return chooseRandomly(options);
 }
@@ -678,27 +843,97 @@ function setGrouping(puzzle, groups)
 
 function tileGrid(puzzle)
 {
-  var threshold = Math.random();
+  var i = 0;
   var groups = [];
-  var ungrouped_count = puzzle.tile_count
+  var ungrouped_count = puzzle.tile_count;
+  var sizes = [3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5];
   while(ungrouped_count !== 0)
   {
-    if(groups.length === 0 || Math.random() < threshold)
+    var location = randomUngroupedTile(puzzle, ungrouped_count);
+    var group_index = groups.length;
+    puzzle.grid[location[0]][location[1]] = group_index;
+    groups.push([]);
+    groups[group_index].push([location[0],location[1]]);
+    ungrouped_count--;
+    
+    var size = chooseRandomly(sizes);
+    for(i = 0; i < size; i++)
     {
-      var location = randomUngroupedTile(puzzle, ungrouped_count);
-      var group_index = groups.length;
-      puzzle.grid[location[0]][location[1]] = group_index;
-      groups.push([]);
-      groups[group_index].push([location[0],location[1]]);
-      ungrouped_count--;
-    }
-    else {  
-      var group_expansion = expandRandomGroup(puzzle, groups);
-      puzzle.grid[ group_expansion[0] ][ group_expansion[1] ] = group_expansion[2];
-      groups[group_expansion[2]].push([group_expansion[0],group_expansion[1]]);
-      ungrouped_count--;
+      var options = [];
+      expandGroup(puzzle,groups,group_index,options);
+      if (options.length !== 0)
+      {
+        var group_expansion = chooseRandomly(options);
+        puzzle.grid[ group_expansion[0] ][ group_expansion[1] ] = group_expansion[2];
+        groups[group_expansion[2]].push([group_expansion[0],group_expansion[1]]);
+        ungrouped_count--;
+      }
     }
   }
+  return groups;
+}
+
+function isColored(value)
+{
+  return value === RED || value === BLUE || value === GREEN || value === YELLOW;
+}
+
+function addToColorGroup(puzzle, groups, group_index, unexpanded, x, y)
+{
+  unexpanded.push([x,y]);
+  groups[group_index].push([x,y]);
+  puzzle.grid[x][y] = group_index;
+}
+
+function createGroupFromColoring(puzzle)
+{
+  var i = 0;
+  var j = 0;
+  var k = 0;
+  var groups = [];
+  for (i = 0; i < puzzle.grid.length; i++)
+  {
+    for (j = 0; j < puzzle.grid[i].length; j++)
+    {
+      if(puzzle.grid[i][j] === NO_GROUP_TILE)
+      {
+        display("Not all tiles colored!");
+        return;
+      }
+      else if(isColored(puzzle.grid[i][j]))
+      {
+        var unexpanded = [];
+        var color = puzzle.grid[i][j];
+        var group_index = groups.length;
+        groups.push([]);
+        addToColorGroup(puzzle, groups, group_index, unexpanded, i, j);
+        
+        while(unexpanded.length > 0)
+        {
+          var tile = removeRandomly(unexpanded);
+          if (tile[0] !== 0 && puzzle.grid[tile[0]-1][tile[1]] === color)
+          {
+            addToColorGroup(puzzle, groups, group_index, unexpanded, tile[0]-1, tile[1]);
+          }
+          if (tile[1] !== 0 && puzzle.grid[tile[0]][tile[1]-1] === color)
+          {
+            addToColorGroup(puzzle, groups, group_index, unexpanded, tile[0], tile[1]-1);
+          }
+          if (tile[0] + 1 < puzzle.grid.length && puzzle.grid[tile[0]+1][tile[1]] === color)
+          {
+            addToColorGroup(puzzle, groups, group_index, unexpanded, tile[0]+1, tile[1]);
+          }
+          if (tile[1] + 1 < puzzle.grid[tile[0]].length && puzzle.grid[tile[0]][tile[1]+1] === color)
+          {
+            addToColorGroup(puzzle, groups, group_index, unexpanded, tile[0], tile[1]+1);
+          }
+          
+        }
+      }
+    }
+  }
+  var score = scoreGrouping(puzzle, groups);
+  display("Your score: " + score +"<br>");
   return groups;
 }
 
@@ -708,7 +943,7 @@ function createGroups(puzzle)
   var best_grouping = tileGrid(puzzle);
   var best_score = scoreGrouping(puzzle, best_grouping);
   var i = 0;
-  for (; i < 20000; i++)
+  for (; i < 2000; i++)
   {
     resetGrid(puzzle);
     var next_grouping = tileGrid(puzzle);
@@ -720,54 +955,16 @@ function createGroups(puzzle)
     }
   }
   setGrouping(puzzle, best_grouping);
-  jut.display("Best Score: " + best_score +"<br>");
+  display("Best Score: " + best_score +"<br>");
 }
 
 function my_tests()
-{
-  var g_canvas = document.getElementById("canvas");
-  var g_ctx = g_canvas.getContext("2d");
-  g_ctx.fillStyle = "#f0f0f0";
-  g_ctx.fillRect(
-      0, 0,
-      g_canvas.width,
-      g_canvas.height);
-
-  
-  var wordList = [
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa",
-  "aaaaa"
-	];
-  var wordList = ["pepper","house","octopus","bones","watson","moreau","lecter","jekyll","who","frankenstein","indiana"];
-  //var wordList = ["pink", "purple", "brown", "yellow", "orange", "green", "white", "gray", "black", "blue", "red"];
-  var puzzle = createPuzzles(wordList, g_ctx, g_canvas);
-  createGroups(puzzle);
-  //tileGrid(puzzle);
-  //paint(puzzle, g_ctx);
-  paintGrid(puzzle.grid, g_ctx);
-  
-  jut.display("Placed " + puzzle.placedWords.length + "/" + wordList.length + "<br>");
-  
+{ 
   jut.test("Sanity Check", true);
   jut.test("Min",  0 === minOrNotNull(null, 0));
   jut.test("Min",  0 === minOrNotNull(0, null));
   jut.test("Min",  0 === minOrNotNull(0, 1));
   jut.test("Min",  0 === minOrNotNull(1, 0));
-  jut.test("Cannot merge 0 with 1", !canMerge(0,1));
-  jut.test("Cannot merge 2 with 3", !canMerge(2,3));
-  jut.test("Can merge 1 with 2", canMerge(1,2));
-  jut.test("Can merge 3 with 4", canMerge(3,4));
 }
 
 </script>
