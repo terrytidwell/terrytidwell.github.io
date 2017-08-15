@@ -317,7 +317,7 @@
           {
             for (var j = 0; j < letters[i].length; j++)
             {
-              if (letters[i].charAt(j) !== " ")
+              if (letters[i].charAt(j) !== " " && letters[i].charAt(j) !== ".")
               {
                 letter_box_collection.letterBoxList.push(
                   new LetterBox(defaultX + 35 * (j + x),defaultY + 35 * (i + y), 35, letters[i].charAt(j)));
@@ -337,7 +337,7 @@
             {
               if (lines[i].charAt(j) !== " " && lines[i].charAt(j) !== ".")
               {
-                grid.squares.push([j + offsetX,i + offsetY]);
+                grid.squares.push([j + offsetX, i + offsetY]);
               }
             }
           }

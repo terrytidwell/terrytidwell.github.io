@@ -10,14 +10,16 @@
 
 <canvas id="canvas" width="800" height="600"></canvas>
 <div>
+Title: <textarea id="title" rows="1" cols="50">SAMPLE</textarea>
+<div>
+
+<div>
 <textarea id="text" rows="1" cols="100">TEXT,FOR,SAMPLE,DISPLAY,ONLY</textarea>
 <div>
 <div width="800">
   <button type="button" onclick="puzzleButton()">Create Puzzle</button>
-  <button type="button" onclick="showPuzzleButton()">Show Puzzle</button>
-  <button type="button" onclick="tileButton()">Create Tiling</button>
-  <button type="button" onclick="showTileButton()">Show Tiling</button>
-  <button type="button" onclick="toJsonButton()">To JSON</button>
+  <button type="button" onclick="clearTilingButton()">Clear Tiling</button>
+  <button type="button" onclick="tileButton()">Create Output</button>
 </div>
 <div id = "statusWindow" width="800">
 </div>
@@ -41,11 +43,20 @@ function display(string)
 
 function clearCanvas(ctx, canvas)
 {
+  var PHI = 1.61803398875;
+  var INVERSE_PHI = 0.61803398875;
   ctx.fillStyle = "#f0f0f0";
   ctx.fillRect(
       0, 0,
       canvas.width,
-      canvas.height);
+      canvas.height);     
+  ctx.fillStyle = "black";
+  ctx.textBaseline="middle";
+  ctx.textAlign="center";
+  var textHeight = Math.round(INVERSE_PHI * 30);
+  ctx.font = textHeight + "px Verdana";
+  ctx.fillText(document.getElementById("title").value,Math.round(g_canvas.width/2),Math.round(70));
+  ctx.fillText("GRID: OFF", Math.round(g_canvas.width/2), Math.round(g_canvas.height - 70))
 }
 
 window.addEventListener("load", function(event)
@@ -61,6 +72,74 @@ window.addEventListener("load", function(event)
   }
 );
 
+function groupToText(group, puzzle)
+{
+  var i = 0;
+  var j = 0;
+  var min_x = null;
+  var min_y = null;
+  var max_x = null;
+  var max_y = null;
+  var dim = findDimensions(puzzle);
+  for(i = 0; i < group.length; i++)
+  {
+    max_x = maxOrNotNull(group[i][0], max_x);
+    min_x = minOrNotNull(group[i][0], min_x);
+    max_y = maxOrNotNull(group[i][1], max_y);
+    min_y = minOrNotNull(group[i][1], min_y);
+  }
+  
+  var text = [];
+  for (i = min_y; i <= max_y; ++i)
+  {
+    var line = [];
+    for (j = min_x; j <= max_x; ++j)
+    {
+      line.push(".");
+    }
+    text.push(line);
+  }
+  
+  var str = "this.makePiece(";
+  
+  for (i = 0; i < group.length; i++)
+  {
+    var letter = findLetterAt(group[i][0] + dim[0],group[i][1] + dim[1], puzzle);
+    text[group[i][1] - min_y][group[i][0] - min_x] = letter;
+  }
+  
+  str += "[" 
+  for (i = 0; i < text.length; ++i)
+  {
+    if (i !== 0)
+    {
+      str += ","
+    }
+    str += "\"";
+    for (j = 0; j < text[i].length; ++j)
+    {
+      str += text[i][j];
+    }
+    str += "\"";
+  }
+  
+  str += "], 0, 0);"
+  return str;
+}
+
+function clearTilingButton()
+{
+  if (g_puzzle === null)
+  {
+    return;
+  }
+  addGrid(g_puzzle);
+  g_groups = null;
+  
+  clearCanvas(g_ctx,g_canvas);
+  paintGrid(g_puzzle, g_ctx);
+}
+
 function toJsonButton()
 {
   if (g_groups === null)
@@ -69,7 +148,16 @@ function toJsonButton()
   }
   var i = 0;
   var j = 0;
-  var str = "this.makeGrid(<br>";
+  
+  var str = "";
+  for (i = 0; i < g_groups.length; ++i)
+  {
+    str += groupToText(g_groups[i], g_puzzle);
+    str += "<br>";
+  }
+  str += "<br>";
+  
+  str += "this.makeGrid(<br>";
   str += "[<br>";
   var dim = findDimensions(g_puzzle)
   for (i = 0; i < dim[3]; i++)
@@ -97,7 +185,15 @@ function toJsonButton()
 
 function handleMouseDown(event)
 {
-  if (g_puzzle && g_puzzle.grid)
+  if (g_groups)
+  {
+    var x = Math.floor(event.offsetX / 35);
+    var y = Math.floor(event.offsetY / 35);
+    var dim = findDimensions(g_puzzle);
+    x -= dim[0];
+    y -= dim[1];
+  }
+  else if (g_puzzle && g_puzzle.grid)
   {
     var x = Math.floor(event.offsetX / 35);
     var y = Math.floor(event.offsetY / 35);
@@ -164,10 +260,15 @@ function tileButton()
   {
     return;
   }
+  if (g_groups !== null)
+  {
+    return;
+  }
   g_groups = createGroupFromColoring(g_puzzle);
   //createGroups(g_puzzle);
   clearCanvas(g_ctx,g_canvas);
   paintGrid(g_puzzle, g_ctx);
+  toJsonButton();
 }
 
 function showTileButton()
@@ -331,7 +432,6 @@ function paintLetter(letter, x, y, bg_color, ctx)
 
 function paint(puzzle, ctx)
 {
-  
   var j = 0;
   var i = 0;
   for (j = 0; j < puzzle.placedWords.length; j++)
@@ -602,7 +702,6 @@ function createPuzzle(words)
       }
     }
   }
-  //justifyPuzzle(puzzle);
   centerPuzzle(puzzle, 23/2, 17/2);
   return puzzle;
 }
