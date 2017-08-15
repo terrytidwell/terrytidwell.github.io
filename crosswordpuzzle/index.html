@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 5;
+          g_level_cap = 6;
 
           switch (stage) {
             case 0:
@@ -530,6 +530,44 @@
               "     OOO   "
               ], 6, 3);
               this.name = "COLORS";
+              break;
+            case 5:
+              this.makePiece(["..W","FRA"], 4, 14);
+              this.makePiece(["BON",".N."], 1, 7);
+              this.makePiece(["T","S"], 18, 2);
+              this.makePiece(["NKE","..R"], 1, 2);
+              this.makePiece([".P.","JEK",".R."], 19, 11);
+              this.makePiece(["OC",".T"], 20, 2);
+              this.makePiece(["P.","ES","P."], 1, 13);
+              this.makePiece(["L","E"], 21, 5);
+              this.makePiece(["TOP"], 3, 12);
+              this.makePiece(["NST"], 1, 5);
+              this.makePiece([".H","MO"], 16, 14);
+              this.makePiece(["YLL"], 1, 10);
+              this.makePiece(["W"], 5, 5);
+              this.makePiece(["RE"], 20, 15);
+              this.makePiece(["H","O"], 21, 8);
+              this.makePiece(["US","S."], 18, 5);
+              this.makePiece(["EIN",".N."], 5, 2);
+              this.makePiece(["D","I"], 16, 2);
+              this.makePiece(["AU","N.","A."], 18, 8);
+
+              this.makeGrid(
+              [
+              ".....O...O..",
+              ".....O...O..",
+              "....OOOOOOO.",
+              "..O..O...O..",
+              "OOOOOOOOOOOO",
+              "..O..O....O.",
+              "..O.O..O..O.",
+              ".OOOOO.O..O.",
+              "..O.O.OOOOOO",
+              "....O.....O.",
+              "...OOOOOO.O.",
+              "....O......."
+              ], 5, 3);
+              this.name = "DOCTORS";
               break;
             default:
               this.name = "INVALID PUZZLE";

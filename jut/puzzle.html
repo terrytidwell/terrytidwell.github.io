@@ -35,6 +35,7 @@ var g_ctx;
 var g_status_window;
 var g_puzzle = null;
 var g_groups = null;
+var g_selected = null;
 
 function display(string)
 {
@@ -60,19 +61,68 @@ function clearCanvas(ctx, canvas)
 }
 
 window.addEventListener("load", function(event)
-  {
-    new jut.test_instance(document.getElementById("testing_div"),my_tests);
-    g_canvas = document.getElementById("canvas");
-    g_status_window = document.getElementById("statusWindow");
-    g_ctx = g_canvas.getContext("2d");
-    
-    g_canvas.addEventListener("mousedown", function (event) {
-      handleMouseDown(event);
-    }, false);
-  }
-);
+{
+  new jut.test_instance(document.getElementById("testing_div"),my_tests);
+  g_canvas = document.getElementById("canvas");
+  g_status_window = document.getElementById("statusWindow");
+  g_ctx = g_canvas.getContext("2d");
+  
+  g_canvas.addEventListener("mousedown", function (event) {
+    handleMouseDown(event);
+  }, false);
+  document.addEventListener("keydown", function (event) {
+    handleKeyDown(event);
+  }, false);
+});
 
-function groupToText(group, puzzle)
+
+function handleKeyDown(event)
+{
+  if (g_selected === null)
+  {
+    return;
+  }
+  var dx = 0;
+  var dy = 0;
+  switch(event.which) {
+    case 37: // left
+      dx = -1;
+    break;
+
+    case 38: // up
+      dy = -1;
+    break;
+
+    case 39: // right
+      dx = 1;
+    break;
+
+    case 40: // down
+      dy = 1;
+    break;
+
+    default: return; // exit this handler for other keys
+  }
+  if (dx === 0 && dy === 0)
+  {
+    return;
+  }
+  if (g_selected === g_puzzle)
+  {
+    transposePuzzle(g_puzzle,dx,dy);
+  }
+  else
+  {
+    transposeGroup(g_selected,dx,dy);
+  }
+  clearCanvas(g_ctx, g_canvas);
+  paintGroups(g_puzzle, g_groups, g_ctx);
+  toJsonButton();
+
+  event.preventDefault(); // prevent the default action (scroll / move caret)
+}
+
+function groupToText(group)
 {
   var i = 0;
   var j = 0;
@@ -80,7 +130,6 @@ function groupToText(group, puzzle)
   var min_y = null;
   var max_x = null;
   var max_y = null;
-  var dim = findDimensions(puzzle);
   for(i = 0; i < group.length; i++)
   {
     max_x = maxOrNotNull(group[i][0], max_x);
@@ -104,7 +153,7 @@ function groupToText(group, puzzle)
   
   for (i = 0; i < group.length; i++)
   {
-    var letter = findLetterAt(group[i][0] + dim[0],group[i][1] + dim[1], puzzle);
+    var letter = group[i][2];
     text[group[i][1] - min_y][group[i][0] - min_x] = letter;
   }
   
@@ -123,7 +172,7 @@ function groupToText(group, puzzle)
     str += "\"";
   }
   
-  str += "], 0, 0);"
+  str += "], " + min_x + ", " + min_y + ");"
   return str;
 }
 
@@ -135,6 +184,7 @@ function clearTilingButton()
   }
   addGrid(g_puzzle);
   g_groups = null;
+  g_selected = null;
   
   clearCanvas(g_ctx,g_canvas);
   paintGrid(g_puzzle, g_ctx);
@@ -190,8 +240,26 @@ function handleMouseDown(event)
     var x = Math.floor(event.offsetX / 35);
     var y = Math.floor(event.offsetY / 35);
     var dim = findDimensions(g_puzzle);
-    x -= dim[0];
-    y -= dim[1];
+    var grid_x = x - dim[0];
+    var grid_y = y - dim[1];
+    var i = 0;
+    var j = 0;
+    g_selected = null;
+    for (i = 0; i < g_groups.length; ++i)
+    {
+      for (j = 0; j < g_groups[i].length; ++j)
+      {
+        if (x === g_groups[i][j][0] && y === g_groups[i][j][1])
+        {
+          g_selected = g_groups[i];
+          return;
+        }
+      }
+    }
+    if(g_puzzle.grid[grid_x][grid_y] !== EMPTY_TILE)
+    {
+      g_selected = g_puzzle;
+    }
   }
   else if (g_puzzle && g_puzzle.grid)
   {
@@ -267,7 +335,8 @@ function tileButton()
   g_groups = createGroupFromColoring(g_puzzle);
   //createGroups(g_puzzle);
   clearCanvas(g_ctx,g_canvas);
-  paintGrid(g_puzzle, g_ctx);
+  alignGroups(g_puzzle, g_groups);
+  paintGroups(g_puzzle, g_groups, g_ctx);
   toJsonButton();
 }
 
@@ -746,6 +815,53 @@ const GREEN = -4;
 const YELLOW = -5;
 const BLUE = -6;
 
+function transposeGroup(group, dx, dy)
+{
+  var i = 0;
+  for (i = 0; i < group.length; ++i)
+  {
+    group[i][0] += dx;
+    group[i][1] += dy;
+  }
+}
+
+function alignGroups(puzzle, groups, ctx)
+{
+  var i = 0;
+  var dim = findDimensions(puzzle)
+  for (i = 0; i < groups.length; ++i)
+  {
+    transposeGroup(groups[i], dim[0], dim[1]);
+  }
+}
+
+function paintGroups(puzzle, groups, ctx)
+{
+  var i = 0;
+  var j = 0;
+  var dim = findDimensions(puzzle);
+  for (i = 0; i < puzzle.grid.length; i++)
+  {
+    for(j = 0; j < puzzle.grid[i].length; j++)
+    {
+      var x = dim[0] + i;
+      var y = dim[1] + j;
+      if (puzzle.grid[i][j] !== EMPTY_TILE)
+      {
+        paintLetter(findLetterAt(x, y, puzzle), x, y, "black", ctx);
+      }
+    }
+  }
+  for (i = 0; i < groups.length; i++)
+  {
+    //var color = chooseRandomly(["red","blue","yellow","green","gray","purple","orange"]);
+    for (j = 0; j < groups[i].length; j++)
+    {
+      paintLetter(groups[i][j][2], groups[i][j][0], groups[i][j][1], "#f0f0f0", ctx);
+    }
+  }
+}
+
 function paintGrid(puzzle,ctx)
 {
   var i = 0;
@@ -979,8 +1095,10 @@ function isColored(value)
 
 function addToColorGroup(puzzle, groups, group_index, unexpanded, x, y)
 {
+  var dim = findDimensions(puzzle);
+  var letter = findLetterAt(x + dim[0], y + dim[1], puzzle);
   unexpanded.push([x,y]);
-  groups[group_index].push([x,y]);
+  groups[group_index].push([x,y,letter]);
   puzzle.grid[x][y] = group_index;
 }
 
