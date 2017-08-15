@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 7;
+          g_level_cap = 8;
 
           switch (stage) {
             case 0:
@@ -606,6 +606,49 @@
               "....O........."
               ], 4, 3);
               this.name = "COLORS: THE REVENGE"
+              break;
+            case 7:
+              this.makePiece(["P","O","P"], 2, 7);
+              this.makePiece(["S.","I.","CH"], 2, 11);
+              this.makePiece(["L","E"], 4, 9);
+              this.makePiece(["G","E"], 9, 3);
+              this.makePiece(["L","A"], 8, 6);
+              this.makePiece(["T.","OC"], 13, 8);
+              this.makePiece(["ST",".R",".U"], 3, 5);
+              this.makePiece(["OLA",".E."], 5, 13);
+              this.makePiece(["F","F"], 16, 8);
+              this.makePiece([".M",".O","RU"], 15, 13);
+              this.makePiece(["LOL"], 2, 15);
+              this.makePiece(["S.","SO","E."], 6, 2);
+              this.makePiece(["TE"], 7, 11);
+              this.makePiece([".K.","DEL"], 19, 14);
+              this.makePiece(["CAN","A.."], 17, 4);
+              this.makePiece(["RB",".R",".O"], 20, 10);
+              this.makePiece(["LIP",".E."], 2, 2);
+              this.makePiece(["W","N"], 13, 3);
+              this.makePiece(["ET"], 9, 13);
+              this.makePiece(["DY"], 20, 2);
+              this.makePiece(["C.","O.","OP"], 19, 6);
+              this.makePiece(["K","I","E"], 21, 4);
+
+              this.makeGrid(
+              [
+              ".........OOOOO",
+              ".......O.O....",
+              ".......O.O....",
+              "O.O.OOOOOOO...",
+              "O.O..O.O......",
+              "O.O..O.OOOOOO.",
+              "O.O..O.O..O...",
+              "O.O..O....O...",
+              "OOOOOOOOO.O.O.",
+              "O....O....O.O.",
+              "O.....OOOOOOOO",
+              "..........O.O.",
+              "............O.",
+              "............O."
+              ], 5, 2);
+              this.name = "SWEET TOOTH"
               break;
             default:
               this.name = "INVALID PUZZLE";
