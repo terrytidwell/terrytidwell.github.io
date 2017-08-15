@@ -36,6 +36,7 @@ var g_status_window;
 var g_puzzle = null;
 var g_groups = null;
 var g_selected = null;
+var g_mouse_pos = [null,null];
 
 function display(string)
 {
@@ -70,11 +71,88 @@ window.addEventListener("load", function(event)
   g_canvas.addEventListener("mousedown", function (event) {
     handleMouseDown(event);
   }, false);
+  g_canvas.addEventListener("mouseup", function (event) {
+    handleMouseUp(event);
+  }, false);
+  g_canvas.addEventListener("mouseleave", function (event) {
+      handleMouseUp(event);
+  }, false);
+  g_canvas.addEventListener("mouseout", function (event) {
+      handleMouseUp(event);
+  }, false);
+  g_canvas.addEventListener("mousemove", function (event) {
+    handleMouseMove(event);
+  }, false);
   document.addEventListener("keydown", function (event) {
     handleKeyDown(event);
   }, false);
 });
 
+function justifySelected()
+{
+  var i = 0;
+  if (g_selected === g_puzzle)
+  {
+    for (i = 0; i < g_puzzle.placedWords.length; ++i)
+    {
+      g_puzzle.placedWords[i].x = Math.round(g_puzzle.placedWords[i].x);
+    }
+  }
+  else
+  {
+    for (i = 0; i < g_selected.length; ++i)
+    {
+      g_selected[i][0] = Math.round(g_selected[i][0]);
+      g_selected[i][1] = Math.round(g_selected[i][1]);
+    }
+  }
+}
+
+function handleMouseUp(event)
+{
+  if (g_selected === null)
+  {
+    return;
+  }
+  justifySelected(g_selected);
+  clearCanvas(g_ctx, g_canvas);
+  paintGroups(g_puzzle, g_groups, g_ctx);
+  toJsonButton();
+  
+  g_selected = null;
+}
+
+function handleMouseMove(event)
+{
+  if (g_selected === null)
+  {
+    return;
+  }
+  
+  var x = event.offsetX / 35;
+  var y = event.offsetY / 35;
+  var old_x = g_mouse_pos[0];
+  var old_y = g_mouse_pos[1];
+  g_mouse_pos[0] = x;
+  g_mouse_pos[1] = y;
+  transposeSelected(x - old_x, y - old_y);
+  
+  clearCanvas(g_ctx, g_canvas);
+  paintGroups(g_puzzle, g_groups, g_ctx);
+  toJsonButton();
+}
+
+function transposeSelected(dx,dy)
+{
+  if (g_selected === g_puzzle)
+  {
+    transposePuzzle(g_selected,dx,dy);
+  }
+  else
+  {
+    transposeGroup(g_selected,dx,dy);
+  }
+}
 
 function handleKeyDown(event)
 {
@@ -107,14 +185,7 @@ function handleKeyDown(event)
   {
     return;
   }
-  if (g_selected === g_puzzle)
-  {
-    transposePuzzle(g_puzzle,dx,dy);
-  }
-  else
-  {
-    transposeGroup(g_selected,dx,dy);
-  }
+  transposeSelected(dx,dy);
   clearCanvas(g_ctx, g_canvas);
   paintGroups(g_puzzle, g_groups, g_ctx);
   toJsonButton();
@@ -138,6 +209,11 @@ function groupToText(group)
     min_y = minOrNotNull(group[i][1], min_y);
   }
   
+  max_x = Math.round(max_x);
+  min_x = Math.round(min_x);
+  max_y = Math.round(max_y);
+  min_y = Math.round(min_y);
+  
   var text = [];
   for (i = min_y; i <= max_y; ++i)
   {
@@ -154,7 +230,7 @@ function groupToText(group)
   for (i = 0; i < group.length; i++)
   {
     var letter = group[i][2];
-    text[group[i][1] - min_y][group[i][0] - min_x] = letter;
+    text[Math.round(group[i][1] - min_y)][Math.round(group[i][0] - min_x)] = letter;
   }
   
   str += "[" 
@@ -229,7 +305,8 @@ function toJsonButton()
       }
     }
   }
-  str += '"<br>], ' + dim[0] + ', ' + dim[1] + ');';
+  str += '"<br>], ' + dim[0] + ', ' + dim[1] + ');<br>';
+  str += "this.name = \"" + document.getElementById("title").value + "\"";
   display(str);
 }
 
@@ -237,8 +314,10 @@ function handleMouseDown(event)
 {
   if (g_groups)
   {
-    var x = Math.floor(event.offsetX / 35);
-    var y = Math.floor(event.offsetY / 35);
+    g_mouse_pos[0] = event.offsetX / 35;
+    g_mouse_pos[1] = event.offsetY / 35;
+    var x = Math.floor(g_mouse_pos[0]);
+    var y = Math.floor(g_mouse_pos[1]);
     var dim = findDimensions(g_puzzle);
     var grid_x = x - dim[0];
     var grid_y = y - dim[1];
@@ -256,7 +335,9 @@ function handleMouseDown(event)
         }
       }
     }
-    if(g_puzzle.grid[grid_x][grid_y] !== EMPTY_TILE)
+    if(grid_x >= 0 && grid_x < g_puzzle.grid.length &&
+      grid_y >= 0 && grid_y < g_puzzle.grid[grid_x].length &&
+      g_puzzle.grid[grid_x][grid_y] !== EMPTY_TILE)
     {
       g_selected = g_puzzle;
     }
@@ -612,7 +693,10 @@ function findDimensions(puzzle)
       max_x = maxOrNotNull(max_x, placedWord.x + placedWord.word.length - 1);
     }
   }
-  return [min_x, min_y, 1 + max_x - min_x, 1 + max_y - min_y];
+  return [Math.round(min_x),
+    Math.round(min_y),
+    Math.round(1 + max_x - min_x),
+    Math.round(1 + max_y - min_y)];
 }
 
 function testWord(x, y, orientation, word, puzzle)
@@ -848,7 +932,7 @@ function paintGroups(puzzle, groups, ctx)
       var y = dim[1] + j;
       if (puzzle.grid[i][j] !== EMPTY_TILE)
       {
-        paintLetter(findLetterAt(x, y, puzzle), x, y, "black", ctx);
+        paintLetter("", x, y, "black", ctx);
       }
     }
   }
@@ -1187,4 +1271,3 @@ function my_tests()
 </script>
 </body>
 </html>
-

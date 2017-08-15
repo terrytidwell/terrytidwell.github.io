@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 6;
+          g_level_cap = 7;
 
           switch (stage) {
             case 0:
@@ -568,6 +568,44 @@
               "....O......."
               ], 5, 3);
               this.name = "DOCTORS";
+              break;
+            case 6:
+              this.makePiece(["TA"], 14, 6);
+              this.makePiece(["UM",".A"], 1, 9);
+              this.makePiece(["PE"], 11, 3);
+              this.makePiece(["AZU"], 12, 13);
+              this.makePiece(["FU"], 4, 13);
+              this.makePiece(["UPE","V.."], 19, 10);
+              this.makePiece([".R.","BER"], 19, 7);
+              this.makePiece(["RIW",".V."], 1, 6);
+              this.makePiece(["O.","CH","H."], 1, 12);
+              this.makePiece(["O.","RE","Y."], 5, 2);
+              this.makePiece(["SIA"], 1, 4);
+              this.makePiece(["CER",".B."], 16, 2);
+              this.makePiece([".O","IN",".Y"], 20, 2);
+              this.makePiece(["KLE"], 1, 2);
+              this.makePiece(["UL"], 14, 4);
+              this.makePiece([".M.","EAN"], 17, 13);
+              this.makePiece(["G","E","N"], 21, 12);
+              this.makePiece(["T","A"], 18, 5);
+
+              this.makeGrid(
+              [
+              "....O.........",
+              "..OOOOOOO.....",
+              "....O.........",
+              "....O.........",
+              ".OOOOO......O.",
+              "..O...OOOOOOOO",
+              "OOOOO..O....O.",
+              "..O....O....O.",
+              ".OOOOOOOOOO.O.",
+              "....O..O....O.",
+              "....O.......O.",
+              ".OOOOO........",
+              "....O........."
+              ], 4, 3);
+              this.name = "COLORS: THE REVENGE"
               break;
             default:
               this.name = "INVALID PUZZLE";
