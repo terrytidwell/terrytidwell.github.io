@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 9;
+          g_level_cap = 10;
 
           switch (stage) {
             case 0:
@@ -682,6 +682,43 @@
               "..O.......O."
               ], 5, 3);
               this.name = "MONSTER MASH"
+              break;
+            case 9:
+              this.makePiece([".O.","PAN"], 3, 14);
+              this.makePiece([".E","WA",".L"], 20, 6);
+              this.makePiece(["T.","MI"], 1, 9);
+              this.makePiece(["OME"], 1, 12);
+              this.makePiece(["FF"], 5, 3);
+              this.makePiece(["CAK"], 16, 6);
+              this.makePiece(["LK"], 7, 11);
+              this.makePiece(["LES",".G."], 16, 8);
+              this.makePiece([".C","LE",".R"], 7, 13);
+              this.makePiece(["GRI","S.."], 1, 2);
+              this.makePiece(["ES","A.","L."], 1, 5);
+              this.makePiece(["TS"], 3, 8);
+              this.makePiece([".T.","YOG"], 19, 14);
+              this.makePiece(["A.","S.","TS"], 16, 13);
+              this.makePiece([".H","BA",".S"], 20, 10);
+              this.makePiece(["URT",".O."], 17, 2);
+              this.makePiece(["H","B"], 1, 14);
+              this.makePiece(["W","N","S"], 21, 2);
+              this.makePiece(["CON"], 16, 11);
+
+              this.makeGrid(
+              [
+              "......O........",
+              "..OOOOOOO..O...",
+              ".O....O...OOOOO",
+              "OOOOOOOO...O...",
+              ".O....O....O...",
+              ".OOOO.O.O..O...",
+              ".O.....OOOOOO..",
+              "OOOOOOO.O..O...",
+              ".O...O..O..O...",
+              ".....OOOOO.O...",
+              ".....O.....O..."
+              ], 4, 3);
+              this.name = "PART OF A COMPLETE BREAKFAST"
               break;
             default:
               this.name = "INVALID PUZZLE";
