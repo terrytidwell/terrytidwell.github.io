@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 8;
+          g_level_cap = 9;
 
           switch (stage) {
             case 0:
@@ -649,6 +649,39 @@
               "............O."
               ], 5, 2);
               this.name = "SWEET TOOTH"
+              break;
+            case 8:
+              this.makePiece(["ZO"], 5, 14);
+              this.makePiece(["VAM","..Y"], 15, 3);
+              this.makePiece(["WE"], 3, 2);
+              this.makePiece(["MB","U.","M."], 18, 7);
+              this.makePiece([".D","RE"], 5, 3);
+              this.makePiece(["PI"], 9, 13);
+              this.makePiece(["GH"], 19, 4);
+              this.makePiece(["V.","IE","L."], 1, 3);
+              this.makePiece(["WO"], 19, 2);
+              this.makePiece(["RE"], 1, 11);
+              this.makePiece(["OST",".K."], 1, 13);
+              this.makePiece([".T","GO",".N"], 19, 10);
+              this.makePiece(["E.","LF","E."], 1, 7);
+              this.makePiece(["BL"], 3, 6);
+              this.makePiece(["W.","IN","T."], 17, 12);
+              this.makePiece(["C","H"], 15, 5);
+
+              this.makeGrid(
+              [
+              "....OOOOO...",
+              ".......O....",
+              "....O..O....",
+              ".OOOOOOOO...",
+              "....O..O....",
+              "OOOOOO.O..O.",
+              "..O.O.OOOOOO",
+              "..O....O..O.",
+              "OOOOOOO...O.",
+              "..O.......O."
+              ], 5, 3);
+              this.name = "MONSTER MASH"
               break;
             default:
               this.name = "INVALID PUZZLE";
