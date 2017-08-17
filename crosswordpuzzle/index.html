@@ -17,10 +17,10 @@
     var g_current_screen;
     var g_level;
     var g_level_cap;
-    
+
     var PHI = 1.61803398875;
     var INVERSE_PHI = 0.61803398875;
-    
+
     var MOVE_COLOR = "red";
     var MOVEABLE_COLOR = "black";
     var STATIC_COLOR = "lightgrey";
@@ -79,7 +79,7 @@
             }
             return arr;
         },
-        
+
         //----------------------------------------------------------------------
         loadImage: function (url, resource_tracker)
         {
@@ -109,7 +109,7 @@
             return audio;
         }
     };
-    
+
     var Grid = function()
     {
       this.visible = false;
@@ -121,12 +121,12 @@
       this.font_height = null;
       this.font_center_x = null;
       this.font_center_y = null;
-    
+
       this.checkPulse = function()
       {
         return true;
       }
-      
+
       this.handleMouseDown = function(event)
       {
         if (this.font_width &&
@@ -145,7 +145,7 @@
         }
         return false;
       };
-      
+
       this.paint = function(ctx)
       {
         ctx.fillStyle = MOVEABLE_COLOR;
@@ -168,26 +168,26 @@
           ctx.fillStyle = STATIC_COLOR;
           ctx.fillRect(this.squares[i][0] * this.size + this.offset,
           this.squares[i][1] * this.size + this.offset, this.size - 5, this.size - 5);
-          
+
         }
       };
     }
-    
+
     var LetterBoxCollection = function()
     {
       this.letterBoxList = [];
       this.alive = true;
       this.color = MOVEABLE_COLOR;
-      
+
       this.handleTimeStep = function()
       {
       };
-      
+
       this.checkPulse = function()
       {
         return this.alive;
       }
-      
+
       this.handleMouseDown = function(event)
       {
         for(var i = this.letterBoxList.length - 1; i>=0; i--)
@@ -200,7 +200,7 @@
         }
         return false;
       };
-      
+
       this.paint = function(ctx)
       {
         for(var i = this.letterBoxList.length - 1; i>=0; i--)
@@ -209,7 +209,7 @@
           this.letterBoxList[i].paint(ctx);
         }
       };
-      
+
       this.transpose = function(deltaX, deltaY)
       {
         for(var i = this.letterBoxList.length - 1; i>=0; i--)
@@ -217,7 +217,7 @@
           this.letterBoxList[i].transpose(deltaX, deltaY);
         }
       }
-      
+
       this.snap = function(size)
       {
         for(var i = this.letterBoxList.length - 1; i>=0; i--)
@@ -227,7 +227,7 @@
         }
       }
     }
-    
+
     var LetterBox = function(x,y,size,letter)
     {
       this.x = x;
@@ -238,26 +238,26 @@
       this.letter = letter;
       this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
       this.alive = true;
-      
+
       this.handleTimeStep = function()
       {
       };
-      
+
       this.checkPulse = function()
       {
         return this.alive;
       }
-      
+
       this.handleMouseDown = function(event)
       {
         //alert("this.x = " + this.x + ", this.size = " + this.size + ", event.offsetX = " + event.offsetX);
-        var hit = this.x + this.size >= event.offsetX && 
+        var hit = this.x + this.size >= event.offsetX &&
           event.offsetX >= this.x &&
-          this.y + this.size >= event.offsetY && 
+          this.y + this.size >= event.offsetY &&
           event.offsetY >= this.y;
         return hit;
       };
-      
+
       this.paint = function(ctx)
       {
         ctx.strokeStyle = this.color;
@@ -270,14 +270,14 @@
         ctx.font = Math.round(INVERSE_PHI * this.inner_size) + "px Verdana";
         ctx.fillText(this.letter,Math.round(this.x+this.size/2),Math.round(this.y+this.size/2));
       };
-      
+
       this.transpose = function(deltaX, deltaY)
       {
         this.x += Math.round(deltaX);
         this.y += Math.round(deltaY);
       }
     };
-    
+
     var Timer = function(timer, callback, parameter)
     {
       this.current_time = timer;
@@ -290,16 +290,16 @@
         {
           callback(this.parameter);
         }
-        
+
       };
       this.checkPulse = function(){
             return this.current_time > 0;
       };
     }
-    
+
     //##########################################################################
     var GameScreen = {
-        
+
         init: function () {
           this.reset();
         },
@@ -347,7 +347,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 10;
+          g_level_cap = 11;
 
           switch (stage) {
             case 0:
@@ -479,8 +479,8 @@
               this.makePiece(["MAN","E  "], 2, 8);
               this.makePiece(["MON"], 2, 11);
               this.makePiece(["LE","O ","N "], 2, 2);
-              
-              
+
+
               this.makeGrid(
               [
               "O      O     ",
@@ -720,6 +720,45 @@
               ], 4, 3);
               this.name = "PART OF A COMPLETE BREAKFAST"
               break;
+            case 10:
+              this.makePiece(["..C","HER"], 1, 4);
+              this.makePiece([".A",".N","PE"], 20, 2);
+              this.makePiece(["..F","SPA"], 19, 14);
+              this.makePiece(["DO",".N"], 17, 6);
+              this.makePiece(["ON"], 9, 12);
+              this.makePiece(["NG"], 18, 13);
+              this.makePiece(["L","C"], 14, 12);
+              this.makePiece(["RR"], 1, 7);
+              this.makePiece(["VE"], 20, 6);
+              this.makePiece([".F",".L","CA"], 17, 2);
+              this.makePiece([".M.","UIN"], 15, 14);
+              this.makePiece(["N.","G.","OW"], 1, 13);
+              this.makePiece(["RDI"], 4, 15);
+              this.makePiece([".R.","PIG"], 19, 8);
+              this.makePiece(["O.","ST","T."], 1, 9);
+              this.makePiece(["C","H"], 17, 9);
+              this.makePiece([".P.","NAL"], 3, 11);
+              this.makePiece(["R","R"], 4, 8);
+              this.makePiece(["ORK","T.."], 1, 2);
+              this.makePiece(["EON"], 19, 11);
+
+              this.makeGrid(
+              [
+              "..O...O.......",
+              "OOOOO.O....O..",
+              "..O..OOOOOOOO.",
+              "..O...O....O..",
+              ".OOOOOOO.O.O..",
+              "......O..OOOOO",
+              "...O..O..O.O..",
+              ".OOOOOOO.O....",
+              "...O....OOOOOO",
+              "...O.....O....",
+              "..OOOO...O....",
+              "...O.........."
+              ], 4, 3);
+              this.name = "CROSS BIRD PUZZLE"
+              break;
             default:
               this.name = "INVALID PUZZLE";
               break;
@@ -739,7 +778,7 @@
           this.textHeight = null;
 
           this.populateLevel(g_level);
-          
+
           /*
           for (var i = 0; i < g_canvas.width; i += 35)
           {
@@ -785,7 +824,7 @@
               }
             }
           }
-          
+
           if (this.backTextSize &&
             this.forwardTextSize &&
             this.textHeight)
@@ -851,7 +890,7 @@
         },
         paint: function () {
           g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-          
+
           g_ctx.fillStyle = "#f0f0f0";
           g_ctx.fillRect(
               0, 0,
@@ -884,9 +923,9 @@
           }
         },
     };
-    
+
     //##########################################################################
-    
+
     //--------------------------------------------------------------------------
     var ResourceTracker = {
         m_added: 1, // I track myself loading
@@ -909,7 +948,7 @@
         // from Screen
         handleMouseDown: function ()
         {},
-        
+
         //----------------------------------------------------------------------
         // from Screen
         handleMouseUp: function ()
@@ -919,7 +958,7 @@
         // from Screen
         handleKeyDown: function ()
         {},
-        
+
         //----------------------------------------------------------------------
         // from Screen
         handleKeyUp: function (event)
@@ -987,14 +1026,14 @@
     //--------------------------------------------------------------------------
     var AudioComponents = {
     };
-    
+
     //--------------------------------------------------------------------------
     var GraphicComponents = {
     };
 
     //##########################################################################
     // game engine
-    
+
     //--------------------------------------------------------------------------
     function init()
     {
@@ -1010,7 +1049,7 @@
         g_canvas.addEventListener("mousedown", function (event) {
             g_current_screen.handleMouseDown(event);
         }, false);
-        
+
         g_canvas.addEventListener("mouseup", function (event) {
             g_current_screen.handleMouseUp(event);
         }, false);
@@ -1022,7 +1061,7 @@
         g_canvas.addEventListener("mouseout", function (event) {
             g_current_screen.handleMouseUp(event);
         }, false);
-        
+
         g_canvas.addEventListener("mousemove", function (event) {
             g_current_screen.handleMouseMove(event);
         }, false);
@@ -1030,13 +1069,13 @@
         document.addEventListener("keydown", function (event) {
             g_current_screen.handleKeyDown(event);
         }, false);
-        
+
         document.addEventListener("keyup", function (event) {
             g_current_screen.handleKeyUp(event);
         }, false);
 
         // can't do this until you've set up canvas_width and canvas_height
-        //ResourceTracker init must be called after all requests to 
+        //ResourceTracker init must be called after all requests to
         //loadImage/loadAudio
         ResourceTracker.init();
         GameScreen.init();
