@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
 </head>
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
-<canvas id="canvas" width="800" height="600"></canvas>
+<canvas oncontextmenu="return false;" id="canvas" width="800" height="600"></canvas>
 <script>
     //##########################################################################
     // The game
@@ -194,7 +194,6 @@
         {
           if(this.letterBoxList[i].handleMouseDown(event))
           {
-            this.color = MOVE_COLOR
             return true;
           }
         }
@@ -764,13 +763,54 @@
               break;
           }
         },
+        
+        checkAdjancent: function(tileSet1, tileSet2)
+        {
+          for(var j = 0; j < tileSet1.letterBoxList.length; j++)
+          {
+            for(var k = 0; k < tileSet2.letterBoxList.length; k++)
+            {
+              if (Math.abs(tileSet1.letterBoxList[j].x - tileSet2.letterBoxList[k].x) + 
+                Math.abs(tileSet1.letterBoxList[j].y - tileSet2.letterBoxList[k].y) === 35)
+              {
+                return true;
+              }
+            }
+          }
+          return false;
+        },
+        
+        findAdjacentTileSets: function(draggable_list_item_index)
+        {
+          var adjacencySet = Array(this.draggable_list.length).fill(false);
+          adjacencySet[draggable_list_item_index] = true;
+          var returnSet = [];
+          var unexpanded = [ this.draggable_list[draggable_list_item_index] ];
+          while(unexpanded.length > 0)
+          {
+            var tileSet = unexpanded.pop();
+            returnSet.push(tileSet);
+            for(var i = this.draggable_list.length - 1; i>=0; i--)
+            {
+              if (!adjacencySet[i])
+              {
+                if (this.checkAdjancent(tileSet,this.draggable_list[i]))
+                {
+                  adjacencySet[i] = true;
+                  unexpanded.push(this.draggable_list[i]);
+                }
+              }
+            }
+          }
+          return returnSet;
+        },
 
         reset: function () {
           this.paint_list = [];
           this.timestep_list = [];
           this.draggable_list = [];
           this.clickable_list = [];
-          this.dragged_item = null;
+          this.dragged_item_collection = null;
           this.mouse_pos = [null, null];
           this.name = "";
           this.backTextSize = null;
@@ -805,7 +845,16 @@
             {
               if(this.draggable_list[i].handleMouseDown(event))
               {
-                this.dragged_item = this.draggable_list[i];
+                if(event.button == 0)
+                {
+                  this.draggable_list[i].color = MOVE_COLOR;
+                  this.dragged_item_collection = [ this.draggable_list[i] ];
+                }
+                else if(event.button == 2)
+                {
+                  this.draggable_list[i].color = MOVE_COLOR;
+                  this.dragged_item_collection = this.findAdjacentTileSets(i);
+                }
                 return true;
               }
             }
@@ -856,20 +905,27 @@
           var rect = canvas.getBoundingClientRect();
           var old_x = this.mouse_pos[0];
           var old_y = this.mouse_pos[1];
+          var i = 0;
           this.mouse_pos[0] = event.clientX - rect.left;
           this.mouse_pos[1] = event.clientY - rect.top;
-          if (this.dragged_item)
+          if (this.dragged_item_collection)
           {
-            this.dragged_item.transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
+            for(i = 0; i < this.dragged_item_collection.length; i++)
+            {
+              this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
+            }
           }
         },
         handleMouseUp: function (event) {
-          if (this.dragged_item)
+          if (this.dragged_item_collection)
           {
-            this.dragged_item.color = MOVEABLE_COLOR;
-            this.dragged_item.snap(35);
+            for(i = 0; i < this.dragged_item_collection.length; i++)
+            {
+              this.dragged_item_collection[i].color = MOVEABLE_COLOR;
+              this.dragged_item_collection[i].snap(35);
+            }
           }
-          this.dragged_item = null;
+          this.dragged_item_collection = null;
         },
         handleKeyDown: function (event) {
         },
