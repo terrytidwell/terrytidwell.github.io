@@ -346,7 +346,7 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 11;
+          g_level_cap = 12;
 
           switch (stage) {
             case 0:
@@ -757,6 +757,42 @@
               "...O.........."
               ], 4, 3);
               this.name = "CROSS BIRD PUZZLE"
+              break;
+            case 11:
+              this.makePiece(["P","A"], 2, 13);
+              this.makePiece(["CO","K."], 19, 8);
+              this.makePiece(["SCH","..E"], 18, 3);
+              this.makePiece(["F.","LO"], 2, 3);
+              this.makePiece(["O","C","K"], 2, 9);
+              this.makePiece(["R","D"], 4, 13);
+              this.makePiece(["NY","E."], 17, 5);
+              this.makePiece(["S","T"], 16, 13);
+              this.makePiece(["OOL","..I"], 2, 6);
+              this.makePiece(["RO",".A",".L"], 4, 9);
+              this.makePiece([".E.","PRI"], 6, 13);
+              this.makePiece(["SWA","H.."], 18, 13);
+              this.makePiece(["T","T"], 5, 3);
+              this.makePiece(["OP"], 19, 11);
+              this.makePiece(["M","U"], 6, 6);
+              this.makePiece(["R.","DE"], 8, 6);
+              this.makePiece(["E.","RM"], 7, 3);
+
+              this.makeGrid(
+              [
+              "..OOOOOO...",
+              "....O..O...",
+              "....O..O.O.",
+              "....O..O.O.",
+              "O......O.O.",
+              "O.O...OOOOO",
+              "OOOOOO...O.",
+              "O.O.O.OOOOO",
+              "..O.O.O....",
+              "..O.OOOOO..",
+              "......O....",
+              "......O...."
+              ], 7, 3);
+              this.name = "A GROUP OF RHINOS IS CALLED A CRASH, YOU'RE WELCOME"
               break;
             default:
               this.name = "INVALID PUZZLE";
