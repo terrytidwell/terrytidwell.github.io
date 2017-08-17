@@ -8,6 +8,7 @@
 </head>
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
 <canvas oncontextmenu="return false;" id="canvas" width="800" height="600"></canvas>
+<script src="puzzles.js" type="text/javascript"></script>
 <script>
     //##########################################################################
     // The game
@@ -16,7 +17,6 @@
     var g_ctx;
     var g_current_screen;
     var g_level;
-    var g_level_cap;
 
     var PHI = 1.61803398875;
     var INVERSE_PHI = 0.61803398875;
@@ -346,457 +346,25 @@
 
         populateLevel: function (stage) {
 
-          g_level_cap = 12;
-
-          switch (stage) {
-            case 0:
-              this.makePiece(["DO"], 17, 14);
-              this.makePiece(["G","O"], 20, 4);
-              this.makePiece(["O ","SH","E "], 19, 7);
-              this.makePiece(["EEP","Y  "], 18, 2);
-              this.makePiece(["I ","GO"], 7, 13);
-              this.makePiece(["AT","T "], 5, 2);
-              this.makePiece(["C"], 4, 12);
-              this.makePiece(["T ","U ","RO","K "], 2, 2);
-              this.makePiece([" R","OS"," E"], 19, 11);
-              this.makePiece([" K ","TER"," N "], 7, 3);
-              this.makePiece(["H","O"],2, 13);
-              this.makePiece(["DU"], 4, 14);
-              this.makePiece(["CK","H "], 2, 10);
-              this.makePiece(["I ","CO"], 2, 7);
-              this.makePiece(["W"], 17, 12);
-
-              this.makeGrid(
-              [
-              "       OOOO ",
-              "         O  ",
-              "       O O  ",
-              "    O  O OOO",
-              "OOO O  O O  ",
-              "  O OOOOOOO ",
-              "  O O  O O  ",
-              "  OOOOO     ",
-              "  O O O O   ",
-              "      OOOO  ",
-              "        O   "
-              ], 6, 3);
-
-              this.name = "THE FARM";
-
-              break;
-            case 1:
-              this.makePiece(["BE"], 2, 12);
-              this.makePiece(["AT","R "], 2, 2);
-              this.makePiece([" I","RA"], 17, 5);
-              this.makePiece(["  V","OPE"], 2, 9);
-              this.makePiece(["NO"], 2, 7);
-              this.makePiece(["CO"], 16, 2);
-              this.makePiece([" R"," S","TE"], 19, 7);
-              this.makePiece([" T","RE"," N"], 19, 2);
-              this.makePiece(["  O","HAR"], 18, 13);
-              this.makePiece(["M","E"], 5, 2);
-              this.makePiece(["T","E"], 5, 5);
-              this.makePiece(["RD"], 19, 11);
-              this.makePiece(["IC"], 2, 5);
-              this.makePiece(["M  ","P  ","ONY"], 14, 2);
-              this.makePiece(["  L","CHO"], 3, 13);
-              this.makePiece([" D ","LYR"], 7, 12);
-
-              this.makeGrid(
-              [
-              "   OOOO     ",
-              "     O      ",
-              "   O O      ",
-              " OOOOO      ",
-              "   O   O O  ",
-              "   OOOOO O  ",
-              "OOOO   O O  ",
-              "       O O  ",
-              "     OOOOOOO",
-              "        O   ",
-              "        O   ",
-              "      OOOOO ",
-              "        O   ",
-              "       OOOOO"
-              ], 6, 3);
-
-              this.name = "MUSIC";
-              break;
-            case 2:
-              this.makePiece(["H","A"], 20, 9);
-              this.makePiece(["R  ","PET"], 2, 7);
-              this.makePiece([" T","TR"," O"], 19, 5);
-              this.makePiece(["UM"], 2, 2);
-              this.makePiece(["M  ","BAG"], 2, 4);
-              this.makePiece([" V","PI"," O"], 5, 2);
-              this.makePiece(["PE"], 9, 7);
-              this.makePiece(["L ","I ","NO"], 2, 12);
-              this.makePiece(["PIA"], 14, 14);
-              this.makePiece(["NJO","  N"], 18, 2);
-              this.makePiece(["BA"], 2, 10);
-              this.makePiece(["ELE"], 8, 3);
-              this.makePiece(["UL"], 8, 5);
-              this.makePiece(["G ","UK","I "], 6, 6);
-              this.makePiece([" T"," A","DR"], 19, 12);
-              this.makePiece(["UMS"], 8, 13);
-
-              this.makeGrid(
-              [
-              "          O   ",
-              "          O   ",
-              "       O  O   ",
-              "      OOOOOOO ",
-              "       O      ",
-              "       O   O  ",
-              "       OOOOOOO",
-              "   OOOOO   O  ",
-              " O     O   O  ",
-              " OOOOOOO   O  ",
-              " O      OOOOO ",
-              " O            ",
-              " O            ",
-              "OOOOO         "
-              ], 5, 2);
-
-              this.name = "INSTRUMENTS";
-              break;
-            case 3:
-              this.makePiece(["P","E"], 5, 2);
-              this.makePiece(["A ","CH","H "], 19, 7);
-              this.makePiece(["ER"," I"], 19, 2);
-              this.makePiece(["AP","P "], 16, 2);
-              this.makePiece(["  P","PLE"], 2, 5);
-              this.makePiece(["A","R"], 8, 13);
-              this.makePiece(["RY"], 19, 5);
-              this.makePiece(["C ","OR","T "], 6, 9);
-              this.makePiece(["AN"," A"], 5, 13);
-              this.makePiece(["GE"], 16, 5);
-              this.makePiece(["B","A"], 20, 11);
-              this.makePiece(["GR"], 16, 9);
-              this.makePiece(["GO"], 16, 7);
-              this.makePiece(["N ","AP"], 2, 13);
-              this.makePiece(["MAN","E  "], 2, 8);
-              this.makePiece(["MON"], 2, 11);
-              this.makePiece(["LE","O ","N "], 2, 2);
-
-
-              this.makeGrid(
-              [
-              "O      O     ",
-              "O  OOOOO     ",
-              "O  O   O     ",
-              "OOOOOO O     ",
-              "O  O  O      ",
-              "   O  O      ",
-              "   OOOOOO    ",
-              "   O  O      ",
-              "      O OOOOO",
-              "    OOOOO    ",
-              "        OOOOO",
-              "        O    ",
-              "        O    "
-              ], 6, 3);
-              this.name = "THE GOOD KIND OF SALAD";
-              break;
-            case 4:
-              this.makePiece(["PU","I "], 17, 2);
-              this.makePiece(["N","K"], 2, 4);
-              this.makePiece(["B ","RP","O "], 2, 10);
-              this.makePiece(["W","N"], 20, 9);
-              this.makePiece(["Y ","E ","LE"], 18, 11);
-              this.makePiece(["L ","OR","W "], 17, 5);
-              this.makePiece([" E"," E","AN"], 19, 2);
-              this.makePiece(["G","R"], 5, 2);
-              this.makePiece([" I"," T","GE"], 4, 11);
-              this.makePiece(["W","H"], 20, 6);
-              this.makePiece([" R","LA"," Y"], 7, 11);
-              this.makePiece(["CK"], 2, 2);
-              this.makePiece(["B","L"], 16, 12);
-              this.makePiece([" U","RE"], 2, 7);
-              this.makePiece(["D"], 18, 9);
-
-              this.makeGrid(
-              [
-              "    O  O O ",
-              "  O O  O O ",
-              "OOOOOO O O ",
-              "O O O  O O ",
-              "O O OOOOOO ",
-              "O O O   O  ",
-              "      OOOOO",
-              "      O O  ",
-              "      O    ",
-              "     OOO   "
-              ], 6, 3);
-              this.name = "COLORS";
-              break;
-            case 5:
-              this.makePiece(["..W","FRA"], 4, 14);
-              this.makePiece(["BON",".N."], 1, 7);
-              this.makePiece(["T","S"], 18, 2);
-              this.makePiece(["NKE","..R"], 1, 2);
-              this.makePiece([".P.","JEK",".R."], 19, 11);
-              this.makePiece(["OC",".T"], 20, 2);
-              this.makePiece(["P.","ES","P."], 1, 13);
-              this.makePiece(["L","E"], 21, 5);
-              this.makePiece(["TOP"], 3, 12);
-              this.makePiece(["NST"], 1, 5);
-              this.makePiece([".H","MO"], 16, 14);
-              this.makePiece(["YLL"], 1, 10);
-              this.makePiece(["W"], 5, 5);
-              this.makePiece(["RE"], 20, 15);
-              this.makePiece(["H","O"], 21, 8);
-              this.makePiece(["US","S."], 18, 5);
-              this.makePiece(["EIN",".N."], 5, 2);
-              this.makePiece(["D","I"], 16, 2);
-              this.makePiece(["AU","N.","A."], 18, 8);
-
-              this.makeGrid(
-              [
-              ".....O...O..",
-              ".....O...O..",
-              "....OOOOOOO.",
-              "..O..O...O..",
-              "OOOOOOOOOOOO",
-              "..O..O....O.",
-              "..O.O..O..O.",
-              ".OOOOO.O..O.",
-              "..O.O.OOOOOO",
-              "....O.....O.",
-              "...OOOOOO.O.",
-              "....O......."
-              ], 5, 3);
-              this.name = "DOCTORS";
-              break;
-            case 6:
-              this.makePiece(["TA"], 14, 6);
-              this.makePiece(["UM",".A"], 1, 9);
-              this.makePiece(["PE"], 11, 3);
-              this.makePiece(["AZU"], 12, 13);
-              this.makePiece(["FU"], 4, 13);
-              this.makePiece(["UPE","V.."], 19, 10);
-              this.makePiece([".R.","BER"], 19, 7);
-              this.makePiece(["RIW",".V."], 1, 6);
-              this.makePiece(["O.","CH","H."], 1, 12);
-              this.makePiece(["O.","RE","Y."], 5, 2);
-              this.makePiece(["SIA"], 1, 4);
-              this.makePiece(["CER",".B."], 16, 2);
-              this.makePiece([".O","IN",".Y"], 20, 2);
-              this.makePiece(["KLE"], 1, 2);
-              this.makePiece(["UL"], 14, 4);
-              this.makePiece([".M.","EAN"], 17, 13);
-              this.makePiece(["G","E","N"], 21, 12);
-              this.makePiece(["T","A"], 18, 5);
-
-              this.makeGrid(
-              [
-              "....O.........",
-              "..OOOOOOO.....",
-              "....O.........",
-              "....O.........",
-              ".OOOOO......O.",
-              "..O...OOOOOOOO",
-              "OOOOO..O....O.",
-              "..O....O....O.",
-              ".OOOOOOOOOO.O.",
-              "....O..O....O.",
-              "....O.......O.",
-              ".OOOOO........",
-              "....O........."
-              ], 4, 3);
-              this.name = "COLORS: THE REVENGE"
-              break;
-            case 7:
-              this.makePiece(["P","O","P"], 2, 7);
-              this.makePiece(["S.","I.","CH"], 2, 11);
-              this.makePiece(["L","E"], 4, 9);
-              this.makePiece(["G","E"], 9, 3);
-              this.makePiece(["L","A"], 8, 6);
-              this.makePiece(["T.","OC"], 13, 8);
-              this.makePiece(["ST",".R",".U"], 3, 5);
-              this.makePiece(["OLA",".E."], 5, 13);
-              this.makePiece(["F","F"], 16, 8);
-              this.makePiece([".M",".O","RU"], 15, 13);
-              this.makePiece(["LOL"], 2, 15);
-              this.makePiece(["S.","SO","E."], 6, 2);
-              this.makePiece(["TE"], 7, 11);
-              this.makePiece([".K.","DEL"], 19, 14);
-              this.makePiece(["CAN","A.."], 17, 4);
-              this.makePiece(["RB",".R",".O"], 20, 10);
-              this.makePiece(["LIP",".E."], 2, 2);
-              this.makePiece(["W","N"], 13, 3);
-              this.makePiece(["ET"], 9, 13);
-              this.makePiece(["DY"], 20, 2);
-              this.makePiece(["C.","O.","OP"], 19, 6);
-              this.makePiece(["K","I","E"], 21, 4);
-
-              this.makeGrid(
-              [
-              ".........OOOOO",
-              ".......O.O....",
-              ".......O.O....",
-              "O.O.OOOOOOO...",
-              "O.O..O.O......",
-              "O.O..O.OOOOOO.",
-              "O.O..O.O..O...",
-              "O.O..O....O...",
-              "OOOOOOOOO.O.O.",
-              "O....O....O.O.",
-              "O.....OOOOOOOO",
-              "..........O.O.",
-              "............O.",
-              "............O."
-              ], 5, 2);
-              this.name = "SWEET TOOTH"
-              break;
-            case 8:
-              this.makePiece(["ZO"], 5, 14);
-              this.makePiece(["VAM","..Y"], 15, 3);
-              this.makePiece(["WE"], 3, 2);
-              this.makePiece(["MB","U.","M."], 18, 7);
-              this.makePiece([".D","RE"], 5, 3);
-              this.makePiece(["PI"], 9, 13);
-              this.makePiece(["GH"], 19, 4);
-              this.makePiece(["V.","IE","L."], 1, 3);
-              this.makePiece(["WO"], 19, 2);
-              this.makePiece(["RE"], 1, 11);
-              this.makePiece(["OST",".K."], 1, 13);
-              this.makePiece([".T","GO",".N"], 19, 10);
-              this.makePiece(["E.","LF","E."], 1, 7);
-              this.makePiece(["BL"], 3, 6);
-              this.makePiece(["W.","IN","T."], 17, 12);
-              this.makePiece(["C","H"], 15, 5);
-
-              this.makeGrid(
-              [
-              "....OOOOO...",
-              ".......O....",
-              "....O..O....",
-              ".OOOOOOOO...",
-              "....O..O....",
-              "OOOOOO.O..O.",
-              "..O.O.OOOOOO",
-              "..O....O..O.",
-              "OOOOOOO...O.",
-              "..O.......O."
-              ], 5, 3);
-              this.name = "MONSTER MASH"
-              break;
-            case 9:
-              this.makePiece([".O.","PAN"], 3, 14);
-              this.makePiece([".E","WA",".L"], 20, 6);
-              this.makePiece(["T.","MI"], 1, 9);
-              this.makePiece(["OME"], 1, 12);
-              this.makePiece(["FF"], 5, 3);
-              this.makePiece(["CAK"], 16, 6);
-              this.makePiece(["LK"], 7, 11);
-              this.makePiece(["LES",".G."], 16, 8);
-              this.makePiece([".C","LE",".R"], 7, 13);
-              this.makePiece(["GRI","S.."], 1, 2);
-              this.makePiece(["ES","A.","L."], 1, 5);
-              this.makePiece(["TS"], 3, 8);
-              this.makePiece([".T.","YOG"], 19, 14);
-              this.makePiece(["A.","S.","TS"], 16, 13);
-              this.makePiece([".H","BA",".S"], 20, 10);
-              this.makePiece(["URT",".O."], 17, 2);
-              this.makePiece(["H","B"], 1, 14);
-              this.makePiece(["W","N","S"], 21, 2);
-              this.makePiece(["CON"], 16, 11);
-
-              this.makeGrid(
-              [
-              "......O........",
-              "..OOOOOOO..O...",
-              ".O....O...OOOOO",
-              "OOOOOOOO...O...",
-              ".O....O....O...",
-              ".OOOO.O.O..O...",
-              ".O.....OOOOOO..",
-              "OOOOOOO.O..O...",
-              ".O...O..O..O...",
-              ".....OOOOO.O...",
-              ".....O.....O..."
-              ], 4, 3);
-              this.name = "PART OF A COMPLETE BREAKFAST"
-              break;
-            case 10:
-              this.makePiece(["..C","HER"], 1, 4);
-              this.makePiece([".A",".N","PE"], 20, 2);
-              this.makePiece(["..F","SPA"], 19, 14);
-              this.makePiece(["DO",".N"], 17, 6);
-              this.makePiece(["ON"], 9, 12);
-              this.makePiece(["NG"], 18, 13);
-              this.makePiece(["L","C"], 14, 12);
-              this.makePiece(["RR"], 1, 7);
-              this.makePiece(["VE"], 20, 6);
-              this.makePiece([".F",".L","CA"], 17, 2);
-              this.makePiece([".M.","UIN"], 15, 14);
-              this.makePiece(["N.","G.","OW"], 1, 13);
-              this.makePiece(["RDI"], 4, 15);
-              this.makePiece([".R.","PIG"], 19, 8);
-              this.makePiece(["O.","ST","T."], 1, 9);
-              this.makePiece(["C","H"], 17, 9);
-              this.makePiece([".P.","NAL"], 3, 11);
-              this.makePiece(["R","R"], 4, 8);
-              this.makePiece(["ORK","T.."], 1, 2);
-              this.makePiece(["EON"], 19, 11);
-
-              this.makeGrid(
-              [
-              "..O...O.......",
-              "OOOOO.O....O..",
-              "..O..OOOOOOOO.",
-              "..O...O....O..",
-              ".OOOOOOO.O.O..",
-              "......O..OOOOO",
-              "...O..O..O.O..",
-              ".OOOOOOO.O....",
-              "...O....OOOOOO",
-              "...O.....O....",
-              "..OOOO...O....",
-              "...O.........."
-              ], 4, 3);
-              this.name = "CROSS BIRD PUZZLE"
-              break;
-            case 11:
-              this.makePiece(["P","A"], 2, 13);
-              this.makePiece(["CO","K."], 19, 8);
-              this.makePiece(["SCH","..E"], 18, 3);
-              this.makePiece(["F.","LO"], 2, 3);
-              this.makePiece(["O","C","K"], 2, 9);
-              this.makePiece(["R","D"], 4, 13);
-              this.makePiece(["NY","E."], 17, 5);
-              this.makePiece(["S","T"], 16, 13);
-              this.makePiece(["OOL","..I"], 2, 6);
-              this.makePiece(["RO",".A",".L"], 4, 9);
-              this.makePiece([".E.","PRI"], 6, 13);
-              this.makePiece(["SWA","H.."], 18, 13);
-              this.makePiece(["T","T"], 5, 3);
-              this.makePiece(["OP"], 19, 11);
-              this.makePiece(["M","U"], 6, 6);
-              this.makePiece(["R.","DE"], 8, 6);
-              this.makePiece(["E.","RM"], 7, 3);
-
-              this.makeGrid(
-              [
-              "..OOOOOO...",
-              "....O..O...",
-              "....O..O.O.",
-              "....O..O.O.",
-              "O......O.O.",
-              "O.O...OOOOO",
-              "OOOOOO...O.",
-              "O.O.O.OOOOO",
-              "..O.O.O....",
-              "..O.OOOOO..",
-              "......O....",
-              "......O...."
-              ], 7, 3);
-              this.name = "A GROUP OF RHINOS IS CALLED A CRASH, YOU'RE WELCOME"
-              break;
-            default:
-              this.name = "INVALID PUZZLE";
-              break;
+          if (stage < g_puzzles.length)
+          {
+            for(var i = 0; i < g_puzzles[stage].pieces.length; i++)
+            {
+              this.makePiece(g_puzzles[stage].pieces[i].str,
+                g_puzzles[stage].pieces[i].x,
+                g_puzzles[stage].pieces[i].y
+              );
+            }
+            this.makeGrid(g_puzzles[stage].grid.str,
+              g_puzzles[stage].grid.x,
+              g_puzzles[stage].grid.y
+            );
+            this.name = g_puzzles[stage].name;
+            return;
+          }
+          else
+          {
+            this.name = "INVALID PUZZLE";
           }
         },
         
@@ -920,7 +488,7 @@
               {
                 if(g_level === 0)
                 {
-                  g_level = g_level_cap;
+                  g_level = g_puzzles.length;
                 }
                 g_level--;
                 this.reset();
@@ -929,7 +497,7 @@
               if(event.offsetX > g_canvas.width - this.forwardTextSize)
               {
                 g_level++;
-                g_level %= g_level_cap;
+                g_level %= g_puzzles.length;
                 this.reset();
                 return true;
               }
@@ -1136,7 +704,6 @@
         g_ctx.textAlign="start";
         g_ctx.textBaseline="middle";
         g_level = 0;
-        g_level_cap = 1;
 
         g_canvas.addEventListener("mousedown", function (event) {
             g_current_screen.handleMouseDown(event);
