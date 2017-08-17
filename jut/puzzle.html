@@ -225,7 +225,7 @@ function groupToText(group)
     text.push(line);
   }
   
-  var str = "this.makePiece(";
+  var str = "{str:";
   
   for (i = 0; i < group.length; i++)
   {
@@ -248,7 +248,7 @@ function groupToText(group)
     str += "\"";
   }
   
-  str += "], " + min_x + ", " + min_y + ");"
+  str += "], x:" + min_x + ", y:" + min_y + "}"
   return str;
 }
 
@@ -275,15 +275,18 @@ function toJsonButton()
   var i = 0;
   var j = 0;
   
-  var str = "";
+  var str = "{pieces: [<br>";
   for (i = 0; i < g_groups.length; ++i)
   {
+    if(i !== 0)
+    {
+      str +=",<br>"
+    }
     str += groupToText(g_groups[i], g_puzzle);
-    str += "<br>";
   }
-  str += "<br>";
+  str += "],<br><br>";
   
-  str += "this.makeGrid(<br>";
+  str += "grid: { str:<br>";
   str += "[<br>";
   var dim = findDimensions(g_puzzle)
   for (i = 0; i < dim[3]; i++)
@@ -305,8 +308,8 @@ function toJsonButton()
       }
     }
   }
-  str += '"<br>], ' + dim[0] + ', ' + dim[1] + ');<br>';
-  str += "this.name = \"" + document.getElementById("title").value + "\"";
+  str += '"<br>], x:' + dim[0] + ', y:' + dim[1] + '},<br>';
+  str += "name: \"" + document.getElementById("title").value + "\"<br>}";
   display(str);
 }
 
