@@ -452,5 +452,43 @@ var g_puzzles =
          "......O...."
       ], x:7, y:3},
       name: "A GROUP OF RHINOS IS CALLED A CRASH, YOU'RE WELCOME"
-   }
+   },
+  {
+    pieces: [
+      {str:["SA"], x:4, y:12},
+      {str:["CAP"], x:5, y:3},
+      {str:["IL"], x:20, y:14},
+      {str:["STE"], x:3, y:5},
+      {str:["OR",".B",".O"], x:20, y:10},
+      {str:["S.","TA","A."], x:1, y:6},
+      {str:["A.","RN","D."], x:18, y:7},
+      {str:["R.","IN","G."], x:17, y:3},
+      {str:["GAL","I.."], x:1, y:3},
+      {str:["N.","GA"], x:3, y:9},
+      {str:[".H","PO",".R"], x:20, y:3},
+      {str:["A.","NG","C."], x:17, y:12},
+      {str:["LEY",".R."], x:5, y:8},
+      {str:["RT"], x:5, y:14},
+      {str:["R","U"], x:1, y:10},
+      {str:["D","D"], x:21, y:7},
+      {str:[".M.","WAY"], x:1, y:13},
+      {str:["S","T"], x:8, y:13}],
+
+    grid: { str:
+    [
+      "...........O..",
+      ".....O.O...O..",
+      "..OOOOOOO..O..",
+      ".....O.O...O..",
+      "OOOOOO.OOOOOO.",
+      ".....O.O...O..",
+      ".....O.O.O..O.",
+      ".....O.OOOOOOO",
+      "..OOOOO..O..O.",
+      ".....O...O..O.",
+      "........OOOO..",
+      ".........O...."
+    ], x:4, y:3},
+    name: "CROSSWORD PUZZZLES AREN'T MY TRUE LOVE, MY HEART BELONGS TO THE SEA"
+}
 ];
