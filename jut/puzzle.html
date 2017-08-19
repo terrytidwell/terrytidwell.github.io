@@ -225,7 +225,7 @@ function groupToText(group)
     text.push(line);
   }
   
-  var str = "{str:";
+  var str = "{\"str\":";
   
   for (i = 0; i < group.length; i++)
   {
@@ -248,7 +248,7 @@ function groupToText(group)
     str += "\"";
   }
   
-  str += "], x:" + min_x + ", y:" + min_y + "}"
+  str += "],\"x\":" + min_x + ",\"y\":" + min_y + "}"
   return str;
 }
 
@@ -275,25 +275,25 @@ function toJsonButton()
   var i = 0;
   var j = 0;
   
-  var str = "{pieces: [<br>";
+  var str = "{\"pieces\":[";
   for (i = 0; i < g_groups.length; ++i)
   {
     if(i !== 0)
     {
-      str +=",<br>"
+      str +=","
     }
     str += groupToText(g_groups[i], g_puzzle);
   }
-  str += "],<br><br>";
+  str += "],";
   
-  str += "grid: { str:<br>";
-  str += "[<br>";
+  str += "\"grid\":{\"str\":";
+  str += "[";
   var dim = findDimensions(g_puzzle)
   for (i = 0; i < dim[3]; i++)
   {
     if (i !== 0)
     {
-      str += '",<br>'
+      str += '",'
     }
     str += '"';
     for(j = 0; j < dim[2]; j++)
@@ -308,8 +308,8 @@ function toJsonButton()
       }
     }
   }
-  str += '"<br>], x:' + dim[0] + ', y:' + dim[1] + '},<br>';
-  str += "name: \"" + document.getElementById("title").value + "\"<br>}";
+  str += '"],\"x\":' + dim[0] + ',\"y\":' + dim[1] + '},';
+  str += "\"name\":\"" + document.getElementById("title").value + "\"}";
   display(str);
 }
 
