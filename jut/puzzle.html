@@ -20,6 +20,7 @@ Title: <textarea id="title" rows="1" cols="50">SAMPLE</textarea>
   <button type="button" onclick="puzzleButton()">Create Puzzle</button>
   <button type="button" onclick="clearTilingButton()">Clear Tiling</button>
   <button type="button" onclick="tileButton()">Create Output</button>
+  <button type="button" onclick="drawButton()">Draw</button>
 </div>
 <div id = "statusWindow" width="800">
 </div>
@@ -250,6 +251,67 @@ function groupToText(group)
   
   str += "],\"x\":" + min_x + ",\"y\":" + min_y + "}"
   return str;
+}
+
+function drawButton()
+{
+  var PHI = 1.61803398875;
+  var INVERSE_PHI = 0.61803398875;
+  g_ctx.fillStyle = "#f0f0f0";
+  g_ctx.fillRect(
+      0, 0,
+      g_canvas.width,
+      g_canvas.height);     
+  g_ctx.fillStyle = "black";
+  g_ctx.textBaseline="middle";
+  g_ctx.textAlign="center";
+  var textHeight = Math.round(INVERSE_PHI * 30);
+  g_ctx.font = textHeight + "px Verdana";
+  drawMouse(g_ctx, g_canvas.width/2, g_canvas.height/2, MouseButtonEnum.properties.random());
+}
+
+var MouseButtonEnum = {
+  NONE: 0,
+  LEFT: 1,
+  RIGHT: 2,
+  BOTH: 3,
+  properties: {
+    random: function() { return Math.floor(Math.random() * 4); } 
+  }
+};
+
+function drawMouse(ctx,centerX, centerY, mouseButton)
+{
+  var offset = 2;
+  var radius = 12;
+  var border = Math.round(offset/2)
+  var left_color = "grey";
+  var right_color = "grey";
+  if(mouseButton === MouseButtonEnum.LEFT || mouseButton === MouseButtonEnum.BOTH)
+  {
+    left_color = "black";
+  }
+  if(mouseButton === MouseButtonEnum.RIGHT || mouseButton === MouseButtonEnum.BOTH)
+  {
+    right_color = "black";
+  }
+  drawWedge(ctx, left_color, centerX + border, centerY - border, radius, 3 * Math.PI / 2, 0);
+  drawWedge(ctx, right_color, centerX - border, centerY - border, radius, Math.PI, 3 * Math.PI / 2);
+  var width = offset + 2 * radius;
+  var height = 8;
+  ctx.fillStyle = "gray";
+  ctx.fillRect(centerX - Math.round(width/2), centerY + border, width, height);
+  drawWedge(ctx, "gray", centerX, centerY + border + height, radius + border, 0, Math.PI);
+}
+
+function drawWedge(ctx, color, centerX, centerY, radius, startAngle, endAngle)
+{
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(centerX,centerY);
+  ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function clearTilingButton()
