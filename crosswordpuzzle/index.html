@@ -311,6 +311,53 @@ var TutorialScreen = {
     this.reset();
   },
   reset: function () {
+    this.mouse_instructions = []
+    this.mouse_instructions.push([0, 6*35 + 15, 5*35 + 15]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 15*35 + 15, 10*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 70]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 17*35 + 15, 10*35 + 15]);
+    this.mouse_instructions.push([1,MouseButtonEnum.RIGHT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 13*35 + 15, 7*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 70]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 5*35 + 15, 11*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 13*35 + 15, 9*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([0, 18*35 + 15, 6*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 9*35 + 15, 9*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([0, 6*35 + 15, 6*35 + 15]);
+    this.mouse_instructions.push([2,50]);
+    this.mouse_x = Math.round(g_canvas.width / 2);
+    this.mouse_y = Math.round(g_canvas.height / 2);
+    this.mouse_buttons = MouseButtonEnum.NONE;
+
+    this.mouseSpeed = 10;
+    this.idle_timer = 0;
     this.gameScreen = GameScreen;
     var temp_level = g_level;
     g_level = g_puzzles.length;
@@ -321,11 +368,132 @@ var TutorialScreen = {
   },
   handleMouseDown: function (event) {},
   handleMouseUp: function (event) {},
+  handleMouseMove: function (event) {},
   handleKeyDown: function (event) {},
   handleKeyUp: function (event) {},
-  handleTimeStep: function () {},
+  handleTimeStep: function () {
+    if (this.mouse_instructions.length == 0)
+    {
+      switchToScreen(GameScreen);
+      return;
+    }
+    
+    var current_instruction = this.mouse_instructions[0];
+    var current_instruction_done = true;
+    if (current_instruction[0] == 0)
+    {
+      var dy = this.mouse_y - current_instruction[2];
+      var dx = this.mouse_x - current_instruction[1];
+      if (Math.abs(dy) < this.mouseSpeed)
+      {
+        this.mouse_y = current_instruction[2];
+      }
+      else if(dy < 0)
+      {
+        this.mouse_y += this.mouseSpeed;
+        current_instruction_done = false;
+      }
+      else if(dy > 0)
+      {
+        this.mouse_y -= this.mouseSpeed;
+        current_instruction_done = false;
+      }
+      
+      if (Math.abs(dx) < this.mouseSpeed)
+      {
+        this.mouse_x = current_instruction[1];
+      }
+      else if(dx < 0)
+      {
+        this.mouse_x += this.mouseSpeed;
+        current_instruction_done = false;
+      }
+      else if(dx > 0)
+      {
+        this.mouse_x -= this.mouseSpeed;
+        current_instruction_done = false;
+      }
+      this.gameScreen.handleMouseMove({offsetX: this.mouse_x, offsetY: this.mouse_y});
+    }
+    
+    if (current_instruction[0] == 1)
+    {
+      var old_buttons = this.mouse_buttons;
+      this.mouse_buttons = current_instruction[1];
+      if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.RIGHT) &&
+        (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.BOTH))
+      {
+        this.gameScreen.handleMouseDown({button: 0, offsetX: this.mouse_x, offsetY: this.mouse_y});
+      }
+      if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.LEFT) &&
+        (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.BOTH))
+      {
+        this.gameScreen.handleMouseDown({button: 2, offsetX: this.mouse_x, offsetY: this.mouse_y});
+      }
+      if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.RIGHT) &&
+        (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.NONE))
+      {
+        this.gameScreen.handleMouseUp({button: 2, offsetX: this.mouse_x, offsetY: this.mouse_y});
+      }
+      if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.LEFT) &&
+        (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.NONE))
+      {
+        this.gameScreen.handleMouseUp({button: 0, offsetX: this.mouse_x, offsetY: this.mouse_y});
+      }
+    }
+    
+    if (current_instruction[0] == 2)
+    {
+      this.idle_timer++;
+      if (this.idle_timer < current_instruction[1])
+      {
+        current_instruction_done = false;
+      }
+    }
+    
+    if (current_instruction_done) 
+    {
+      this.mouse_instructions.splice(0,1);
+      this.idle_timer = 0;
+    }
+  },
+  
   paint: function () {
     this.gameScreen.paint();
+    this.drawMouse(g_ctx, Math.round(this.mouse_x), Math.round(this.mouse_y), this.mouse_buttons);
+  },
+
+  drawMouse: function (ctx,centerX, centerY, mouseButton) {
+    var offset = 2;
+    var radius = 12;
+    var border = Math.round(offset/2)
+    var left_color = "grey";
+    var right_color = "grey";
+    if(mouseButton === MouseButtonEnum.LEFT || mouseButton === MouseButtonEnum.BOTH)
+    {
+      left_color = "black";
+    }
+    if(mouseButton === MouseButtonEnum.RIGHT || mouseButton === MouseButtonEnum.BOTH)
+    {
+      right_color = "black";
+    }
+    this.drawWedge(ctx, right_color, centerX + border, centerY - border, radius, 3 * Math.PI / 2, 0);
+    this.drawWedge(ctx, left_color, centerX - border, centerY - border, radius, Math.PI, 3 * Math.PI / 2);
+    var width = offset + 2 * radius;
+    var height = 8;
+    ctx.fillStyle = "gray";
+    ctx.fillRect(centerX - Math.round(width/2), centerY + border, width, height);
+    this.drawWedge(ctx, "gray", centerX, centerY + border + height, radius + border, 0, Math.PI);
+  },
+
+  drawWedge: function(ctx, color, centerX, centerY, radius, startAngle, endAngle)
+  {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(centerX,centerY);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fill();
   }
 };
 
@@ -547,12 +715,11 @@ var GameScreen = {
       return false;
     },
     handleMouseMove: function (event) {
-      var rect = canvas.getBoundingClientRect();
       var old_x = this.mouse_pos[0];
       var old_y = this.mouse_pos[1];
       var i = 0;
-      this.mouse_pos[0] = event.clientX - rect.left;
-      this.mouse_pos[1] = event.clientY - rect.top;
+      this.mouse_pos[0] = event.offsetX;
+      this.mouse_pos[1] = event.offsetY;
       if (this.dragged_item_collection)
       {
         for(i = 0; i < this.dragged_item_collection.length; i++)
