@@ -10,772 +10,812 @@
 <canvas oncontextmenu="return false;" id="canvas" width="800" height="600"></canvas>
 <script src="puzzles.js" type="text/javascript"></script>
 <script>
-    //##########################################################################
-    // The game
+//##########################################################################
+// The game
 
-    var g_canvas;
-    var g_ctx;
-    var g_current_screen;
-    var g_level;
+var g_canvas;
+var g_ctx;
+var g_current_screen;
+var g_level;
 
-    var PHI = 1.61803398875;
-    var INVERSE_PHI = 0.61803398875;
+var PHI = 1.61803398875;
+var INVERSE_PHI = 0.61803398875;
 
-    var MOVE_COLOR = "red";
-    var MOVEABLE_COLOR = "black";
-    var STATIC_COLOR = "lightgrey";
+var MOVE_COLOR = "red";
+var MOVEABLE_COLOR = "black";
+var STATIC_COLOR = "lightgrey";
 
-    //--------------------------------------------------------------------------
-    // interface, for reference, not enforced
-    // The name is funny because Screen is already declared
-    // and this is just for reference anyway
-    const Screen_ = {
-        init: function (layout) {},
-        reset: function () {},
-        handleMouseDown: function (event) {},
-        handleMouseUp: function (event) {},
-        handleKeyDown: function (event) {},
-        handleKeyUp: function (event) {},
-        handleTimeStep: function () {},
-        paint: function () {}
-    };
+//--------------------------------------------------------------------------
+// interface, for reference, not enforced
+// The name is funny because Screen is already declared
+// and this is just for reference anyway
+const Screen_ = {
+    init: function (layout) {},
+    reset: function () {},
+    handleMouseDown: function (event) {},
+    handleMouseUp: function (event) {},
+    handleKeyDown: function (event) {},
+    handleKeyUp: function (event) {},
+    handleTimeStep: function () {},
+    paint: function () {}
+};
 
-    //--------------------------------------------------------------------------
-    const Util = {
+//--------------------------------------------------------------------------
+const Util = {
 
-        //----------------------------------------------------------------------
-        forEach: function (obj, fn)
-        {
-            var key;
-            for (key in obj)
-            {
-                if (obj.hasOwnProperty(key))
-                {
-                    fn(obj[key]);
-                }
-            }
-        },
-
-        //----------------------------------------------------------------------
-        randomItem: function (arr)
-        {
-            return arr[Math.floor(Math.random() * arr.length)];
-        },
-
-        //----------------------------------------------------------------------
-        shuffle: function (arr)
-        {
-            var current_index = arr.length, temp, random_index;
-            while (0 != current_index)
-            {
-                // Pick a remaining element.
-                random_index = Math.floor(Math.random() * current_index);
-                current_index -= 1;
-
-                // And swap it with the current element.
-                temp = arr[current_index];
-                arr[current_index] = arr[random_index];
-                arr[random_index] = temp;
-            }
-            return arr;
-        },
-
-        //----------------------------------------------------------------------
-        loadImage: function (url, resource_tracker)
-        {
-            var image = new Image();
-            resource_tracker.add();
-            image.onload = function (event) {
-                resource_tracker.onload(event);
-            };
-            image.src = url;
-            return image;
-        },
-
-        //----------------------------------------------------------------------
-        loadAudio: function (url, resource_tracker)
-        {
-            var audio = new buzz.sound(
-              url, {
-              //formats: [ "wav" ],
-              preload: true,
-              autoplay: false,
-              loop: false
-            });
-            resource_tracker.add();
-            audio.bindOnce("canplay", function (event) {
-                resource_tracker.onload(event)
-            });
-            return audio;
-        }
-    };
-
-    var Grid = function()
+    //----------------------------------------------------------------------
+    forEach: function (obj, fn)
     {
-      this.visible = false;
-      this.size = 35;
-      this.inner_size = Math.round(6 * this.size/7);
-      this.offset = Math.round((this.size - this.inner_size) / 2);
-      this.squares = [];
-      this.font_width = null;
-      this.font_height = null;
-      this.font_center_x = null;
-      this.font_center_y = null;
+        var key;
+        for (key in obj)
+        {
+            if (obj.hasOwnProperty(key))
+            {
+                fn(obj[key]);
+            }
+        }
+    },
 
-      this.checkPulse = function()
+    //----------------------------------------------------------------------
+    randomItem: function (arr)
+    {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    //----------------------------------------------------------------------
+    shuffle: function (arr)
+    {
+        var current_index = arr.length, temp, random_index;
+        while (0 != current_index)
+        {
+            // Pick a remaining element.
+            random_index = Math.floor(Math.random() * current_index);
+            current_index -= 1;
+
+            // And swap it with the current element.
+            temp = arr[current_index];
+            arr[current_index] = arr[random_index];
+            arr[random_index] = temp;
+        }
+        return arr;
+    },
+
+    //----------------------------------------------------------------------
+    loadImage: function (url, resource_tracker)
+    {
+        var image = new Image();
+        resource_tracker.add();
+        image.onload = function (event) {
+            resource_tracker.onload(event);
+        };
+        image.src = url;
+        return image;
+    },
+
+    //----------------------------------------------------------------------
+    loadAudio: function (url, resource_tracker)
+    {
+        var audio = new buzz.sound(
+          url, {
+          //formats: [ "wav" ],
+          preload: true,
+          autoplay: false,
+          loop: false
+        });
+        resource_tracker.add();
+        audio.bindOnce("canplay", function (event) {
+            resource_tracker.onload(event)
+        });
+        return audio;
+    }
+};
+
+var Grid = function()
+{
+  this.visible = false;
+  this.size = 35;
+  this.inner_size = Math.round(6 * this.size/7);
+  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.squares = [];
+  this.font_width = null;
+  this.font_height = null;
+  this.font_center_x = null;
+  this.font_center_y = null;
+
+  this.checkPulse = function()
+  {
+    return true;
+  }
+
+  this.handleMouseDown = function(event)
+  {
+    if (this.font_width &&
+      this.font_height &&
+      this.font_center_x &&
+      this.font_center_y)
+    {
+      if(event.offsetX > this.font_center_x - this.font_width / 2 &&
+        event.offsetX < this.font_center_x + this.font_width / 2 &&
+        event.offsetY > this.font_center_y - this.font_height / 2 &&
+        event.offsetY < this.font_center_y + this.font_height / 2)
       {
+        this.visible = !this.visible;
         return true;
       }
+    }
+    return false;
+  };
 
-      this.handleMouseDown = function(event)
-      {
-        if (this.font_width &&
-          this.font_height &&
-          this.font_center_x &&
-          this.font_center_y)
-        {
-          if(event.offsetX > this.font_center_x - this.font_width / 2 &&
-            event.offsetX < this.font_center_x + this.font_width / 2 &&
-            event.offsetY > this.font_center_y - this.font_height / 2 &&
-            event.offsetY < this.font_center_y + this.font_height / 2)
-          {
-            this.visible = !this.visible;
-            return true;
-          }
-        }
-        return false;
-      };
+  this.paint = function(ctx)
+  {
+    ctx.fillStyle = MOVEABLE_COLOR;
+    ctx.textBaseline="middle";
+    ctx.textAlign="center";
+    this.font_height = Math.round(INVERSE_PHI * (this.size - 5));
+    ctx.font = this.font_height + "px Verdana";
+    var text = "GRID: " + (this.visible ? "ON" : "OFF");
+    this.font_width = ctx.measureText(text).width;
+    this.font_center_x = Math.round(g_canvas.width / 2);
+    this.font_center_y = g_canvas.height - this.size * 2;
+    ctx.fillText(text, this.font_center_x, this.font_center_y)
 
-      this.paint = function(ctx)
+    if (!this.visible)
+    {
+      return;
+    }
+    for(var i = this.squares.length - 1; i>=0; i--)
+    {
+      ctx.fillStyle = STATIC_COLOR;
+      ctx.fillRect(this.squares[i][0] * this.size + this.offset,
+      this.squares[i][1] * this.size + this.offset, this.size - 5, this.size - 5);
+
+    }
+  };
+}
+
+var LetterBoxCollection = function()
+{
+  this.letterBoxList = [];
+  this.alive = true;
+  this.color = MOVEABLE_COLOR;
+
+  this.handleTimeStep = function()
+  {
+  };
+
+  this.checkPulse = function()
+  {
+    return this.alive;
+  }
+
+  this.handleMouseDown = function(event)
+  {
+    for(var i = this.letterBoxList.length - 1; i>=0; i--)
+    {
+      if(this.letterBoxList[i].handleMouseDown(event))
       {
-        ctx.fillStyle = MOVEABLE_COLOR;
-        ctx.textBaseline="middle";
-        ctx.textAlign="center";
         this.font_height = Math.round(INVERSE_PHI * (this.size - 5));
-        ctx.font = this.font_height + "px Verdana";
-        var text = "GRID: " + (this.visible ? "ON" : "OFF");
-        this.font_width = ctx.measureText(text).width;
-        this.font_center_x = Math.round(g_canvas.width / 2);
-        this.font_center_y = g_canvas.height - this.size * 2;
-        ctx.fillText(text, this.font_center_x, this.font_center_y)
+        return true;
+      }
+    }
+    return false;
+  };
 
-        if (!this.visible)
-        {
-          return;
-        }
-        for(var i = this.squares.length - 1; i>=0; i--)
-        {
-          ctx.fillStyle = STATIC_COLOR;
-          ctx.fillRect(this.squares[i][0] * this.size + this.offset,
-          this.squares[i][1] * this.size + this.offset, this.size - 5, this.size - 5);
+  this.paint = function(ctx)
+  {
+    for(var i = this.letterBoxList.length - 1; i>=0; i--)
+    {
+      this.letterBoxList[i].color = this.color
+      this.letterBoxList[i].paint(ctx);
+    }
+  };
 
-        }
-      };
+  this.transpose = function(deltaX, deltaY)
+  {
+    for(var i = this.letterBoxList.length - 1; i>=0; i--)
+    {
+      this.letterBoxList[i].transpose(deltaX, deltaY);
+    }
+  }
+
+  this.snap = function(size)
+  {
+    for(var i = this.letterBoxList.length - 1; i>=0; i--)
+    {
+      this.letterBoxList[i].x = size * Math.round((this.letterBoxList[i].x)/size);
+      this.letterBoxList[i].y = size * Math.round((this.letterBoxList[i].y)/size);
+    }
+  }
+}
+
+var LetterBox = function(x,y,size,letter)
+{
+  this.x = x;
+  this.y = y;
+  this.size = size;
+  this.inner_size = Math.round(6 * this.size/7);
+  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.letter = letter;
+  this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
+  this.alive = true;
+
+  this.handleTimeStep = function()
+  {
+  };
+
+  this.checkPulse = function()
+  {
+    return this.alive;
+  }
+
+  this.handleMouseDown = function(event)
+  {
+    //alert("this.x = " + this.x + ", this.size = " + this.size + ", event.offsetX = " + event.offsetX);
+    var hit = this.x + this.size >= event.offsetX &&
+      event.offsetX >= this.x &&
+      this.y + this.size >= event.offsetY &&
+      event.offsetY >= this.y;
+    return hit;
+  };
+
+  this.paint = function(ctx)
+  {
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    ctx.lineJoin ="round";
+    ctx.lineWidth = Math.round(this.size / (10*PHI));
+    ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_size, this.inner_size);
+    ctx.textBaseline="middle";
+    ctx.textAlign="center";
+    ctx.font = Math.round(INVERSE_PHI * this.inner_size) + "px Verdana";
+    ctx.fillText(this.letter,Math.round(this.x+this.size/2),Math.round(this.y+this.size/2));
+  };
+
+  this.transpose = function(deltaX, deltaY)
+  {
+    this.x += Math.round(deltaX);
+    this.y += Math.round(deltaY);
+  }
+};
+
+var Timer = function(timer, callback, parameter)
+{
+  this.current_time = timer;
+  this.callback = callback;
+  this.parameter = parameter;
+  this.handleTimeStep = function()
+  {
+    this.current_time--;
+    if(this.current_time <= 0)
+    {
+      callback(this.parameter);
     }
 
-    var LetterBoxCollection = function()
-    {
-      this.letterBoxList = [];
-      this.alive = true;
-      this.color = MOVEABLE_COLOR;
+  };
+  this.checkPulse = function(){
+        return this.current_time > 0;
+  };
+};
+    
+var MouseButtonEnum = {
+  NONE: 0,
+  LEFT: 1,
+  RIGHT: 2,
+  BOTH: 3,
+  properties: {
+    random: function() { return Math.floor(Math.random() * 4); } 
+  }
+};
+    
+var TutorialScreen = {
+  init: function () {
+    this.reset();
+  },
+  reset: function () {
+    this.gameScreen = GameScreen;
+    var temp_level = g_level;
+    g_level = g_puzzles.length;
+    this.gameScreen.reset();
+    
+    this.gameScreen.loadLevel({"pieces":[{"str":["PUZZ"],"x":16,"y":6},{"str":["WO"],"x":6,"y":5},{"str":["LES","..S"],"x":3,"y":11},{"str":["C.","RD","O."],"x":17,"y":9}],"grid":{"str":["......O.","....OOOO","......O.","OOOOOOO.","......O."],"x":7,"y":6},"name":"THE NAME OF THE GAME"});
+    g_level = temp_level;
+  },
+  handleMouseDown: function (event) {},
+  handleMouseUp: function (event) {},
+  handleKeyDown: function (event) {},
+  handleKeyUp: function (event) {},
+  handleTimeStep: function () {},
+  paint: function () {
+    this.gameScreen.paint();
+  }
+};
 
-      this.handleTimeStep = function()
-      {
-      };
+//##########################################################################
+var GameScreen = {
 
-      this.checkPulse = function()
+    init: function () {
+      this.reset();
+    },
+
+    makePiece: function (letters, x = 0, y = 0) {
+      var letter_box_collection = new LetterBoxCollection();
+      var defaultX = 0;
+      var defaultY = 0;
+      if ( x === 0 && y === 0)
       {
-        return this.alive;
+        defaultX = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
+        defaultY = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
       }
-
-      this.handleMouseDown = function(event)
+      for (var i = 0; i < letters.length; i++)
       {
-        for(var i = this.letterBoxList.length - 1; i>=0; i--)
+        for (var j = 0; j < letters[i].length; j++)
         {
-          if(this.letterBoxList[i].handleMouseDown(event))
+          if (letters[i].charAt(j) !== " " && letters[i].charAt(j) !== ".")
+          {
+            letter_box_collection.letterBoxList.push(
+              new LetterBox(defaultX + 35 * (j + x),defaultY + 35 * (i + y), 35, letters[i].charAt(j)));
+          }
+        }
+      }
+      letter_box_collection.snap(35);
+      this.paint_list.push(letter_box_collection);
+      this.draggable_list.push(letter_box_collection);
+    },
+
+    makeGrid: function (lines, offsetX, offsetY) {
+      var grid = new Grid();
+      for (var i = 0; i < lines.length; i++)
+      {
+        for (var j = 0; j < lines[i].length; j++)
+        {
+          if (lines[i].charAt(j) !== " " && lines[i].charAt(j) !== ".")
+          {
+            grid.squares.push([j + offsetX, i + offsetY]);
+          }
+        }
+      }
+      this.paint_list.push(grid);
+      this.clickable_list.push(grid);
+    },
+
+    loadLevel: function (stage)
+    {
+      for(var i = 0; i < stage.pieces.length; i++)
+      {
+        this.makePiece(stage.pieces[i].str,
+          stage.pieces[i].x,
+          stage.pieces[i].y
+        );
+      }
+      this.makeGrid(stage.grid.str,
+        stage.grid.x,
+        stage.grid.y
+      );
+      this.name = stage.name;
+    },
+    
+    populateLevel: function (stage)
+    {
+      if (stage < g_puzzles.length)
+      {
+        //document.getElementById("text").value = JSON.stringify(g_puzzles[stage]);
+        this.loadLevel(g_puzzles[stage]);
+        //alert(JSON.stringify(g_puzzles));
+        //alert(decodeURIComponent(encodeURIComponent(JSON.stringify(g_puzzles[stage]))));
+        return;
+      }
+      else
+      {
+        this.name = "INVALID PUZZLE";
+      }
+    },
+    
+    checkAdjancent: function(tileSet1, tileSet2)
+    {
+      for(var j = 0; j < tileSet1.letterBoxList.length; j++)
+      {
+        for(var k = 0; k < tileSet2.letterBoxList.length; k++)
+        {
+          if (Math.abs(tileSet1.letterBoxList[j].x - tileSet2.letterBoxList[k].x) + 
+            Math.abs(tileSet1.letterBoxList[j].y - tileSet2.letterBoxList[k].y) === 35)
           {
             return true;
           }
         }
-        return false;
-      };
-
-      this.paint = function(ctx)
+      }
+      return false;
+    },
+    
+    findAdjacentTileSets: function(draggable_list_item_index)
+    {
+      var adjacencySet = Array(this.draggable_list.length).fill(false);
+      adjacencySet[draggable_list_item_index] = true;
+      var returnSet = [];
+      var unexpanded = [ this.draggable_list[draggable_list_item_index] ];
+      while(unexpanded.length > 0)
       {
-        for(var i = this.letterBoxList.length - 1; i>=0; i--)
+        var tileSet = unexpanded.pop();
+        returnSet.push(tileSet);
+        for(var i = this.draggable_list.length - 1; i>=0; i--)
         {
-          this.letterBoxList[i].color = this.color
-          this.letterBoxList[i].paint(ctx);
-        }
-      };
-
-      this.transpose = function(deltaX, deltaY)
-      {
-        for(var i = this.letterBoxList.length - 1; i>=0; i--)
-        {
-          this.letterBoxList[i].transpose(deltaX, deltaY);
+          if (!adjacencySet[i])
+          {
+            if (this.checkAdjancent(tileSet,this.draggable_list[i]))
+            {
+              adjacencySet[i] = true;
+              unexpanded.push(this.draggable_list[i]);
+            }
+          }
         }
       }
+      return returnSet;
+    },
 
-      this.snap = function(size)
+    reset: function () {
+      this.paint_list = [];
+      this.timestep_list = [];
+      this.draggable_list = [];
+      this.clickable_list = [];
+      this.dragged_item_collection = null;
+      this.mouse_pos = [null, null];
+      this.name = "";
+      this.backTextSize = null;
+      this.forwardTextSize = null;
+      this.textHeight = null;
+
+      this.populateLevel(g_level);
+
+      /*
+      for (var i = 0; i < g_canvas.width; i += 35)
       {
-        for(var i = this.letterBoxList.length - 1; i>=0; i--)
-        {
-          this.letterBoxList[i].x = size * Math.round((this.letterBoxList[i].x)/size);
-          this.letterBoxList[i].y = size * Math.round((this.letterBoxList[i].y)/size);
-        }
+        var box = new LetterBox(i, 0, 35, "0123456789".charAt((i / 35) % 10));
+        box.color = STATIC_COLOR;
+        this.paint_list.push(box);
       }
-    }
-
-    var LetterBox = function(x,y,size,letter)
-    {
-      this.x = x;
-      this.y = y;
-      this.size = size;
-      this.inner_size = Math.round(6 * this.size/7);
-      this.offset = Math.round((this.size - this.inner_size) / 2);
-      this.letter = letter;
-      this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
-      this.alive = true;
-
-      this.handleTimeStep = function()
+      for (var i = 35; i < g_canvas.height; i += 35)
       {
-      };
-
-      this.checkPulse = function()
-      {
-        return this.alive;
+        var box = new LetterBox(0, i, 35, "0123456789".charAt((i / 35) % 10));
+        box.color = STATIC_COLOR;
+        this.paint_list.push(box);
       }
-
-      this.handleMouseDown = function(event)
+      //*/
+    },
+    handleMouseDown: function (event) {
+      for(var i = this.draggable_list.length - 1; i>=0; i--)
       {
-        //alert("this.x = " + this.x + ", this.size = " + this.size + ", event.offsetX = " + event.offsetX);
-        var hit = this.x + this.size >= event.offsetX &&
-          event.offsetX >= this.x &&
-          this.y + this.size >= event.offsetY &&
-          event.offsetY >= this.y;
-        return hit;
-      };
-
-      this.paint = function(ctx)
-      {
-        ctx.strokeStyle = this.color;
-        ctx.fillStyle = this.color;
-        ctx.lineJoin ="round";
-        ctx.lineWidth = Math.round(this.size / (10*PHI));
-        ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_size, this.inner_size);
-        ctx.textBaseline="middle";
-        ctx.textAlign="center";
-        ctx.font = Math.round(INVERSE_PHI * this.inner_size) + "px Verdana";
-        ctx.fillText(this.letter,Math.round(this.x+this.size/2),Math.round(this.y+this.size/2));
-      };
-
-      this.transpose = function(deltaX, deltaY)
-      {
-        this.x += Math.round(deltaX);
-        this.y += Math.round(deltaY);
-      }
-    };
-
-    var Timer = function(timer, callback, parameter)
-    {
-      this.current_time = timer;
-      this.callback = callback;
-      this.parameter = parameter;
-      this.handleTimeStep = function()
-      {
-        this.current_time--;
-        if(this.current_time <= 0)
+        if(!this.draggable_list[i].checkPulse())
         {
-          callback(this.parameter);
-        }
-
-      };
-      this.checkPulse = function(){
-            return this.current_time > 0;
-      };
-    }
-
-    //##########################################################################
-    var GameScreen = {
-
-        init: function () {
-          this.reset();
-        },
-
-        makePiece: function (letters, x = 0, y = 0) {
-          var letter_box_collection = new LetterBoxCollection();
-          var defaultX = 0;
-          var defaultY = 0;
-          if ( x === 0 && y === 0)
-          {
-            defaultX = Math.round(Math.random()*(g_canvas.width - 140)) + 70;
-            defaultY = Math.round(Math.random()*(g_canvas.height - 140)) + 70;
-          }
-          for (var i = 0; i < letters.length; i++)
-          {
-            for (var j = 0; j < letters[i].length; j++)
-            {
-              if (letters[i].charAt(j) !== " " && letters[i].charAt(j) !== ".")
-              {
-                letter_box_collection.letterBoxList.push(
-                  new LetterBox(defaultX + 35 * (j + x),defaultY + 35 * (i + y), 35, letters[i].charAt(j)));
-              }
-            }
-          }
-          letter_box_collection.snap(35);
-          this.paint_list.push(letter_box_collection);
-          this.draggable_list.push(letter_box_collection);
-        },
-
-        makeGrid: function (lines, offsetX, offsetY) {
-          var grid = new Grid();
-          for (var i = 0; i < lines.length; i++)
-          {
-            for (var j = 0; j < lines[i].length; j++)
-            {
-              if (lines[i].charAt(j) !== " " && lines[i].charAt(j) !== ".")
-              {
-                grid.squares.push([j + offsetX, i + offsetY]);
-              }
-            }
-          }
-          this.paint_list.push(grid);
-          this.clickable_list.push(grid);
-        },
-
-        populateLevel: function (stage) {
-
-          if (stage < g_puzzles.length)
-          {
-            //document.getElementById("text").value = JSON.stringify(g_puzzles[stage]);
-            for(var i = 0; i < g_puzzles[stage].pieces.length; i++)
-            {
-              this.makePiece(g_puzzles[stage].pieces[i].str,
-                g_puzzles[stage].pieces[i].x,
-                g_puzzles[stage].pieces[i].y
-              );
-            }
-            this.makeGrid(g_puzzles[stage].grid.str,
-              g_puzzles[stage].grid.x,
-              g_puzzles[stage].grid.y
-            );
-            this.name = g_puzzles[stage].name;
-            //alert(JSON.stringify(g_puzzles));
-            //alert(decodeURIComponent(encodeURIComponent(JSON.stringify(g_puzzles[stage]))));
-            return;
-          }
-          else
-          {
-            this.name = "INVALID PUZZLE";
-          }
-        },
-        
-        checkAdjancent: function(tileSet1, tileSet2)
-        {
-          for(var j = 0; j < tileSet1.letterBoxList.length; j++)
-          {
-            for(var k = 0; k < tileSet2.letterBoxList.length; k++)
-            {
-              if (Math.abs(tileSet1.letterBoxList[j].x - tileSet2.letterBoxList[k].x) + 
-                Math.abs(tileSet1.letterBoxList[j].y - tileSet2.letterBoxList[k].y) === 35)
-              {
-                return true;
-              }
-            }
-          }
-          return false;
-        },
-        
-        findAdjacentTileSets: function(draggable_list_item_index)
-        {
-          var adjacencySet = Array(this.draggable_list.length).fill(false);
-          adjacencySet[draggable_list_item_index] = true;
-          var returnSet = [];
-          var unexpanded = [ this.draggable_list[draggable_list_item_index] ];
-          while(unexpanded.length > 0)
-          {
-            var tileSet = unexpanded.pop();
-            returnSet.push(tileSet);
-            for(var i = this.draggable_list.length - 1; i>=0; i--)
-            {
-              if (!adjacencySet[i])
-              {
-                if (this.checkAdjancent(tileSet,this.draggable_list[i]))
-                {
-                  adjacencySet[i] = true;
-                  unexpanded.push(this.draggable_list[i]);
-                }
-              }
-            }
-          }
-          return returnSet;
-        },
-
-        reset: function () {
-          this.paint_list = [];
-          this.timestep_list = [];
-          this.draggable_list = [];
-          this.clickable_list = [];
-          this.dragged_item_collection = null;
-          this.mouse_pos = [null, null];
-          this.name = "";
-          this.backTextSize = null;
-          this.forwardTextSize = null;
-          this.textHeight = null;
-
-          this.populateLevel(g_level);
-
-          /*
-          for (var i = 0; i < g_canvas.width; i += 35)
-          {
-            var box = new LetterBox(i, 0, 35, "0123456789".charAt((i / 35) % 10));
-            box.color = STATIC_COLOR;
-            this.paint_list.push(box);
-          }
-          for (var i = 35; i < g_canvas.height; i += 35)
-          {
-            var box = new LetterBox(0, i, 35, "0123456789".charAt((i / 35) % 10));
-            box.color = STATIC_COLOR;
-            this.paint_list.push(box);
-          }
-          //*/
-        },
-        handleMouseDown: function (event) {
-          for(var i = this.draggable_list.length - 1; i>=0; i--)
-          {
-            if(!this.draggable_list[i].checkPulse())
-            {
-              this.draggable_list.splice(i,1);
-            }
-            else
-            {
-              if(this.draggable_list[i].handleMouseDown(event))
-              {
-                if(event.button == 0)
-                {
-                  this.draggable_list[i].color = MOVE_COLOR;
-                  this.dragged_item_collection = [ this.draggable_list[i] ];
-                }
-                else if(event.button == 2)
-                {
-                  this.draggable_list[i].color = MOVE_COLOR;
-                  this.dragged_item_collection = this.findAdjacentTileSets(i);
-                }
-                return true;
-              }
-            }
-          }
-          for(var i = this.clickable_list.length - 1; i>=0; i--)
-          {
-            if(!this.clickable_list[i].checkPulse())
-            {
-              this.clickable_list.splice(i,1);
-            }
-            else
-            {
-              if(this.clickable_list[i].handleMouseDown(event))
-              {
-                return true;
-              }
-            }
-          }
-
-          if (this.backTextSize &&
-            this.forwardTextSize &&
-            this.textHeight)
-          {
-            if(event.offsetY > g_canvas.height - this.textHeight)
-            {
-              if(event.offsetX < this.backTextSize)
-              {
-                if(g_level === 0)
-                {
-                  g_level = g_puzzles.length;
-                }
-                g_level--;
-                this.reset();
-                return true;
-              }
-              if(event.offsetX > g_canvas.width - this.forwardTextSize)
-              {
-                g_level++;
-                g_level %= g_puzzles.length;
-                this.reset();
-                return true;
-              }
-            }
-          }
-          return false;
-        },
-        handleMouseMove: function (event) {
-          var rect = canvas.getBoundingClientRect();
-          var old_x = this.mouse_pos[0];
-          var old_y = this.mouse_pos[1];
-          var i = 0;
-          this.mouse_pos[0] = event.clientX - rect.left;
-          this.mouse_pos[1] = event.clientY - rect.top;
-          if (this.dragged_item_collection)
-          {
-            for(i = 0; i < this.dragged_item_collection.length; i++)
-            {
-              this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
-            }
-          }
-        },
-        handleMouseUp: function (event) {
-          if (this.dragged_item_collection)
-          {
-            for(i = 0; i < this.dragged_item_collection.length; i++)
-            {
-              this.dragged_item_collection[i].color = MOVEABLE_COLOR;
-              this.dragged_item_collection[i].snap(35);
-            }
-          }
-          this.dragged_item_collection = null;
-        },
-        handleKeyDown: function (event) {
-        },
-        handleKeyUp: function (event) {
-        },
-        handleTimeStep: function () {
-          for(var i = this.timestep_list.length - 1; i>=0; i--)
-          {
-            if(!this.timestep_list[i].checkPulse())
-            {
-              this.timestep_list.splice(i,1);
-            }
-            else
-            {
-              this.timestep_list[i].handleTimeStep();
-            }
-          }
-        },
-        paint: function () {
-          g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-          g_ctx.fillStyle = "#f0f0f0";
-          g_ctx.fillRect(
-              0, 0,
-              g_canvas.width,
-              g_canvas.height);
-          g_ctx.fillStyle = "black";
-          g_ctx.textBaseline="middle";
-          g_ctx.textAlign="center";
-          this.textHeight = Math.round(INVERSE_PHI * 30);
-          g_ctx.font = this.textHeight + "px Verdana";
-          g_ctx.fillText(this.name,Math.round(g_canvas.width/2),Math.round(70));
-          g_ctx.textBaseline = "bottom";
-          g_ctx.textAlign = "left"
-          this.backTextSize = g_ctx.measureText("<<").width;
-          g_ctx.fillText("<<", 0, g_canvas.height);
-          g_ctx.textAlign = "right";
-          this.forwardTextSize = g_ctx.measureText(">>").width;
-          g_ctx.fillText(">>", g_canvas.width, g_canvas.height);
-
-          for (var i = this.paint_list.length - 1; i>=0; i--)
-          {
-            if(!this.paint_list[i].checkPulse())
-            {
-              this.paint_list.splice(i,1);
-            }
-            else
-            {
-              this.paint_list[i].paint(g_ctx);
-            }
-          }
-        },
-    };
-
-    //##########################################################################
-
-    //--------------------------------------------------------------------------
-    var ResourceTracker = {
-        m_added: 1, // I track myself loading
-        m_loaded: 0,
-        m_layout: null,
-
-        //----------------------------------------------------------------------
-        // from Screen
-        init: function ()
-        {
-            this.onload(null); //and here I'm loaded
-        },
-
-        //----------------------------------------------------------------------
-        // from Screen
-        reset: function ()
-        {},
-
-        //----------------------------------------------------------------------
-        // from Screen
-        handleMouseDown: function ()
-        {},
-
-        //----------------------------------------------------------------------
-        // from Screen
-        handleMouseUp: function ()
-        {},
-
-        //----------------------------------------------------------------------
-        // from Screen
-        handleKeyDown: function ()
-        {},
-
-        //----------------------------------------------------------------------
-        // from Screen
-        handleKeyUp: function (event)
-        {},
-
-        //----------------------------------------------------------------------
-        // from Screen
-        handleTimeStep: function ()
-        {
-          if (this.m_loaded == this.m_added)
-          {
-            this.onAllLoaded();
-          }
-        },
-
-        //----------------------------------------------------------------------
-        // from Screen
-        paint: function ()
-        {
-            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-            // paint the background
-            g_ctx.fillStyle = "rgb(0, 0, 0)";
-            g_ctx.fillRect(
-                0, 0,
-                g_canvas.width,
-                g_canvas.height);
-
-            g_ctx.font="Bold 80px Arial";
-            g_ctx.fillStyle = "rgb(128, 128, 128)";
-            g_ctx.textAlign = "center";
-            g_ctx.textBaseline = "middle";
-            g_ctx.fillText(
-                Math.floor(100 * this.m_loaded / this.m_added) + "%",
-                g_canvas.width / 2,
-                g_canvas.height / 2
-            );
-        },
-
-
-        //----------------------------------------------------------------------
-        add: function ()
-        {
-            ++this.m_added;
-        },
-
-        //----------------------------------------------------------------------
-        // from Image.onload
-        onload: function (event)
-        {
-            ++this.m_loaded;
-            if (this.m_loaded == this.m_added)
-            {
-                this.onAllLoaded();
-            }
-        },
-
-        //----------------------------------------------------------------------
-        onAllLoaded: function ()
-        {
-            switchToScreen(GameScreen);
-        }
-    };
-
-    //--------------------------------------------------------------------------
-    var AudioComponents = {
-    };
-
-    //--------------------------------------------------------------------------
-    var GraphicComponents = {
-    };
-
-    //##########################################################################
-    // game engine
-
-    //--------------------------------------------------------------------------
-    function init()
-    {
-        //Canvas stuff
-        g_canvas = document.getElementById("canvas");
-        //g_canvas.style.cursor = 'none';
-        g_ctx = g_canvas.getContext("2d");
-        g_ctx.textAlign="start";
-        g_ctx.textBaseline="middle";
-        g_level = 0;
-
-        g_canvas.addEventListener("mousedown", function (event) {
-            g_current_screen.handleMouseDown(event);
-        }, false);
-
-        g_canvas.addEventListener("mouseup", function (event) {
-            g_current_screen.handleMouseUp(event);
-        }, false);
-
-        g_canvas.addEventListener("mouseleave", function (event) {
-            g_current_screen.handleMouseUp(event);
-        }, false);
-
-        g_canvas.addEventListener("mouseout", function (event) {
-            g_current_screen.handleMouseUp(event);
-        }, false);
-
-        g_canvas.addEventListener("mousemove", function (event) {
-            g_current_screen.handleMouseMove(event);
-        }, false);
-
-        document.addEventListener("keydown", function (event) {
-            g_current_screen.handleKeyDown(event);
-        }, false);
-
-        document.addEventListener("keyup", function (event) {
-            g_current_screen.handleKeyUp(event);
-        }, false);
-
-        // can't do this until you've set up canvas_width and canvas_height
-        //ResourceTracker init must be called after all requests to
-        //loadImage/loadAudio
-        ResourceTracker.init();
-        GameScreen.init();
-
-        switchToScreen(ResourceTracker);
-
-        // start processing events
-        setTimeout(eventLoop, 40);
-    }
-
-    //--------------------------------------------------------------------------
-    function switchToScreen(screen)
-    {
-        screen.reset();
-        g_current_screen = screen;
-    }
-
-    //--------------------------------------------------------------------------
-    function eventLoop()
-    {
-        var start_time = Date.now();
-
-        g_current_screen.handleTimeStep();
-        g_current_screen.paint(g_ctx);
-
-        var end_time = Date.now();
-        var comp_time = end_time - start_time;
-        if (comp_time > 40 || comp_time < 0) {
-            setTimeout(eventLoop, 0);
+          this.draggable_list.splice(i,1);
         }
         else
         {
-            setTimeout(eventLoop, 40 - comp_time);
+          if(this.draggable_list[i].handleMouseDown(event))
+          {
+            if(event.button == 0)
+            {
+              this.draggable_list[i].color = MOVE_COLOR;
+              this.dragged_item_collection = [ this.draggable_list[i] ];
+            }
+            else if(event.button == 2)
+            {
+              this.draggable_list[i].color = MOVE_COLOR;
+              this.dragged_item_collection = this.findAdjacentTileSets(i);
+            }
+            return true;
+          }
         }
-    }
+      }
+      for(var i = this.clickable_list.length - 1; i>=0; i--)
+      {
+        if(!this.clickable_list[i].checkPulse())
+        {
+          this.clickable_list.splice(i,1);
+        }
+        else
+        {
+          if(this.clickable_list[i].handleMouseDown(event))
+          {
+            return true;
+          }
+        }
+      }
 
-    // launch the game once the document is fully loaded
-    window.addEventListener("load", init);
+      if (this.backTextSize &&
+        this.forwardTextSize &&
+        this.textHeight)
+      {
+        if(event.offsetY > g_canvas.height - this.textHeight)
+        {
+          if(event.offsetX < this.backTextSize)
+          {
+            if(g_level === 0)
+            {
+              g_level = g_puzzles.length;
+            }
+            g_level--;
+            this.reset();
+            return true;
+          }
+          if(event.offsetX > g_canvas.width - this.forwardTextSize)
+          {
+            g_level++;
+            g_level %= g_puzzles.length;
+            this.reset();
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+    handleMouseMove: function (event) {
+      var rect = canvas.getBoundingClientRect();
+      var old_x = this.mouse_pos[0];
+      var old_y = this.mouse_pos[1];
+      var i = 0;
+      this.mouse_pos[0] = event.clientX - rect.left;
+      this.mouse_pos[1] = event.clientY - rect.top;
+      if (this.dragged_item_collection)
+      {
+        for(i = 0; i < this.dragged_item_collection.length; i++)
+        {
+          this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
+        }
+      }
+    },
+    handleMouseUp: function (event) {
+      if (this.dragged_item_collection)
+      {
+        for(i = 0; i < this.dragged_item_collection.length; i++)
+        {
+          this.dragged_item_collection[i].color = MOVEABLE_COLOR;
+          this.dragged_item_collection[i].snap(35);
+        }
+      }
+      this.dragged_item_collection = null;
+    },
+    handleKeyDown: function (event) {
+    },
+    handleKeyUp: function (event) {
+    },
+    handleTimeStep: function () {
+      for(var i = this.timestep_list.length - 1; i>=0; i--)
+      {
+        if(!this.timestep_list[i].checkPulse())
+        {
+          this.timestep_list.splice(i,1);
+        }
+        else
+        {
+          this.timestep_list[i].handleTimeStep();
+        }
+      }
+    },
+    paint: function () {
+      g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      g_ctx.fillStyle = "#f0f0f0";
+      g_ctx.fillRect(
+          0, 0,
+          g_canvas.width,
+          g_canvas.height);
+      g_ctx.fillStyle = "black";
+      g_ctx.textBaseline="middle";
+      g_ctx.textAlign="center";
+      this.textHeight = Math.round(INVERSE_PHI * 30);
+      g_ctx.font = this.textHeight + "px Verdana";
+      g_ctx.fillText(this.name,Math.round(g_canvas.width/2),Math.round(70));
+      g_ctx.textBaseline = "bottom";
+      g_ctx.textAlign = "left"
+      this.backTextSize = g_ctx.measureText("<<").width;
+      g_ctx.fillText("<<", 0, g_canvas.height);
+      g_ctx.textAlign = "right";
+      this.forwardTextSize = g_ctx.measureText(">>").width;
+      g_ctx.fillText(">>", g_canvas.width, g_canvas.height);
+
+      for (var i = this.paint_list.length - 1; i>=0; i--)
+      {
+        if(!this.paint_list[i].checkPulse())
+        {
+          this.paint_list.splice(i,1);
+        }
+        else
+        {
+          this.paint_list[i].paint(g_ctx);
+        }
+      }
+    },
+};
+
+//##########################################################################
+
+//--------------------------------------------------------------------------
+var ResourceTracker = {
+    m_added: 1, // I track myself loading
+    m_loaded: 0,
+    m_layout: null,
+
+    //----------------------------------------------------------------------
+    // from Screen
+    init: function ()
+    {
+        this.onload(null); //and here I'm loaded
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    reset: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleMouseDown: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleMouseUp: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleKeyDown: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleKeyUp: function (event)
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleTimeStep: function ()
+    {
+      if (this.m_loaded == this.m_added)
+      {
+        this.onAllLoaded();
+      }
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    paint: function ()
+    {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // paint the background
+        g_ctx.fillStyle = "rgb(0, 0, 0)";
+        g_ctx.fillRect(
+            0, 0,
+            g_canvas.width,
+            g_canvas.height);
+
+        g_ctx.font="Bold 80px Arial";
+        g_ctx.fillStyle = "rgb(128, 128, 128)";
+        g_ctx.textAlign = "center";
+        g_ctx.textBaseline = "middle";
+        g_ctx.fillText(
+            Math.floor(100 * this.m_loaded / this.m_added) + "%",
+            g_canvas.width / 2,
+            g_canvas.height / 2
+        );
+    },
+
+
+    //----------------------------------------------------------------------
+    add: function ()
+    {
+        ++this.m_added;
+    },
+
+    //----------------------------------------------------------------------
+    // from Image.onload
+    onload: function (event)
+    {
+        ++this.m_loaded;
+        if (this.m_loaded == this.m_added)
+        {
+            this.onAllLoaded();
+        }
+    },
+
+    //----------------------------------------------------------------------
+    onAllLoaded: function ()
+    {
+        switchToScreen(GameScreen);
+    }
+};
+
+//--------------------------------------------------------------------------
+var AudioComponents = {
+};
+
+//--------------------------------------------------------------------------
+var GraphicComponents = {
+};
+
+//##########################################################################
+// game engine
+
+//--------------------------------------------------------------------------
+function init()
+{
+    //Canvas stuff
+    g_canvas = document.getElementById("canvas");
+    //g_canvas.style.cursor = 'none';
+    g_ctx = g_canvas.getContext("2d");
+    g_ctx.textAlign="start";
+    g_ctx.textBaseline="middle";
+    g_level = 0;
+
+    g_canvas.addEventListener("mousedown", function (event) {
+        g_current_screen.handleMouseDown(event);
+    }, false);
+
+    g_canvas.addEventListener("mouseup", function (event) {
+        g_current_screen.handleMouseUp(event);
+    }, false);
+
+    g_canvas.addEventListener("mouseleave", function (event) {
+        g_current_screen.handleMouseUp(event);
+    }, false);
+
+    g_canvas.addEventListener("mouseout", function (event) {
+        g_current_screen.handleMouseUp(event);
+    }, false);
+
+    g_canvas.addEventListener("mousemove", function (event) {
+        g_current_screen.handleMouseMove(event);
+    }, false);
+
+    document.addEventListener("keydown", function (event) {
+        g_current_screen.handleKeyDown(event);
+    }, false);
+
+    document.addEventListener("keyup", function (event) {
+        g_current_screen.handleKeyUp(event);
+    }, false);
+
+    // can't do this until you've set up canvas_width and canvas_height
+    //ResourceTracker init must be called after all requests to
+    //loadImage/loadAudio
+    ResourceTracker.init();
+    GameScreen.init();
+    TutorialScreen.init();
+
+    switchToScreen(GameScreen);
+
+    // start processing events
+    setTimeout(eventLoop, 40);
+}
+
+//--------------------------------------------------------------------------
+function switchToScreen(screen)
+{
+    screen.reset();
+    g_current_screen = screen;
+}
+
+//--------------------------------------------------------------------------
+function eventLoop()
+{
+    var start_time = Date.now();
+
+    g_current_screen.handleTimeStep();
+    g_current_screen.paint(g_ctx);
+
+    var end_time = Date.now();
+    var comp_time = end_time - start_time;
+    if (comp_time > 40 || comp_time < 0) {
+        setTimeout(eventLoop, 0);
+    }
+    else
+    {
+        setTimeout(eventLoop, 40 - comp_time);
+    }
+}
+
+// launch the game once the document is fully loaded
+window.addEventListener("load", init);
 
 </script>
 </body>
