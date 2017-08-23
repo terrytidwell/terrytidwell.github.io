@@ -8,6 +8,7 @@
 </head>
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
 <canvas oncontextmenu="return false;" id="canvas" width="800" height="600"></canvas>
+<div style="display: none" id="text" width="800"></div>
 <script src="puzzles.js" type="text/javascript"></script>
 <script>
 //##########################################################################
@@ -224,6 +225,19 @@ var LetterBoxCollection = function()
       this.letterBoxList[i].x = size * Math.round((this.letterBoxList[i].x)/size);
       this.letterBoxList[i].y = size * Math.round((this.letterBoxList[i].y)/size);
     }
+  }
+  
+  this.offset = function()
+  {
+    var i = 0;
+    var min_x = this.letterBoxList[i].x;
+    var min_y = this.letterBoxList[i].y;
+    for(i = 1; i < this.letterBoxList.length; i++)
+    {
+      min_x = Math.min(min_x,this.letterBoxList[i].x);
+      min_y = Math.min(min_y,this.letterBoxList[i].y);
+    }
+    return [min_x, min_y];
   }
 }
 
@@ -553,20 +567,27 @@ var GameScreen = {
           stage.pieces[i].x,
           stage.pieces[i].y
         );
+        if (!stage.pieces[i].vx)
+        {
+          stage.pieces[i].vx = stage.pieces[i].x;
+          stage.pieces[i].vy = stage.pieces[i].y;
+        }
       }
       this.makeGrid(stage.grid.str,
         stage.grid.x,
         stage.grid.y
       );
       this.name = stage.name;
+      document.getElementById("text").textContent = JSON.stringify(stage);
     },
     
     populateLevel: function (stage)
     {
       if (stage < g_puzzles.length)
       {
-        //document.getElementById("text").value = JSON.stringify(g_puzzles[stage]);
+        
         this.loadLevel(g_puzzles[stage]);
+        
         //alert(JSON.stringify(g_puzzles));
         //alert(decodeURIComponent(encodeURIComponent(JSON.stringify(g_puzzles[stage]))));
         return;
@@ -714,6 +735,20 @@ var GameScreen = {
       }
       return false;
     },
+    
+    updateJson: function() {
+      var i = 0;
+      var i = 0;
+      var offset = null;
+      for (i = 0; i < this.draggable_list.length; i++)
+      {
+        offset = this.draggable_list[i].offset();
+        g_puzzles[g_level].pieces[i].vx = Math.round(offset[0] / 35);
+        g_puzzles[g_level].pieces[i].vy = Math.round(offset[1] / 35);
+      }
+      document.getElementById("text").textContent = JSON.stringify(g_puzzles[g_level]);
+    },
+    
     handleMouseMove: function (event) {
       var old_x = this.mouse_pos[0];
       var old_y = this.mouse_pos[1];
@@ -727,6 +762,7 @@ var GameScreen = {
           this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
         }
       }
+      this.updateJson();
     },
     handleMouseUp: function (event) {
       if (this.dragged_item_collection)
@@ -736,6 +772,7 @@ var GameScreen = {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(35);
         }
+        this.updateJson();
       }
       this.dragged_item_collection = null;
     },
