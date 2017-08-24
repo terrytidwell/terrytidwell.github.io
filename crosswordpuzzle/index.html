@@ -8,7 +8,6 @@
 </head>
 <body style="background-color: white; position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%);">
 <canvas oncontextmenu="return false;" id="canvas" width="800" height="600"></canvas>
-<div style="display: none" id="text" width="800"></div>
 <script src="puzzles.js" type="text/javascript"></script>
 <script>
 //##########################################################################
@@ -567,18 +566,12 @@ var GameScreen = {
           stage.pieces[i].x,
           stage.pieces[i].y
         );
-        if (!stage.pieces[i].vx)
-        {
-          stage.pieces[i].vx = stage.pieces[i].x;
-          stage.pieces[i].vy = stage.pieces[i].y;
-        }
       }
       this.makeGrid(stage.grid.str,
         stage.grid.x,
         stage.grid.y
       );
       this.name = stage.name;
-      document.getElementById("text").textContent = JSON.stringify(stage);
     },
     
     populateLevel: function (stage)
@@ -650,6 +643,7 @@ var GameScreen = {
       this.backTextSize = null;
       this.forwardTextSize = null;
       this.textHeight = null;
+      this.solved = false;
 
       this.populateLevel(g_level);
 
@@ -668,6 +662,36 @@ var GameScreen = {
       }
       //*/
     },
+    
+    checkForSolved: function () {
+      if (this.solved)
+      {
+        return;
+      }
+      var dx;
+      var dy;
+      var dim;
+      for (var i = 0; i < this.draggable_list.length; ++i)
+      {
+        dim = this.draggable_list[i].offset();
+        if (i === 0)
+        {
+          dx = g_puzzles[g_level].pieces[i].vx - Math.round(dim[0]/35);
+          dy = g_puzzles[g_level].pieces[i].vy - Math.round(dim[1]/35);
+        }
+        else
+        {
+          if(dx !== g_puzzles[g_level].pieces[i].vx - Math.round(dim[0]/35) ||
+          dy !== g_puzzles[g_level].pieces[i].vy - Math.round(dim[1]/35))
+          {
+            return;
+          }
+        }
+      }
+      this.solved = true;
+      alert("Solved!");
+    },
+    
     handleMouseDown: function (event) {
       for(var i = this.draggable_list.length - 1; i>=0; i--)
       {
@@ -736,19 +760,6 @@ var GameScreen = {
       return false;
     },
     
-    updateJson: function() {
-      var i = 0;
-      var i = 0;
-      var offset = null;
-      for (i = 0; i < this.draggable_list.length; i++)
-      {
-        offset = this.draggable_list[i].offset();
-        g_puzzles[g_level].pieces[i].vx = Math.round(offset[0] / 35);
-        g_puzzles[g_level].pieces[i].vy = Math.round(offset[1] / 35);
-      }
-      document.getElementById("text").textContent = JSON.stringify(g_puzzles[g_level]);
-    },
-    
     handleMouseMove: function (event) {
       var old_x = this.mouse_pos[0];
       var old_y = this.mouse_pos[1];
@@ -762,7 +773,6 @@ var GameScreen = {
           this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
         }
       }
-      this.updateJson();
     },
     handleMouseUp: function (event) {
       if (this.dragged_item_collection)
@@ -772,7 +782,7 @@ var GameScreen = {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(35);
         }
-        this.updateJson();
+        this.checkForSolved();
       }
       this.dragged_item_collection = null;
     },
