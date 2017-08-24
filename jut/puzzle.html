@@ -982,6 +982,8 @@ function alignGroups(puzzle, groups, ctx)
   for (i = 0; i < groups.length; ++i)
   {
     transposeGroup(groups[i], dim[0], dim[1]);
+    groups[i].vx += dim[0];
+    groups[i].vy += dim[1];
   }
 }
 
