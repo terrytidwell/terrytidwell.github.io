@@ -102,10 +102,10 @@ function justifySelected()
   }
   else
   {
-    for (i = 0; i < g_selected.length; ++i)
+    for (i = 0; i < g_selected.tiles.length; ++i)
     {
-      g_selected[i][0] = Math.round(g_selected[i][0]);
-      g_selected[i][1] = Math.round(g_selected[i][1]);
+      g_selected.tiles[i][0] = Math.round(g_selected.tiles[i][0]);
+      g_selected.tiles[i][1] = Math.round(g_selected.tiles[i][1]);
     }
   }
 }
