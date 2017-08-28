@@ -17,6 +17,7 @@ var g_canvas;
 var g_ctx;
 var g_current_screen;
 var g_level;
+var g_completed;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -672,7 +673,19 @@ var TutorialScreen = {
     */
   },
   handleMouseDown: function (event) {
-    if (this.mouse_instructions.length == 0)
+    if (!this.gameScreen.solved && this.gameScreen.backTextSize &&
+      this.gameScreen.textHeight)
+    {
+      if(event.offsetY > g_canvas.height - this.gameScreen.textHeight)
+      {
+        if(event.offsetX < this.gameScreen.backTextSize)
+        {
+          switchToScreen(MenuScreen);
+          return true;
+        }
+      }
+    }
+    if (this.mouse_instructions.length === 0)
     {
       this.gameScreen.handleMouseDown(event);
       return;
@@ -876,7 +889,12 @@ var MenuScreen = {
     var offset = this.current_page * this.levels_per_page;
     for (var i = 0; i + offset < g_puzzles.length && i < this.levels_per_page; i++)
     {
-      this.level_labels.push(new TextLabel(g_puzzles[i + offset].name, g_canvas.width/2, Math.round((i - 3) * 26 + y),
+      var level_name = g_puzzles[i + offset].name;
+      if (g_completed[i + offset])
+      {
+        level_name += " \u2713"
+      }
+      this.level_labels.push(new TextLabel(level_name, g_canvas.width/2, Math.round((i - 3) * 26 + y),
         "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, Math.round(INVERSE_PHI * 26)));
     }
     this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, g_canvas.width/2, Math.round(y + 26 * 5),
@@ -1163,6 +1181,8 @@ var GameScreen = {
       this.paint_list.unshift(victory);
       this.timestep_list.unshift(victory);
       this.clickable_list.push(victory);
+      
+      g_completed[g_level] = true;
     },
     
     handleMouseDown: function (event) {
@@ -1417,6 +1437,11 @@ function init()
     g_ctx.textAlign="start";
     g_ctx.textBaseline="middle";
     g_level = 0;
+    g_completed = [];
+    for (var i = 0; i < g_puzzles.length; i++)
+    {
+      g_completed.push(false);
+    }
 
     g_canvas.addEventListener("mousedown", function (event) {
         g_current_screen.handleMouseDown(event);
