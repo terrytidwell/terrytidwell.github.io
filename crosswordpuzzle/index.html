@@ -110,6 +110,54 @@ const Util = {
     }
 };
 
+var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
+{
+  
+  this.x = x;
+  this.y = y;
+  this.size = size;
+  this.height = size * text.length;
+  this.width = width;
+  this.inner_size = Math.round(6 * this.size/7);
+  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.inner_width = this.width - this.offset * 2;
+  this.inner_height = this.height - this.offset * 2;
+  this.color = "black"
+  this.font_size = Math.round(INVERSE_PHI * size);
+  this.textLabel = [];
+  for (var i = 0; i < text.length; i++)
+  {
+    this.textLabel.push(new TextLabel(text[i], x + this.offset + this.width/2, Math.round(y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
+  }
+  
+  this.paint = function(ctx)
+  {
+    //var width = this.textLabel.text_size;
+    ctx.lineJoin ="round";
+    ctx.lineWidth = Math.round(this.size / (10*PHI));
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    for (var i = 0; i < this.textLabel.length; i++)
+    {
+      this.textLabel[i].paint(ctx);
+    }
+  };
+  
+  this.handleMouseDown = function(event)
+  {
+      if(event.offsetX >= this.x &&
+        event.offsetX <= this.x + this.width &&
+        event.offsetY >= this.y &&
+        event.offsetY <= this.y + this.height)
+      {
+        return true;
+      }
+  };
+}
+
 var Grid = function()
 {
   this.visible = false;
@@ -125,7 +173,7 @@ var Grid = function()
   this.checkPulse = function()
   {
     return true;
-  }
+  };
 
   this.handleMouseDown = function(event)
   {
@@ -303,6 +351,9 @@ var VictoryCelebration = function()
   this.bounces = [0,0,0,0,0,0,0,0,0,0];
   this.acceleration = 1;
   this.breakpoint = [g_canvas.height/2 - 70, g_canvas.height/2];
+  this.menu_button = null;
+  this.next_button = null;
+  this.bg = 0.0;
   var x = g_canvas.width/2;
   var y = -140;
   y -= 70;
@@ -329,6 +380,19 @@ var VictoryCelebration = function()
 
   this.handleTimeStep = function()
   {
+    if(this.bg < .75)
+    {
+      this.bg += 0.02;
+      if(this.bg >= .75)
+      {
+        this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_canvas.width/2 - 2.5 * 70, g_canvas.height/2 + 70, 70 * 2.5, "black", 35);
+        if(g_level < g_puzzles.length - 1)
+        {
+          this.next_button = new TextLabelWithBoundingBox(["NEXT >>"], g_canvas.width/2, g_canvas.height/2 + 70, 70 * 2.5, "black", 35);
+        }
+      }
+    }
+    
     for(var i = 0; i < this.letters.length; ++i)
     {
       if (this.bounces[i] < 20)
@@ -344,13 +408,43 @@ var VictoryCelebration = function()
       }
     }
   };
+  
+  this.handleMouseDown = function(event)
+  {
+    if(this.menu_button && this.menu_button.handleMouseDown(event))
+    {
+      switchToScreen(MenuScreen);
+      return;
+    }
+    if(this.next_button && this.next_button.handleMouseDown(event))
+    {
+      g_level++;
+      if(g_level > g_puzzles.length)
+      {
+        g_level--;
+        return;
+      }
+      GameScreen.reset();
+      return;
+    }
+  }
 
   this.paint = function(ctx)
   {
+    ctx.fillStyle = "rgba(240, 240, 240, " + this.bg + ")";
+    ctx.fillRect(0, 0, g_canvas.width, g_canvas.height);
     for(var i = 0; i < this.letters.length; ++i)
     {
       this.letters[i].opaque = true;
       this.letters[i].paint(ctx);
+    }
+    if (this.menu_button)
+    {
+      this.menu_button.paint(ctx);
+    }
+    if (this.next_button)
+    {
+      this.next_button.paint(ctx);
     }
   };
 
@@ -449,10 +543,10 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
   
   this.paint = function(ctx)
   {
+    ctx.font = Math.round(size) + "px Verdana";
     this.text_size = ctx.measureText(this.text).width;
     ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
     ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
-    ctx.font = Math.round(size) + "px Verdana";
     ctx.fillStyle = this.color;
     ctx.fillText(this.text, this.x, this.y);
   }
@@ -493,29 +587,56 @@ var TutorialScreen = {
   },
   reset: function () {
     this.mouse_instructions = []
+    this.mouse_instructions.push([3,["Welcome to Crossword Puzzles!","","click to continue..."]]);
+    this.mouse_instructions.push([3,["Reassemble the pieces into a crossword puzzle","in order to solve each level","","click to continue..."]]);
+    this.mouse_instructions.push([3,["Each word in the completed puzzle is","related to that puzzle's title","","click to continue..."]]);
+    this.mouse_instructions.push([4]);
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","","What could that mean?","","click to continue..."]]);
+    this.mouse_instructions.push([3,["You can drag tiles together with left click","","click to continue..."]]);
     this.mouse_instructions.push([0, 6*35 + 15, 5*35 + 15]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([0, 15*35 + 15, 10*35 + 15]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 70]);
-    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([0, 13*35 + 15, 8*35 + 15]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([3,["You can drag connected groups with right click","","click to continue..."]]);
+    /*
+    */
     this.mouse_instructions.push([0, 17*35 + 15, 10*35 + 15]);
     this.mouse_instructions.push([1,MouseButtonEnum.RIGHT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([0, 13*35 + 15, 7*35 + 15]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([0, 11*35 + 15, 9*35 + 15]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off","","click to continue..."]]);
+    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 70]);
+    this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
+    this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 140]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 70]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
+    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - 140]);
     this.mouse_instructions.push([2,20]);
+    this.mouse_instructions.push([3,["Reassemble all the words to complete the puzzle!","","click to continue..."]]);
     this.mouse_instructions.push([0, 5*35 + 15, 11*35 + 15]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
@@ -530,7 +651,6 @@ var TutorialScreen = {
     this.mouse_instructions.push([0, 9*35 + 15, 9*35 + 15]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([0, 6*35 + 15, 6*35 + 15]);
     this.mouse_instructions.push([2,50]);
     this.mouse_x = Math.round(g_canvas.width / 2);
@@ -540,22 +660,39 @@ var TutorialScreen = {
     this.mouseSpeed = 10;
     this.idle_timer = 0;
     this.gameScreen = GameScreen;
-    var temp_level = g_level;
+    this.gameScreen.reset();
+    this.gameScreen.name = "THE NAME OF THE GAME";
+    this.text = null;
+    /*var temp_level = g_level;
     g_level = g_puzzles.length;
     this.gameScreen.reset();
     
-    this.gameScreen.loadLevel({"pieces":[{"str":["PUZZ"],"x":16,"y":6},{"str":["WO"],"x":6,"y":5},{"str":["LES","..S"],"x":3,"y":11},{"str":["C.","RD","O."],"x":17,"y":9}],"grid":{"str":["......O.","....OOOO","......O.","OOOOOOO.","......O."],"x":7,"y":6},"name":"THE NAME OF THE GAME"});
+    this.gameScreen.loadLevel({"pieces":[{"str":["PUZZ"],"x":16,"y":6,"vx":7,"vy":9},{"str":["WO"],"x":6,"y":5,"vx":11,"vy":7},{"str":["LES","..S"],"x":3,"y":11,"vx":11,"vy":9},{"str":["C.","RD","O."],"x":17,"y":9,"vx":13,"vy":6}],"grid":{"str":["......O.","....OOOO","......O.","OOOOOOO.","......O."],"x":7,"y":6},"name":"THE NAME OF THE GAME"});
     g_level = temp_level;
+    */
   },
-  handleMouseDown: function (event) {},
+  handleMouseDown: function (event) {
+    if (this.mouse_instructions.length == 0)
+    {
+      this.gameScreen.handleMouseDown(event);
+      return;
+    }
+    var current_instruction = this.mouse_instructions[0];
+    if (current_instruction[0] === 3)
+    {
+      this.mouse_instructions.splice(0,1);
+      this.idle_timer = 0;
+      this.text = null;
+    }
+  },
   handleMouseUp: function (event) {},
   handleMouseMove: function (event) {},
   handleKeyDown: function (event) {},
   handleKeyUp: function (event) {},
   handleTimeStep: function () {
-    if (this.mouse_instructions.length == 0)
+    if (this.mouse_instructions.length === 0)
     {
-      switchToScreen(GameScreen);
+      this.gameScreen.handleTimeStep();
       return;
     }
     
@@ -632,16 +769,50 @@ var TutorialScreen = {
       }
     }
     
+    if (current_instruction[0] === 3)
+    {
+      if (this.text === null)
+      {
+        this.text = new TextLabelWithBoundingBox(current_instruction[1], g_canvas.width/2 - 350, g_canvas.height/2 - current_instruction[1].length/2 * 35, 700, "black", 35);
+      }
+      current_instruction_done = false;
+    }
+    
+    if (current_instruction[0] === 4)
+    {
+      if (this.gameScreen.name_color === "black")
+      {
+        this.gameScreen.name_color = "gray";
+      }
+      else
+      {
+        this.gameScreen.name_color = "black";
+      }
+    }
+    
     if (current_instruction_done) 
     {
       this.mouse_instructions.splice(0,1);
       this.idle_timer = 0;
+      this.text = null;
     }
   },
   
   paint: function () {
     this.gameScreen.paint();
-    this.drawMouse(g_ctx, Math.round(this.mouse_x), Math.round(this.mouse_y), this.mouse_buttons);
+    if (this.mouse_instructions.length > 0)
+    {
+      this.drawMouse(g_ctx, Math.round(this.mouse_x), Math.round(this.mouse_y), this.mouse_buttons);
+    }
+    if (this.text)
+    {
+      g_ctx.fillStyle = "rgba(240, 240, 240, .75)";
+      g_ctx.fillRect(
+        0, 0,
+        g_canvas.width,
+        g_canvas.height);
+      this.text.paint(g_ctx);
+    }
   },
 
   drawMouse: function (ctx,centerX, centerY, mouseButton) {
@@ -717,6 +888,11 @@ var MenuScreen = {
       if(this.level_labels[i].handleMouseDown(event))
       {
         g_level = i + this.current_page * this.levels_per_page;
+        if (g_level === 0)
+        {
+          switchToScreen(TutorialScreen);
+          return;
+        }
         switchToScreen(GameScreen);
         return;
       }
@@ -832,6 +1008,7 @@ var GameScreen = {
       letter_box_collection.snap(35);
       this.paint_list.push(letter_box_collection);
       this.draggable_list.push(letter_box_collection);
+      this.name_color = "black";
     },
 
     makeGrid: function (lines, offsetX, offsetY) {
@@ -985,6 +1162,7 @@ var GameScreen = {
       var victory = new VictoryCelebration();
       this.paint_list.unshift(victory);
       this.timestep_list.unshift(victory);
+      this.clickable_list.push(victory);
     },
     
     handleMouseDown: function (event) {
@@ -1027,7 +1205,7 @@ var GameScreen = {
         }
       }
 
-      if (this.backTextSize &&
+      if (!this.solved && this.backTextSize &&
         this.textHeight)
       {
         if(event.offsetY > g_canvas.height - this.textHeight)
@@ -1093,7 +1271,7 @@ var GameScreen = {
           0, 0,
           g_canvas.width,
           g_canvas.height);
-      g_ctx.fillStyle = "black";
+      g_ctx.fillStyle = this.name_color;
       g_ctx.textBaseline="middle";
       g_ctx.textAlign="center";
       this.textHeight = Math.round(INVERSE_PHI * 30);
@@ -1101,8 +1279,9 @@ var GameScreen = {
       g_ctx.fillText(this.name,Math.round(g_canvas.width/2),Math.round(70));
       g_ctx.textBaseline = "bottom";
       g_ctx.textAlign = "left"
-      this.backTextSize = g_ctx.measureText("<<").width;
-      g_ctx.fillText("<<", 0, g_canvas.height);
+      g_ctx.fillStyle = "black";
+      this.backTextSize = g_ctx.measureText("<< MENU").width;
+      g_ctx.fillText("<< MENU", 0, g_canvas.height);
 
       for (var i = this.paint_list.length - 1; i>=0; i--)
       {
