@@ -250,6 +250,7 @@ var LetterBox = function(x,y,size,letter)
   this.letter = letter;
   this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
   this.alive = true;
+  this.opaque = false;
 
   this.handleTimeStep = function()
   {
@@ -272,10 +273,15 @@ var LetterBox = function(x,y,size,letter)
 
   this.paint = function(ctx)
   {
-    ctx.strokeStyle = this.color;
-    ctx.fillStyle = this.color;
     ctx.lineJoin ="round";
     ctx.lineWidth = Math.round(this.size / (10*PHI));
+    if(this.opaque)
+    {
+      ctx.fillStyle = "#f0f0f0";
+      ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_size, this.inner_size);
+    }
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
     ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_size, this.inner_size);
     ctx.textBaseline="middle";
     ctx.textAlign="center";
@@ -287,6 +293,168 @@ var LetterBox = function(x,y,size,letter)
   {
     this.x += Math.round(deltaX);
     this.y += Math.round(deltaY);
+  }
+};
+
+var VictoryCelebration = function()
+{
+  this.letters = [];
+  this.velocity = [0,0,0,0,0,0,0,0,0,0];
+  this.bounces = [0,0,0,0,0,0,0,0,0,0];
+  this.acceleration = 1;
+  this.breakpoint = [g_canvas.height/2 - 70, g_canvas.height/2];
+  var x = g_canvas.width/2;
+  var y = -140;
+  y -= 70;
+  x -= 70 * 2.5;
+  y -= 40;
+  this.letters.push(new LetterBox(x,y,70,"S"));
+  this.letters.push(new LetterBox(x,y+70,70,"C"));
+  x += 70;
+  y += 20;
+  this.letters.push(new LetterBox(x,y,70,"T"));
+  this.letters.push(new LetterBox(x,y+70,70,"L"));
+  x += 70;  
+  y -= 60;
+  this.letters.push(new LetterBox(x,y,70,"A"));
+  this.letters.push(new LetterBox(x,y+70,70,"E"));
+  x += 70;
+  y += 20;
+  this.letters.push(new LetterBox(x,y,70,"G"));
+  this.letters.push(new LetterBox(x,y+70,70,"A"));
+  x += 70;
+  y += 20;
+  this.letters.push(new LetterBox(x,y,70,"E"));
+  this.letters.push(new LetterBox(x,y+70,70,"R"));
+
+  this.handleTimeStep = function()
+  {
+    for(var i = 0; i < this.letters.length; ++i)
+    {
+      if (this.bounces[i] < 20)
+      {
+        this.velocity[i] += this.acceleration;
+        this.letters[i].transpose(0,this.velocity[i]);
+        if (this.letters[i].y > this.breakpoint[i % 2])
+        {
+          this.letters[i].y = this.breakpoint[i % 2];
+          this.bounces[i]++;
+          this.velocity[i] = -0.5 * this.velocity[i];  
+        }
+      }
+    }
+  };
+
+  this.paint = function(ctx)
+  {
+    for(var i = 0; i < this.letters.length; ++i)
+    {
+      this.letters[i].opaque = true;
+      this.letters[i].paint(ctx);
+    }
+  };
+
+  this.checkPulse = function(ctx)
+  {
+    return true;
+  }
+};
+
+var VerticalLabelBaselineEnum = {
+  TOP: 0,
+  MIDDLE: 1,
+  BOTTOM: 2,
+  properties: {
+    0: { textBaseline: "top" },
+    1: { textBaseline: "middle" },
+    2: { textBaseline: "bottom" },
+  }
+};
+
+
+var HorizontalLabelAlignEnum = {
+  LEFT: 0,
+  CENTER: 1,
+  RIGHT: 2,
+  properties: {
+    0: { textAlign: "left" },
+    1: { textAlign: "center" },
+    2: { textAlign: "right" },
+  }
+};
+
+var TextLabel = function(text, x, y, color, alignment, baseline, size)
+{
+  this.size = size;
+  this.alignment = alignment;
+  this.baseline = baseline;
+  this.x = x;
+  this.y = y;
+  this.text_size = 0;
+  this.color = color;
+  this.text = text;
+  
+  this.handleMouseDown = function (event) 
+  {
+    switch (this.alignment)
+    {
+      case HorizontalLabelAlignEnum.LEFT:
+        if (event.offsetX < this.x || event.offsetX > this.x + this.text_size)
+        {
+          return false;
+        }
+        break;
+      case HorizontalLabelAlignEnum.RIGHT:
+        if (event.offsetX < this.x - this.text_size || event.offsetX > this.x)
+        {
+          return false;
+        }
+        break;
+      case HorizontalLabelAlignEnum.CENTER:
+        if (event.offsetX < this.x - this.text_size / 2 || event.offsetX > this.x + this.text_size / 2)
+        {
+          return false;
+        }
+        break;
+      default:
+        return false;
+    }
+    
+    switch (this.baseline)
+    {
+      case VerticalLabelBaselineEnum.TOP:
+        if (event.offsetY < this.y || event.offsetY > this.y + this.size)
+        {
+          return false;
+        }
+        break;
+      case VerticalLabelBaselineEnum.BOTTOM:
+        if (event.offsetY < this.y - this.size || event.offsetY > this.y)
+        {
+          return false;
+        }
+        break;
+      case VerticalLabelBaselineEnum.MIDDLE:
+        if (event.offsetY < this.y - this.size / 2 || event.offsetY > this.y + this.size / 2)
+        {
+          return false;
+        }
+        break;
+      default:
+        return false;
+    }
+    
+    return true;
+  },
+  
+  this.paint = function(ctx)
+  {
+    this.text_size = ctx.measureText(this.text).width;
+    ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
+    ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
+    ctx.font = Math.round(size) + "px Verdana";
+    ctx.fillStyle = this.color;
+    ctx.fillText(this.text, this.x, this.y);
   }
 };
 
@@ -511,6 +679,130 @@ var TutorialScreen = {
 };
 
 //##########################################################################
+var MenuScreen = {
+  init: function () {
+    this.current_page = 0;
+    this.reset();
+  },
+  reset: function () {
+    this.static_labels = [];
+    this.levels_per_page = 7;
+    this.pages = Math.floor(g_puzzles.length / this.levels_per_page);
+    if (g_puzzles.length % this.levels_per_page !== 0)
+    {
+      this.pages++;
+    }
+    this.loadLevelLabels();
+    var y = g_canvas.height/2;
+    this.static_labels.push(new TextLabel("LEVEL SELECT", g_canvas.width/2, Math.round(y + 26 * -5),
+        "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, Math.round(INVERSE_PHI * 26)));
+    this.page_left = new TextLabel("<<", 0, g_canvas.height, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, Math.round(INVERSE_PHI * 26));
+    this.page_right = new TextLabel(">>", g_canvas.width, g_canvas.height, "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, Math.round(INVERSE_PHI * 26));
+  },
+  loadLevelLabels: function () {
+    this.level_labels = [];
+    var y = g_canvas.height/2;
+    var offset = this.current_page * this.levels_per_page;
+    for (var i = 0; i + offset < g_puzzles.length && i < this.levels_per_page; i++)
+    {
+      this.level_labels.push(new TextLabel(g_puzzles[i + offset].name, g_canvas.width/2, Math.round((i - 3) * 26 + y),
+        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, Math.round(INVERSE_PHI * 26)));
+    }
+    this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, g_canvas.width/2, Math.round(y + 26 * 5),
+      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, Math.round(INVERSE_PHI * 26));
+  },
+  handleMouseDown: function (event) {
+    for (var i = 0; i < this.level_labels.length; i++)
+    {
+      if(this.level_labels[i].handleMouseDown(event))
+      {
+        g_level = i + this.current_page * this.levels_per_page;
+        switchToScreen(GameScreen);
+        return;
+      }
+    }
+    if(this.page_left.handleMouseDown(event))
+    {
+      if(this.current_page > 0)
+      {
+        this.current_page--;
+        this.loadLevelLabels();
+      }
+    }
+    if(this.page_right.handleMouseDown(event))
+    {
+      if(this.current_page < this.pages - 1)
+      {
+        this.current_page++;
+        this.loadLevelLabels();
+      }
+    }
+    
+  },
+  handleMouseUp: function (event) {},
+  handleMouseMove: function (event) {
+    for (var i = 0; i < this.level_labels.length; i++)
+    {
+      if(this.level_labels[i].handleMouseDown(event))
+      {
+        this.level_labels[i].color = "black";
+      }
+      else
+      {
+        this.level_labels[i].color = "gray";
+      }
+    }
+    if(this.page_left.handleMouseDown(event))
+    {
+      this.page_left.color = "black";
+    }
+    else
+    {
+      this.page_left.color = "gray";
+    }
+    if(this.page_right.handleMouseDown(event))
+    {
+      this.page_right.color = "black";
+    }
+    else
+    {
+      this.page_right.color = "gray";
+    }
+  },
+  handleKeyDown: function (event) {},
+  handleKeyUp: function (event) {},
+  handleTimeStep: function () {    
+  },
+  
+  paint: function () {
+    g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    g_ctx.fillStyle = "#f0f0f0";
+    g_ctx.fillRect(
+        0, 0,
+        g_canvas.width,
+        g_canvas.height);
+    for (var i = 0; i < this.level_labels.length; i++)
+    {
+      this.level_labels[i].paint(g_ctx);
+    }
+    for (var i = 0; i < this.static_labels.length; i++)
+    {
+      this.static_labels[i].paint(g_ctx);
+    }
+    this.page_display.paint(g_ctx);
+    if (this.current_page > 0)
+    {
+      this.page_left.paint(g_ctx);
+    }
+    if(this.current_page < this.pages - 1)
+    {
+      this.page_right.paint(g_ctx);
+    }
+  }
+};
+
+//##########################################################################
 var GameScreen = {
 
     init: function () {
@@ -641,7 +933,6 @@ var GameScreen = {
       this.mouse_pos = [null, null];
       this.name = "";
       this.backTextSize = null;
-      this.forwardTextSize = null;
       this.textHeight = null;
       this.solved = false;
 
@@ -689,7 +980,11 @@ var GameScreen = {
         }
       }
       this.solved = true;
-      alert("Solved!");
+      this.draggable_list = [];
+      this.clickable_list = [];
+      var victory = new VictoryCelebration();
+      this.paint_list.unshift(victory);
+      this.timestep_list.unshift(victory);
     },
     
     handleMouseDown: function (event) {
@@ -733,26 +1028,13 @@ var GameScreen = {
       }
 
       if (this.backTextSize &&
-        this.forwardTextSize &&
         this.textHeight)
       {
         if(event.offsetY > g_canvas.height - this.textHeight)
         {
           if(event.offsetX < this.backTextSize)
           {
-            if(g_level === 0)
-            {
-              g_level = g_puzzles.length;
-            }
-            g_level--;
-            this.reset();
-            return true;
-          }
-          if(event.offsetX > g_canvas.width - this.forwardTextSize)
-          {
-            g_level++;
-            g_level %= g_puzzles.length;
-            this.reset();
+            switchToScreen(MenuScreen);
             return true;
           }
         }
@@ -821,9 +1103,6 @@ var GameScreen = {
       g_ctx.textAlign = "left"
       this.backTextSize = g_ctx.measureText("<<").width;
       g_ctx.fillText("<<", 0, g_canvas.height);
-      g_ctx.textAlign = "right";
-      this.forwardTextSize = g_ctx.measureText(">>").width;
-      g_ctx.fillText(">>", g_canvas.width, g_canvas.height);
 
       for (var i = this.paint_list.length - 1; i>=0; i--)
       {
@@ -994,8 +1273,9 @@ function init()
     ResourceTracker.init();
     GameScreen.init();
     TutorialScreen.init();
+    MenuScreen.init();
 
-    switchToScreen(GameScreen);
+    switchToScreen(MenuScreen);
 
     // start processing events
     setTimeout(eventLoop, 40);
