@@ -1016,7 +1016,7 @@ var GameScreen = {
       {
         for (var j = 0; j < letters[i].length; j++)
         {
-          if (letters[i].charAt(j) !== " " && letters[i].charAt(j) !== ".")
+        if (letters[i].charAt(j) !== " " && letters[i].charAt(j) !== ".")
           {
             letter_box_collection.letterBoxList.push(
               new LetterBox(defaultX + 35 * (j + x),defaultY + 35 * (i + y), 35, letters[i].charAt(j)));
@@ -1094,6 +1094,91 @@ var GameScreen = {
       return false;
     },
     
+    checkOnScreen: function(tileSet)
+    {
+      for(var j = 0; j < tileSet.letterBoxList.length; j++)
+      {
+        if (tileSet.letterBoxList[j].x < g_canvas.width && 
+          tileSet.letterBoxList[j].y < g_canvas.height &&
+          tileSet.letterBoxList[j].x > 0 &&
+          tileSet.letterBoxList[j].y > 0)
+        {
+          return true;
+        }
+      }
+      return false;
+    },
+    
+    returnToScreen: function(tileSet)
+    {
+      for(var j = 0; j < tileSet.letterBoxList.length; j++)
+      {
+        while(tileSet.letterBoxList[j].x < 0)
+        {
+          tileSet.transpose(35,0);
+        }
+        while(tileSet.letterBoxList[j].y < 0)
+        {
+          tileSet.transpose(0, 35);
+        }
+        while(tileSet.letterBoxList[j].x > g_canvas.width)
+        {
+          tileSet.transpose(-35, 0);
+        }
+        while(tileSet.letterBoxList[j].y > g_canvas.height)
+        {
+          tileSet.transpose(0, -35);
+        }
+      }
+    },
+    
+    findOffscreenAdjacentTileSets : function()
+    {
+      var adjacencySet = Array(this.draggable_list.length).fill(false);
+      
+      var unexpanded;
+      var returnSet;
+      var needs_recentering;
+      for(var j = 0; j < adjacencySet.length; j++)
+      {
+        if(adjacencySet[j])
+        {
+          continue;
+        }
+        
+        returnSet = [];
+        needs_recentering = true;
+        adjacencySet[j] = true;
+        unexpanded = [this.draggable_list[j]];
+        while(unexpanded.length > 0)
+        {
+          var tileSet = unexpanded.pop();
+          returnSet.push(tileSet);
+          needs_recentering = needs_recentering && !this.checkOnScreen(tileSet)
+          for(var i = this.draggable_list.length - 1; i>=0; i--)
+          {
+            if (!adjacencySet[i])
+            {
+              if (this.checkAdjancent(tileSet,this.draggable_list[i]))
+              {
+                adjacencySet[i] = true;
+                unexpanded.push(this.draggable_list[i]);
+              }
+            }
+          }
+        }
+        if(needs_recentering)
+        {
+          //alert(returnSet.length + " tiles lost");
+          for(var i = 0; i < returnSet.length; ++i)
+          {
+            this.returnToScreen(returnSet[i]);
+          }
+        }
+      }
+      return;
+    },
+
     findAdjacentTileSets: function(draggable_list_item_index)
     {
       var adjacencySet = Array(this.draggable_list.length).fill(false);
@@ -1118,7 +1203,7 @@ var GameScreen = {
       }
       return returnSet;
     },
-
+    
     reset: function () {
       this.paint_list = [];
       this.timestep_list = [];
@@ -1263,6 +1348,7 @@ var GameScreen = {
           this.dragged_item_collection[i].snap(35);
         }
         this.checkForSolved();
+        this.findOffscreenAdjacentTileSets();
       }
       this.dragged_item_collection = null;
     },
