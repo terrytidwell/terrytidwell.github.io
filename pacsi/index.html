@@ -279,8 +279,19 @@ var CmdWindow = function(x,y,width,height)
   this.m_text_height = 12;
   this.m_banner_height = Math.floor(this.m_text_height * PHI);
   this.m_font = this.m_text_height + "px " + g_font;
-  
+  this.close =  new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
   this.m_name = "cmd";
+  this.active = true;
+  
+  this.handleMouseDown = function (event) 
+  {
+    if(this.close.handleMouseDown(event))
+    {
+      this.active = false;
+      return true;
+    }
+    return false;
+  }
   
   this.paint = function(ctx)
   {
@@ -298,13 +309,14 @@ var CmdWindow = function(x,y,width,height)
       this.m_pos_x, this.m_pos_y,
       this.m_width, this.m_height);
     ctx.font=this.m_font;
-    ctx.textAlign="start";
+    ctx.textAlign="left";
     ctx.textBaseline="middle";
     ctx.fillText(
       this.m_name,
       this.m_pos_x + 5,
       this.m_pos_y + this.m_banner_height/2
     );
+    this.close.paint(ctx);
   }
 };
     
@@ -322,6 +334,13 @@ var GameScreen = {
     },
     
     handleMouseDown: function (event) {
+      for (var i = 0; i < this.window.length; i++)
+      {
+        if(this.window[i].handleMouseDown(event))
+        {
+          return;
+        }
+      }
       if(this.cmd_button.handleMouseDown(event))
       {
         var offset = this.window.length;
@@ -337,6 +356,13 @@ var GameScreen = {
     handleKeyUp: function (event) {
     },
     handleTimeStep: function () {
+      for (var i = this.window.length - 1; i >= 0; i--)
+      {
+        if(!this.window[i].active)
+        {
+          this.window.splice(i,1);
+        }
+      }
     },
     paint: function () {
       g_ctx.setTransform(1, 0, 0, 1, 0, 0);
