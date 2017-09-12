@@ -187,56 +187,59 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
   this.color = color;
   this.text = text;
   
-  this.handleMouseDown = function (event) 
+  this.getCurrentBounds = function()
   {
+    var ret_val = {};
     switch (this.alignment)
     {
       case HorizontalLabelAlignEnum.LEFT:
-        if (event.offsetX < this.x || event.offsetX > this.x + this.text_size)
-        {
-          return false;
-        }
+        ret_val.min_x = this.x;
+        ret_val.max_x = this.x + this.text_size;
         break;
       case HorizontalLabelAlignEnum.RIGHT:
-        if (event.offsetX < this.x - this.text_size || event.offsetX > this.x)
-        {
-          return false;
-        }
+        ret_val.min_x = this.x - this.text_size;
+        ret_val.max_x = this.x;
         break;
       case HorizontalLabelAlignEnum.CENTER:
-        if (event.offsetX < this.x - this.text_size / 2 || event.offsetX > this.x + this.text_size / 2)
-        {
-          return false;
-        }
+        ret_val.min_x = this.x - this.text_size / 2;
+        ret_val.max_x = this.x + this.text_size / 2;
         break;
       default:
-        return false;
     }
     
     switch (this.baseline)
     {
       case VerticalLabelBaselineEnum.TOP:
-        if (event.offsetY < this.y || event.offsetY > this.y + this.size)
-        {
-          return false;
-        }
+        ret_val.min_y = this.y;
+        ret_val.max_y = this.y + this.size;
         break;
       case VerticalLabelBaselineEnum.BOTTOM:
-        if (event.offsetY < this.y - this.size || event.offsetY > this.y)
-        {
-          return false;
-        }
+        ret_val.min_y = this.y - this.size;
+        ret_val.max_y = this.y;
         break;
       case VerticalLabelBaselineEnum.MIDDLE:
-        if (event.offsetY < this.y - this.size / 2 || event.offsetY > this.y + this.size / 2)
-        {
-          return false;
-        }
+        ret_val.min_y = this.y - this.size / 2;
+        ret_val.max_y = this.y + this.size / 2;
         break;
       default:
-        return false;
     }
     
+    return ret_val;
+  }
+  
+  this.handleMouseDown = function (event) 
+  {
+    var dim = this.getCurrentBounds();
+    if (event.offsetX < dim.min_x || event.offsetX > dim.max_x)
+    {
+      return false;
+    }
+    
+    if (event.offsetY < dim.min_y || event.offsetY > dim.max_y)
+    {
+      return false;
+    }
+
     return true;
   },
   
@@ -248,6 +251,13 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
     ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
     ctx.fillStyle = this.color;
     ctx.fillText(this.text, this.x, this.y);
+  }
+  
+  this.drawHighlight = function(ctx, color)
+  {
+    var dim = this.getCurrentBounds();
+    ctx.fillStyle = color;
+    ctx.fillRect(dim.min_x, dim.min_y, dim.max_x - dim.min_x, dim.max_y - dim.min_y);
   }
 };
 
@@ -280,23 +290,247 @@ var CmdWindow = function(x,y,width,height)
   this.m_banner_height = Math.floor(this.m_text_height * PHI);
   this.m_font = this.m_text_height + "px " + g_font;
   this.close =  new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
+  this.close_highlighted = false;
   this.m_name = "cmd";
+  this.selected = false;
+  this.focus = true;
+  this.mouse_x = null;
+  this.mouse_y = null;
   this.active = true;
+  this.n_grow = false;
+  this.s_grow = false;
+  this.e_grow = false;
+  this.w_grow = false;
+  this.clock_cycle = 10;
+  this.clock=0;
+  this.cursor=true;
+  this.rows = 0;
+  this.cols = 0;
   
   this.handleMouseDown = function (event) 
   {
-    if(this.close.handleMouseDown(event))
+    if(event.offsetX >= this.m_pos_x &&
+      event.offsetX <= this.m_pos_x + this.m_width &&
+      event.offsetY >= this.m_pos_y &&
+      event.offsetY <= this.m_pos_y + this.m_height)
     {
-      this.active = false;
+      if(this.close.handleMouseDown(event))
+      {
+        this.active = false;
+        return true;
+      }
+      if(event.offsetY > this.m_pos_y + this.m_banner_height &&
+        event.offsetY < this.m_pos_y + this.m_height - 6 &&
+        event.offsetX > this.m_pos_x + 6 &&
+        event.offsetX < this.m_pos_x + this.m_width - 6)
+      {
+        this.focus = true;
+        return true;
+      }
+      else
+      {
+        this.selected = true;
+        this.focus = true;
+        this.mouse_x = event.offsetX;
+        this.mouse_y = event.offsetY;
+      }
+      
       return true;
+    }
+    this.focus = false;
+    return false;
+  }
+  
+  this.setCursorForResize = function()
+  {
+    if(this.n_grow ||
+      this.s_grow ||
+      this.e_grow ||
+      this.w_grow)
+    {
+      if(this.n_grow)
+      {
+        if(this.e_grow)
+        {
+          g_canvas.style.cursor = "ne-resize";
+          return true;
+        }
+        if(this.w_grow)
+        {
+          g_canvas.style.cursor = "nw-resize";
+          return true;
+        }
+        g_canvas.style.cursor = "n-resize";
+      }
+      if(this.s_grow)
+      {
+        if(this.e_grow)
+        {
+          g_canvas.style.cursor = "se-resize";
+          return true;
+        }
+        if(this.w_grow)
+        {
+          g_canvas.style.cursor = "sw-resize";
+          return true;
+        }
+        g_canvas.style.cursor = "s-resize";
+      }
+      if(this.e_grow)
+      {
+        g_canvas.style.cursor = "e-resize";
+      }
+      if(this.w_grow)
+      {
+        g_canvas.style.cursor = "w-resize";
+      }
+      return true;
+    }
+    
+    g_canvas.style.cursor = "default";
+    return false;
+  }
+  
+  this.handleMouseMove = function (event)
+  {
+    if(this.selected)
+    {
+      var dx = event.offsetX - this.mouse_x;
+      var dy = event.offsetY - this.mouse_y;
+      this.mouse_x = event.offsetX;
+      this.mouse_y = event.offsetY;
+      this.setCursorForResize();
+      if(this.n_grow)
+      {
+        if(200 > this.m_height - Math.round(dy))
+        {
+          var new_dy = this.m_height - 200;
+          this.mouse_y = event.offsetY - (Math.round(dy)-new_dy);
+          dy = new_dy;
+        }
+        this.m_height -= Math.round(dy);
+        this.m_pos_y += Math.round(dy);
+        this.close.y += Math.round(dy);  
+      }
+      if(this.s_grow)
+      {
+        if(200 > this.m_height + Math.round(dy))
+        {
+          var new_dy = 200 - this.m_height;
+          this.mouse_y = event.offsetY - (Math.round(dy)-new_dy);
+          dy = new_dy;
+        }
+        this.m_height += Math.round(dy);
+      }
+      if(this.w_grow)
+      {
+        if(300 > this.m_width - Math.round(dx))
+        {
+          var new_dx = this.m_width - 300;
+          this.mouse_x = event.offsetX - (Math.round(dx)-new_dx);
+          dx = new_dx;
+        }
+        this.m_width -= Math.round(dx);
+        this.m_pos_x += Math.round(dx);
+      }
+      if(this.e_grow)
+      {
+        if(300 > this.m_width + Math.round(dx))
+        {
+          var new_dx = 300 - this.m_width;
+          this.mouse_x = event.offsetX - (Math.round(dx)-new_dx);
+          dx = new_dx;
+        }
+        this.m_width += Math.round(dx);
+        this.close.x += Math.round(dx);
+      }
+      
+      if(this.n_grow ||
+        this.s_grow ||
+        this.e_grow ||
+        this.w_grow)
+      {
+        return true;
+      }
+      
+      this.m_pos_x += Math.round(dx);
+      this.m_pos_y += Math.round(dy);
+      this.close.x += Math.round(dx);
+      this.close.y += Math.round(dy);
+      return true;
+    }
+    else
+    {
+      if(event.offsetX >= this.m_pos_x &&
+        event.offsetX <= this.m_pos_x + this.m_width &&
+        event.offsetY >= this.m_pos_y &&
+        event.offsetY <= this.m_pos_y + this.m_height)
+      {
+        if(this.close.handleMouseDown (event))
+        {
+          this.close_highlighted = true;
+          g_canvas.style.cursor = "default";
+          return true;
+        }
+        else
+        {
+          this.close_highlighted = false;
+        }
+        
+        this.n_grow = false;
+        this.s_grow = false;
+        this.e_grow = false;
+        this.w_grow = false;
+        
+        if(event.offsetY < this.m_pos_y + 6)
+        {
+          this.n_grow = true;
+        }
+        if(event.offsetY > this.m_pos_y + this.m_height - 6)
+        {
+          this.s_grow = true;
+        }
+        if(event.offsetX < this.m_pos_x + 6)
+        {
+          this.w_grow = true;
+        }
+        if(event.offsetX > this.m_pos_x + this.m_width - 6)
+        {
+          this.e_grow = true;
+        }
+        if(this.setCursorForResize())
+        {
+          return true;
+        }
+                
+        if(event.offsetY > this.m_pos_y + this.m_banner_height)
+        {
+          g_canvas.style.cursor = "text";
+          return true;
+        }
+        return true;
+      }
     }
     return false;
   }
   
+  this.handleMouseUp = function (event)
+  {
+    this.selected = false;
+    this.mouse_x = null;
+    this.mouse_y = null;
+  }
+  
   this.paint = function(ctx)
   {
+    this.clock++;
+    if(this.clock > this.clock_cycle)
+    {
+      this.cursor = !this.cursor;
+      this.clock = 0;
+    }
     ctx.lineWidth = 1;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(
       this.m_pos_x, this.m_pos_y,
       this.m_width, this.m_height);
@@ -311,11 +545,51 @@ var CmdWindow = function(x,y,width,height)
     ctx.font=this.m_font;
     ctx.textAlign="left";
     ctx.textBaseline="middle";
+    if(this.focus)
+    {
+      ctx.fillStyle = "black";
+      this.close.color = "black";
+    }
+    else
+    {
+      ctx.fillStyle = "grey";
+      this.close.color = "grey";
+    }
+    this.rows = Math.floor((this.m_height - 10 - this.m_banner_height)/this.m_text_height);
+    var text_width = ctx.measureText("w").width;
+    this.cols = Math.floor((this.m_width - 10)/text_width);
+    
     ctx.fillText(
-      this.m_name,
+      this.m_name + " " + this.rows + "x" + this.cols,
       this.m_pos_x + 5,
       this.m_pos_y + this.m_banner_height/2
     );
+    if(this.close_highlighted)
+    {
+      this.close.drawHighlight(ctx,"rgba(192,0,0,1)");
+      this.close.color = "white";
+    }
+    ctx.textAlign="left";
+    ctx.textBaseline="middle";
+    ctx.fillStyle="rgba(192,192,192, 1)";
+    if(this.cursor || !this.focus)
+    {
+      ctx.fillText("> _",this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
+    }
+    else
+    {
+      ctx.fillText(">",this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
+    }
+    /*
+    for(var i = 1; i < this.rows; i++)
+    {
+      ctx.fillText(""+i%10, this.m_pos_x+5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2 + i * this.m_text_height);
+    }
+    for(var i = 4; i < this.cols; i++)
+    {
+      ctx.fillText(""+i%10, this.m_pos_x + 5 + i * text_width, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
+    }
+    */
     this.close.paint(ctx);
   }
 };
@@ -334,10 +608,14 @@ var GameScreen = {
     },
     
     handleMouseDown: function (event) {
-      for (var i = 0; i < this.window.length; i++)
+      for (var i = this.window.length - 1; i >= 0; i--)
       {
         if(this.window[i].handleMouseDown(event))
         {
+          var window_to_move = this.window[i];
+          this.window.splice(i,1);
+          this.window.push(window_to_move);
+          //window_to_move.focus = true;
           return;
         }
       }
@@ -348,8 +626,23 @@ var GameScreen = {
       }
     },    
     handleMouseMove: function (event) {
+      for (var i = this.window.length - 1; i >= 0; i--)
+      {
+        if(this.window[i].handleMouseMove(event))
+        {
+          return;
+        }
+      }
+      g_canvas.style.cursor = "default";
     },
     handleMouseUp: function (event) {
+      for (var i = this.window.length - 1; i >= 0; i--)
+      {
+        if(this.window[i].handleMouseUp(event))
+        {
+          return;
+        }
+      }
     },
     handleKeyDown: function (event) {
     },
