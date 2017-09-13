@@ -280,6 +280,32 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
+var RunContext = function(window)
+{
+  this.processing_clock = 0;
+  this.parent_window = window;
+  
+  this.handleInput = function(string)
+  {
+    this.parent_window.processing = true;
+    this.processing_clock = 10;
+  };
+  
+  this.handleTimeStep = function()
+  {
+    if(this.processing_clock > 0)
+    {
+      this.processing_clock--
+      if(this.processing_clock == 0)
+      {
+        this.parent_window.handleOutput("done");
+        this.parent_window.handleOutput(" ");
+        this.parent_window.processing = false;
+      }
+    }
+  };
+};
+
 var CmdWindow = function(x,y,width,height)
 {
   this.m_pos_x = x;
@@ -306,6 +332,48 @@ var CmdWindow = function(x,y,width,height)
   this.cursor=true;
   this.rows = 0;
   this.cols = 0;
+  this.key = '';
+  this.string = "";
+  this.string_history = [];
+  this.processing = false;
+  this.processing_clock = 0;
+  this.run_context = new RunContext(this);
+  
+  this.handleOutput = function(string)
+  {
+    this.string_history.push(string);
+  }
+  
+  this.handleKeyDown = function (event) {
+    if(this.focus && !this.processing)
+    {
+      ret_val = '';
+      if(event.key.length == 1)
+      {
+        ret_val = event.key;
+      }
+      this.key = ret_val;
+      this.string += this.key;
+      
+      if(event.keyCode == 8)
+      {
+        this.string = this.string.slice(0, -1);
+      }
+      if(event.keyCode == 13)
+      {
+        this.string_history.push("> " + this.string + " ");
+        this.string = "";
+        this.run_context.handleInput(this.string);
+      }
+      return true;
+    }
+
+    return false;
+  };
+  
+  this.handleKeyUp = function (event) {
+    return false;
+  };
   
   this.handleMouseDown = function (event) 
   {
@@ -339,7 +407,7 @@ var CmdWindow = function(x,y,width,height)
     }
     this.focus = false;
     return false;
-  }
+  };
   
   this.setCursorForResize = function()
   {
@@ -389,7 +457,7 @@ var CmdWindow = function(x,y,width,height)
     
     g_canvas.style.cursor = "default";
     return false;
-  }
+  };
   
   this.handleMouseMove = function (event)
   {
@@ -512,16 +580,85 @@ var CmdWindow = function(x,y,width,height)
       }
     }
     return false;
-  }
+  };
   
   this.handleMouseUp = function (event)
   {
     this.selected = false;
     this.mouse_x = null;
     this.mouse_y = null;
+  };
+  
+  this.paintStringRows = function(string)
+  {
+    return Math.ceil(string.length / this.cols);
+  };
+  
+  this.paintString = function(ctx, string, number_of_rows, row_offset)
+  {
+    var rows = this.paintStringRows(string);
+    var start_char = 0;
+    if (rows > number_of_rows)
+    {
+      start_char = (rows - number_of_rows) * this.cols;
+      rows = this.rows
+    }
+    for(var i = 0; i < rows; i++)
+    {
+      ctx.fillText(string.substring(i*this.cols + start_char, (i + 1)*this.cols + start_char), this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + (i + row_offset + .5) * this.m_text_height);
+    }
+  };
+  
+  this.paintAllStrings = function(ctx, cursor)
+  {
+    var rows_to_draw = [];
+    var total_rows = 0;
+    var actual_string = "> ";
+    if(this.processing)
+    {
+      actual_string = "";
+    }
+    actual_string += this.string + cursor;
+    var new_rows = this.paintStringRows(actual_string);
+    if(total_rows + new_rows > this.rows)
+    {
+      rows_to_draw.push(this.rows - total_rows);
+    }
+    else
+    {
+      rows_to_draw.push(new_rows);
+    }
+    total_rows += new_rows;
+    for(var i = this.string_history.length-1; i >= 0 && total_rows < this.rows; i--)
+    {
+      new_rows = this.paintStringRows(this.string_history[i]);
+      if(total_rows + new_rows > this.rows)
+      {
+        rows_to_draw.push(this.rows - total_rows);
+      }
+      else
+      {
+        rows_to_draw.push(new_rows);
+      }
+      total_rows += new_rows;
+    }
+    var current_row = 0;
+    for(var i = rows_to_draw.length-1; i >= 0; i--)
+    {
+      if(i == 0)
+      {
+        //draw_string
+        this.paintString(ctx, actual_string, rows_to_draw[i], current_row)
+      }
+      else
+      {
+        this.paintString(ctx, this.string_history[this.string_history.length - i], rows_to_draw[i], current_row)
+      }
+      current_row += rows_to_draw[i];
+    }
   }
   
-  this.paint = function(ctx)
+  this.handleTimeStep = function()
   {
     this.clock++;
     if(this.clock > this.clock_cycle)
@@ -529,6 +666,13 @@ var CmdWindow = function(x,y,width,height)
       this.cursor = !this.cursor;
       this.clock = 0;
     }
+    this.run_context.handleTimeStep();
+  }
+  
+  this.paint = function(ctx)
+  {
+
+    this.handleTimeStep();
     ctx.lineWidth = 1;
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(
@@ -572,14 +716,8 @@ var CmdWindow = function(x,y,width,height)
     ctx.textAlign="left";
     ctx.textBaseline="middle";
     ctx.fillStyle="rgba(192,192,192, 1)";
-    if(this.cursor || !this.focus)
-    {
-      ctx.fillText("> _",this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
-    }
-    else
-    {
-      ctx.fillText(">",this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
-    }
+    
+    this.paintAllStrings(ctx, (this.cursor || !this.focus) ? "_": " ");
     /*
     for(var i = 1; i < this.rows; i++)
     {
@@ -591,7 +729,7 @@ var CmdWindow = function(x,y,width,height)
     }
     */
     this.close.paint(ctx);
-  }
+  };
 };
     
 //##########################################################################
@@ -645,8 +783,22 @@ var GameScreen = {
       }
     },
     handleKeyDown: function (event) {
+      for (var i = this.window.length - 1; i >= 0; i--)
+      {
+        if(this.window[i].handleKeyDown(event))
+        {
+          return;
+        }
+      }
     },
     handleKeyUp: function (event) {
+      for (var i = this.window.length - 1; i >= 0; i--)
+      {
+        if(this.window[i].handleKeyUp(event))
+        {
+          return;
+        }
+      }
     },
     handleTimeStep: function () {
       for (var i = this.window.length - 1; i >= 0; i--)
