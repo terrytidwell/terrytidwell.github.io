@@ -284,25 +284,79 @@ var RunContext = function(window)
 {
   this.processing_clock = 0;
   this.parent_window = window;
+  this.current_program = null;
   
   this.handleInput = function(string)
   {
-    this.parent_window.processing = true;
-    this.processing_clock = 10;
+    this.parent_window.accept_input = true;
+    this.parent_window.handleOutput("command \"" + string +"\" not found");
+    this.parent_window.handleOutput(" ");
+  };
+  
+  this.handleKeyDown = function (event) {
+    return false;
+  };
+  
+  this.handleKeyUp = function (event) {
+    return false;
   };
   
   this.handleTimeStep = function()
   {
+    /*
     if(this.processing_clock > 0)
     {
       this.processing_clock--
+      var string = "";
+      var left_padding = Math.round((this.parent_window.cols - 3)/ 2);
+      var rows = this.parent_window.rows - this.parent_window.input_rows;
+      for(var i = 0; i < rows; i++)
+      {
+        for(var j = 0; j < this.parent_window.cols; j++)
+        {
+          if(i == 0)
+          {
+            string += "*";
+          }
+          else if(i == rows - 1)
+          {
+            string += "*";
+          }
+          else if(i == Math.round(rows/2))
+          {
+            if(j < left_padding)
+            {
+              string += " ";
+            }
+            else if(j === left_padding)
+            {
+              var mod = (this.processing_clock%16);
+              var index = Math.floor(mod/4);
+              string += ["...","..o",".o.","o.."][index];
+            }
+            else if(j >= left_padding + 3)
+            {
+              string += " ";
+            }
+          }
+          else
+          {
+            string += " ";
+          }
+        }
+      }
+      //alert("" + string.length + "");
+      this.parent_window.overrideOutput(string);
+      
+      
       if(this.processing_clock == 0)
       {
-        this.parent_window.handleOutput("done");
+        //this.parent_window.handleOutput(string);
         this.parent_window.handleOutput(" ");
-        this.parent_window.processing = false;
+        this.parent_window.accept_input = true;
       }
     }
+    */
   };
 };
 
@@ -334,9 +388,10 @@ var CmdWindow = function(x,y,width,height)
   this.cols = 0;
   this.key = '';
   this.string = "";
+  this.input_line = "";
+  this.input_rows = 0;
   this.string_history = [];
-  this.processing = false;
-  this.processing_clock = 0;
+  this.accept_input = true;
   this.run_context = new RunContext(this);
   
   this.handleOutput = function(string)
@@ -344,8 +399,13 @@ var CmdWindow = function(x,y,width,height)
     this.string_history.push(string);
   }
   
+  this.overrideOutput = function(string)
+  {
+    this.string_history[this.string_history.length-1] = string;
+  }
+  
   this.handleKeyDown = function (event) {
-    if(this.focus && !this.processing)
+    if(this.focus && this.accept_input)
     {
       ret_val = '';
       if(event.key.length == 1)
@@ -362,16 +422,24 @@ var CmdWindow = function(x,y,width,height)
       if(event.keyCode == 13)
       {
         this.string_history.push("> " + this.string + " ");
-        this.string = "";
         this.run_context.handleInput(this.string);
+        this.string = "";
       }
       return true;
+    }
+    if(this.focus && !this.accept_input)
+    {
+      return this.run_context.handleKeyDown();
     }
 
     return false;
   };
   
   this.handleKeyUp = function (event) {
+    if(this.focus && !this.accept_input)
+    {
+      return this.run_context.handleKeyDown();
+    }
     return false;
   };
   
@@ -609,17 +677,29 @@ var CmdWindow = function(x,y,width,height)
     }
   };
   
-  this.paintAllStrings = function(ctx, cursor)
+  this.decorate_input_string = function()
+  {
+    this.input_line = "> ";
+    var cursor = "_";
+    if(!this.accept_input)
+    {
+      this.input_line = "";
+      cursor = "";
+    }
+    else if(this.focus && this.accept_input && !this.cursor)
+    {
+      cursor = " ";
+    }
+    this.input_line += this.string + cursor
+    this.input_rows = this.paintStringRows(this.input_line);
+  }
+  
+  this.paintAllStrings = function(ctx)
   {
     var rows_to_draw = [];
     var total_rows = 0;
-    var actual_string = "> ";
-    if(this.processing)
-    {
-      actual_string = "";
-    }
-    actual_string += this.string + cursor;
-    var new_rows = this.paintStringRows(actual_string);
+
+    var new_rows = this.input_rows;
     if(total_rows + new_rows > this.rows)
     {
       rows_to_draw.push(this.rows - total_rows);
@@ -648,7 +728,7 @@ var CmdWindow = function(x,y,width,height)
       if(i == 0)
       {
         //draw_string
-        this.paintString(ctx, actual_string, rows_to_draw[i], current_row)
+        this.paintString(ctx, this.input_line, rows_to_draw[i], current_row)
       }
       else
       {
@@ -666,12 +746,12 @@ var CmdWindow = function(x,y,width,height)
       this.cursor = !this.cursor;
       this.clock = 0;
     }
+    this.decorate_input_string();
     this.run_context.handleTimeStep();
   }
   
   this.paint = function(ctx)
   {
-
     this.handleTimeStep();
     ctx.lineWidth = 1;
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
@@ -702,9 +782,9 @@ var CmdWindow = function(x,y,width,height)
     this.rows = Math.floor((this.m_height - 10 - this.m_banner_height)/this.m_text_height);
     var text_width = ctx.measureText("w").width;
     this.cols = Math.floor((this.m_width - 10)/text_width);
-    
+   
     ctx.fillText(
-      this.m_name + " " + this.rows + "x" + this.cols,
+      this.m_name,
       this.m_pos_x + 5,
       this.m_pos_y + this.m_banner_height/2
     );
@@ -717,7 +797,7 @@ var CmdWindow = function(x,y,width,height)
     ctx.textBaseline="middle";
     ctx.fillStyle="rgba(192,192,192, 1)";
     
-    this.paintAllStrings(ctx, (this.cursor || !this.focus) ? "_": " ");
+    this.paintAllStrings(ctx);
     /*
     for(var i = 1; i < this.rows; i++)
     {
