@@ -281,6 +281,73 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
+var PleaseCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  this.last_input = null;
+  this.parent_window.accept_input = true;
+  this.msg = "say the magic word...";
+  
+  this.handleInput = function(string)
+  {
+    this.last_input = string;
+  }
+  
+  this.handleTimeStep = function()
+  {
+    if(this.last_input !== null)
+    {
+      if(this.last_input === "please")
+      {
+        this.parent_window.handleOutput(" ");
+        return false;
+      }
+      this.msg = Util.randomItem(["you didn't say the magic word","didn't your mom teach you better?"]);
+      this.last_input = null;
+    }
+    var string = "";
+    
+    var msg_left_padding = Math.round((this.parent_window.cols - this.msg.length)/ 2);
+    var rows = this.parent_window.rows - this.parent_window.input_rows;
+    for(var i = 0; i < rows; i++)
+    {
+      for(var j = 0; j < this.parent_window.cols; j++)
+      {
+        if(i == 0)
+        {
+          string += "*";
+        }
+        else if(i == rows - 1)
+        {
+          string += "*";
+        }
+        else if(i == Math.round(rows/2))
+        {
+          if(j < msg_left_padding)
+          {
+            string += " ";
+          }
+          else if(j === msg_left_padding)
+          {
+            string += this.msg;
+          }
+          else if(j >= msg_left_padding + this.msg.length)
+          {
+            string += " ";
+          }
+        }
+        else
+        {
+          string += " ";
+        }
+      }
+    }
+    this.parent_window.overrideOutput(string);
+    return true;
+  }
+}
+
 var TrapCmd = function(run_context)
 {
   this.run_context = run_context;
@@ -380,7 +447,8 @@ var PacsiOs = {
   cmds: 
     {
       "help" : HelpCmd, 
-      "trap" : TrapCmd
+      "trap" : TrapCmd,
+      "please" : PleaseCmd,
     },
 }
 
