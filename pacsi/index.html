@@ -281,7 +281,7 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
-var DungeonCmd = function(run_context)
+var TrapCmd = function(run_context)
 {
   this.run_context = run_context;
   this.parent_window = run_context.parent_window;
@@ -302,7 +302,7 @@ var DungeonCmd = function(run_context)
     this.state_clock = this.state_clock % 16;
     var string = "";
     var left_padding = Math.round((this.parent_window.cols - 3)/ 2);
-    var msg = "press 'esc' to exit dungeon";
+    var msg = "press 'esc' to escape trap";
     var msg_left_padding = Math.round((this.parent_window.cols - msg.length)/ 2);
     var rows = this.parent_window.rows - this.parent_window.input_rows;
     for(var i = 0; i < rows; i++)
@@ -380,7 +380,7 @@ var PacsiOs = {
   cmds: 
     {
       "help" : HelpCmd, 
-      "dungeon" : DungeonCmd
+      "trap" : TrapCmd
     },
 }
 
