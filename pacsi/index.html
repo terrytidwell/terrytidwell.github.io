@@ -281,6 +281,73 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
+var ExitCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  
+  this.handleTimeStep = function()
+  {
+    this.parent_window.active = false;
+    return false;
+  }
+}
+
+var ClearCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  
+  this.handleTimeStep = function()
+  {
+    this.parent_window.string_history = [];
+    return false;
+  }
+}
+
+var KillAllCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  this.parent_window.handleOutput("terminating all, press 'q' to cancel");
+  this.parent_window.handleOutput(" ");
+  this.percentage_complete = 0;
+  this.alive = true;
+  
+  this.handleKeyDown = function(event)
+  {
+    if(event.keyCode === 81)
+    {
+      this.alive = false;
+    }
+  }
+  
+  this.handleTimeStep = function()
+  {
+    if(this.percentage_complete < 100)
+    {
+      this.percentage_complete++;
+    }
+    var string = this.percentage_complete+"%";
+    var prefix = "status: ";
+    var spaces_to_add = this.parent_window.cols - string.length - prefix;
+    for(var i = 0; i < spaces_to_add; i++)
+    {
+      prefix+=" "
+    }
+    this.parent_window.overrideOutput(prefix+string);
+    if(this.percentage_complete >= 100)
+    {
+      GameScreen.handleGameOver();
+    }
+    if(!this.alive)
+    {
+      this.parent_window.handleOutput(" ");
+    }
+    return this.alive;
+  }
+}
+
 var PleaseCmd = function(run_context)
 {
   this.run_context = run_context;
@@ -288,6 +355,8 @@ var PleaseCmd = function(run_context)
   this.last_input = null;
   this.parent_window.accept_input = true;
   this.msg = "say the magic word...";
+  //reserve space to write stuff
+  this.parent_window.handleOutput(" ");
   
   this.handleInput = function(string)
   {
@@ -354,6 +423,8 @@ var TrapCmd = function(run_context)
   this.parent_window = run_context.parent_window;
   this.still_alive = true;
   this.state_clock = 0;
+  //reserve space to write stuff
+  this.parent_window.handleOutput("");
   
   this.handleKeyDown = function(event)
   {
@@ -449,6 +520,9 @@ var PacsiOs = {
       "help" : HelpCmd, 
       "trap" : TrapCmd,
       "please" : PleaseCmd,
+      "clear" : ClearCmd,
+      "exit" : ExitCmd,
+      "killall" : KillAllCmd,
     },
 }
 
@@ -527,7 +601,7 @@ var CmdWindow = function(x,y,width,height)
   this.m_text_height = 12;
   this.m_banner_height = Math.floor(this.m_text_height * PHI);
   this.m_font = this.m_text_height + "px " + g_font;
-  this.close =  new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
+  this.close = new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
   this.close_highlighted = false;
   this.m_name = "cmd";
   this.selected = false;
@@ -910,7 +984,6 @@ var CmdWindow = function(x,y,width,height)
   
   this.paint = function(ctx)
   {
-    this.handleTimeStep();
     ctx.lineWidth = 1;
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(
@@ -971,6 +1044,60 @@ var CmdWindow = function(x,y,width,height)
 };
     
 //##########################################################################
+var GameOver = {
+  init: function () {},
+  reset: function () {
+    this.fadeTimer = 0;
+    this.textTimerLimit = 140;
+    this.textTimer = 0;
+    this.otherScreen = null;
+  },
+  handleTimeStep: function () {
+    if(this.fadeTimer < 100)
+    {
+    this.fadeTimer++;
+    }
+    
+    if(this.textTimer < this.textTimerLimit)
+    {
+      this.textTimer++;
+    }
+    //switchToScreen(GameScreen);
+  },
+  paint: function () {
+    this.otherScreen.paint();
+    g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // paint the background
+    g_ctx.fillStyle = "rgba(255,255,255,"+this.fadeTimer/100+")";
+    //alert(g_ctx.fillStyle);
+    g_ctx.fillRect(
+      0, 0,
+      g_canvas.width,
+      g_canvas.height);
+    g_ctx.textAlign = "center";
+    g_ctx.textBaseline = "middle";
+    g_ctx.font = "120px " + g_font;
+    g_ctx.fillStyle = "rgba(0,192,0,"+(this.textTimer/this.textTimerLimit)+")";
+    var game_over = "> game over";
+    var text = game_over.substring(0,Math.round(this.textTimer/this.textTimerLimit*game_over.length));
+    if (Math.floor(this.textTimer/10) % 2)
+    {
+      text += "_"
+    }
+    else
+    {
+      text += " ";
+    }
+    g_ctx.fillText(text,g_canvas.width/2+Math.random()*3,g_canvas.height/2);
+    g_ctx.fillStyle = "rgba(192,0,0,"+(this.textTimer/200)+")";
+    g_ctx.fillText(text,g_canvas.width/2-Math.random()*3,g_canvas.height/2);
+    g_ctx.fillStyle = "rgba(92,92,92,"+(this.textTimer/200)+")";
+    g_ctx.fillText(text,g_canvas.width/2,g_canvas.height/2);
+  }
+};
+
+//##########################################################################
 var GameScreen = {
 
     init: function () {
@@ -981,6 +1108,7 @@ var GameScreen = {
       //this.icon = []
       this.cmd_button = new TextLabelWithBoundingBox([">"], 0, 0, 70, "black", 70);
       this.window = []; //new CmdWindow(35,35,300,200);
+      this.rumble = false;
     },
     
     handleMouseDown: function (event) {
@@ -1038,17 +1166,43 @@ var GameScreen = {
         }
       }
     },
+    handleGameOver: function ()
+    {
+      this.rumble = true;
+      switchToScreen(GameOver);
+      g_current_screen.otherScreen = GameScreen;
+    },
     handleTimeStep: function () {
+    
+      if(false && Math.random() < .01)
+      {
+        var offset = this.window.length;
+        this.window.unshift(new CmdWindow(35 + offset * 35,35 + offset * 35,300,200));
+        this.window[0].focus = false;
+        this.window[0].run_context.handleInput("killall");
+        //this.rumble = true;
+      }
       for (var i = this.window.length - 1; i >= 0; i--)
       {
         if(!this.window[i].active)
         {
           this.window.splice(i,1);
         }
+        else
+        {
+          this.window[i].handleTimeStep()
+        }
       }
     },
     paint: function () {
-      g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+      var dx = 0;
+      var dy = 0;
+      if(this.rumble)
+      {
+        dx = Util.randomItem([-1,0,1]);
+        dy = Util.randomItem([-1,0,1]);
+      }
+      g_ctx.setTransform(1, 0, 0, 1, dx, dy);
 
       g_ctx.fillStyle = "#f0f0f0";
       g_ctx.fillRect(
@@ -1199,31 +1353,52 @@ function init()
     g_font = "Lucida Console";
 
     g_canvas.addEventListener("mousedown", function (event) {
+      if(g_current_screen.handleMouseDown)
+      {
         g_current_screen.handleMouseDown(event);
+      }
     }, false);
 
     g_canvas.addEventListener("mouseup", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
         g_current_screen.handleMouseUp(event);
+      }
     }, false);
 
     g_canvas.addEventListener("mouseleave", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
         g_current_screen.handleMouseUp(event);
+      }
     }, false);
 
     g_canvas.addEventListener("mouseout", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
         g_current_screen.handleMouseUp(event);
+      }
     }, false);
 
     g_canvas.addEventListener("mousemove", function (event) {
+      if(g_current_screen.handleMouseMove)
+      {
         g_current_screen.handleMouseMove(event);
+      }
     }, false);
 
     document.addEventListener("keydown", function (event) {
+      if(g_current_screen.handleKeyDown)
+      {
         g_current_screen.handleKeyDown(event);
+      }
     }, false);
 
     document.addEventListener("keyup", function (event) {
+      if(g_current_screen.handleKeyUp)
+      {
         g_current_screen.handleKeyUp(event);
+      }
     }, false);
     
     window.addEventListener('resize', resizeCanvas, false);
@@ -1234,6 +1409,7 @@ function init()
     //loadImage/loadAudio
     ResourceTracker.init();
     GameScreen.init();
+    GameOver.init();
     
     switchToScreen(GameScreen);
 
