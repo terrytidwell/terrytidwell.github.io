@@ -281,6 +281,109 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
+var DungeonCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  this.still_alive = true;
+  this.state_clock = 0;
+  
+  this.handleKeyDown = function(event)
+  {
+    if (event.keyCode === 27)
+    {
+      this.still_alive = false;
+    }
+  }
+  
+  this.handleTimeStep = function()
+  {
+    this.state_clock++;
+    this.state_clock = this.state_clock % 16;
+    var string = "";
+    var left_padding = Math.round((this.parent_window.cols - 3)/ 2);
+    var msg = "press 'esc' to exit dungeon";
+    var msg_left_padding = Math.round((this.parent_window.cols - msg.length)/ 2);
+    var rows = this.parent_window.rows - this.parent_window.input_rows;
+    for(var i = 0; i < rows; i++)
+    {
+      for(var j = 0; j < this.parent_window.cols; j++)
+      {
+        if(i == 0)
+        {
+          string += "*";
+        }
+        else if(i == rows - 1)
+        {
+          string += "*";
+        }
+        else if(i == Math.round(rows/2) - 1)
+        {
+          if(j < msg_left_padding)
+          {
+            string += " ";
+          }
+          else if(j === msg_left_padding)
+          {
+            string += msg;
+          }
+          else if(j >= msg_left_padding + msg.length)
+          {
+            string += " ";
+          }         
+        }
+        else if(i == Math.round(rows/2))
+        {
+          if(j < left_padding)
+          {
+            string += " ";
+          }
+          else if(j === left_padding)
+          {
+            var index = Math.floor(this.state_clock/4);
+            string += ["...","o..",".o.","..o"][index];
+          }
+          else if(j >= left_padding + 3)
+          {
+            string += " ";
+          }
+        }
+        else
+        {
+          string += " ";
+        }
+      }
+    }
+    this.parent_window.overrideOutput(string);
+    return this.still_alive;
+  }
+}
+
+var HelpCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  
+  this.handleTimeStep = function()
+  {
+    this.parent_window.handleOutput("supported commands:");
+    for(property in PacsiOs.cmds)
+    {
+      this.parent_window.handleOutput("  " + property);
+    }
+    this.parent_window.handleOutput(" ");
+    return false;
+  }
+}
+
+var PacsiOs = {
+  cmds: 
+    {
+      "help" : HelpCmd, 
+      "dungeon" : DungeonCmd
+    },
+}
+
 var RunContext = function(window)
 {
   this.processing_clock = 0;
@@ -289,75 +392,61 @@ var RunContext = function(window)
   
   this.handleInput = function(string)
   {
-    this.parent_window.accept_input = true;
-    this.parent_window.handleOutput("command \"" + string +"\" not found");
-    this.parent_window.handleOutput(" ");
+    if(this.current_program)
+    {
+      if(this.current_program.hasOwnProperty("handleInput"))
+      {
+        this.current_program.handleInput(string);
+      }
+    }
+    else
+    {
+      this.parent_window.accept_input = false;
+      if(PacsiOs.cmds.hasOwnProperty(string))
+      {
+        this.current_program = new PacsiOs.cmds[string](this);
+        this.parent_window.m_name = string;
+      }
+      else
+      {
+        this.parent_window.handleOutput("command \"" + string + "\" not found")
+        this.parent_window.handleOutput(" ");
+      }
+    }
   };
   
   this.handleKeyDown = function (event) {
+    if(this.current_program && this.current_program.hasOwnProperty("handleKeyDown"))
+    {
+      return this.current_program.handleKeyDown(event);
+    }
     return false;
   };
   
   this.handleKeyUp = function (event) {
+    if(this.current_program && this.current_program.hasOwnProperty("handleKeyUp"))
+    {
+      return this.current_program.handleKeyUp(event);
+    }
     return false;
   };
   
   this.handleTimeStep = function()
   {
-    /*
-    if(this.processing_clock > 0)
+    
+    if(this.current_program !== null)
     {
-      this.processing_clock--
-      var string = "";
-      var left_padding = Math.round((this.parent_window.cols - 3)/ 2);
-      var rows = this.parent_window.rows - this.parent_window.input_rows;
-      for(var i = 0; i < rows; i++)
+      if(!this.current_program.handleTimeStep())
       {
-        for(var j = 0; j < this.parent_window.cols; j++)
-        {
-          if(i == 0)
-          {
-            string += "*";
-          }
-          else if(i == rows - 1)
-          {
-            string += "*";
-          }
-          else if(i == Math.round(rows/2))
-          {
-            if(j < left_padding)
-            {
-              string += " ";
-            }
-            else if(j === left_padding)
-            {
-              var mod = (this.processing_clock%16);
-              var index = Math.floor(mod/4);
-              string += ["...","..o",".o.","o.."][index];
-            }
-            else if(j >= left_padding + 3)
-            {
-              string += " ";
-            }
-          }
-          else
-          {
-            string += " ";
-          }
-        }
-      }
-      //alert("" + string.length + "");
-      this.parent_window.overrideOutput(string);
-      
-      
-      if(this.processing_clock == 0)
-      {
-        //this.parent_window.handleOutput(string);
-        this.parent_window.handleOutput(" ");
-        this.parent_window.accept_input = true;
+        this.current_program = null;
       }
     }
-    */
+    
+    if(this.current_program === null)
+    {
+      this.parent_window.accept_input = true;
+      this.parent_window.m_name = "cmd";
+    }
   };
 };
 
@@ -430,7 +519,7 @@ var CmdWindow = function(x,y,width,height)
     }
     if(this.focus && !this.accept_input)
     {
-      return this.run_context.handleKeyDown();
+      return this.run_context.handleKeyDown(event);
     }
 
     return false;
@@ -439,7 +528,7 @@ var CmdWindow = function(x,y,width,height)
   this.handleKeyUp = function (event) {
     if(this.focus && !this.accept_input)
     {
-      return this.run_context.handleKeyDown();
+      return this.run_context.handleKeyDown(event);
     }
     return false;
   };
