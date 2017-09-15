@@ -520,16 +520,64 @@ var HelpCmd = function(run_context)
   }
 }
 
+var HelpCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  
+  this.handleTimeStep = function()
+  {
+    this.parent_window.handleOutput("supported commands:");
+    for(property in PacsiOs.cmds)
+    {
+      this.parent_window.handleOutput("  " + property);
+    }
+    this.parent_window.handleOutput(" ");
+    return false;
+  }
+}
+
+var PsCmd = function(run_context)
+{
+  this.run_context = run_context;
+  this.parent_window = run_context.parent_window;
+  
+  this.handleTimeStep = function()
+  {
+    this.parent_window.handleOutput("processes:");
+    for(program in PacsiOs.programs)
+    {
+      this.parent_window.handleOutput(program + "  " + PacsiOs.programs[program].name);
+    }
+    this.parent_window.handleOutput(" ");
+    return false;
+  }
+}
+
 var PacsiOs = {
   cmds: 
-    {
-      "help" : HelpCmd, 
-      "trap" : TrapCmd,
-      "please" : PleaseCmd,
-      "clear" : ClearCmd,
-      "exit" : ExitCmd,
-      "killall" : KillAllCmd,
-    },
+  {
+    "help" : HelpCmd, 
+    "trap" : TrapCmd,
+    "please" : PleaseCmd,
+    "clear" : ClearCmd,
+    "exit" : ExitCmd,
+    "killall" : KillAllCmd,
+    "ps" : PsCmd,
+  },
+  programs : {},
+  
+  registerProgram : function(program, name, run_context)
+  {
+    var pid = Math.round(Math.random() * 65536);
+    PacsiOs.programs[pid] = { program: program, name: name, run_context: run_context};
+    return pid;
+  },
+  
+  deregisterProgram : function(pid)
+  {
+    var status = delete PacsiOs.programs[pid];
+  }
 }
 
 var RunContext = function(window)
@@ -537,6 +585,7 @@ var RunContext = function(window)
   this.processing_clock = 0;
   this.parent_window = window;
   this.current_program = null;
+  this.current_program_pid = 0;
   
   this.handleInput = function(string)
   {
@@ -556,6 +605,7 @@ var RunContext = function(window)
       {
         this.current_program = new PacsiOs.cmds[string](this);
         this.parent_window.m_name = string;
+        this.current_program_pid = PacsiOs.registerProgram(this.current_program, string, this)
       }
       else
       {
@@ -564,6 +614,14 @@ var RunContext = function(window)
       }
     }
   };
+  
+  this.handleClose = function()
+  {
+    if(this.current_program !== null)
+    {
+      PacsiOs.deregisterProgram(this.current_program_pid);
+    }
+  }
   
   this.handleKeyDown = function (event) {
     if(this.current_program && this.current_program.hasOwnProperty("handleKeyDown"))
@@ -589,6 +647,8 @@ var RunContext = function(window)
       if(!this.current_program.handleTimeStep())
       {
         this.current_program = null;
+        PacsiOs.deregisterProgram(this.current_program_pid);
+        this.current_program_pid = 0;
       }
     }
     
@@ -988,6 +1048,10 @@ var CmdWindow = function(x,y,width,height)
     }
     this.decorate_input_string();
     this.run_context.handleTimeStep();
+    if(!this.active)
+    {
+      this.run_context.handleClose();
+    }
   }
   
   this.paint = function(ctx)
@@ -1197,11 +1261,12 @@ var GameScreen = {
       {
         if(!this.window[i].active)
         {
+          this.window[i].handleTimeStep();
           this.window.splice(i,1);
         }
         else
         {
-          this.window[i].handleTimeStep()
+          this.window[i].handleTimeStep();
         }
       }
     },
