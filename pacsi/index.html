@@ -590,9 +590,14 @@ var PacsiOs = {
   },
   programs : {},
   
+  reset : function()
+  {
+    PacsiOs.programs = {};
+  },
+  
   registerProgram : function(program, name, run_context)
   {
-    var pid = 1; 
+    var pid = Math.round(Math.random() * 65535)+1; 
     while(PacsiOs.programs.hasOwnProperty(pid))
     {
       pid = Math.round(Math.random() * 65535)+1;
@@ -612,6 +617,15 @@ var PacsiOs = {
     {
       PacsiOs.programs[pid].run_context.killChildProgram();
     }
+  },
+  
+  checkRunning : function(pid)
+  {
+    if(PacsiOs.programs[pid])
+    {
+      return true;
+    }
+    return false;
   }
 }
 
@@ -1158,7 +1172,7 @@ var CmdWindow = function(x,y,width,height)
     this.close.paint(ctx);
   };
 };
-    
+
 //##########################################################################
 var GameOver = {
   init: function () {},
@@ -1228,6 +1242,14 @@ var GameScreen = {
       this.cmd_button = new TextLabelWithBoundingBox([">"], 0, 0, 70, "black", 70);
       this.window = []; //new CmdWindow(35,35,300,200);
       this.rumble = false;
+      this.ai_threads = [];
+      PacsiOs.reset();
+      for(var i = 0; i < 3; i++)
+      {
+        var ai_thread_context = new RunContext(null);
+        this.ai_threads.push(ai_thread_context);
+        ai_thread_context.current_program_pid = PacsiOs.registerProgram(null, "ai_worker_thread", ai_thread_context);
+      }
     },
     
     handleMouseDown: function (event) {
@@ -1291,8 +1313,16 @@ var GameScreen = {
       switchToScreen(GameOver);
       g_current_screen.otherScreen = GameScreen;
     },
-    handleTimeStep: function () {
-    
+    handleTimeStep: function ()
+    {
+      for(ai_thread in this.ai_threads)
+      {
+        if(!PacsiOs.checkRunning(this.ai_threads[ai_thread].current_program_pid))
+        {
+          this.handleGameOver();
+          return;
+        }
+      }
       if(false && Math.random() < .01)
       {
         var offset = this.window.length;
