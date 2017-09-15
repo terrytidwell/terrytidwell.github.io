@@ -520,19 +520,29 @@ var HelpCmd = function(run_context)
   }
 }
 
-var HelpCmd = function(run_context)
+var KillCmd = function(run_context,args)
 {
   this.run_context = run_context;
   this.parent_window = run_context.parent_window;
   
   this.handleTimeStep = function()
   {
-    this.parent_window.handleOutput("supported commands:");
-    for(property in PacsiOs.cmds)
+    if(args.length < 2)
     {
-      this.parent_window.handleOutput("  " + property);
+      this.parent_window.handleOutput("usage: kill <pid>")
+      this.parent_window.handleOutput(" ")
+      return false;
     }
-    this.parent_window.handleOutput(" ");
+    var pid = parseInt(args[1]);
+    if(isNaN(pid))
+    {
+      this.parent_window.handleOutput("usage: kill <pid>")
+      this.parent_window.handleOutput(" ")
+      return false;
+    }
+    
+    PacsiOs.kill(pid);
+    this.parent_window.handleOutput(" ")
     return false;
   }
 }
@@ -544,10 +554,22 @@ var PsCmd = function(run_context)
   
   this.handleTimeStep = function()
   {
-    this.parent_window.handleOutput("processes:");
+    this.parent_window.handleOutput("pid    processName");
+    var ps_line = "";
+    while(ps_line.length < this.parent_window.cols)
+    {
+      ps_line += "-";
+    }
+    this.parent_window.handleOutput(ps_line);
     for(program in PacsiOs.programs)
     {
-      this.parent_window.handleOutput(program + "  " + PacsiOs.programs[program].name);
+      ps_line = "" + program;
+      while(ps_line.length < 5)
+      {
+        ps_line += " ";
+      }
+      this.parent_window.handleOutput(ps_line + "  " + PacsiOs.programs[program].name);
+      
     }
     this.parent_window.handleOutput(" ");
     return false;
@@ -564,12 +586,17 @@ var PacsiOs = {
     "exit" : ExitCmd,
     "killall" : KillAllCmd,
     "ps" : PsCmd,
+    "kill" : KillCmd,
   },
   programs : {},
   
   registerProgram : function(program, name, run_context)
   {
-    var pid = Math.round(Math.random() * 65536);
+    var pid = 1; 
+    while(PacsiOs.programs.hasOwnProperty(pid))
+    {
+      pid = Math.round(Math.random() * 65535)+1;
+    }
     PacsiOs.programs[pid] = { program: program, name: name, run_context: run_context};
     return pid;
   },
@@ -577,6 +604,14 @@ var PacsiOs = {
   deregisterProgram : function(pid)
   {
     var status = delete PacsiOs.programs[pid];
+  },
+  
+  kill : function(pid)
+  {
+    if(PacsiOs.programs[pid])
+    {
+      PacsiOs.programs[pid].run_context.killChildProgram();
+    }
   }
 }
 
@@ -601,9 +636,13 @@ var RunContext = function(window)
     else
     {
       this.parent_window.accept_input = false;
+      //parse cmd
+      string = string.trim();
+      var split = string.split(" ");
+      string = split[0];
       if(PacsiOs.cmds.hasOwnProperty(string))
       {
-        this.current_program = new PacsiOs.cmds[string](this);
+        this.current_program = new PacsiOs.cmds[string](this,split);
         this.parent_window.m_name = string;
         this.current_program_pid = PacsiOs.registerProgram(this.current_program, string, this)
       }
@@ -639,6 +678,13 @@ var RunContext = function(window)
     return false;
   };
   
+  this.killChildProgram = function()
+  {
+    this.current_program = null;
+    PacsiOs.deregisterProgram(this.current_program_pid);
+    this.current_program_pid = 0;  
+  }
+  
   this.handleTimeStep = function()
   {
     
@@ -646,9 +692,7 @@ var RunContext = function(window)
     {
       if(!this.current_program.handleTimeStep())
       {
-        this.current_program = null;
-        PacsiOs.deregisterProgram(this.current_program_pid);
-        this.current_program_pid = 0;
+        this.killChildProgram();
       }
     }
     
