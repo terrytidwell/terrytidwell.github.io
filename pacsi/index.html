@@ -431,6 +431,24 @@ var TrapCmd = function(run_context)
   this.state_clock = 0;
   //reserve space to write stuff
   this.parent_window.handleOutput("");
+  this.level = 
+    [
+      "####################",
+      "#         #        #",
+      "#      o      o    #",
+      "#         #        #",
+      "###  ######        #",
+      "#         #        #",
+      "#         ####  ####",
+      "#              o   #",
+      "#     o            #",
+      "#         ####  ####",
+      "#         #        #",
+      "#         #    o   #",
+      "#@        #        #",
+    ];
+  //for("")  
+  
   
   this.handleKeyDown = function(event)
   {
@@ -797,7 +815,10 @@ var CmdWindow = function(x,y,width,height)
         {
           this.input_history_index--;
         }
-        this.string = this.input_history[this.input_history_index];
+        if(this.input_history.length > this.input_history_index)
+        {
+          this.string = this.input_history[this.input_history_index];
+        }
       }
       if(event.keyCode === 40)
       {
