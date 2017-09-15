@@ -748,7 +748,10 @@ var CmdWindow = function(x,y,width,height)
   this.string = "";
   this.input_line = "";
   this.input_rows = 0;
-  this.string_history = [];
+  this.string_history = [
+    "Welcome to the NAA Advanced Control System Interface.",
+    "Type \"help\" at the prompt to see a list of commands."
+  ];
   this.accept_input = true;
   this.run_context = new RunContext(this);
   
@@ -1267,7 +1270,7 @@ var GameScreen = {
       if(this.cmd_button.handleMouseDown(event))
       {
         var offset = this.window.length;
-        this.window.push(new CmdWindow(35 + offset * 35,35 + offset * 35,300,200));
+        this.window.push(new CmdWindow(35 + offset * 35,35 + offset * 35,500,300));
       }
     },    
     handleMouseMove: function (event) {
