@@ -431,11 +431,21 @@ var TrapCmd = function(run_context)
   this.state_clock = 0;
   //reserve space to write stuff
   this.parent_window.handleOutput("");
+  this.playerX = 0;
+  this.playerY = 0;
+  this.dy = 0;
+  this.dx = 0;
+  this.sword_dx = 0;
+  this.sword_dy = -1;
+  this.sword_char = "|";
+  this.sword = 0;
+  this.blob_monster = [];
+  this.blob_monster_cooldown = 15;
   this.level = 
     [
       "####################",
       "#         #        #",
-      "#      o      o    #",
+      "#      o      o    ",
       "#         #        #",
       "###  ######        #",
       "#         #        #",
@@ -446,8 +456,42 @@ var TrapCmd = function(run_context)
       "#         #        #",
       "#         #    o   #",
       "#@        #        #",
+      "####################"
     ];
-  //for("")  
+  
+  this.level_grid = [];
+  this.current_screen_grid = [];
+  var cols = 0;
+  var rows = this.level.length;
+  for( var y = 0; y < this.level.length; y++ )
+  {
+    cols = Math.max(this.level[y].length, cols);
+  }
+  for( var x = 0; x < cols; x++)
+  {
+    var column = [];
+    var column2 = [];
+    for( var y = 0; y < rows; y++)
+    {
+      var character = this.level[y].charAt(x);
+      
+      if(character === '@')
+      {
+        this.playerX = x;
+        this.playerY = y;
+        character = ' ';
+      }
+      else if(character === 'o')
+      {
+        this.blob_monster.push({x:x,y:y,cooldown:Math.floor(this.blob_monster_cooldown*Math.random())});
+        character = ' ';
+      }
+      column.push(character);
+      column2.push(character);
+    }
+    this.level_grid.push(column);
+    this.current_screen_grid.push(column2);
+  }
   
   
   this.handleKeyDown = function(event)
@@ -456,59 +500,134 @@ var TrapCmd = function(run_context)
     {
       this.still_alive = false;
     }
+    if(this.sword === 0)
+    {
+      if (event.keyCode === 38)
+      {
+        this.dx = 0;
+        this.dy = -1;
+        this.sword_char = "|";
+        this.sword_dx = this.dx;
+        this.sword_dy = this.dy;
+      }
+      if (event.keyCode === 40)
+      {
+        this.dx = 0;
+        this.dy = 1;
+        this.sword_char = "|";
+        this.sword_dx = this.dx;
+        this.sword_dy = this.dy;
+      }
+      if (event.keyCode === 37)
+      {
+        this.dx = -1;
+        this.dy = 0;
+        this.sword_char = "-";
+        this.sword_dx = this.dx;
+        this.sword_dy = this.dy;
+      }
+      if (event.keyCode === 39)
+      {
+        this.dx = 1;
+        this.dy = 0;
+        this.sword_char = "-";
+        this.sword_dx = this.dx;
+        this.sword_dy = this.dy;
+      }
+    }
+    if (event.keyCode == 32)
+    {
+      this.sword = 5;
+    }
   }
   
   this.handleTimeStep = function()
   {
-    this.state_clock++;
-    this.state_clock = this.state_clock % 16;
-    var string = "";
-    var left_padding = Math.round((this.parent_window.cols - 3)/ 2);
-    var msg = "press 'esc' to escape trap";
-    var msg_left_padding = Math.round((this.parent_window.cols - msg.length)/ 2);
-    var rows = this.parent_window.rows - this.parent_window.input_rows;
-    for(var i = 0; i < rows; i++)
+    //move everything
+    if(this.sword > 0)
     {
-      for(var j = 0; j < this.parent_window.cols; j++)
+      this.sword--;
+      if(this.level_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] === '#')
       {
-        if(i == 0)
+        this.sword = 0;
+      }
+    }
+    else
+    {
+      if(this.level_grid[this.playerX + this.dx][this.playerY + this.dy] !== '#')
+      {
+        this.playerX += this.dx;
+        this.playerY += this.dy;
+      }
+    }
+    this.dy = 0;
+    this.dx = 0;
+    
+    for(blob in this.blob_monster)
+    {
+      if(this.blob_monster[blob].cooldown === 0)
+      {
+        this.blob_monster[blob].cooldown = this.blob_monster_cooldown;
+        var db = Util.randomItem([[-1,0],[0,1],[0,-1],[1,0]]);
+        var obstruction = this.level_grid[this.blob_monster[blob].x + db[0]][this.blob_monster[blob].y + db[1]];
+        if(obstruction !== '#')
         {
-          string += "*";
+          this.blob_monster[blob].x += db[0];
+          this.blob_monster[blob].y += db[1];
         }
-        else if(i == rows - 1)
+      }
+      else
+      {
+        this.blob_monster[blob].cooldown--;
+      }
+    }
+
+    //handle collisions
+    for(var i = this.blob_monster.length - 1; i >= 0; i--)
+    {
+      if(this.blob_monster[i].x === this.playerX && this.blob_monster[i].y === this.playerY)
+      {
+        this.still_alive = false;
+      }
+      if(this.sword > 0 && this.blob_monster[i].x === this.playerX + this.sword_dx &&
+        this.blob_monster[i].y === this.playerY + this.sword_dy)
+      {
+        this.blob_monster.splice(i, 1);
+      }
+    }
+    if(this.blob_monster.length == 0)
+    {
+      this.still_alive = false;
+    }
+    
+    
+    //draw everything
+    for(var x = 0; x < this.current_screen_grid.length; x++)
+    {
+      for(var y = 0; y < this.current_screen_grid[x].length; y++)
+      {
+        this.current_screen_grid[x][y] = this.level_grid[x][y];
+      }
+    }
+    
+    if(this.sword > 0)
+    {
+      this.current_screen_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] = this.sword_char;
+    }
+    this.current_screen_grid[this.playerX][this.playerY] = '@';
+    for(blob in this.blob_monster)
+    {
+      this.current_screen_grid[this.blob_monster[blob].x][this.blob_monster[blob].y] = 'o';
+    }
+    
+    var string = "";
+    for(y = 0; y < this.parent_window.rows; y++)
+    {
+      for(x = 0; x < this.parent_window.cols; x++)
+      {
+        if(x < this.current_screen_grid.length && y < this.current_screen_grid[x].length)
         {
-          string += "*";
-        }
-        else if(i == Math.round(rows/2) - 1)
-        {
-          if(j < msg_left_padding)
-          {
-            string += " ";
-          }
-          else if(j === msg_left_padding)
-          {
-            string += msg;
-          }
-          else if(j >= msg_left_padding + msg.length)
-          {
-            string += " ";
-          }         
-        }
-        else if(i == Math.round(rows/2))
-        {
-          if(j < left_padding)
-          {
-            string += " ";
-          }
-          else if(j === left_padding)
-          {
-            var index = Math.floor(this.state_clock/4);
-            string += ["...","o..",".o.","..o"][index];
-          }
-          else if(j >= left_padding + 3)
-          {
-            string += " ";
-          }
+          string += this.current_screen_grid[x][y];
         }
         else
         {
@@ -846,7 +965,7 @@ var CmdWindow = function(x,y,width,height)
   this.handleKeyUp = function (event) {
     if(this.focus && !this.accept_input)
     {
-      return this.run_context.handleKeyDown(event);
+      return this.run_context.handleKeyUp(event);
     }
     return false;
   };
