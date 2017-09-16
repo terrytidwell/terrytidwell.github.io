@@ -570,10 +570,30 @@ var TrapCmd = function(run_context)
         this.blob_monster[blob].cooldown = this.blob_monster_cooldown;
         var db = Util.randomItem([[-1,0],[0,1],[0,-1],[1,0]]);
         var obstruction = this.level_grid[this.blob_monster[blob].x + db[0]][this.blob_monster[blob].y + db[1]];
-        if(obstruction !== '#')
+        var blocked = obstruction === '#';
+        if(!blocked)
         {
-          this.blob_monster[blob].x += db[0];
-          this.blob_monster[blob].y += db[1];
+          for(blob2 in this.blob_monster)
+          {
+            if(blob2 != blob)
+            {
+              if(this.blob_monster[blob2].x === this.blob_monster[blob].x + db[0] &&
+                this.blob_monster[blob2].y === this.blob_monster[blob].y + db[1])
+              {
+                blocked = true;
+              }
+            }
+          }
+          if(!blocked)
+          {
+            this.blob_monster[blob].x += db[0];
+            this.blob_monster[blob].y += db[1];
+          }
+        }
+        
+        if(blocked)
+        {
+          this.blob_monster[blob].cooldown = 0;
         }
       }
       else
