@@ -451,7 +451,7 @@ var TrapCmd = function(run_context)
       "#         #        #",
       "#         ####  ####",
       "#              o   #",
-      "#     o            #",
+      "#     O            #",
       "#         ####  ####",
       "#         #        #",
       "#         #    o   #",
@@ -481,9 +481,9 @@ var TrapCmd = function(run_context)
         this.playerY = y;
         character = ' ';
       }
-      else if(character === 'o')
+      else if(character === 'o' || character === 'O')
       {
-        this.blob_monster.push({x:x,y:y,cooldown:Math.floor(this.blob_monster_cooldown*Math.random())});
+        this.blob_monster.push({x:x,y:y,type:character,cooldown:Math.floor(this.blob_monster_cooldown*Math.random())});
         character = ' ';
       }
       column.push(character);
@@ -541,6 +541,32 @@ var TrapCmd = function(run_context)
     }
   }
   
+  this.isMobSpawanble = function(x,y)
+  {
+    return this.isMobMovable(x,y) && !(x == this.playerX && y == this.playerY);
+  }
+  
+  this.isMobMovable = function(x,y)
+  {
+    if(this.level_grid[x][y] === '#')
+    {
+      return false;
+    }
+    
+    for(blob2 in this.blob_monster)
+    {
+      if(blob2 != blob)
+      {
+        if(this.blob_monster[blob2].x === x &&
+          this.blob_monster[blob2].y === y)
+        {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  
   this.handleTimeStep = function()
   {
     //move everything
@@ -569,29 +595,14 @@ var TrapCmd = function(run_context)
       {
         this.blob_monster[blob].cooldown = this.blob_monster_cooldown;
         var db = Util.randomItem([[-1,0],[0,1],[0,-1],[1,0]]);
-        var obstruction = this.level_grid[this.blob_monster[blob].x + db[0]][this.blob_monster[blob].y + db[1]];
-        var blocked = obstruction === '#';
-        if(!blocked)
-        {
-          for(blob2 in this.blob_monster)
-          {
-            if(blob2 != blob)
-            {
-              if(this.blob_monster[blob2].x === this.blob_monster[blob].x + db[0] &&
-                this.blob_monster[blob2].y === this.blob_monster[blob].y + db[1])
-              {
-                blocked = true;
-              }
-            }
-          }
-          if(!blocked)
-          {
-            this.blob_monster[blob].x += db[0];
-            this.blob_monster[blob].y += db[1];
-          }
-        }
+        var movable = this.isMobMovable(this.blob_monster[blob].x + db[0],this.blob_monster[blob].y + db[1]);
         
-        if(blocked)
+        if(movable)
+        {
+          this.blob_monster[blob].x += db[0];
+          this.blob_monster[blob].y += db[1];
+        }
+        else if(!movable)
         {
           this.blob_monster[blob].cooldown = 0;
         }
@@ -612,6 +623,28 @@ var TrapCmd = function(run_context)
       if(this.sword > 0 && this.blob_monster[i].x === this.playerX + this.sword_dx &&
         this.blob_monster[i].y === this.playerY + this.sword_dy)
       {
+        if(this.blob_monster[i].type === 'O')
+        {
+          //spawn little guys
+          var spawnPoints = Util.shuffle([[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]);
+          var numSpawned = 0;
+          for(var j = 0; j < spawnPoints.length && numSpawned < 2; j++)
+          {
+            if (this.isMobSpawanble(this.blob_monster[i].x + spawnPoints[j][0],
+              this.blob_monster[i].y + spawnPoints[j][1]))
+            {
+              this.blob_monster.push(
+                {
+                  x:this.blob_monster[i].x + spawnPoints[j][0],
+                  y:this.blob_monster[i].y + spawnPoints[j][1],
+                  type:'o',
+                  cooldown:Math.floor(this.blob_monster_cooldown*Math.random())+this.blob_monster_cooldown
+                }
+              );
+              numSpawned++;
+            }
+          }
+        }
         this.blob_monster.splice(i, 1);
       }
     }
@@ -637,17 +670,24 @@ var TrapCmd = function(run_context)
     this.current_screen_grid[this.playerX][this.playerY] = '@';
     for(blob in this.blob_monster)
     {
-      this.current_screen_grid[this.blob_monster[blob].x][this.blob_monster[blob].y] = 'o';
+      this.current_screen_grid[this.blob_monster[blob].x][this.blob_monster[blob].y] = this.blob_monster[blob].type;
     }
     
     var string = "";
+    var offset = [
+      Math.round((this.parent_window.cols - this.current_screen_grid.length)/2),
+      Math.round((this.parent_window.rows - this.current_screen_grid[0].length)/2),
+    ]
     for(y = 0; y < this.parent_window.rows; y++)
     {
       for(x = 0; x < this.parent_window.cols; x++)
       {
-        if(x < this.current_screen_grid.length && y < this.current_screen_grid[x].length)
+        if(x >= offset[0] && 
+          x - offset[0] < this.current_screen_grid.length && 
+          y >= offset[1] &&
+          y - offset[1] < this.current_screen_grid[x - offset[0]].length)
         {
-          string += this.current_screen_grid[x][y];
+          string += this.current_screen_grid[x-offset[0]][y-offset[1]];
         }
         else
         {
