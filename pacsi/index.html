@@ -9,8 +9,8 @@
 <body>
 <canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="800" height="500"></canvas>
     
-    <script src="js/corporate.js" type='text/javascript></script>
-    <script src="js/system.js" type='text/javascript></script>
+    <script src="js/corporate.js" type='text/javascript'></script>
+    <script src="js/system.js" type='text/javascript'></script>
 <script>
 //##########################################################################
 // The game
@@ -711,7 +711,7 @@ var HelpCmd = function(run_context)
   this.handleTimeStep = function()
   {
     this.parent_window.handleOutput("supported commands:");
-    for(property in PacsiOs.cmds)
+    for(property in this.run_context.os.cmds)
     {
       this.parent_window.handleOutput("  " + property);
     }
@@ -741,7 +741,7 @@ var KillCmd = function(run_context,args)
       return false;
     }
     
-    PacsiOs.kill(pid);
+    this.run_context.os.kill(pid);
     this.parent_window.handleOutput(" ")
     return false;
   }
@@ -761,14 +761,14 @@ var PsCmd = function(run_context)
       ps_line += "-";
     }
     this.parent_window.handleOutput(ps_line);
-    for(program in PacsiOs.programs)
+    for(program in this.run_context.os.programs)
     {
       ps_line = "" + program;
       while(ps_line.length < 5)
       {
         ps_line += " ";
       }
-      this.parent_window.handleOutput(ps_line + "  " + PacsiOs.programs[program].name);
+      this.parent_window.handleOutput(ps_line + "  " + this.run_context.os.programs[program].name);
       
     }
     this.parent_window.handleOutput(" ");
@@ -776,9 +776,8 @@ var PsCmd = function(run_context)
   }
 }
 
-var PacsiOs = {
-  cmds: 
-  {
+var PacsiOs = function() {
+  this.cmds = {
     "help" : HelpCmd, 
     "trap" : TrapCmd,
     "please" : PleaseCmd,
@@ -787,56 +786,65 @@ var PacsiOs = {
     "killall" : KillAllCmd,
     "ps" : PsCmd,
     "kill" : KillCmd,
-    "resources": ResourceCmd,
+    "resources": ResourcesCmd,
     "checksum-q": ViewJobQueueCmd 
-  },
-  programs : {},
+  };
+  this.programs = {},
+  this.resources = {
+	max_programs: 10,
+	peripheral_devices: [],
+	storage_space_used: 0,
+	storage_space_total: 1024,
+	memory_used: 0,
+	memory_total: 1024
+  };
   
-  reset : function()
+  this.reset = function()
   {
-    PacsiOs.programs = {};
-  },
+    this.programs = {};
+  };
   
-  registerProgram : function(program, name, run_context)
+  this.registerProgram = function(program, name, run_context)
   {
     var pid = Math.round(Math.random() * 65535)+1; 
-    while(PacsiOs.programs.hasOwnProperty(pid))
+    while(this.programs.hasOwnProperty(pid))
     {
       pid = Math.round(Math.random() * 65535)+1;
     }
-    PacsiOs.programs[pid] = { program: program, name: name, run_context: run_context};
+    this.programs[pid] = { program: program, name: name, run_context: run_context};
     return pid;
-  },
+  };
   
-  deregisterProgram : function(pid)
+  this.deregisterProgram = function(pid)
   {
-    var status = delete PacsiOs.programs[pid];
-  },
+    var status = delete this.programs[pid];
+  };
   
-  kill : function(pid)
+  this.kill = function(pid)
   {
-    if(PacsiOs.programs[pid])
+    if(this.programs[pid])
     {
-      PacsiOs.programs[pid].run_context.killChildProgram();
+      this.programs[pid].run_context.killChildProgram();
     }
-  },
+  };
   
-  checkRunning : function(pid)
+  this.checkRunning = function(pid)
   {
-    if(PacsiOs.programs[pid])
+    if(this.programs[pid])
     {
       return true;
     }
     return false;
-  }
+  };
 }
 
-var RunContext = function(window)
+var RunContext = function(window, os)
 {
   this.processing_clock = 0;
   this.parent_window = window;
   this.current_program = null;
   this.current_program_pid = 0;
+  this.os = os;
   
   this.handleInput = function(string)
   {
@@ -856,11 +864,11 @@ var RunContext = function(window)
       string = string.trim();
       var split = string.split(" ");
       string = split[0];
-      if(PacsiOs.cmds.hasOwnProperty(string))
+      if(this.os.cmds.hasOwnProperty(string))
       {
-        this.current_program = new PacsiOs.cmds[string](this,split);
+        this.current_program = new this.os.cmds[string](this,split);
         this.parent_window.m_name = string;
-        this.current_program_pid = PacsiOs.registerProgram(this.current_program, string, this)
+        this.current_program_pid = this.os.registerProgram(this.current_program, string, this)
       }
       else
       {
@@ -874,7 +882,7 @@ var RunContext = function(window)
   {
     if(this.current_program !== null)
     {
-      PacsiOs.deregisterProgram(this.current_program_pid);
+      this.os.deregisterProgram(this.current_program_pid);
     }
   }
   
@@ -897,7 +905,7 @@ var RunContext = function(window)
   this.killChildProgram = function()
   {
     this.current_program = null;
-    PacsiOs.deregisterProgram(this.current_program_pid);
+    this.os.deregisterProgram(this.current_program_pid);
     this.current_program_pid = 0;  
   }
   
@@ -920,7 +928,7 @@ var RunContext = function(window)
   };
 };
 
-var CmdWindow = function(x,y,width,height)
+var CmdWindow = function(os,x,y,width,height)
 {
   this.m_pos_x = x;
   this.m_pos_y = y;
@@ -957,7 +965,7 @@ var CmdWindow = function(x,y,width,height)
   this.input_history = [];
   this.input_history_index = 0;
   this.accept_input = true;
-  this.run_context = new RunContext(this);
+  this.run_context = new RunContext(this, os);
   
   this.handleOutput = function(string)
   {
@@ -1477,12 +1485,13 @@ var GameScreen = {
       this.window = []; //new CmdWindow(35,35,300,200);
       this.rumble = false;
       this.ai_threads = [];
-      PacsiOs.reset();
+	  this.os = new PacsiOs();
+      this.os.reset();
       for(var i = 0; i < 3; i++)
       {
-        var ai_thread_context = new RunContext(null);
+        var ai_thread_context = new RunContext(null, this.os);
         this.ai_threads.push(ai_thread_context);
-        ai_thread_context.current_program_pid = PacsiOs.registerProgram(null, "ai_worker_thread", ai_thread_context);
+        ai_thread_context.current_program_pid = this.os.registerProgram(null, "ai_worker_thread", ai_thread_context);
       }
     },
     
@@ -1501,7 +1510,7 @@ var GameScreen = {
       if(this.cmd_button.handleMouseDown(event))
       {
         var offset = this.window.length;
-        this.window.push(new CmdWindow(35 + offset * 35,35 + offset * 35,500,300));
+        this.window.push(new CmdWindow(this.os, 35 + offset * 35,35 + offset * 35,500,300));
       }
     },    
     handleMouseMove: function (event) {
@@ -1551,7 +1560,7 @@ var GameScreen = {
     {
       for(ai_thread in this.ai_threads)
       {
-        if(!PacsiOs.checkRunning(this.ai_threads[ai_thread].current_program_pid))
+        if(!this.os.checkRunning(this.ai_threads[ai_thread].current_program_pid))
         {
           this.handleGameOver();
           return;
@@ -1560,7 +1569,7 @@ var GameScreen = {
       if(false && Math.random() < .01)
       {
         var offset = this.window.length;
-        this.window.unshift(new CmdWindow(35 + offset * 35,35 + offset * 35,300,200));
+        this.window.unshift(new CmdWindow(this.os, 35 + offset * 35,35 + offset * 35,300,200));
         this.window[0].focus = false;
         this.window[0].run_context.handleInput("killall");
         //this.rumble = true;
