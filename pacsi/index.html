@@ -8,6 +8,9 @@
 </head>
 <body>
 <canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="800" height="500"></canvas>
+    
+    <script src="js/corporate.js" type='text/javascript></script>
+    <script src="js/system.js" type='text/javascript></script>
 <script>
 //##########################################################################
 // The game
@@ -784,6 +787,8 @@ var PacsiOs = {
     "killall" : KillAllCmd,
     "ps" : PsCmd,
     "kill" : KillCmd,
+    "resources": ResourceCmd,
+    "checksum-q": ViewJobQueueCmd 
   },
   programs : {},
   
