@@ -7,1834 +7,1882 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
 </head>
 <body>
-<canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="800" height="500"></canvas>
-    
-    <script src="js/corporate.js" type='text/javascript'></script>
-    <script src="js/system.js" type='text/javascript'></script>
+<canvas style='position: absolute; left: 0px; top: 0px;' id="canvas" width="800" height="500"></canvas>
+
+<script src="js/corporate.js" type='text/javascript'></script>
+<script src="js/system.js" type='text/javascript'></script>
 <script>
-//##########################################################################
-// The game
-//
+    //##########################################################################
+    // The game
+    //
 
-var g_canvas;
-var g_ctx;
-var g_current_screen;
-var g_font;
+    var g_canvas;
+    var g_ctx;
+    var g_current_screen;
+    var g_font;
 
-var PHI = 1.61803398875;
-var INVERSE_PHI = 0.61803398875;
+    var PHI = 1.61803398875;
+    var INVERSE_PHI = 0.61803398875;
 
-//--------------------------------------------------------------------------
-// interface, for reference, not enforced
-// The name is funny because Screen is already declared
-// and this is just for reference anyway
-const Screen_ = {
-    init: function (layout) {},
-    reset: function () {},
-    handleMouseDown: function (event) {},
-    handleMouseUp: function (event) {},
-    handleKeyDown: function (event) {},
-    handleKeyUp: function (event) {},
-    handleTimeStep: function () {},
-    paint: function () {}
-};
-
-//--------------------------------------------------------------------------
-const Util = {
-
-    //----------------------------------------------------------------------
-    forEach: function (obj, fn)
-    {
-        var key;
-        for (key in obj)
+    //--------------------------------------------------------------------------
+    // interface, for reference, not enforced
+    // The name is funny because Screen is already declared
+    // and this is just for reference anyway
+    const Screen_ = {
+        init: function (layout)
         {
-            if (obj.hasOwnProperty(key))
+        },
+        reset: function ()
+        {
+        },
+        handleMouseDown: function (event)
+        {
+        },
+        handleMouseUp: function (event)
+        {
+        },
+        handleKeyDown: function (event)
+        {
+        },
+        handleKeyUp: function (event)
+        {
+        },
+        handleTimeStep: function ()
+        {
+        },
+        paint: function ()
+        {
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    const Util = {
+
+        //----------------------------------------------------------------------
+        forEach: function (obj, fn)
+        {
+            var key;
+            for (key in obj)
             {
-                fn(obj[key]);
-            }
-        }
-    },
-
-    //----------------------------------------------------------------------
-    randomItem: function (arr)
-    {
-        return arr[Math.floor(Math.random() * arr.length)];
-    },
-
-    //----------------------------------------------------------------------
-    shuffle: function (arr)
-    {
-        var current_index = arr.length, temp, random_index;
-        while (0 !== current_index)
-        {
-            // Pick a remaining element.
-            random_index = Math.floor(Math.random() * current_index);
-            current_index -= 1;
-
-            // And swap it with the current element.
-            temp = arr[current_index];
-            arr[current_index] = arr[random_index];
-            arr[random_index] = temp;
-        }
-        return arr;
-    },
-
-    //----------------------------------------------------------------------
-    loadImage: function (url, resource_tracker)
-    {
-        var image = new Image();
-        resource_tracker.add();
-        image.onload = function (event) {
-            resource_tracker.onload(event);
-        };
-        image.src = url;
-        return image;
-    },
-
-    //----------------------------------------------------------------------
-    loadAudio: function (url, resource_tracker)
-    {
-        var audio = new buzz.sound(
-          url, {
-          //formats: [ "wav" ],
-          preload: true,
-          autoplay: false,
-          loop: false
-        });
-        resource_tracker.add();
-        audio.bindOnce("canplay", function (event) {
-            resource_tracker.onload(event)
-        });
-        return audio;
-    }
-};
-
-var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
-{
-  
-  this.x = x;
-  this.y = y;
-  this.size = size;
-  this.height = size * text.length;
-  this.width = width;
-  this.inner_size = Math.round(6 * this.size/7);
-  this.offset = Math.round((this.size - this.inner_size) / 2);
-  this.inner_width = this.width - this.offset * 2;
-  this.inner_height = this.height - this.offset * 2;
-  this.color = "black";
-  this.font_size = Math.round(INVERSE_PHI * size);
-  this.textLabel = [];
-  for (var i = 0; i < text.length; i++)
-  {
-    this.textLabel.push(new TextLabel(text[i], x + this.width/2, Math.round(y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
-  }
-  
-  this.paint = function(ctx)
-  {
-    //var width = this.textLabel.text_size;
-    ctx.lineJoin ="round";
-    ctx.lineWidth = Math.round(this.size / (10*PHI));
-    ctx.fillStyle = "#f0f0f0";
-    ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
-    ctx.strokeStyle = this.color;
-    ctx.fillStyle = this.color;
-    ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
-    for (var i = 0; i < this.textLabel.length; i++)
-    {
-      this.textLabel[i].paint(ctx);
-    }
-  };
-  
-  this.handleMouseDown = function(event)
-  {
-      if(event.offsetX >= this.x &&
-        event.offsetX <= this.x + this.width &&
-        event.offsetY >= this.y &&
-        event.offsetY <= this.y + this.height)
-      {
-        return true;
-      }
-  };
-}
-
-var VerticalLabelBaselineEnum = {
-  TOP: 0,
-  MIDDLE: 1,
-  BOTTOM: 2,
-  properties: {
-    0: { textBaseline: "top" },
-    1: { textBaseline: "middle" },
-    2: { textBaseline: "bottom" }
-  }
-};
-
-
-var HorizontalLabelAlignEnum = {
-  LEFT: 0,
-  CENTER: 1,
-  RIGHT: 2,
-  properties: {
-    0: { textAlign: "left" },
-    1: { textAlign: "center" },
-    2: { textAlign: "right" }
-  }
-};
-
-var TextLabel = function(text, x, y, color, alignment, baseline, size)
-{
-  this.size = size;
-  this.alignment = alignment;
-  this.baseline = baseline;
-  this.x = x;
-  this.y = y;
-  this.text_size = 0;
-  this.color = color;
-  this.text = text;
-  
-  this.getCurrentBounds = function()
-  {
-    var ret_val = {};
-    switch (this.alignment)
-    {
-      case HorizontalLabelAlignEnum.LEFT:
-        ret_val.min_x = this.x;
-        ret_val.max_x = this.x + this.text_size;
-        break;
-      case HorizontalLabelAlignEnum.RIGHT:
-        ret_val.min_x = this.x - this.text_size;
-        ret_val.max_x = this.x;
-        break;
-      case HorizontalLabelAlignEnum.CENTER:
-        ret_val.min_x = this.x - this.text_size / 2;
-        ret_val.max_x = this.x + this.text_size / 2;
-        break;
-      default:
-    }
-    
-    switch (this.baseline)
-    {
-      case VerticalLabelBaselineEnum.TOP:
-        ret_val.min_y = this.y;
-        ret_val.max_y = this.y + this.size;
-        break;
-      case VerticalLabelBaselineEnum.BOTTOM:
-        ret_val.min_y = this.y - this.size;
-        ret_val.max_y = this.y;
-        break;
-      case VerticalLabelBaselineEnum.MIDDLE:
-        ret_val.min_y = this.y - this.size / 2;
-        ret_val.max_y = this.y + this.size / 2;
-        break;
-      default:
-    }
-    
-    return ret_val;
-  };
-  
-  this.handleMouseDown = function (event) 
-  {
-    var dim = this.getCurrentBounds();
-    if (event.offsetX < dim.min_x || event.offsetX > dim.max_x)
-    {
-      return false;
-    }
-    
-    if (event.offsetY < dim.min_y || event.offsetY > dim.max_y)
-    {
-      return false;
-    }
-
-    return true;
-  };
-  
-  this.paint = function(ctx)
-  {
-    ctx.font = Math.round(size) + "px " + g_font;
-    this.text_size = ctx.measureText(this.text).width;
-    ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
-    ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
-    ctx.fillStyle = this.color;
-    ctx.fillText(this.text, this.x, this.y);
-  };
-  
-  this.drawHighlight = function(ctx, color)
-  {
-    var dim = this.getCurrentBounds();
-    ctx.fillStyle = color;
-    ctx.fillRect(dim.min_x, dim.min_y, dim.max_x - dim.min_x, dim.max_y - dim.min_y);
-  };
-};
-
-var Timer = function(timer, callback, parameter)
-{
-  this.current_time = timer;
-  this.callback = callback;
-  this.parameter = parameter;
-  this.handleTimeStep = function()
-  {
-    this.current_time--;
-    if(this.current_time <= 0)
-    {
-      callback(this.parameter);
-    }
-
-  };
-  this.checkPulse = function(){
-        return this.current_time > 0;
-  };
-};
-
-var ExitCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  
-  this.handleTimeStep = function()
-  {
-    this.parent_window.active = false;
-    return false;
-  };
-};
-
-var ClearCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  
-  this.handleTimeStep = function()
-  {
-    this.parent_window.string_history = [];
-    return false;
-  };
-};
-
-var KillAllCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  this.parent_window.handleOutput("terminating all active AIs");
-  this.parent_window.handleOutput(" ");
-  this.fill_time = 0;
-  this.percentage_complete = 0;
-  this.alive = true;
-  
-  this.handleKeyDown = function(event)
-  {
-    if(event.keyCode === 81)
-    {
-      this.alive = false;
-    }
-  };
-  
-  this.handleTimeStep = function()
-  {
-    this.fill_time++;
-    this.fill_time = this.fill_time % 3;
-    if(this.fill_time === 0)
-    {
-      if(this.percentage_complete < 100)
-      {
-        this.percentage_complete++;
-      }
-    }
-    var string = this.percentage_complete+"%";
-    var prefix = "status: ";
-    var spaces_to_add = this.parent_window.cols - string.length - prefix;
-    for(var i = 0; i < spaces_to_add; i++)
-    {
-      prefix+=" "
-    }
-
-    this.parent_window.overrideOutput(prefix+string);
-
-    if(this.percentage_complete >= 100)
-    {
-      GameScreen.handleGameOver();
-    }
-
-    if(!this.alive)
-    {
-      this.parent_window.handleOutput(" ");
-    }
-
-    return this.alive;
-  }
-};
-
-var PleaseCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  this.last_input = null;
-  this.parent_window.accept_input = true;
-  this.msg = "say the magic word...";
-  //reserve space to write stuff
-  this.parent_window.handleOutput(" ");
-  
-  this.handleInput = function(string)
-  {
-    this.last_input = string;
-  };
-  
-  this.handleTimeStep = function()
-  {
-    if(this.last_input !== null)
-    {
-      if(this.last_input === "please")
-      {
-        this.parent_window.handleOutput(" ");
-        return false;
-      }
-      this.msg = Util.randomItem(["you didn't say the magic word","didn't your mom teach you better?"]);
-      this.last_input = null;
-    }
-    var string = "";
-    
-    var msg_left_padding = Math.round((this.parent_window.cols - this.msg.length)/ 2);
-    var rows = this.parent_window.rows - this.parent_window.input_rows;
-    for(var i = 0; i < rows; i++)
-    {
-      for(var j = 0; j < this.parent_window.cols; j++)
-      {
-        if(i === 0)
-        {
-          string += "*";
-        }
-        else if(i === rows - 1)
-        {
-          string += "*";
-        }
-        else if(i === Math.round(rows/2))
-        {
-          if(j < msg_left_padding)
-          {
-            string += " ";
-          }
-          else if(j === msg_left_padding)
-          {
-            string += this.msg;
-          }
-          else if(j >= msg_left_padding + this.msg.length)
-          {
-            string += " ";
-          }
-        }
-        else
-        {
-          string += " ";
-        }
-      }
-    }
-    this.parent_window.overrideOutput(string);
-    return true;
-  }
-};
-
-var TrapCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  this.still_alive = true;
-  this.state_clock = 0;
-  //reserve space to write stuff
-  this.parent_window.handleOutput("");
-  this.playerX = 0;
-  this.playerY = 0;
-  this.dy = 0;
-  this.dx = 0;
-  this.sword_dx = 0;
-  this.sword_dy = -1;
-  this.sword_char = "|";
-  this.sword = 0;
-  this.blob_monster = [];
-  this.blob_monster_cooldown = 15;
-  this.level = 
-    [
-      "####################",
-      "#         #        #",
-      "#      o      o    #",
-      "#         #        #",
-      "###  ######        #",
-      "#         #        #",
-      "#         ####  ####",
-      "#              o   #",
-      "#     O            #",
-      "#         ####  ####",
-      "#         #        #",
-      "#         #    o   #",
-      "#@        #        #",
-      "####################"
-    ];
-  
-  this.level_grid = [];
-  this.current_screen_grid = [];
-  var cols = 0;
-  var rows = this.level.length;
-
-  for( var y = 0; y < this.level.length; y++ )
-  {
-    cols = Math.max(this.level[y].length, cols);
-  }
-
-  for( var x = 0; x < cols; x++)
-  {
-    var column = [];
-    var column2 = [];
-    for( var y = 0; y < rows; y++)
-    {
-      var character = this.level[y].charAt(x);
-      
-      if(character === '@')
-      {
-        this.playerX = x;
-        this.playerY = y;
-        character = ' ';
-      }
-      else if(character === 'o' || character === 'O')
-      {
-        this.blob_monster.push({x:x,y:y,type:character,cooldown:Math.floor(this.blob_monster_cooldown*Math.random())});
-        character = ' ';
-      }
-      column.push(character);
-      column2.push(character);
-    }
-    this.level_grid.push(column);
-    this.current_screen_grid.push(column2);
-  }
-  
-  
-  this.handleKeyDown = function(event)
-  {
-    if (event.keyCode === 27)
-    {
-      this.still_alive = false;
-    }
-    if(this.sword === 0)
-    {
-      if (event.keyCode === 38)
-      {
-        this.dx = 0;
-        this.dy = -1;
-        this.sword_char = "|";
-        this.sword_dx = this.dx;
-        this.sword_dy = this.dy;
-      }
-      if (event.keyCode === 40)
-      {
-        this.dx = 0;
-        this.dy = 1;
-        this.sword_char = "|";
-        this.sword_dx = this.dx;
-        this.sword_dy = this.dy;
-      }
-      if (event.keyCode === 37)
-      {
-        this.dx = -1;
-        this.dy = 0;
-        this.sword_char = "-";
-        this.sword_dx = this.dx;
-        this.sword_dy = this.dy;
-      }
-      if (event.keyCode === 39)
-      {
-        this.dx = 1;
-        this.dy = 0;
-        this.sword_char = "-";
-        this.sword_dx = this.dx;
-        this.sword_dy = this.dy;
-      }
-    }
-    if (event.keyCode === 32)
-    {
-      this.sword = 5;
-    }
-  };
-  
-  this.isMobSpawanble = function(x,y)
-  {
-    return this.isMobMovable(x,y) && !(x === this.playerX && y === this.playerY);
-  };
-  
-  this.isMobMovable = function(x,y)
-  {
-    if(this.level_grid[x][y] === '#')
-    {
-      return false;
-    }
-    
-    for(blob2 in this.blob_monster)
-    {
-      if(blob2 !== blob)
-      {
-        if(this.blob_monster[blob2].x === x &&
-          this.blob_monster[blob2].y === y)
-        {
-          return false;
-        }
-      }
-    }
-    return true;
-  };
-  
-  this.handleTimeStep = function()
-  {
-    //move everything
-    if(this.sword > 0)
-    {
-      this.sword--;
-      if(this.level_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] === '#')
-      {
-        this.sword = 0;
-      }
-    }
-    else
-    {
-      if(this.level_grid[this.playerX + this.dx][this.playerY + this.dy] !== '#')
-      {
-        this.playerX += this.dx;
-        this.playerY += this.dy;
-      }
-    }
-    this.dy = 0;
-    this.dx = 0;
-    
-    for(blob in this.blob_monster)
-    {
-      if(this.blob_monster[blob].cooldown === 0)
-      {
-        this.blob_monster[blob].cooldown = this.blob_monster_cooldown;
-        var db = Util.randomItem([[-1,0],[0,1],[0,-1],[1,0]]);
-        var movable = this.isMobMovable(this.blob_monster[blob].x + db[0],this.blob_monster[blob].y + db[1]);
-        
-        if(movable)
-        {
-          this.blob_monster[blob].x += db[0];
-          this.blob_monster[blob].y += db[1];
-        }
-        else if(!movable)
-        {
-          this.blob_monster[blob].cooldown = 0;
-        }
-      }
-      else
-      {
-        this.blob_monster[blob].cooldown--;
-      }
-    }
-
-    //handle collisions
-    for(var i = this.blob_monster.length - 1; i >= 0; i--)
-    {
-      if(this.blob_monster[i].x === this.playerX && this.blob_monster[i].y === this.playerY)
-      {
-        this.still_alive = false;
-      }
-      if(this.sword > 0 && this.blob_monster[i].x === this.playerX + this.sword_dx &&
-        this.blob_monster[i].y === this.playerY + this.sword_dy)
-      {
-        if(this.blob_monster[i].type === 'O')
-        {
-          //spawn little guys
-          var spawnPoints = Util.shuffle([[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]);
-          var numSpawned = 0;
-          for(var j = 0; j < spawnPoints.length && numSpawned < 2; j++)
-          {
-            if (this.isMobSpawanble(this.blob_monster[i].x + spawnPoints[j][0],
-              this.blob_monster[i].y + spawnPoints[j][1]))
-            {
-              this.blob_monster.push(
+                if (obj.hasOwnProperty(key))
                 {
-                  x:this.blob_monster[i].x + spawnPoints[j][0],
-                  y:this.blob_monster[i].y + spawnPoints[j][1],
-                  type:'o',
-                  cooldown:Math.floor(this.blob_monster_cooldown*Math.random())+this.blob_monster_cooldown
+                    fn(obj[key]);
                 }
-              );
-              numSpawned++;
             }
-          }
-        }
-        this.blob_monster.splice(i, 1);
-      }
-    }
+        },
 
-    if(this.blob_monster.length === 0)
-    {
-      this.still_alive = false;
-    }
-    
-    
-    //draw everything
-    for(var x = 0; x < this.current_screen_grid.length; x++)
-    {
-      for(var y = 0; y < this.current_screen_grid[x].length; y++)
-      {
-        this.current_screen_grid[x][y] = this.level_grid[x][y];
-      }
-    }
-    
-    if(this.sword > 0)
-    {
-      this.current_screen_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] = this.sword_char;
-    }
-    this.current_screen_grid[this.playerX][this.playerY] = '@';
-    for(blob in this.blob_monster)
-    {
-      this.current_screen_grid[this.blob_monster[blob].x][this.blob_monster[blob].y] = this.blob_monster[blob].type;
-    }
-    
-    var string = "";
-    var offset = [
-      Math.round((this.parent_window.cols - this.current_screen_grid.length)/2),
-      Math.round((this.parent_window.rows - this.current_screen_grid[0].length)/2)
-    ];
-
-    for(y = 0; y < this.parent_window.rows; y++)
-    {
-      for(x = 0; x < this.parent_window.cols; x++)
-      {
-        if(x >= offset[0] && 
-          x - offset[0] < this.current_screen_grid.length && 
-          y >= offset[1] &&
-          y - offset[1] < this.current_screen_grid[x - offset[0]].length)
+        //----------------------------------------------------------------------
+        randomItem: function (arr)
         {
-          string += this.current_screen_grid[x-offset[0]][y-offset[1]];
-        }
-        else
+            return arr[Math.floor(Math.random() * arr.length)];
+        },
+
+        //----------------------------------------------------------------------
+        shuffle: function (arr)
         {
-          string += " ";
-        }
-      }
-    }
-    this.parent_window.overrideOutput(string);
-    return this.still_alive;
-  }
-};
-
-var HelpCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  
-  this.handleTimeStep = function()
-  {
-    this.parent_window.handleOutput("supported commands:");
-    for(property in this.run_context.os.cmds)
-    {
-      this.parent_window.handleOutput("  " + property);
-    }
-    this.parent_window.handleOutput(" ");
-    return false;
-  }
-};
-
-var KillCmd = function(run_context,args)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  
-  this.handleTimeStep = function()
-  {
-    if(args.length < 2)
-    {
-      this.parent_window.handleOutput("usage: kill <pid>");
-      this.parent_window.handleOutput(" ");
-      return false;
-    }
-    var pid = parseInt(args[1]);
-    if(isNaN(pid))
-    {
-      this.parent_window.handleOutput("usage: kill <pid>");
-      this.parent_window.handleOutput(" ");
-      return false;
-    }
-    
-    this.run_context.os.kill(pid);
-    this.parent_window.handleOutput(" ");
-    return false;
-  }
-};
-
-var PsCmd = function(run_context)
-{
-  this.run_context = run_context;
-  this.parent_window = run_context.parent_window;
-  
-  this.handleTimeStep = function()
-  {
-    this.parent_window.handleOutput("pid    processName");
-    var ps_line = "";
-    while(ps_line.length < this.parent_window.cols)
-    {
-      ps_line += "-";
-    }
-    this.parent_window.handleOutput(ps_line);
-    for(program in this.run_context.os.programs)
-    {
-        if (this.run_context.os.programs.hasOwnProperty(program))
-        {
-            ps_line = "" + program;
-            while (ps_line.length < 5)
+            var current_index = arr.length, temp, random_index;
+            while (0 !== current_index)
             {
-                ps_line += " ";
+                // Pick a remaining element.
+                random_index = Math.floor(Math.random() * current_index);
+                current_index -= 1;
+
+                // And swap it with the current element.
+                temp = arr[current_index];
+                arr[current_index] = arr[random_index];
+                arr[random_index] = temp;
             }
-           this.parent_window.handleOutput(ps_line + "  " + this.run_context.os.programs[program].name);
+            return arr;
+        },
+
+        //----------------------------------------------------------------------
+        loadImage: function (url, resource_tracker)
+        {
+            var image = new Image();
+            resource_tracker.add();
+            image.onload = function (event)
+            {
+                resource_tracker.onload(event);
+            };
+            image.src = url;
+            return image;
+        },
+
+        //----------------------------------------------------------------------
+        loadAudio: function (url, resource_tracker)
+        {
+            var audio = new buzz.sound(
+                url, {
+                    //formats: [ "wav" ],
+                    preload: true,
+                    autoplay: false,
+                    loop: false
+                });
+            resource_tracker.add();
+            audio.bindOnce("canplay", function (event)
+            {
+                resource_tracker.onload(event)
+            });
+            return audio;
         }
-    }
-    this.parent_window.handleOutput(" ");
-    return false;
-  }
-};
+    };
 
-var PacsiOs = function() {
-  this.cmds = {
-    "help" : HelpCmd, 
-    "trap" : TrapCmd,
-    "please" : PleaseCmd,
-    "clear" : ClearCmd,
-    "exit" : ExitCmd,
-    "killall" : KillAllCmd,
-    "ps" : PsCmd,
-    "kill" : KillCmd,
-    "resources": ResourcesCmd,
-    "checksum-q": ViewJobQueueCmd 
-  };
-  this.programs = {};
-  this.resources = {
-	max_programs: 10,
-	peripheral_devices: [],
-	storage_space_used: 0,
-	storage_space_total: 1024,
-	memory_used: 0,
-	memory_total: 1024
-  };
-  
-  this.reset = function()
-  {
-    this.programs = {};
-  };
-  
-  this.registerProgram = function(program, name, run_context)
-  {
-    var pid = Math.round(Math.random() * 65535)+1; 
-    while(this.programs.hasOwnProperty(pid))
+    var TextLabelWithBoundingBox = function (text, x, y, width, color, size)
     {
-      pid = Math.round(Math.random() * 65535)+1;
-    }
-    this.programs[pid] = { program: program, name: name, run_context: run_context};
-    return pid;
-  };
-  
-  this.deregisterProgram = function(pid)
-  {
-    var status = delete this.programs[pid];
-  };
-  
-  this.kill = function(pid)
-  {
-    if(this.programs[pid])
-    {
-      this.programs[pid].run_context.killChildProgram();
-    }
-  };
-  
-  this.checkRunning = function(pid)
-  {
-    if (this.programs[pid])
-    {
-      return true;
-    }
-    return false;
-  };
-};
 
-var RunContext = function(window, os)
-{
-  this.processing_clock = 0;
-  this.parent_window = window;
-  this.current_program = null;
-  this.current_program_pid = 0;
-  this.os = os;
-  
-  this.handleInput = function(string)
-  {
-    if(this.current_program)
-    {
-      if(this.current_program.hasOwnProperty("handleInput"))
-      {
-        this.current_program.handleInput(string);
-        //get rid of the input in the main window
-      }
-      this.parent_window.string_history.pop();
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.height = size * text.length;
+        this.width = width;
+        this.inner_size = Math.round(6 * this.size / 7);
+        this.offset = Math.round((this.size - this.inner_size) / 2);
+        this.inner_width = this.width - this.offset * 2;
+        this.inner_height = this.height - this.offset * 2;
+        this.color = "black";
+        this.font_size = Math.round(INVERSE_PHI * size);
+        this.textLabel = [];
+        for (var i = 0; i < text.length; i++)
+        {
+            this.textLabel.push(new TextLabel(text[i], x + this.width / 2, Math.round(y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
+        }
+
+        this.paint = function (ctx)
+        {
+            //var width = this.textLabel.text_size;
+            ctx.lineJoin = "round";
+            ctx.lineWidth = Math.round(this.size / (10 * PHI));
+            ctx.fillStyle = "#f0f0f0";
+            ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+            ctx.strokeStyle = this.color;
+            ctx.fillStyle = this.color;
+            ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+            for (var i = 0; i < this.textLabel.length; i++)
+            {
+                this.textLabel[i].paint(ctx);
+            }
+        };
+
+        this.handleMouseDown = function (event)
+        {
+            if (event.offsetX >= this.x &&
+                event.offsetX <= this.x + this.width &&
+                event.offsetY >= this.y &&
+                event.offsetY <= this.y + this.height)
+            {
+                return true;
+            }
+        };
     }
-    else
+
+    var VerticalLabelBaselineEnum = {
+        TOP: 0,
+        MIDDLE: 1,
+        BOTTOM: 2,
+        properties: {
+            0: {textBaseline: "top"},
+            1: {textBaseline: "middle"},
+            2: {textBaseline: "bottom"}
+        }
+    };
+
+
+    var HorizontalLabelAlignEnum = {
+        LEFT: 0,
+        CENTER: 1,
+        RIGHT: 2,
+        properties: {
+            0: {textAlign: "left"},
+            1: {textAlign: "center"},
+            2: {textAlign: "right"}
+        }
+    };
+
+    var TextLabel = function (text, x, y, color, alignment, baseline, size)
     {
-      this.parent_window.accept_input = false;
-      //parse cmd
-      string = string.trim();
-      var split = string.split(" ");
-      string = split[0];
-      if(this.os.cmds.hasOwnProperty(string))
-      {
-        this.current_program = new this.os.cmds[string](this,split);
-        this.parent_window.m_name = string;
-        this.current_program_pid = this.os.registerProgram(this.current_program, string, this)
-      }
-      else
-      {
-        this.parent_window.handleOutput("command \"" + string + "\" not found")
+        this.size = size;
+        this.alignment = alignment;
+        this.baseline = baseline;
+        this.x = x;
+        this.y = y;
+        this.text_size = 0;
+        this.color = color;
+        this.text = text;
+
+        this.getCurrentBounds = function ()
+        {
+            var ret_val = {};
+            switch (this.alignment)
+            {
+                case HorizontalLabelAlignEnum.LEFT:
+                    ret_val.min_x = this.x;
+                    ret_val.max_x = this.x + this.text_size;
+                    break;
+                case HorizontalLabelAlignEnum.RIGHT:
+                    ret_val.min_x = this.x - this.text_size;
+                    ret_val.max_x = this.x;
+                    break;
+                case HorizontalLabelAlignEnum.CENTER:
+                    ret_val.min_x = this.x - this.text_size / 2;
+                    ret_val.max_x = this.x + this.text_size / 2;
+                    break;
+                default:
+            }
+
+            switch (this.baseline)
+            {
+                case VerticalLabelBaselineEnum.TOP:
+                    ret_val.min_y = this.y;
+                    ret_val.max_y = this.y + this.size;
+                    break;
+                case VerticalLabelBaselineEnum.BOTTOM:
+                    ret_val.min_y = this.y - this.size;
+                    ret_val.max_y = this.y;
+                    break;
+                case VerticalLabelBaselineEnum.MIDDLE:
+                    ret_val.min_y = this.y - this.size / 2;
+                    ret_val.max_y = this.y + this.size / 2;
+                    break;
+                default:
+            }
+
+            return ret_val;
+        };
+
+        this.handleMouseDown = function (event)
+        {
+            var dim = this.getCurrentBounds();
+            if (event.offsetX < dim.min_x || event.offsetX > dim.max_x)
+            {
+                return false;
+            }
+
+            if (event.offsetY < dim.min_y || event.offsetY > dim.max_y)
+            {
+                return false;
+            }
+
+            return true;
+        };
+
+        this.paint = function (ctx)
+        {
+            ctx.font = Math.round(size) + "px " + g_font;
+            this.text_size = ctx.measureText(this.text).width;
+            ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
+            ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
+            ctx.fillStyle = this.color;
+            ctx.fillText(this.text, this.x, this.y);
+        };
+
+        this.drawHighlight = function (ctx, color)
+        {
+            var dim = this.getCurrentBounds();
+            ctx.fillStyle = color;
+            ctx.fillRect(dim.min_x, dim.min_y, dim.max_x - dim.min_x, dim.max_y - dim.min_y);
+        };
+    };
+
+    var Timer = function (timer, callback, parameter)
+    {
+        this.current_time = timer;
+        this.callback = callback;
+        this.parameter = parameter;
+        this.handleTimeStep = function ()
+        {
+            this.current_time--;
+            if (this.current_time <= 0)
+            {
+                callback(this.parameter);
+            }
+
+        };
+        this.checkPulse = function ()
+        {
+            return this.current_time > 0;
+        };
+    };
+
+    var ExitCmd = function (run_context)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+
+        this.handleTimeStep = function ()
+        {
+            this.parent_window.active = false;
+            return false;
+        };
+    };
+
+    var ClearCmd = function (run_context)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+
+        this.handleTimeStep = function ()
+        {
+            this.parent_window.string_history = [];
+            return false;
+        };
+    };
+
+    var KillAllCmd = function (run_context)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+        this.parent_window.handleOutput("terminating all active AIs");
         this.parent_window.handleOutput(" ");
-      }
-    }
-  };
-  
-  this.handleClose = function()
-  {
-    if(this.current_program !== null)
-    {
-      this.os.deregisterProgram(this.current_program_pid);
-    }
-  };
-  
-  this.handleKeyDown = function (event) {
-    if(this.current_program && this.current_program.hasOwnProperty("handleKeyDown"))
-    {
-      return this.current_program.handleKeyDown(event);
-    }
-    return false;
-  };
-  
-  this.handleKeyUp = function (event) {
-    if(this.current_program && this.current_program.hasOwnProperty("handleKeyUp"))
-    {
-      return this.current_program.handleKeyUp(event);
-    }
-    return false;
-  };
-  
-  this.killChildProgram = function()
-  {
-    this.current_program = null;
-    this.os.deregisterProgram(this.current_program_pid);
-    this.current_program_pid = 0;  
-  };
+        this.fill_time = 0;
+        this.percentage_complete = 0;
+        this.alive = true;
 
-  this.handleTimeStep = function()
-  {
-    
-    if(this.current_program !== null)
-    {
-      if(!this.current_program.handleTimeStep())
-      {
-        this.killChildProgram();
-      }
-    }
-    
-    if(this.current_program === null)
-    {
-      this.parent_window.accept_input = true;
-      this.parent_window.m_name = "cmd";
-    }
-  };
-};
+        this.handleKeyDown = function (event)
+        {
+            if (event.keyCode === 81)
+            {
+                this.alive = false;
+            }
+        };
 
-var CmdWindow = function(os,x,y,width,height)
-{
-  this.m_pos_x = x;
-  this.m_pos_y = y;
-  this.m_width = width;
-  this.m_height = height;
-  this.m_text_height = 12;
-  this.m_banner_height = Math.floor(this.m_text_height * PHI);
-  this.m_font = this.m_text_height + "px " + g_font;
-  this.close = new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
-  this.close_highlighted = false;
-  this.m_name = "cmd";
-  this.selected = false;
-  this.focus = true;
-  this.mouse_x = null;
-  this.mouse_y = null;
-  this.active = true;
-  this.n_grow = false;
-  this.s_grow = false;
-  this.e_grow = false;
-  this.w_grow = false;
-  this.clock_cycle = 10;
-  this.clock=0;
-  this.cursor=true;
-  this.rows = 0;
-  this.cols = 0;
-  this.key = '';
-  this.string = "";
-  this.input_line = "";
-  this.input_rows = 0;
-  this.string_history = [
-    "Welcome to the NAA Advanced Control System Interface.",
-    "Type \"help\" at the prompt to see a list of commands."
-  ];
-  this.input_history = [];
-  this.input_history_index = 0;
-  this.accept_input = true;
-  this.run_context = new RunContext(this, os);
-  
-  this.handleOutput = function(string)
-  {
-    this.string_history.push(string);
-  };
-  
-  this.overrideOutput = function(string)
-  {
-    this.string_history[this.string_history.length-1] = string;
-  };
-  
-  this.handleKeyDown = function (event)
-  {
-    if(this.focus && this.accept_input)
-    {
-      ret_val = '';
-      if(event.key.length === 1)
-      {
-        ret_val = event.key;
-      }
-      this.key = ret_val;
-      this.string += this.key;
-      
-      if(event.keyCode === 8)
-      {
-        this.string = this.string.slice(0, -1);
-      }
-      if(event.keyCode === 13)
-      {
-        this.string_history.push("> " + this.string + " ");
-        this.run_context.handleInput(this.string);
-        this.input_history.push(this.string);
-        this.string = "";
-        this.input_history_index = this.input_history.length;
-      }
-      if(event.keyCode === 38)
-      {
-        //up arrow
-        if(this.input_history_index > 0)
+        this.handleTimeStep = function ()
         {
-          this.input_history_index--;
-        }
-        if(this.input_history.length > this.input_history_index)
-        {
-          this.string = this.input_history[this.input_history_index];
-        }
-      }
-      if(event.keyCode === 40)
-      {
-        //down arrow
-        if(this.input_history_index < this.input_history.length)
-        {
-          this.input_history_index++;
-        }
-        this.string = "";
-        if(this.input_history_index < this.input_history.length)
-        {
-          this.string = this.input_history[this.input_history_index];
-        }
-      }
-      return true;
-    }
-    if(this.focus && !this.accept_input)
-    {
-      return this.run_context.handleKeyDown(event);
-    }
+            this.fill_time++;
+            this.fill_time = this.fill_time % 3;
+            if (this.fill_time === 0)
+            {
+                if (this.percentage_complete < 100)
+                {
+                    this.percentage_complete++;
+                }
+            }
+            var string = this.percentage_complete + "%";
+            var prefix = "status: ";
+            var spaces_to_add = this.parent_window.cols - string.length - prefix;
+            for (var i = 0; i < spaces_to_add; i++)
+            {
+                prefix += " "
+            }
 
-    return false;
-  };
-  
-  this.handleKeyUp = function (event) {
-    if(this.focus && !this.accept_input)
+            this.parent_window.overrideOutput(prefix + string);
+
+            if (this.percentage_complete >= 100)
+            {
+                GameScreen.handleGameOver();
+            }
+
+            if (!this.alive)
+            {
+                this.parent_window.handleOutput(" ");
+            }
+
+            return this.alive;
+        }
+    };
+
+    var PleaseCmd = function (run_context)
     {
-      return this.run_context.handleKeyUp(event);
-    }
-    return false;
-  };
-  
-  this.handleMouseDown = function (event) 
-  {
-    if(event.offsetX >= this.m_pos_x &&
-      event.offsetX <= this.m_pos_x + this.m_width &&
-      event.offsetY >= this.m_pos_y &&
-      event.offsetY <= this.m_pos_y + this.m_height)
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+        this.last_input = null;
+        this.parent_window.accept_input = true;
+        this.msg = "say the magic word...";
+        //reserve space to write stuff
+        this.parent_window.handleOutput(" ");
+
+        this.handleInput = function (string)
+        {
+            this.last_input = string;
+        };
+
+        this.handleTimeStep = function ()
+        {
+            if (this.last_input !== null)
+            {
+                if (this.last_input === "please")
+                {
+                    this.parent_window.handleOutput(" ");
+                    return false;
+                }
+                this.msg = Util.randomItem(["you didn't say the magic word", "didn't your mom teach you better?"]);
+                this.last_input = null;
+            }
+            var string = "";
+
+            var msg_left_padding = Math.round((this.parent_window.cols - this.msg.length) / 2);
+            var rows = this.parent_window.rows - this.parent_window.input_rows;
+            for (var i = 0; i < rows; i++)
+            {
+                for (var j = 0; j < this.parent_window.cols; j++)
+                {
+                    if (i === 0)
+                    {
+                        string += "*";
+                    }
+                    else if (i === rows - 1)
+                    {
+                        string += "*";
+                    }
+                    else if (i === Math.round(rows / 2))
+                    {
+                        if (j < msg_left_padding)
+                        {
+                            string += " ";
+                        }
+                        else if (j === msg_left_padding)
+                        {
+                            string += this.msg;
+                        }
+                        else if (j >= msg_left_padding + this.msg.length)
+                        {
+                            string += " ";
+                        }
+                    }
+                    else
+                    {
+                        string += " ";
+                    }
+                }
+            }
+            this.parent_window.overrideOutput(string);
+            return true;
+        }
+    };
+
+    var TrapCmd = function (run_context)
     {
-      if(this.close.handleMouseDown(event))
-      {
-        this.active = false;
-        return true;
-      }
-      if(event.offsetY > this.m_pos_y + this.m_banner_height &&
-        event.offsetY < this.m_pos_y + this.m_height - 6 &&
-        event.offsetX > this.m_pos_x + 6 &&
-        event.offsetX < this.m_pos_x + this.m_width - 6)
-      {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+        this.still_alive = true;
+        this.state_clock = 0;
+        //reserve space to write stuff
+        this.parent_window.handleOutput("");
+        this.playerX = 0;
+        this.playerY = 0;
+        this.dy = 0;
+        this.dx = 0;
+        this.sword_dx = 0;
+        this.sword_dy = -1;
+        this.sword_char = "|";
+        this.sword = 0;
+        this.blob_monster = [];
+        this.blob_monster_cooldown = 15;
+        this.level =
+            [
+                "####################",
+                "#         #        #",
+                "#      o      o    #",
+                "#         #        #",
+                "###  ######        #",
+                "#         #        #",
+                "#         ####  ####",
+                "#              o   #",
+                "#     O            #",
+                "#         ####  ####",
+                "#         #        #",
+                "#         #    o   #",
+                "#@        #        #",
+                "####################"
+            ];
+
+        this.level_grid = [];
+        this.current_screen_grid = [];
+        var cols = 0;
+        var rows = this.level.length;
+
+        for (var y = 0; y < this.level.length; y++)
+        {
+            cols = Math.max(this.level[y].length, cols);
+        }
+
+        for (var x = 0; x < cols; x++)
+        {
+            var column = [];
+            var column2 = [];
+            for (var y = 0; y < rows; y++)
+            {
+                var character = this.level[y].charAt(x);
+
+                if (character === '@')
+                {
+                    this.playerX = x;
+                    this.playerY = y;
+                    character = ' ';
+                }
+                else if (character === 'o' || character === 'O')
+                {
+                    this.blob_monster.push({
+                        x: x,
+                        y: y,
+                        type: character,
+                        cooldown: Math.floor(this.blob_monster_cooldown * Math.random())
+                    });
+                    character = ' ';
+                }
+                column.push(character);
+                column2.push(character);
+            }
+            this.level_grid.push(column);
+            this.current_screen_grid.push(column2);
+        }
+
+
+        this.handleKeyDown = function (event)
+        {
+            if (event.keyCode === 27)
+            {
+                this.still_alive = false;
+            }
+            if (this.sword === 0)
+            {
+                if (event.keyCode === 38)
+                {
+                    this.dx = 0;
+                    this.dy = -1;
+                    this.sword_char = "|";
+                    this.sword_dx = this.dx;
+                    this.sword_dy = this.dy;
+                }
+                if (event.keyCode === 40)
+                {
+                    this.dx = 0;
+                    this.dy = 1;
+                    this.sword_char = "|";
+                    this.sword_dx = this.dx;
+                    this.sword_dy = this.dy;
+                }
+                if (event.keyCode === 37)
+                {
+                    this.dx = -1;
+                    this.dy = 0;
+                    this.sword_char = "-";
+                    this.sword_dx = this.dx;
+                    this.sword_dy = this.dy;
+                }
+                if (event.keyCode === 39)
+                {
+                    this.dx = 1;
+                    this.dy = 0;
+                    this.sword_char = "-";
+                    this.sword_dx = this.dx;
+                    this.sword_dy = this.dy;
+                }
+            }
+            if (event.keyCode === 32)
+            {
+                this.sword = 5;
+            }
+        };
+
+        this.isMobSpawanble = function (x, y)
+        {
+            return this.isMobMovable(x, y) && !(x === this.playerX && y === this.playerY);
+        };
+
+        this.isMobMovable = function (x, y)
+        {
+            if (this.level_grid[x][y] === '#')
+            {
+                return false;
+            }
+
+            for (blob2 in this.blob_monster)
+            {
+                if (blob2 !== blob)
+                {
+                    if (this.blob_monster[blob2].x === x &&
+                        this.blob_monster[blob2].y === y)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        this.handleTimeStep = function ()
+        {
+            //move everything
+            if (this.sword > 0)
+            {
+                this.sword--;
+                if (this.level_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] === '#')
+                {
+                    this.sword = 0;
+                }
+            }
+            else
+            {
+                if (this.level_grid[this.playerX + this.dx][this.playerY + this.dy] !== '#')
+                {
+                    this.playerX += this.dx;
+                    this.playerY += this.dy;
+                }
+            }
+            this.dy = 0;
+            this.dx = 0;
+
+            for (blob in this.blob_monster)
+            {
+                if (this.blob_monster[blob].cooldown === 0)
+                {
+                    this.blob_monster[blob].cooldown = this.blob_monster_cooldown;
+                    var db = Util.randomItem([[-1, 0], [0, 1], [0, -1], [1, 0]]);
+                    var movable = this.isMobMovable(this.blob_monster[blob].x + db[0], this.blob_monster[blob].y + db[1]);
+
+                    if (movable)
+                    {
+                        this.blob_monster[blob].x += db[0];
+                        this.blob_monster[blob].y += db[1];
+                    }
+                    else if (!movable)
+                    {
+                        this.blob_monster[blob].cooldown = 0;
+                    }
+                }
+                else
+                {
+                    this.blob_monster[blob].cooldown--;
+                }
+            }
+
+            //handle collisions
+            for (var i = this.blob_monster.length - 1; i >= 0; i--)
+            {
+                if (this.blob_monster[i].x === this.playerX && this.blob_monster[i].y === this.playerY)
+                {
+                    this.still_alive = false;
+                }
+                if (this.sword > 0 && this.blob_monster[i].x === this.playerX + this.sword_dx &&
+                    this.blob_monster[i].y === this.playerY + this.sword_dy)
+                {
+                    if (this.blob_monster[i].type === 'O')
+                    {
+                        //spawn little guys
+                        var spawnPoints = Util.shuffle([[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]);
+                        var numSpawned = 0;
+                        for (var j = 0; j < spawnPoints.length && numSpawned < 2; j++)
+                        {
+                            if (this.isMobSpawanble(this.blob_monster[i].x + spawnPoints[j][0],
+                                    this.blob_monster[i].y + spawnPoints[j][1]))
+                            {
+                                this.blob_monster.push(
+                                    {
+                                        x: this.blob_monster[i].x + spawnPoints[j][0],
+                                        y: this.blob_monster[i].y + spawnPoints[j][1],
+                                        type: 'o',
+                                        cooldown: Math.floor(this.blob_monster_cooldown * Math.random()) + this.blob_monster_cooldown
+                                    }
+                                );
+                                numSpawned++;
+                            }
+                        }
+                    }
+                    this.blob_monster.splice(i, 1);
+                }
+            }
+
+            if (this.blob_monster.length === 0)
+            {
+                this.still_alive = false;
+            }
+
+
+            //draw everything
+            for (var x = 0; x < this.current_screen_grid.length; x++)
+            {
+                for (var y = 0; y < this.current_screen_grid[x].length; y++)
+                {
+                    this.current_screen_grid[x][y] = this.level_grid[x][y];
+                }
+            }
+
+            if (this.sword > 0)
+            {
+                this.current_screen_grid[this.playerX + this.sword_dx][this.playerY + this.sword_dy] = this.sword_char;
+            }
+            this.current_screen_grid[this.playerX][this.playerY] = '@';
+            for (blob in this.blob_monster)
+            {
+                this.current_screen_grid[this.blob_monster[blob].x][this.blob_monster[blob].y] = this.blob_monster[blob].type;
+            }
+
+            var string = "";
+            var offset = [
+                Math.round((this.parent_window.cols - this.current_screen_grid.length) / 2),
+                Math.round((this.parent_window.rows - this.current_screen_grid[0].length) / 2)
+            ];
+
+            for (y = 0; y < this.parent_window.rows; y++)
+            {
+                for (x = 0; x < this.parent_window.cols; x++)
+                {
+                    if (x >= offset[0] &&
+                        x - offset[0] < this.current_screen_grid.length &&
+                        y >= offset[1] &&
+                        y - offset[1] < this.current_screen_grid[x - offset[0]].length)
+                    {
+                        string += this.current_screen_grid[x - offset[0]][y - offset[1]];
+                    }
+                    else
+                    {
+                        string += " ";
+                    }
+                }
+            }
+            this.parent_window.overrideOutput(string);
+            return this.still_alive;
+        }
+    };
+
+    var HelpCmd = function (run_context)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+
+        this.handleTimeStep = function ()
+        {
+            this.parent_window.handleOutput("supported commands:");
+            for (property in this.run_context.os.cmds)
+            {
+                this.parent_window.handleOutput("  " + property);
+            }
+            this.parent_window.handleOutput(" ");
+            return false;
+        }
+    };
+
+    var KillCmd = function (run_context, args)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+
+        this.handleTimeStep = function ()
+        {
+            if (args.length < 2)
+            {
+                this.parent_window.handleOutput("usage: kill <pid>");
+                this.parent_window.handleOutput(" ");
+                return false;
+            }
+            var pid = parseInt(args[1]);
+            if (isNaN(pid))
+            {
+                this.parent_window.handleOutput("usage: kill <pid>");
+                this.parent_window.handleOutput(" ");
+                return false;
+            }
+
+            this.run_context.os.kill(pid);
+            this.parent_window.handleOutput(" ");
+            return false;
+        }
+    };
+
+    var PsCmd = function (run_context)
+    {
+        this.run_context = run_context;
+        this.parent_window = run_context.parent_window;
+
+        this.handleTimeStep = function ()
+        {
+            this.parent_window.handleOutput("pid    processName");
+            var ps_line = "";
+            while (ps_line.length < this.parent_window.cols)
+            {
+                ps_line += "-";
+            }
+            this.parent_window.handleOutput(ps_line);
+            for (program in this.run_context.os.programs)
+            {
+                if (this.run_context.os.programs.hasOwnProperty(program))
+                {
+                    ps_line = "" + program;
+                    while (ps_line.length < 5)
+                    {
+                        ps_line += " ";
+                    }
+                    this.parent_window.handleOutput(ps_line + "  " + this.run_context.os.programs[program].name);
+                }
+            }
+            this.parent_window.handleOutput(" ");
+            return false;
+        }
+    };
+
+    var PacsiOs = function ()
+    {
+        this.cmds = {
+            "help": HelpCmd,
+            "trap": TrapCmd,
+            "please": PleaseCmd,
+            "clear": ClearCmd,
+            "exit": ExitCmd,
+            "killall": KillAllCmd,
+            "ps": PsCmd,
+            "kill": KillCmd,
+            "resources": ResourcesCmd,
+            "checksum-q": ViewJobQueueCmd
+        };
+        this.programs = {};
+        this.resources = {
+            max_programs: 10,
+            peripheral_devices: [],
+            storage_space_used: 0,
+            storage_space_total: 1024,
+            memory_used: 0,
+            memory_total: 1024
+        };
+
+        this.reset = function ()
+        {
+            this.programs = {};
+        };
+
+        this.registerProgram = function (program, name, run_context)
+        {
+            var pid = Math.round(Math.random() * 65535) + 1;
+            while (this.programs.hasOwnProperty(pid))
+            {
+                pid = Math.round(Math.random() * 65535) + 1;
+            }
+            this.programs[pid] = {program: program, name: name, run_context: run_context};
+            return pid;
+        };
+
+        this.deregisterProgram = function (pid)
+        {
+            var status = delete this.programs[pid];
+        };
+
+        this.kill = function (pid)
+        {
+            if (this.programs[pid])
+            {
+                this.programs[pid].run_context.killChildProgram();
+            }
+        };
+
+        this.checkRunning = function (pid)
+        {
+            if (this.programs[pid])
+            {
+                return true;
+            }
+            return false;
+        };
+    };
+
+    var RunContext = function (window, os)
+    {
+        this.processing_clock = 0;
+        this.parent_window = window;
+        this.current_program = null;
+        this.current_program_pid = 0;
+        this.os = os;
+
+        this.handleInput = function (string)
+        {
+            if (this.current_program)
+            {
+                if (this.current_program.hasOwnProperty("handleInput"))
+                {
+                    this.current_program.handleInput(string);
+                    //get rid of the input in the main window
+                }
+                this.parent_window.string_history.pop();
+            }
+            else
+            {
+                this.parent_window.accept_input = false;
+                //parse cmd
+                string = string.trim();
+                var split = string.split(" ");
+                string = split[0];
+                if (this.os.cmds.hasOwnProperty(string))
+                {
+                    this.current_program = new this.os.cmds[string](this, split);
+                    this.parent_window.m_name = string;
+                    this.current_program_pid = this.os.registerProgram(this.current_program, string, this)
+                }
+                else
+                {
+                    this.parent_window.handleOutput("command \"" + string + "\" not found")
+                    this.parent_window.handleOutput(" ");
+                }
+            }
+        };
+
+        this.handleClose = function ()
+        {
+            if (this.current_program !== null)
+            {
+                this.os.deregisterProgram(this.current_program_pid);
+            }
+        };
+
+        this.handleKeyDown = function (event)
+        {
+            if (this.current_program && this.current_program.hasOwnProperty("handleKeyDown"))
+            {
+                return this.current_program.handleKeyDown(event);
+            }
+            return false;
+        };
+
+        this.handleKeyUp = function (event)
+        {
+            if (this.current_program && this.current_program.hasOwnProperty("handleKeyUp"))
+            {
+                return this.current_program.handleKeyUp(event);
+            }
+            return false;
+        };
+
+        this.killChildProgram = function ()
+        {
+            this.current_program = null;
+            this.os.deregisterProgram(this.current_program_pid);
+            this.current_program_pid = 0;
+        };
+
+        this.handleTimeStep = function ()
+        {
+
+            if (this.current_program !== null)
+            {
+                if (!this.current_program.handleTimeStep())
+                {
+                    this.killChildProgram();
+                }
+            }
+
+            if (this.current_program === null)
+            {
+                this.parent_window.accept_input = true;
+                this.parent_window.m_name = "cmd";
+            }
+        };
+    };
+
+    var CmdWindow = function (os, x, y, width, height)
+    {
+        this.m_pos_x = x;
+        this.m_pos_y = y;
+        this.m_width = width;
+        this.m_height = height;
+        this.m_text_height = 12;
+        this.m_banner_height = Math.floor(this.m_text_height * PHI);
+        this.m_font = this.m_text_height + "px " + g_font;
+        this.close = new TextLabel("X", x + width - 5, y, "black", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.TOP, this.m_banner_height);
+        this.close_highlighted = false;
+        this.m_name = "cmd";
+        this.selected = false;
         this.focus = true;
-        return true;
-      }
-      else
-      {
-        this.selected = true;
-        this.focus = true;
-        this.mouse_x = event.offsetX;
-        this.mouse_y = event.offsetY;
-      }
-      
-      return true;
-    }
-    this.focus = false;
-    return false;
-  };
-  
-  this.setCursorForResize = function()
-  {
-    if(this.n_grow ||
-      this.s_grow ||
-      this.e_grow ||
-      this.w_grow)
-    {
-      if(this.n_grow)
-      {
-        if(this.e_grow)
-        {
-          g_canvas.style.cursor = "ne-resize";
-          return true;
-        }
-        if(this.w_grow)
-        {
-          g_canvas.style.cursor = "nw-resize";
-          return true;
-        }
-        g_canvas.style.cursor = "n-resize";
-      }
-      if(this.s_grow)
-      {
-        if(this.e_grow)
-        {
-          g_canvas.style.cursor = "se-resize";
-          return true;
-        }
-        if(this.w_grow)
-        {
-          g_canvas.style.cursor = "sw-resize";
-          return true;
-        }
-        g_canvas.style.cursor = "s-resize";
-      }
-      if(this.e_grow)
-      {
-        g_canvas.style.cursor = "e-resize";
-      }
-      if(this.w_grow)
-      {
-        g_canvas.style.cursor = "w-resize";
-      }
-      return true;
-    }
-    
-    g_canvas.style.cursor = "default";
-    return false;
-  };
-  
-  this.handleMouseMove = function (event)
-  {
-    if(this.selected)
-    {
-      var dx = event.offsetX - this.mouse_x;
-      var dy = event.offsetY - this.mouse_y;
-      this.mouse_x = event.offsetX;
-      this.mouse_y = event.offsetY;
-      this.setCursorForResize();
-      if(this.n_grow)
-      {
-        if(200 > this.m_height - Math.round(dy))
-        {
-          var new_dy = this.m_height - 200;
-          this.mouse_y = event.offsetY - (Math.round(dy)-new_dy);
-          dy = new_dy;
-        }
-        this.m_height -= Math.round(dy);
-        this.m_pos_y += Math.round(dy);
-        this.close.y += Math.round(dy);  
-      }
-      if(this.s_grow)
-      {
-        if(200 > this.m_height + Math.round(dy))
-        {
-          var new_dy = 200 - this.m_height;
-          this.mouse_y = event.offsetY - (Math.round(dy)-new_dy);
-          dy = new_dy;
-        }
-        this.m_height += Math.round(dy);
-      }
-      if(this.w_grow)
-      {
-        if(300 > this.m_width - Math.round(dx))
-        {
-          var new_dx = this.m_width - 300;
-          this.mouse_x = event.offsetX - (Math.round(dx)-new_dx);
-          dx = new_dx;
-        }
-        this.m_width -= Math.round(dx);
-        this.m_pos_x += Math.round(dx);
-      }
-      if(this.e_grow)
-      {
-        if(300 > this.m_width + Math.round(dx))
-        {
-          var new_dx = 300 - this.m_width;
-          this.mouse_x = event.offsetX - (Math.round(dx)-new_dx);
-          dx = new_dx;
-        }
-        this.m_width += Math.round(dx);
-        this.close.x += Math.round(dx);
-      }
-      
-      if(this.n_grow ||
-        this.s_grow ||
-        this.e_grow ||
-        this.w_grow)
-      {
-        return true;
-      }
-      
-      this.m_pos_x += Math.round(dx);
-      this.m_pos_y += Math.round(dy);
-      this.close.x += Math.round(dx);
-      this.close.y += Math.round(dy);
-      return true;
-    }
-    else
-    {
-      if(event.offsetX >= this.m_pos_x &&
-        event.offsetX <= this.m_pos_x + this.m_width &&
-        event.offsetY >= this.m_pos_y &&
-        event.offsetY <= this.m_pos_y + this.m_height)
-      {
-        if(this.close.handleMouseDown (event))
-        {
-          this.close_highlighted = true;
-          g_canvas.style.cursor = "default";
-          return true;
-        }
-        else
-        {
-          this.close_highlighted = false;
-        }
-        
+        this.mouse_x = null;
+        this.mouse_y = null;
+        this.active = true;
         this.n_grow = false;
         this.s_grow = false;
         this.e_grow = false;
         this.w_grow = false;
-        
-        if(event.offsetY < this.m_pos_y + 6)
-        {
-          this.n_grow = true;
-        }
-        if(event.offsetY > this.m_pos_y + this.m_height - 6)
-        {
-          this.s_grow = true;
-        }
-        if(event.offsetX < this.m_pos_x + 6)
-        {
-          this.w_grow = true;
-        }
-        if(event.offsetX > this.m_pos_x + this.m_width - 6)
-        {
-          this.e_grow = true;
-        }
-        if(this.setCursorForResize())
-        {
-          return true;
-        }
-                
-        if(event.offsetY > this.m_pos_y + this.m_banner_height)
-        {
-          g_canvas.style.cursor = "text";
-          return true;
-        }
-        return true;
-      }
-    }
-    return false;
-  };
-  
-  this.handleMouseUp = function (event)
-  {
-    this.selected = false;
-    this.mouse_x = null;
-    this.mouse_y = null;
-  };
-  
-  this.paintStringRows = function(string)
-  {
-    return Math.ceil(string.length / this.cols);
-  };
-  
-  this.paintString = function(ctx, string, number_of_rows, row_offset)
-  {
-    var rows = this.paintStringRows(string);
-    var start_char = 0;
-    if (rows > number_of_rows)
-    {
-      start_char = (rows - number_of_rows) * this.cols;
-      rows = this.rows
-    }
-    for(var i = 0; i < rows; i++)
-    {
-      ctx.fillText(string.substring(i*this.cols + start_char, (i + 1)*this.cols + start_char), this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + (i + row_offset + .5) * this.m_text_height);
-    }
-  };
-  
-  this.decorate_input_string = function()
-  {
-    this.input_line = "> ";
-    var cursor = "_";
-    if(!this.accept_input)
-    {
-      this.input_line = "";
-      cursor = "";
-    }
-    else if(this.focus && this.accept_input && !this.cursor)
-    {
-      cursor = " ";
-    }
-    this.input_line += this.string + cursor;
-    this.input_rows = this.paintStringRows(this.input_line);
-  };
-  
-  this.paintAllStrings = function(ctx)
-  {
-    var rows_to_draw = [];
-    var total_rows = 0;
+        this.clock_cycle = 10;
+        this.clock = 0;
+        this.cursor = true;
+        this.rows = 0;
+        this.cols = 0;
+        this.key = '';
+        this.string = "";
+        this.input_line = "";
+        this.input_rows = 0;
+        this.string_history = [
+            "Welcome to the NAA Advanced Control System Interface.",
+            "Type \"help\" at the prompt to see a list of commands."
+        ];
+        this.input_history = [];
+        this.input_history_index = 0;
+        this.accept_input = true;
+        this.run_context = new RunContext(this, os);
 
-    var new_rows = this.input_rows;
-    if(total_rows + new_rows > this.rows)
-    {
-      rows_to_draw.push(this.rows - total_rows);
-    }
-    else
-    {
-      rows_to_draw.push(new_rows);
-    }
-    total_rows += new_rows;
-    for(var i = this.string_history.length-1; i >= 0 && total_rows < this.rows; i--)
-    {
-      new_rows = this.paintStringRows(this.string_history[i]);
-      if(total_rows + new_rows > this.rows)
-      {
-        rows_to_draw.push(this.rows - total_rows);
-      }
-      else
-      {
-        rows_to_draw.push(new_rows);
-      }
-      total_rows += new_rows;
-    }
-    var current_row = 0;
-    for(var i = rows_to_draw.length-1; i >= 0; i--)
-    {
-      if(i === 0)
-      {
-        //draw_string
-        this.paintString(ctx, this.input_line, rows_to_draw[i], current_row)
-      }
-      else
-      {
-        this.paintString(ctx, this.string_history[this.string_history.length - i], rows_to_draw[i], current_row)
-      }
-      current_row += rows_to_draw[i];
-    }
-  };
-  
-  this.handleTimeStep = function()
-  {
-    this.clock++;
-    if(this.clock > this.clock_cycle)
-    {
-      this.cursor = !this.cursor;
-      this.clock = 0;
-    }
-    this.decorate_input_string();
-    this.run_context.handleTimeStep();
-    if(!this.active)
-    {
-      this.run_context.handleClose();
-    }
-  };
-  
-  this.paint = function(ctx)
-  {
-    ctx.lineWidth = 1;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-    ctx.fillRect(
-      this.m_pos_x, this.m_pos_y,
-      this.m_width, this.m_height);
-    ctx.fillStyle = "rgba(192,192,192, 1)";
-    ctx.fillRect(
-      this.m_pos_x, this.m_pos_y,
-      this.m_width, this.m_banner_height);
-    ctx.fillStyle = "rgba(32,32,32, 1)";
-    ctx.strokeRect(
-      this.m_pos_x, this.m_pos_y,
-      this.m_width, this.m_height);
-    ctx.font=this.m_font;
-    ctx.textAlign="left";
-    ctx.textBaseline="middle";
-    if(this.focus)
-    {
-      ctx.fillStyle = "black";
-      this.close.color = "black";
-    }
-    else
-    {
-      ctx.fillStyle = "grey";
-      this.close.color = "grey";
-    }
-    this.rows = Math.floor((this.m_height - 10 - this.m_banner_height)/this.m_text_height);
-    var text_width = ctx.measureText("w").width;
-    this.cols = Math.floor((this.m_width - 10)/text_width);
-   
-    ctx.fillText(
-      this.m_name,
-      this.m_pos_x + 5,
-      this.m_pos_y + this.m_banner_height/2
-    );
-    if(this.close_highlighted)
-    {
-      this.close.drawHighlight(ctx,"rgba(192,0,0,1)");
-      this.close.color = "white";
-    }
-    ctx.textAlign="left";
-    ctx.textBaseline="middle";
-    ctx.fillStyle="rgba(192,192,192, 1)";
-    
-    this.paintAllStrings(ctx);
-    /*
-    for(var i = 1; i < this.rows; i++)
-    {
-      ctx.fillText(""+i%10, this.m_pos_x+5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2 + i * this.m_text_height);
-    }
-    for(var i = 4; i < this.cols; i++)
-    {
-      ctx.fillText(""+i%10, this.m_pos_x + 5 + i * text_width, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
-    }
-    */
-    this.close.paint(ctx);
-  };
-};
+        this.handleOutput = function (string)
+        {
+            this.string_history.push(string);
+        };
 
-//##########################################################################
-var GameOver = {
-  init: function () {},
-  reset: function () {
-    this.fadeTimer = 0;
-    this.textTimerLimit = 140;
-    this.textTimer = 0;
-    this.cursorTimer = 0;
-    this.otherScreen = null;
-  },
-  handleTimeStep: function () {
-    if(this.fadeTimer < 100)
-    {
-    this.fadeTimer++;
-    }
-    
-    if(this.textTimer < this.textTimerLimit)
-    {
-      this.textTimer++;
-    }
-    
-    this.cursorTimer++;
-    //switchToScreen(GameScreen);
-  },
-  paint: function ()
-  {
-    this.otherScreen.paint();
-    g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-    
-    // paint the background
-    g_ctx.fillStyle = "rgba(255,255,255,"+this.fadeTimer/100+")";
-    //alert(g_ctx.fillStyle);
-    g_ctx.fillRect(
-      0, 0,
-      g_canvas.width,
-      g_canvas.height);
-    g_ctx.textAlign = "center";
-    g_ctx.textBaseline = "middle";
-    g_ctx.font = "120px " + g_font;
-    g_ctx.fillStyle = "rgba(0,192,0,"+(this.textTimer/this.textTimerLimit)+")";
-    var game_over = "> game over";
-    var text = game_over.substring(0,Math.round(this.textTimer/this.textTimerLimit*game_over.length));
-    if (Math.floor(this.cursorTimer/10) % 2)
-    {
-      text += "_"
-    }
-    else
-    {
-      text += " ";
-    }
-    g_ctx.fillText(text,g_canvas.width/2+Math.random()*3,g_canvas.height/2);
-    g_ctx.fillStyle = "rgba(192,0,0,"+(this.textTimer/200)+")";
-    g_ctx.fillText(text,g_canvas.width/2-Math.random()*3,g_canvas.height/2);
-    g_ctx.fillStyle = "rgba(92,92,92,"+(this.textTimer/200)+")";
-    g_ctx.fillText(text,g_canvas.width/2,g_canvas.height/2);
-  }
-};
+        this.overrideOutput = function (string)
+        {
+            this.string_history[this.string_history.length - 1] = string;
+        };
 
-//##########################################################################
-var GameScreen = {
+        this.handleKeyDown = function (event)
+        {
+            if (this.focus && this.accept_input)
+            {
+                ret_val = '';
+                if (event.key.length === 1)
+                {
+                    ret_val = event.key;
+                }
+                this.key = ret_val;
+                this.string += this.key;
 
-    init: function () {
-      this.reset();
-    },
-    
-    reset: function () {
-      //this.icon = []
-      this.cmd_button = new TextLabelWithBoundingBox([">"], 0, 0, 70, "black", 70);
-      this.window = []; //new CmdWindow(35,35,300,200);
-      this.rumble = false;
-      this.ai_threads = [];
-	  this.os = new PacsiOs();
-      this.os.reset();
-      for(var i = 0; i < 3; i++)
-      {
-        var ai_thread_context = new RunContext(null, this.os);
-        this.ai_threads.push(ai_thread_context);
-        ai_thread_context.current_program_pid = this.os.registerProgram(null, "ai_worker_thread", ai_thread_context);
-      }
-    },
-    
-    handleMouseDown: function (event) {
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(this.window[i].handleMouseDown(event))
+                if (event.keyCode === 8)
+                {
+                    this.string = this.string.slice(0, -1);
+                }
+                if (event.keyCode === 13)
+                {
+                    this.string_history.push("> " + this.string + " ");
+                    this.run_context.handleInput(this.string);
+                    this.input_history.push(this.string);
+                    this.string = "";
+                    this.input_history_index = this.input_history.length;
+                }
+                if (event.keyCode === 38)
+                {
+                    //up arrow
+                    if (this.input_history_index > 0)
+                    {
+                        this.input_history_index--;
+                    }
+                    if (this.input_history.length > this.input_history_index)
+                    {
+                        this.string = this.input_history[this.input_history_index];
+                    }
+                }
+                if (event.keyCode === 40)
+                {
+                    //down arrow
+                    if (this.input_history_index < this.input_history.length)
+                    {
+                        this.input_history_index++;
+                    }
+                    this.string = "";
+                    if (this.input_history_index < this.input_history.length)
+                    {
+                        this.string = this.input_history[this.input_history_index];
+                    }
+                }
+                return true;
+            }
+            if (this.focus && !this.accept_input)
+            {
+                return this.run_context.handleKeyDown(event);
+            }
+
+            return false;
+        };
+
+        this.handleKeyUp = function (event)
         {
-          var window_to_move = this.window[i];
-          this.window.splice(i,1);
-          this.window.push(window_to_move);
-          //window_to_move.focus = true;
-          return;
-        }
-      }
-      if(this.cmd_button.handleMouseDown(event))
-      {
-        var offset = this.window.length;
-        this.window.push(new CmdWindow(this.os, 35 + offset * 35,35 + offset * 35,500,300));
-      }
-    },    
-    handleMouseMove: function (event) {
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(this.window[i].handleMouseMove(event))
+            if (this.focus && !this.accept_input)
+            {
+                return this.run_context.handleKeyUp(event);
+            }
+            return false;
+        };
+
+        this.handleMouseDown = function (event)
         {
-          return;
-        }
-      }
-      g_canvas.style.cursor = "default";
-    },
-    handleMouseUp: function (event) {
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(this.window[i].handleMouseUp(event))
+            if (event.offsetX >= this.m_pos_x &&
+                event.offsetX <= this.m_pos_x + this.m_width &&
+                event.offsetY >= this.m_pos_y &&
+                event.offsetY <= this.m_pos_y + this.m_height)
+            {
+                if (this.close.handleMouseDown(event))
+                {
+                    this.active = false;
+                    return true;
+                }
+                if (event.offsetY > this.m_pos_y + this.m_banner_height &&
+                    event.offsetY < this.m_pos_y + this.m_height - 6 &&
+                    event.offsetX > this.m_pos_x + 6 &&
+                    event.offsetX < this.m_pos_x + this.m_width - 6)
+                {
+                    this.focus = true;
+                    return true;
+                }
+                else
+                {
+                    this.selected = true;
+                    this.focus = true;
+                    this.mouse_x = event.offsetX;
+                    this.mouse_y = event.offsetY;
+                }
+
+                return true;
+            }
+            this.focus = false;
+            return false;
+        };
+
+        this.setCursorForResize = function ()
         {
-          return;
-        }
-      }
-    },
-    handleKeyDown: function (event) {
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(this.window[i].handleKeyDown(event))
+            if (this.n_grow ||
+                this.s_grow ||
+                this.e_grow ||
+                this.w_grow)
+            {
+                if (this.n_grow)
+                {
+                    if (this.e_grow)
+                    {
+                        g_canvas.style.cursor = "ne-resize";
+                        return true;
+                    }
+                    if (this.w_grow)
+                    {
+                        g_canvas.style.cursor = "nw-resize";
+                        return true;
+                    }
+                    g_canvas.style.cursor = "n-resize";
+                }
+                if (this.s_grow)
+                {
+                    if (this.e_grow)
+                    {
+                        g_canvas.style.cursor = "se-resize";
+                        return true;
+                    }
+                    if (this.w_grow)
+                    {
+                        g_canvas.style.cursor = "sw-resize";
+                        return true;
+                    }
+                    g_canvas.style.cursor = "s-resize";
+                }
+                if (this.e_grow)
+                {
+                    g_canvas.style.cursor = "e-resize";
+                }
+                if (this.w_grow)
+                {
+                    g_canvas.style.cursor = "w-resize";
+                }
+                return true;
+            }
+
+            g_canvas.style.cursor = "default";
+            return false;
+        };
+
+        this.handleMouseMove = function (event)
         {
-          return;
-        }
-      }
-    },
-    handleKeyUp: function (event) {
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(this.window[i].handleKeyUp(event))
+            if (this.selected)
+            {
+                var dx = event.offsetX - this.mouse_x;
+                var dy = event.offsetY - this.mouse_y;
+                this.mouse_x = event.offsetX;
+                this.mouse_y = event.offsetY;
+                this.setCursorForResize();
+                if (this.n_grow)
+                {
+                    if (200 > this.m_height - Math.round(dy))
+                    {
+                        var new_dy = this.m_height - 200;
+                        this.mouse_y = event.offsetY - (Math.round(dy) - new_dy);
+                        dy = new_dy;
+                    }
+                    this.m_height -= Math.round(dy);
+                    this.m_pos_y += Math.round(dy);
+                    this.close.y += Math.round(dy);
+                }
+                if (this.s_grow)
+                {
+                    if (200 > this.m_height + Math.round(dy))
+                    {
+                        var new_dy = 200 - this.m_height;
+                        this.mouse_y = event.offsetY - (Math.round(dy) - new_dy);
+                        dy = new_dy;
+                    }
+                    this.m_height += Math.round(dy);
+                }
+                if (this.w_grow)
+                {
+                    if (300 > this.m_width - Math.round(dx))
+                    {
+                        var new_dx = this.m_width - 300;
+                        this.mouse_x = event.offsetX - (Math.round(dx) - new_dx);
+                        dx = new_dx;
+                    }
+                    this.m_width -= Math.round(dx);
+                    this.m_pos_x += Math.round(dx);
+                }
+                if (this.e_grow)
+                {
+                    if (300 > this.m_width + Math.round(dx))
+                    {
+                        var new_dx = 300 - this.m_width;
+                        this.mouse_x = event.offsetX - (Math.round(dx) - new_dx);
+                        dx = new_dx;
+                    }
+                    this.m_width += Math.round(dx);
+                    this.close.x += Math.round(dx);
+                }
+
+                if (this.n_grow ||
+                    this.s_grow ||
+                    this.e_grow ||
+                    this.w_grow)
+                {
+                    return true;
+                }
+
+                this.m_pos_x += Math.round(dx);
+                this.m_pos_y += Math.round(dy);
+                this.close.x += Math.round(dx);
+                this.close.y += Math.round(dy);
+                return true;
+            }
+            else
+            {
+                if (event.offsetX >= this.m_pos_x &&
+                    event.offsetX <= this.m_pos_x + this.m_width &&
+                    event.offsetY >= this.m_pos_y &&
+                    event.offsetY <= this.m_pos_y + this.m_height)
+                {
+                    if (this.close.handleMouseDown(event))
+                    {
+                        this.close_highlighted = true;
+                        g_canvas.style.cursor = "default";
+                        return true;
+                    }
+                    else
+                    {
+                        this.close_highlighted = false;
+                    }
+
+                    this.n_grow = false;
+                    this.s_grow = false;
+                    this.e_grow = false;
+                    this.w_grow = false;
+
+                    if (event.offsetY < this.m_pos_y + 6)
+                    {
+                        this.n_grow = true;
+                    }
+                    if (event.offsetY > this.m_pos_y + this.m_height - 6)
+                    {
+                        this.s_grow = true;
+                    }
+                    if (event.offsetX < this.m_pos_x + 6)
+                    {
+                        this.w_grow = true;
+                    }
+                    if (event.offsetX > this.m_pos_x + this.m_width - 6)
+                    {
+                        this.e_grow = true;
+                    }
+                    if (this.setCursorForResize())
+                    {
+                        return true;
+                    }
+
+                    if (event.offsetY > this.m_pos_y + this.m_banner_height)
+                    {
+                        g_canvas.style.cursor = "text";
+                        return true;
+                    }
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        this.handleMouseUp = function (event)
         {
-          return;
+            this.selected = false;
+            this.mouse_x = null;
+            this.mouse_y = null;
+        };
+
+        this.paintStringRows = function (string)
+        {
+            return Math.ceil(string.length / this.cols);
+        };
+
+        this.paintString = function (ctx, string, number_of_rows, row_offset)
+        {
+            var rows = this.paintStringRows(string);
+            var start_char = 0;
+            if (rows > number_of_rows)
+            {
+                start_char = (rows - number_of_rows) * this.cols;
+                rows = this.rows
+            }
+            for (var i = 0; i < rows; i++)
+            {
+                ctx.fillText(string.substring(i * this.cols + start_char, (i + 1) * this.cols + start_char), this.m_pos_x + 5, this.m_pos_y + this.m_banner_height + 5 + (i + row_offset + .5) * this.m_text_height);
+            }
+        };
+
+        this.decorate_input_string = function ()
+        {
+            this.input_line = "> ";
+            var cursor = "_";
+            if (!this.accept_input)
+            {
+                this.input_line = "";
+                cursor = "";
+            }
+            else if (this.focus && this.accept_input && !this.cursor)
+            {
+                cursor = " ";
+            }
+            this.input_line += this.string + cursor;
+            this.input_rows = this.paintStringRows(this.input_line);
+        };
+
+        this.paintAllStrings = function (ctx)
+        {
+            var rows_to_draw = [];
+            var total_rows = 0;
+
+            var new_rows = this.input_rows;
+            if (total_rows + new_rows > this.rows)
+            {
+                rows_to_draw.push(this.rows - total_rows);
+            }
+            else
+            {
+                rows_to_draw.push(new_rows);
+            }
+            total_rows += new_rows;
+            for (var i = this.string_history.length - 1; i >= 0 && total_rows < this.rows; i--)
+            {
+                new_rows = this.paintStringRows(this.string_history[i]);
+                if (total_rows + new_rows > this.rows)
+                {
+                    rows_to_draw.push(this.rows - total_rows);
+                }
+                else
+                {
+                    rows_to_draw.push(new_rows);
+                }
+                total_rows += new_rows;
+            }
+            var current_row = 0;
+            for (var i = rows_to_draw.length - 1; i >= 0; i--)
+            {
+                if (i === 0)
+                {
+                    //draw_string
+                    this.paintString(ctx, this.input_line, rows_to_draw[i], current_row)
+                }
+                else
+                {
+                    this.paintString(ctx, this.string_history[this.string_history.length - i], rows_to_draw[i], current_row)
+                }
+                current_row += rows_to_draw[i];
+            }
+        };
+
+        this.handleTimeStep = function ()
+        {
+            this.clock++;
+            if (this.clock > this.clock_cycle)
+            {
+                this.cursor = !this.cursor;
+                this.clock = 0;
+            }
+            this.decorate_input_string();
+            this.run_context.handleTimeStep();
+            if (!this.active)
+            {
+                this.run_context.handleClose();
+            }
+        };
+
+        this.paint = function (ctx)
+        {
+            ctx.lineWidth = 1;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.fillRect(
+                this.m_pos_x, this.m_pos_y,
+                this.m_width, this.m_height);
+            ctx.fillStyle = "rgba(192,192,192, 1)";
+            ctx.fillRect(
+                this.m_pos_x, this.m_pos_y,
+                this.m_width, this.m_banner_height);
+            ctx.fillStyle = "rgba(32,32,32, 1)";
+            ctx.strokeRect(
+                this.m_pos_x, this.m_pos_y,
+                this.m_width, this.m_height);
+            ctx.font = this.m_font;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            if (this.focus)
+            {
+                ctx.fillStyle = "black";
+                this.close.color = "black";
+            }
+            else
+            {
+                ctx.fillStyle = "grey";
+                this.close.color = "grey";
+            }
+            this.rows = Math.floor((this.m_height - 10 - this.m_banner_height) / this.m_text_height);
+            var text_width = ctx.measureText("w").width;
+            this.cols = Math.floor((this.m_width - 10) / text_width);
+
+            ctx.fillText(
+                this.m_name,
+                this.m_pos_x + 5,
+                this.m_pos_y + this.m_banner_height / 2
+            );
+            if (this.close_highlighted)
+            {
+                this.close.drawHighlight(ctx, "rgba(192,0,0,1)");
+                this.close.color = "white";
+            }
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "rgba(192,192,192, 1)";
+
+            this.paintAllStrings(ctx);
+            /*
+            for(var i = 1; i < this.rows; i++)
+            {
+              ctx.fillText(""+i%10, this.m_pos_x+5, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2 + i * this.m_text_height);
+            }
+            for(var i = 4; i < this.cols; i++)
+            {
+              ctx.fillText(""+i%10, this.m_pos_x + 5 + i * text_width, this.m_pos_y + this.m_banner_height + 5 + this.m_text_height/2);
+            }
+            */
+            this.close.paint(ctx);
+        };
+    };
+
+    //##########################################################################
+    var GameOver = {
+        init: function ()
+        {
+        },
+        reset: function ()
+        {
+            this.fadeTimer = 0;
+            this.textTimerLimit = 140;
+            this.textTimer = 0;
+            this.cursorTimer = 0;
+            this.otherScreen = null;
+        },
+        handleTimeStep: function ()
+        {
+            if (this.fadeTimer < 100)
+            {
+                this.fadeTimer++;
+            }
+
+            if (this.textTimer < this.textTimerLimit)
+            {
+                this.textTimer++;
+            }
+
+            this.cursorTimer++;
+            //switchToScreen(GameScreen);
+        },
+        paint: function ()
+        {
+            this.otherScreen.paint();
+            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.fillStyle = "rgba(255,255,255," + this.fadeTimer / 100 + ")";
+            //alert(g_ctx.fillStyle);
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+            g_ctx.textAlign = "center";
+            g_ctx.textBaseline = "middle";
+            g_ctx.font = "120px " + g_font;
+            g_ctx.fillStyle = "rgba(0,192,0," + (this.textTimer / this.textTimerLimit) + ")";
+            var game_over = "> game over";
+            var text = game_over.substring(0, Math.round(this.textTimer / this.textTimerLimit * game_over.length));
+            if (Math.floor(this.cursorTimer / 10) % 2)
+            {
+                text += "_"
+            }
+            else
+            {
+                text += " ";
+            }
+            g_ctx.fillText(text, g_canvas.width / 2 + Math.random() * 3, g_canvas.height / 2);
+            g_ctx.fillStyle = "rgba(192,0,0," + (this.textTimer / 200) + ")";
+            g_ctx.fillText(text, g_canvas.width / 2 - Math.random() * 3, g_canvas.height / 2);
+            g_ctx.fillStyle = "rgba(92,92,92," + (this.textTimer / 200) + ")";
+            g_ctx.fillText(text, g_canvas.width / 2, g_canvas.height / 2);
         }
-      }
-    },
-    handleGameOver: function ()
+    };
+
+    //##########################################################################
+    var GameScreen = {
+
+        init: function ()
+        {
+            this.reset();
+        },
+
+        reset: function ()
+        {
+            //this.icon = []
+            this.cmd_button = new TextLabelWithBoundingBox([">"], 0, 0, 70, "black", 70);
+            this.window = []; //new CmdWindow(35,35,300,200);
+            this.rumble = false;
+            this.ai_threads = [];
+            this.os = new PacsiOs();
+            this.os.reset();
+            for (var i = 0; i < 3; i++)
+            {
+                var ai_thread_context = new RunContext(null, this.os);
+                this.ai_threads.push(ai_thread_context);
+                ai_thread_context.current_program_pid = this.os.registerProgram(null, "ai_worker_thread", ai_thread_context);
+            }
+        },
+
+        handleMouseDown: function (event)
+        {
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (this.window[i].handleMouseDown(event))
+                {
+                    var window_to_move = this.window[i];
+                    this.window.splice(i, 1);
+                    this.window.push(window_to_move);
+                    //window_to_move.focus = true;
+                    return;
+                }
+            }
+            if (this.cmd_button.handleMouseDown(event))
+            {
+                var offset = this.window.length;
+                this.window.push(new CmdWindow(this.os, 35 + offset * 35, 35 + offset * 35, 500, 300));
+            }
+        },
+        handleMouseMove: function (event)
+        {
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (this.window[i].handleMouseMove(event))
+                {
+                    return;
+                }
+            }
+            g_canvas.style.cursor = "default";
+        },
+        handleMouseUp: function (event)
+        {
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (this.window[i].handleMouseUp(event))
+                {
+                    return;
+                }
+            }
+        },
+        handleKeyDown: function (event)
+        {
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (this.window[i].handleKeyDown(event))
+                {
+                    return;
+                }
+            }
+        },
+        handleKeyUp: function (event)
+        {
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (this.window[i].handleKeyUp(event))
+                {
+                    return;
+                }
+            }
+        },
+        handleGameOver: function ()
+        {
+            this.rumble = true;
+            switchToScreen(GameOver);
+            g_current_screen.otherScreen = GameScreen;
+        },
+        handleTimeStep: function ()
+        {
+            for (ai_thread in this.ai_threads)
+            {
+                if (!this.os.checkRunning(this.ai_threads[ai_thread].current_program_pid))
+                {
+                    this.handleGameOver();
+                    return;
+                }
+            }
+            if (false && Math.random() < .01)
+            {
+                var offset = this.window.length;
+                this.window.unshift(new CmdWindow(this.os, 35 + offset * 35, 35 + offset * 35, 300, 200));
+                this.window[0].focus = false;
+                this.window[0].run_context.handleInput("killall");
+                //this.rumble = true;
+            }
+            for (var i = this.window.length - 1; i >= 0; i--)
+            {
+                if (!this.window[i].active)
+                {
+                    this.window[i].handleTimeStep();
+                    this.window.splice(i, 1);
+                }
+                else
+                {
+                    this.window[i].handleTimeStep();
+                }
+            }
+        },
+        paint: function ()
+        {
+            var dx = 0;
+            var dy = 0;
+            if (this.rumble)
+            {
+                dx = Util.randomItem([-1, 0, 1]);
+                dy = Util.randomItem([-1, 0, 1]);
+            }
+            g_ctx.setTransform(1, 0, 0, 1, dx, dy);
+
+            g_ctx.fillStyle = "#f0f0f0";
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+            g_ctx.drawImage(GraphicComponents.m_bg, 0, 0, g_canvas.width,
+                g_canvas.height);
+            g_ctx.fillStyle = "black";
+            g_ctx.textBaseline = "middle";
+            g_ctx.textAlign = "center";
+            this.textHeight = Math.round(12);
+            g_ctx.font = this.textHeight + "px " + g_font;
+            //g_ctx.fillText(this.frame+" frames",g_canvas.width/2,g_canvas.height/2);
+            //this.cmd_button.paint(g_ctx);
+            g_ctx.drawImage(GraphicComponents.m_icon, this.cmd_button.x + 5, this.cmd_button.y + 5, 60, 60);
+            for (var i = 0; i < this.window.length; i++)
+            {
+                this.window[i].paint(g_ctx);
+            }
+        }
+    };
+
+    //##########################################################################
+
+    //--------------------------------------------------------------------------
+    var ResourceTracker = {
+        m_added: 1, // I track myself loading
+        m_loaded: 0,
+        m_layout: null,
+
+        //----------------------------------------------------------------------
+        // from Screen
+        init: function ()
+        {
+            this.onload(null); //and here I'm loaded
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        reset: function ()
+        {
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        handleTimeStep: function ()
+        {
+            if (this.m_loaded === this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        // from Screen
+        paint: function ()
+        {
+            g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // paint the background
+            g_ctx.fillStyle = "rgb(255, 255, 255)";
+            g_ctx.fillRect(
+                0, 0,
+                g_canvas.width,
+                g_canvas.height);
+
+            g_ctx.font = "Bold 80px " + g_font;
+            g_ctx.fillStyle = "rgb(92, 92, 92)";
+            g_ctx.textAlign = "center";
+            g_ctx.textBaseline = "middle";
+            g_ctx.fillText(
+                Math.floor(100 * this.m_loaded / this.m_added) + "%",
+                g_canvas.width / 2,
+                g_canvas.height / 2
+            );
+        },
+
+
+        //----------------------------------------------------------------------
+        add: function ()
+        {
+            ++this.m_added;
+        },
+
+        //----------------------------------------------------------------------
+        // from Image.onload
+        onload: function (event)
+        {
+            ++this.m_loaded;
+            if (this.m_loaded === this.m_added)
+            {
+                this.onAllLoaded();
+            }
+        },
+
+        //----------------------------------------------------------------------
+        onAllLoaded: function ()
+        {
+            switchToScreen(GameScreen);
+        }
+    };
+
+    //--------------------------------------------------------------------------
+    var AudioComponents = {};
+
+    //##########################################################################
+    // game engine
+
+    //--------------------------------------------------------------------------
+    function resizeCanvas()
     {
-      this.rumble = true;
-      switchToScreen(GameOver);
-      g_current_screen.otherScreen = GameScreen;
-    },
-    handleTimeStep: function ()
-    {
-      for(ai_thread in this.ai_threads)
-      {
-        if(!this.os.checkRunning(this.ai_threads[ai_thread].current_program_pid))
+        g_canvas.width = Math.max(500, window.innerWidth);
+        g_canvas.height = Math.max(300, window.innerHeight);
+        if (g_current_screen)
         {
-          this.handleGameOver();
-          return;
+            g_current_screen.paint(g_ctx);
         }
-      }
-      if(false && Math.random() < .01)
-      {
-        var offset = this.window.length;
-        this.window.unshift(new CmdWindow(this.os, 35 + offset * 35,35 + offset * 35,300,200));
-        this.window[0].focus = false;
-        this.window[0].run_context.handleInput("killall");
-        //this.rumble = true;
-      }
-      for (var i = this.window.length - 1; i >= 0; i--)
-      {
-        if(!this.window[i].active)
+    }
+
+    var GraphicComponents = {
+        m_bg: Util.loadImage("assets/backgrounds/a_distant_memory.png",
+            ResourceTracker),
+        m_icon: Util.loadImage("assets/icons/ICO_console.png", ResourceTracker)
+    };
+
+    //--------------------------------------------------------------------------
+    function init()
+    {
+        //Canvas stuff
+        g_canvas = document.getElementById("canvas");
+        g_ctx = g_canvas.getContext("2d");
+        g_font = "Lucida Console";
+
+        g_canvas.addEventListener("mousedown", function (event)
         {
-          this.window[i].handleTimeStep();
-          this.window.splice(i,1);
+            if (g_current_screen.handleMouseDown)
+            {
+                g_current_screen.handleMouseDown(event);
+            }
+        }, false);
+
+        g_canvas.addEventListener("mouseup", function (event)
+        {
+            if (g_current_screen.handleMouseUp)
+            {
+                g_current_screen.handleMouseUp(event);
+            }
+        }, false);
+
+        g_canvas.addEventListener("mouseleave", function (event)
+        {
+            if (g_current_screen.handleMouseUp)
+            {
+                g_current_screen.handleMouseUp(event);
+            }
+        }, false);
+
+        g_canvas.addEventListener("mouseout", function (event)
+        {
+            if (g_current_screen.handleMouseUp)
+            {
+                g_current_screen.handleMouseUp(event);
+            }
+        }, false);
+
+        g_canvas.addEventListener("mousemove", function (event)
+        {
+            if (g_current_screen.handleMouseMove)
+            {
+                g_current_screen.handleMouseMove(event);
+            }
+        }, false);
+
+        document.addEventListener("keydown", function (event)
+        {
+            if (g_current_screen.handleKeyDown)
+            {
+                g_current_screen.handleKeyDown(event);
+            }
+        }, false);
+
+        document.addEventListener("keyup", function (event)
+        {
+            if (g_current_screen.handleKeyUp)
+            {
+                g_current_screen.handleKeyUp(event);
+            }
+        }, false);
+
+        window.addEventListener('resize', resizeCanvas, false);
+        resizeCanvas();
+
+        // can't do this until you've set up canvas_width and canvas_height
+        //ResourceTracker init must be called after all requests to
+        //loadImage/loadAudio
+        ResourceTracker.init();
+        GameScreen.init();
+        GameOver.init();
+
+        switchToScreen(GameScreen);
+
+        // start processing events
+        setTimeout(eventLoop, 40);
+    }
+
+    //--------------------------------------------------------------------------
+    function switchToScreen(screen)
+    {
+        screen.reset();
+        g_current_screen = screen;
+    }
+
+    //--------------------------------------------------------------------------
+    function eventLoop()
+    {
+        var start_time = Date.now();
+
+        g_current_screen.handleTimeStep();
+        g_current_screen.paint(g_ctx);
+
+        var end_time = Date.now();
+        var comp_time = end_time - start_time;
+        if (comp_time > 40 || comp_time < 0)
+        {
+            setTimeout(eventLoop, 0);
         }
         else
         {
-          this.window[i].handleTimeStep();
+            setTimeout(eventLoop, 40 - comp_time);
         }
-      }
-    },
-    paint: function () {
-      var dx = 0;
-      var dy = 0;
-      if(this.rumble)
-      {
-        dx = Util.randomItem([-1,0,1]);
-        dy = Util.randomItem([-1,0,1]);
-      }
-      g_ctx.setTransform(1, 0, 0, 1, dx, dy);
-
-      g_ctx.fillStyle = "#f0f0f0";
-      g_ctx.fillRect(
-        0, 0,
-        g_canvas.width,
-        g_canvas.height);
-      g_ctx.drawImage(GraphicComponents.m_bg,0,0,g_canvas.width,
-        g_canvas.height);
-      g_ctx.fillStyle = "black";
-      g_ctx.textBaseline="middle";
-      g_ctx.textAlign="center";
-      this.textHeight = Math.round(12);
-      g_ctx.font = this.textHeight + "px " + g_font;
-      //g_ctx.fillText(this.frame+" frames",g_canvas.width/2,g_canvas.height/2);
-      //this.cmd_button.paint(g_ctx);
-      g_ctx.drawImage(GraphicComponents.m_icon,this.cmd_button.x + 5,this.cmd_button.y + 5, 60, 60);
-      for (var i = 0; i < this.window.length; i++)
-      {
-        this.window[i].paint(g_ctx);
-      }
     }
-};
 
-//##########################################################################
-
-//--------------------------------------------------------------------------
-var ResourceTracker = {
-    m_added: 1, // I track myself loading
-    m_loaded: 0,
-    m_layout: null,
-
-    //----------------------------------------------------------------------
-    // from Screen
-    init: function ()
-    {
-        this.onload(null); //and here I'm loaded
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    reset: function ()
-    {},
-
-    //----------------------------------------------------------------------
-    // from Screen
-    handleTimeStep: function ()
-    {
-      if (this.m_loaded === this.m_added)
-      {
-        this.onAllLoaded();
-      }
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    paint: function ()
-    {
-        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // paint the background
-        g_ctx.fillStyle = "rgb(255, 255, 255)";
-        g_ctx.fillRect(
-            0, 0,
-            g_canvas.width,
-            g_canvas.height);
-
-        g_ctx.font="Bold 80px " + g_font;
-        g_ctx.fillStyle = "rgb(92, 92, 92)";
-        g_ctx.textAlign = "center";
-        g_ctx.textBaseline = "middle";
-        g_ctx.fillText(
-            Math.floor(100 * this.m_loaded / this.m_added) + "%",
-            g_canvas.width / 2,
-            g_canvas.height / 2
-        );
-    },
-
-
-    //----------------------------------------------------------------------
-    add: function ()
-    {
-        ++this.m_added;
-    },
-
-    //----------------------------------------------------------------------
-    // from Image.onload
-    onload: function (event)
-    {
-        ++this.m_loaded;
-        if (this.m_loaded === this.m_added)
-        {
-            this.onAllLoaded();
-        }
-    },
-
-    //----------------------------------------------------------------------
-    onAllLoaded: function ()
-    {
-        switchToScreen(GameScreen);
-    }
-};
-
-//--------------------------------------------------------------------------
-var AudioComponents = {
-};
-
-//##########################################################################
-// game engine
-
-//--------------------------------------------------------------------------
-function resizeCanvas()
-{
-  g_canvas.width = Math.max(500,window.innerWidth);
-  g_canvas.height = Math.max(300,window.innerHeight);
-  if (g_current_screen)
-  {
-    g_current_screen.paint(g_ctx);
-  }
-}
-
-var GraphicComponents = {
-  m_bg: Util.loadImage("assets/backgrounds/a_distant_memory.png",
-    ResourceTracker),
-  m_icon: Util.loadImage("assets/icons/ICO_console.png",ResourceTracker)
-};
-
-//--------------------------------------------------------------------------
-function init()
-{
-    //Canvas stuff
-    g_canvas = document.getElementById("canvas");
-    g_ctx = g_canvas.getContext("2d");
-    g_font = "Lucida Console";
-
-    g_canvas.addEventListener("mousedown", function (event) {
-      if(g_current_screen.handleMouseDown)
-      {
-        g_current_screen.handleMouseDown(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseup", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseleave", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseout", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mousemove", function (event) {
-      if(g_current_screen.handleMouseMove)
-      {
-        g_current_screen.handleMouseMove(event);
-      }
-    }, false);
-
-    document.addEventListener("keydown", function (event) {
-      if(g_current_screen.handleKeyDown)
-      {
-        g_current_screen.handleKeyDown(event);
-      }
-    }, false);
-
-    document.addEventListener("keyup", function (event) {
-      if(g_current_screen.handleKeyUp)
-      {
-        g_current_screen.handleKeyUp(event);
-      }
-    }, false);
-    
-    window.addEventListener('resize', resizeCanvas, false);
-    resizeCanvas();
-
-    // can't do this until you've set up canvas_width and canvas_height
-    //ResourceTracker init must be called after all requests to
-    //loadImage/loadAudio
-    ResourceTracker.init();
-    GameScreen.init();
-    GameOver.init();
-    
-    switchToScreen(GameScreen);
-
-    // start processing events
-    setTimeout(eventLoop, 40);
-}
-
-//--------------------------------------------------------------------------
-function switchToScreen(screen)
-{
-    screen.reset();
-    g_current_screen = screen;
-}
-
-//--------------------------------------------------------------------------
-function eventLoop()
-{
-    var start_time = Date.now();
-
-    g_current_screen.handleTimeStep();
-    g_current_screen.paint(g_ctx);
-
-    var end_time = Date.now();
-    var comp_time = end_time - start_time;
-    if (comp_time > 40 || comp_time < 0) {
-        setTimeout(eventLoop, 0);
-    }
-    else
-    {
-        setTimeout(eventLoop, 40 - comp_time);
-    }
-}
-
-// launch the game once the document is fully loaded
-window.addEventListener("load", init);
+    // launch the game once the document is fully loaded
+    window.addEventListener("load", init);
 
 </script>
 </body>
