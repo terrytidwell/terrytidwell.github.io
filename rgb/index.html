@@ -281,7 +281,7 @@ var GameScreen = {
         this.mobs.push(
           {x:Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
           y:Math.round(Math.random()*g_canvas.height * 2 - g_canvas.height),
-          state:Util.randomItem([1,-1]),
+          state:4,//Util.randomItem([1,-1]),
           stateTimer:2000,
           color:"white"}
         );
@@ -301,6 +301,7 @@ var GameScreen = {
       this.right = false;
       this.firing = false;
       this.capacity = 300;
+      this.firingCooldown = 0;
     },
     
     circleLineInstersect: function(ex,ey,lx,ly,cx,cy,r)
@@ -355,8 +356,8 @@ var GameScreen = {
       var length = Math.sqrt(dx * dx + dy * dy);
       if(length > 0)
       {
-        dx = Math.round(10 * dx / length);
-        dy = Math.round(10 * dy / length);
+        dx = Math.round(newLength * dx / length);
+        dy = Math.round(newLength * dy / length);
       }
       return [dx,dy];
     },
@@ -514,46 +515,72 @@ var GameScreen = {
         }
       }
       this.mobs = tempMobs;
+
+      if(this.firingCooldown > 0)
+      {
+        this.firingCooldown--;
+      }
       
       if(this.firing)
       {
-        if(this.capacity > 5)
+        if(this.firingCooldown === 0)
         {
-          var endX = this.facingX - 0;
-          var endY = this.facingY - 0;
-          var newShot = 
-            {x1:this.playerX+this.facingX+endX*0,
-            y1:this.playerY+this.facingY+endY*0,
-            x2:this.playerX+this.facingX+endX*100,
-            y2:this.playerY+this.facingY+endY*100,
-            ttl:250}
-          this.shots.push(newShot);
-          for(mob in this.mobs)
+          if(this.capacity > 5)
           {
-            if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+            var endX = this.facingX - 0;
+            var endY = this.facingY - 0;
+            var newShot = 
+              {x1:this.playerX+this.facingX+endX*0,
+              y1:this.playerY+this.facingY+endY*0,
+              x2:this.playerX+this.facingX+endX*100,
+              y2:this.playerY+this.facingY+endY*100,
+              ttl:250}
+            
+            this.debris.push({x:newShot.x1,y:newShot.y1,dx:-endY*Math.random(),dy:endX*Math.random()})
+            var currentDistance = this.radius * 100;
+            var currentCollision = null;
+            for(mob in this.mobs)
             {
-              this.mobs[mob].state = 5;
+              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+              {
+                var newDist = Math.sqrt((newShot.x1 - this.mobs[mob].x)*(newShot.x1 - this.mobs[mob].x)+(newShot.y1 - this.mobs[mob].y)*(newShot.y1 - this.mobs[mob].y));
+                if(newDist < currentDistance)
+                {
+                  currentDistance = newDist;
+                  currentCollision = this.mobs[mob];
+                }
+              }
+            }
+
+            if(currentCollision)
+            {
+              currentCollision.state = 5;
               for(var i = 0; i < 17; i++)
               {
                 dx = Math.random() * this.radius/2;
                 dy = Math.random() * this.radius/2;
-                this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy})
+                this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy})
               }
             }
+            this.playerX -= endX * .1;
+            this.playerY -= endY * .1;
+            
+            var dv = this.scaleVector(endX,endY,currentDistance);
+            newShot.x2 = this.playerX+this.facingX+dv[0];
+            newShot.y2 = this.playerY+this.facingY+dv[1];
+            this.shots.push(newShot);
+            this.firingCooldown = 2;
           }
-          this.playerX -= endX * .5;
-          this.playerY -= endY * .5;
-        }
-        if(this.capacity > 0)
-        {
-          this.capacity -= 5;
-          if(this.capacity < 0)
+          
+          if(this.capacity > 0)
           {
-            this.capacity = 0;
+            this.capacity -= 5;
+            if(this.capacity < 0)
+            {
+              this.capacity = 0;
+            }
           }
         }
-        
-        
       }
       if(!this.firing)
       {
@@ -584,7 +611,7 @@ var GameScreen = {
         
         if(this.firing && this.capacity > 5)
         {
-          var rumbleSize = 40;
+          var rumbleSize = 10;
           rumbleX = Math.random()*rumbleSize - rumbleSize/2;
           rumbleY = Math.random()*rumbleSize - rumbleSize/2;
         }
