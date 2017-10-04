@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+</head>
+<body>
+<canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
+    
+<script>
+//##########################################################################
+// The game
+//
+
+var g_canvas;
+var g_ctx;
+var g_current_screen;
+var g_font;
+
+var PHI = 1.61803398875;
+var INVERSE_PHI = 0.61803398875;
+
+//--------------------------------------------------------------------------
+const Util = {
+
+    //----------------------------------------------------------------------
+    forEach: function (obj, fn)
+    {
+        var key;
+        for (key in obj)
+        {
+            if (obj.hasOwnProperty(key))
+            {
+                fn(obj[key]);
+            }
+        }
+    },
+
+    //----------------------------------------------------------------------
+    randomItem: function (arr)
+    {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    //----------------------------------------------------------------------
+    shuffle: function (arr)
+    {
+        var current_index = arr.length, temp, random_index;
+        while (0 != current_index)
+        {
+            // Pick a remaining element.
+            random_index = Math.floor(Math.random() * current_index);
+            current_index -= 1;
+
+            // And swap it with the current element.
+            temp = arr[current_index];
+            arr[current_index] = arr[random_index];
+            arr[random_index] = temp;
+        }
+        return arr;
+    },
+
+    //----------------------------------------------------------------------
+    loadImage: function (url, resource_tracker)
+    {
+        var image = new Image();
+        resource_tracker.add();
+        image.onload = function (event) {
+            resource_tracker.onload(event);
+        };
+        image.src = url;
+        return image;
+    },
+
+    //----------------------------------------------------------------------
+    loadAudio: function (url, resource_tracker)
+    {
+        var audio = new buzz.sound(
+          url, {
+          //formats: [ "wav" ],
+          preload: true,
+          autoplay: false,
+          loop: false
+        });
+        resource_tracker.add();
+        audio.bindOnce("canplay", function (event) {
+            resource_tracker.onload(event)
+        });
+        return audio;
+    }
+};
+
+var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
+{
+  
+  this.x = x;
+  this.y = y;
+  this.size = size;
+  this.height = size * text.length;
+  this.width = width;
+  this.inner_size = Math.round(6 * this.size/7);
+  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.inner_width = this.width - this.offset * 2;
+  this.inner_height = this.height - this.offset * 2;
+  this.color = "black"
+  this.font_size = Math.round(INVERSE_PHI * size);
+  this.textLabel = [];
+  for (var i = 0; i < text.length; i++)
+  {
+    this.textLabel.push(new TextLabel(text[i], x + this.width/2, Math.round(y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
+  }
+  
+  this.paint = function(ctx)
+  {
+    //var width = this.textLabel.text_size;
+    ctx.lineJoin ="round";
+    ctx.lineWidth = Math.round(this.size / (10*PHI));
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    for (var i = 0; i < this.textLabel.length; i++)
+    {
+      this.textLabel[i].paint(ctx);
+    }
+  };
+  
+  this.handleMouseDown = function(event)
+  {
+      if(event.offsetX >= this.x &&
+        event.offsetX <= this.x + this.width &&
+        event.offsetY >= this.y &&
+        event.offsetY <= this.y + this.height)
+      {
+        return true;
+      }
+  };
+}
+
+var VerticalLabelBaselineEnum = {
+  TOP: 0,
+  MIDDLE: 1,
+  BOTTOM: 2,
+  properties: {
+    0: { textBaseline: "top" },
+    1: { textBaseline: "middle" },
+    2: { textBaseline: "bottom" },
+  }
+};
+
+
+var HorizontalLabelAlignEnum = {
+  LEFT: 0,
+  CENTER: 1,
+  RIGHT: 2,
+  properties: {
+    0: { textAlign: "left" },
+    1: { textAlign: "center" },
+    2: { textAlign: "right" },
+  }
+};
+
+var TextLabel = function(text, x, y, color, alignment, baseline, size)
+{
+  this.size = size;
+  this.alignment = alignment;
+  this.baseline = baseline;
+  this.x = x;
+  this.y = y;
+  this.text_size = 0;
+  this.color = color;
+  this.text = text;
+  
+  this.getCurrentBounds = function()
+  {
+    var ret_val = {};
+    switch (this.alignment)
+    {
+      case HorizontalLabelAlignEnum.LEFT:
+        ret_val.min_x = this.x;
+        ret_val.max_x = this.x + this.text_size;
+        break;
+      case HorizontalLabelAlignEnum.RIGHT:
+        ret_val.min_x = this.x - this.text_size;
+        ret_val.max_x = this.x;
+        break;
+      case HorizontalLabelAlignEnum.CENTER:
+        ret_val.min_x = this.x - this.text_size / 2;
+        ret_val.max_x = this.x + this.text_size / 2;
+        break;
+      default:
+    }
+    
+    switch (this.baseline)
+    {
+      case VerticalLabelBaselineEnum.TOP:
+        ret_val.min_y = this.y;
+        ret_val.max_y = this.y + this.size;
+        break;
+      case VerticalLabelBaselineEnum.BOTTOM:
+        ret_val.min_y = this.y - this.size;
+        ret_val.max_y = this.y;
+        break;
+      case VerticalLabelBaselineEnum.MIDDLE:
+        ret_val.min_y = this.y - this.size / 2;
+        ret_val.max_y = this.y + this.size / 2;
+        break;
+      default:
+    }
+    
+    return ret_val;
+  }
+  
+  this.handleMouseDown = function (event) 
+  {
+    var dim = this.getCurrentBounds();
+    if (event.offsetX < dim.min_x || event.offsetX > dim.max_x)
+    {
+      return false;
+    }
+    
+    if (event.offsetY < dim.min_y || event.offsetY > dim.max_y)
+    {
+      return false;
+    }
+
+    return true;
+  },
+  
+  this.paint = function(ctx)
+  {
+    ctx.font = Math.round(size) + "px " + g_font;
+    this.text_size = ctx.measureText(this.text).width;
+    ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
+    ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
+    ctx.fillStyle = this.color;
+    ctx.fillText(this.text, this.x, this.y);
+  }
+  
+  this.drawHighlight = function(ctx, color)
+  {
+    var dim = this.getCurrentBounds();
+    ctx.fillStyle = color;
+    ctx.fillRect(dim.min_x, dim.min_y, dim.max_x - dim.min_x, dim.max_y - dim.min_y);
+  }
+};
+
+var Timer = function(timer, callback, parameter)
+{
+  this.current_time = timer;
+  this.callback = callback;
+  this.parameter = parameter;
+  this.handleTimeStep = function()
+  {
+    this.current_time--;
+    if(this.current_time <= 0)
+    {
+      callback(this.parameter);
+    }
+
+  };
+  this.checkPulse = function(){
+        return this.current_time > 0;
+  };
+};
+
+//##########################################################################
+var GameScreen = {
+
+    init: function () {
+      this.reset();
+    },
+    
+    reset: function () {
+      this.mobs = [];
+      for(var i = 0; i < 10; i++)
+      {
+        this.mobs.push(
+          {x:Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
+          y:Math.round(Math.random()*g_canvas.height * 2 - g_canvas.height),
+          state:Util.randomItem([1,-1]),
+          stateTimer:2000,
+          color:"white"}
+        );
+      }
+      this.debris = [];
+      this.shots = [];
+      this.radius = 15;
+      this.mouseX = 0;
+      this.mouseY = -this.radius;
+      this.facingX = 0;
+      this.facingY = -this.radius;
+      this.playerX = 0;
+      this.playerY = 0;
+      this.up = false;
+      this.down = false;
+      this.left = false;
+      this.right = false;
+      this.firing = false;
+      this.capacity = 300;
+    },
+    
+    circleLineInstersect: function(ex,ey,lx,ly,cx,cy,r)
+    {
+      //https://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
+      var dx = lx - ex;
+      var dy = ly - ey;
+      var fx = ex - cx;
+      var fy = ey - cy;
+      var a = dx * dx + dy * dy;
+      var b = 2 * (fx * dx + fy * dy)
+      var c = (fx * fx + fy * fy)- (r * r);
+      var discriminant = b*b-4*a*c;
+      if (discriminant < 0)
+      {
+        return false;
+      }
+      
+      discriminant = Math.sqrt(discriminant);
+      var t1 = (-b - discriminant)/(2*a);
+      var t2 = (-b + discriminant)/(2*a);
+      
+      // 3x HIT cases:
+      //          -o->             --|-->  |            |  --|->
+      // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
+
+      // 3x MISS cases:
+      //       ->  o                     o ->              | -> |
+      // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
+
+      if( t1 >= 0 && t1 <= 1 )
+      {
+        // t1 is the intersection, and it's closer than t2
+        // (since t1 uses -b - discriminant)
+        // Impale, Poke
+        return true ;
+      }
+
+      // here t1 didn't intersect so we are either started
+      // inside the sphere or completely past it
+      if( t2 >= 0 && t2 <= 1 )
+      {
+        // ExitWound
+        return true ;
+      }
+      
+      return false;
+    },
+    
+    scaleVector: function(dx,dy,newLength)
+    {
+      var length = Math.sqrt(dx * dx + dy * dy);
+      if(length > 0)
+      {
+        dx = Math.round(10 * dx / length);
+        dy = Math.round(10 * dy / length);
+      }
+      return [dx,dy];
+    },
+    
+    handleMouseDown: function (event) {
+      this.firing = true;
+    },
+    
+    handleMouseMove: function (event) {
+      this.mouseX = event.offsetX;
+      this.mouseY = event.offsetY;
+    },
+    
+    handleMouseUp: function (event) {
+      this.keyMap(false);
+      this.firing = false;
+    },
+    
+    keyMap: function (value)
+    {
+      switch(event.keyCode)
+      {
+        case 87: //w
+          this.up = value;
+          break;
+        case 65: //a
+          this.left = value;
+          break;
+        case 68: //d
+          this.right = value;
+          break;
+        case 83: //s
+          this.down = value;
+          break;
+      }
+    },
+    
+    handleKeyDown: function (event) {
+      this.keyMap(true);
+    },
+    
+    handleKeyUp: function (event) {
+      this.keyMap(false);
+    },
+    
+    handleTimeStep: function ()
+    {
+      var dx = 0;
+      var dy = 0;
+      if(this.up && !this.down)
+      {
+        dy = -10;
+      }
+      if(!this.up && this.down)
+      {
+        dy = 10;
+      }
+      if(!this.left && this.right)
+      {
+        dx = 10;
+      }
+      if(this.left && !this.right)
+      {
+        dx = -10;
+      }
+      var dv = this.scaleVector(dx,dy,10);
+      this.playerX += dv[0];
+      this.playerY += dv[1];
+      
+      var temp_shots = [];
+      for(shot in this.shots)
+      {
+        if(this.shots[shot].ttl > 0)
+        {
+          this.shots[shot].ttl -= 50;
+          temp_shots.push(this.shots[shot]);
+        }
+      }
+      this.shots = temp_shots;
+      
+      for(d in this.debris)
+      {
+        this.debris[d].dx *= .8;
+        this.debris[d].dy *= .8;
+        this.debris[d].x += this.debris[d].dx;
+        this.debris[d].y += this.debris[d].dy;
+      }
+      
+      var tempMobs = [];
+      for(mob in this.mobs)
+      {
+        dv = this.scaleVector(
+          this.playerX - this.mobs[mob].x,
+          this.playerY - this.mobs[mob].y,
+          15);
+        dx = dv[0];
+        dy = dv[1];
+        if(this.mobs[mob].state === 0)
+        {
+          if(Math.random() < .05)
+          {
+            if(Math.random() < .5)
+            {
+              this.mobs[mob].state = 1;
+            }
+            else
+            {
+              this.mobs[mob].state = -1;
+            }
+            this.mobs[mob].stateTimer = 2000;
+          }
+          
+          this.mobs[mob].x += dx;
+          this.mobs[mob].y += dy;
+        }
+        if(this.mobs[mob].state === 1)
+        {
+          if(this.mobs[mob].stateTimer === 0)
+          {
+            this.mobs[mob].state = 0;
+          }
+          else
+          {
+            this.mobs[mob].stateTimer--;
+            if(Math.random() < .01)
+            {
+              this.mobs[mob].state = 0;
+            }
+          }
+          
+          this.mobs[mob].x -= dy;
+          this.mobs[mob].y += dx;
+        }
+        if(this.mobs[mob].state === -1)
+        {
+          if(this.mobs[mob].stateTimer === 0)
+          {
+            this.mobs[mob].state = 0;
+          }
+          else
+          {
+            this.mobs[mob].stateTimer--;
+            if(Math.random() < .01)
+            {
+              this.mobs[mob].state = 0;
+            }
+          }
+          
+          this.mobs[mob].x += dy;
+          this.mobs[mob].y -= dx;
+        }
+        if(this.mobs[mob].state != 5)
+        {
+          tempMobs.push(this.mobs[mob]);
+        }
+      }
+      this.mobs = tempMobs;
+      
+      if(this.firing)
+      {
+        if(this.capacity > 5)
+        {
+          var endX = this.facingX - 0;
+          var endY = this.facingY - 0;
+          var newShot = 
+            {x1:this.playerX+this.facingX+endX*0,
+            y1:this.playerY+this.facingY+endY*0,
+            x2:this.playerX+this.facingX+endX*100,
+            y2:this.playerY+this.facingY+endY*100,
+            ttl:250}
+          this.shots.push(newShot);
+          for(mob in this.mobs)
+          {
+            if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+            {
+              this.mobs[mob].state = 5;
+              for(var i = 0; i < 17; i++)
+              {
+                dx = Math.random() * this.radius/2;
+                dy = Math.random() * this.radius/2;
+                this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy})
+              }
+            }
+          }
+          this.playerX -= endX * .5;
+          this.playerY -= endY * .5;
+        }
+        if(this.capacity > 0)
+        {
+          this.capacity -= 5;
+          if(this.capacity < 0)
+          {
+            this.capacity = 0;
+          }
+        }
+        
+        
+      }
+      if(!this.firing)
+      {
+        if (this.capacity < 300)
+        {
+          this.capacity += 5;
+        }
+      }
+    },
+
+    paint: function () {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        g_ctx.lineWidth = 1;
+        g_ctx.lineCap = "round";
+
+        // paint the background
+        g_ctx.fillStyle = "#000000";
+        g_ctx.fillRect(
+          0, 0,
+          g_canvas.width,
+          g_canvas.height);
+        
+        var centerX = Math.round(g_canvas.width / 2);
+        var centerY = Math.round(g_canvas.height / 2);
+        
+        var rumbleX = 0;
+        var rumbleY = 0;
+        
+        if(this.firing && this.capacity > 5)
+        {
+          var rumbleSize = 40;
+          rumbleX = Math.random()*rumbleSize - rumbleSize/2;
+          rumbleY = Math.random()*rumbleSize - rumbleSize/2;
+        }
+        
+        g_ctx.setTransform(1, 0, 0, 1, -this.playerX + centerX + rumbleX, -this.playerY + centerY + rumbleY);
+        
+        var vectorX = this.mouseX - centerX;
+        var vectorY = this.mouseY - centerY;
+        var length = Math.sqrt(vectorX * vectorX + vectorY * vectorY);
+        if(length > 0)
+        {
+          this.facingX = this.radius * vectorX / length;
+          this.facingY = this.radius * vectorY / length;
+        }
+        
+        g_ctx.strokeStyle = "#FFFFFF";
+        g_ctx.fillStyle = "#000000";
+        /*
+        g_ctx.beginPath();
+        g_ctx.arc(this.mouseX,this.mouseY,10,0,2*Math.PI);
+        g_ctx.stroke();
+        */
+        
+        for(shot in this.shots)
+        {
+          g_ctx.lineWidth = 1;
+          g_ctx.strokeStyle = "rgb("+this.shots[shot].ttl+",0,0)";
+          g_ctx.beginPath();
+          g_ctx.moveTo(this.shots[shot].x1,this.shots[shot].y1);
+          g_ctx.lineTo(this.shots[shot].x2,this.shots[shot].y2);
+          g_ctx.stroke();
+          g_ctx.lineWidth = 1;
+        }
+        
+        for(d in this.debris)
+        {
+          g_ctx.strokeStyle = "white";
+          g_ctx.fillStyle = "#000000";
+          g_ctx.beginPath();
+          g_ctx.arc(this.debris[d].x,this.debris[d].y,this.radius/8,0,2*Math.PI);
+          g_ctx.stroke();
+        }
+        
+        for(mob in this.mobs)
+        {
+          g_ctx.strokeStyle = this.mobs[mob].color;
+          g_ctx.fillStyle = "#000000";
+          g_ctx.beginPath();
+          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
+          g_ctx.stroke();
+        }
+        
+        
+        
+        g_ctx.strokeStyle = "#FFFFFF";
+        g_ctx.fillStyle = "#000000";
+        
+        g_ctx.beginPath();
+        g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
+        g_ctx.fill();
+        
+        g_ctx.beginPath();
+        g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
+        g_ctx.moveTo(this.playerX,this.playerY);
+        g_ctx.lineTo(this.playerX+this.facingX, this.playerY+this.facingY);
+        g_ctx.stroke();
+        
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        g_ctx.fillStyle = "#FF0000";
+        g_ctx.fillRect(10,10,this.capacity,30);
+    },
+};
+
+//##########################################################################
+
+//--------------------------------------------------------------------------
+var ResourceTracker = {
+    m_added: 1, // I track myself loading
+    m_loaded: 0,
+    m_layout: null,
+
+    //----------------------------------------------------------------------
+    // from Screen
+    init: function ()
+    {
+        this.onload(null); //and here I'm loaded
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    reset: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleTimeStep: function ()
+    {
+      if (this.m_loaded == this.m_added)
+      {
+        this.onAllLoaded();
+      }
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    paint: function ()
+    {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // paint the background
+        g_ctx.fillStyle = "rgb(255, 255, 255)";
+        g_ctx.fillRect(
+            0, 0,
+            g_canvas.width,
+            g_canvas.height);
+
+        g_ctx.font="Bold 80px " + g_font;
+        g_ctx.fillStyle = "rgb(92, 92, 92)";
+        g_ctx.textAlign = "center";
+        g_ctx.textBaseline = "middle";
+        g_ctx.fillText(
+            Math.floor(100 * this.m_loaded / this.m_added) + "%",
+            g_canvas.width / 2,
+            g_canvas.height / 2
+        );
+    },
+
+
+    //----------------------------------------------------------------------
+    add: function ()
+    {
+        ++this.m_added;
+    },
+
+    //----------------------------------------------------------------------
+    // from Image.onload
+    onload: function (event)
+    {
+        ++this.m_loaded;
+        if (this.m_loaded == this.m_added)
+        {
+            this.onAllLoaded();
+        }
+    },
+
+    //----------------------------------------------------------------------
+    onAllLoaded: function ()
+    {
+        switchToScreen(GameScreen);
+    }
+};
+
+//--------------------------------------------------------------------------
+var AudioComponents = {
+};
+
+//--------------------------------------------------------------------------
+var GraphicComponents = {
+};
+
+//##########################################################################
+// game engine
+
+//--------------------------------------------------------------------------
+function resizeCanvas()
+{
+  g_canvas.width = Math.max(500,window.innerWidth);
+  g_canvas.height = Math.max(300,window.innerHeight);
+  if (g_current_screen)
+  {
+    g_current_screen.paint(g_ctx);
+  }
+}
+
+//--------------------------------------------------------------------------
+function init()
+{
+    //Canvas stuff
+    g_canvas = document.getElementById("canvas");
+    g_ctx = g_canvas.getContext("2d");
+    g_font = "Lucida Console";
+
+    g_canvas.addEventListener("mousedown", function (event) {
+      if(g_current_screen.handleMouseDown)
+      {
+        g_current_screen.handleMouseDown(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseup", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseleave", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseout", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mousemove", function (event) {
+      if(g_current_screen.handleMouseMove)
+      {
+        g_current_screen.handleMouseMove(event);
+      }
+    }, false);
+
+    document.addEventListener("keydown", function (event) {
+      if(g_current_screen.handleKeyDown)
+      {
+        g_current_screen.handleKeyDown(event);
+      }
+    }, false);
+
+    document.addEventListener("keyup", function (event) {
+      if(g_current_screen.handleKeyUp)
+      {
+        g_current_screen.handleKeyUp(event);
+      }
+    }, false);
+    
+    window.addEventListener('resize', resizeCanvas, false);
+    resizeCanvas();
+
+    // can't do this until you've set up canvas_width and canvas_height
+    //ResourceTracker init must be called after all requests to
+    //loadImage/loadAudio
+    ResourceTracker.init();
+    GameScreen.init();
+    
+    switchToScreen(ResourceTracker);
+
+    // start processing events
+    setTimeout(eventLoop, 40);
+}
+
+//--------------------------------------------------------------------------
+function switchToScreen(screen)
+{
+    screen.reset();
+    g_current_screen = screen;
+}
+
+//--------------------------------------------------------------------------
+function eventLoop()
+{
+    var start_time = Date.now();
+
+    g_current_screen.handleTimeStep();
+    g_current_screen.paint(g_ctx);
+
+    var end_time = Date.now();
+    var comp_time = end_time - start_time;
+    if (comp_time > 40 || comp_time < 0) {
+        setTimeout(eventLoop, 0);
+    }
+    else
+    {
+        setTimeout(eventLoop, 40 - comp_time);
+    }
+}
+
+// launch the game once the document is fully loaded
+window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
