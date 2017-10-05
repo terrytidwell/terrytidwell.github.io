@@ -307,6 +307,71 @@ var ColorEnum = {
 };
 
 //##########################################################################
+var GameOver = {
+  init: function ()
+  {
+  },
+  reset: function ()
+  {
+    this.fadeTimer = 0;
+    this.textTimerLimit = 140;
+    this.textTimer = 0;
+    this.cursorTimer = 0;
+    this.otherScreen = null;
+  },
+  handleTimeStep: function ()
+  {
+    if (this.fadeTimer < 100)
+    {
+      this.fadeTimer++;
+    }
+
+    if (this.textTimer < this.textTimerLimit)
+    {
+      this.textTimer++;
+    }
+
+    this.cursorTimer++;
+    if(this.cursorTimer % 2 === 0)
+    {
+      this.otherScreen.handleTimeStep();
+    }
+  },
+  paint: function ()
+  {
+    this.otherScreen.paint();
+    g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // paint the background
+    g_ctx.fillStyle = "rgba(255,255,255," + this.fadeTimer / 100 + ")";
+    //alert(g_ctx.fillStyle);
+    g_ctx.fillRect(
+      0, 0,
+      g_canvas.width,
+      g_canvas.height);
+    g_ctx.textAlign = "center";
+    g_ctx.textBaseline = "middle";
+    g_ctx.font = "120px " + g_font;
+    g_ctx.fillStyle = "rgba(0,192,0," + (this.textTimer / this.textTimerLimit) + ")";
+    var game_over = "> game over";
+    var text = game_over.substring(0, Math.round(this.textTimer / this.textTimerLimit * game_over.length));
+    if (Math.floor(this.cursorTimer / 10) % 2)
+    {
+      text += "_"
+    }
+    else
+    {
+      text += " ";
+    }
+    g_ctx.fillText(text, g_canvas.width / 2 + Math.random() * 3, g_canvas.height / 2);
+    g_ctx.fillStyle = "rgba(192,0,0," + (this.textTimer / 200) + ")";
+    g_ctx.fillText(text, g_canvas.width / 2 - Math.random() * 3, g_canvas.height / 2);
+    g_ctx.fillStyle = "rgba(92,92,92," + (this.textTimer / 200) + ")";
+    g_ctx.fillText(text, g_canvas.width / 2, g_canvas.height / 2);
+  }
+};
+
+//##########################################################################
 var GameScreen = {
 
     init: function () {
@@ -322,6 +387,15 @@ var GameScreen = {
         );
       }
       this.smallMobs = [];
+      this.bigMobs = [];
+      for(var i = 0; i < 1; i++)
+      {
+        this.bigMobs.push(this.newBigMob(
+          Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
+          Math.round(Math.random()*g_canvas.height * 2 - g_canvas.height),
+          ColorEnum.random()
+        ));
+      }
       this.debris = [];
       this.shots = [];
       this.radius = 15;
@@ -340,6 +414,7 @@ var GameScreen = {
       this.ammoColor = ColorEnum.RED;
       this.capacity = 300;
       this.firingCooldown = 0;
+      this.health = 100;
     },
     
     newMob : function()
@@ -355,15 +430,29 @@ var GameScreen = {
         health:3,
       };
     },
-    
+
     newSmallMob : function(x,y,dx,dy,c)
+    {
+      var dv = this.scaleVector(dx,dy,15);
+      return {
+        x:x,
+        y:y,
+        dx:dv[0],
+        dy:dv[1],
+        state:0,
+        color:ColorEnum.colorString(c,1),
+        colorId:c,
+        ttl:250,
+      };
+    },
+    
+    newBigMob : function(x,y,c)
     {
       return {
         x:x,
         y:y,
-        dx:dx,
-        dy:dy,
         state:0,
+        health:100,
         color:ColorEnum.colorString(c,1),
         colorId:c
       };
@@ -462,7 +551,16 @@ var GameScreen = {
     },
     
     handleMouseUp: function (event) {
-      this.keyMap(false);
+      this.firing = false;
+    },
+    
+    stopPlayerInput : function()
+    {
+      this.up = false;
+      this.left = false;
+      this.right = false;
+      this.down = false;
+      this.reloading = false;
       this.firing = false;
     },
     
@@ -566,14 +664,18 @@ var GameScreen = {
         dv = this.scaleVector(
           this.playerX - this.smallMobs[mob].x,
           this.playerY - this.smallMobs[mob].y,
-          5);
+          10);
         dx = dv[0];
         dy = dv[1];
         if(this.smallMobs[mob].state === 0)
-        
         {
           this.smallMobs[mob].x += this.smallMobs[mob].dx;
           this.smallMobs[mob].y += this.smallMobs[mob].dy;
+          this.smallMobs[mob].ttl--;
+          if(this.smallMobs[mob].ttl <= 0)
+          {
+            this.smallMobs[mob].state = 1;
+          }
         }
         if(this.smallMobs[mob].state !== 1)
         {
@@ -581,6 +683,53 @@ var GameScreen = {
         }
       }
       this.smallMobs = tempMobs;
+      
+      var tempMobs = [];
+      for(mob in this.bigMobs)
+      {
+        dv = this.scaleVector(
+          this.playerX - this.bigMobs[mob].x,
+          this.playerY - this.bigMobs[mob].y,
+          5);
+        dx = dv[0];
+        dy = dv[1];
+        if(this.bigMobs[mob].state === 0)
+        {
+          this.bigMobs[mob].x += dx;
+          this.bigMobs[mob].y += dy;
+          if(Math.random() < .05)
+          {
+            this.bigMobs[mob].state = 3;
+          }
+        }
+        else if(this.bigMobs[mob].state === 1)
+        {
+          this.bigMobs[mob].x -= .5 * dx;
+          this.bigMobs[mob].y -= .5 * dy;
+          this.bigMobs[mob].state = 0;
+        }
+        else if(this.bigMobs[mob].state === 3)
+        {
+          var theta = Math.random()*Math.PI/5-Math.PI/10;
+          var cos_theta = Math.cos(theta);
+          var sin_theta = Math.sin(theta);
+          var ndx = dx * cos_theta - dy * sin_theta;
+          var ndy = dx * sin_theta + dy * cos_theta;
+          this.smallMobs.push(
+            this.newSmallMob(this.bigMobs[mob].x + dx, this.bigMobs[mob].y + dy, ndx, ndy, this.bigMobs[mob].colorId)
+          );
+          if(Math.random() < .05)
+          {
+            this.bigMobs[mob].state = 0;
+          }
+        }
+        
+        if(this.bigMobs[mob].state !== 2)
+        {
+          tempMobs.push(this.bigMobs[mob]);
+        }
+      }
+      this.bigMobs = tempMobs;
       
       var tempMobs = [];
       for(mob in this.mobs)
@@ -720,6 +869,19 @@ var GameScreen = {
                 }
               }
             }
+            for(mob in this.bigMobs)
+            {
+              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.bigMobs[mob].x,this.bigMobs[mob].y,this.radius*2))
+              {
+                var newDist = Math.sqrt((newShot.x1 - this.bigMobs[mob].x)*(newShot.x1 - this.bigMobs[mob].x)+(newShot.y1 - this.bigMobs[mob].y)*(newShot.y1 - this.bigMobs[mob].y));
+                if(newDist < currentDistance)
+                {
+                  currentDistance = newDist;
+                  currentCollision = this.bigMobs[mob];
+                  collisionType = 3;
+                }
+              }
+            }
 
             if(collisionType === 1)
             {
@@ -761,6 +923,33 @@ var GameScreen = {
                 }
               }
             }
+            if(collisionType === 3)
+            {
+              if(currentCollision.colorId === this.ammoColor)
+              {
+                currentCollision.health--;
+                if(currentCollision.health <= 0)
+                {
+                  currentCollision.state = 2;
+                  for(var i = 0; i < 34; i++)
+                  {
+                    dx = Math.random() * this.radius*2;
+                    dy = Math.random() * this.radius*2;
+                    this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                  }
+                }
+                else
+                {
+                  currentCollision.state = 1;
+                  for(var i = 0; i < 5; i++)
+                  {
+                    dx = Math.random() * this.radius*2;
+                    dy = Math.random() * this.radius*2;
+                    this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                  }
+                }
+              }
+            }
             this.playerX -= endX * .1;
             this.playerY -= endY * .1;
             
@@ -794,15 +983,76 @@ var GameScreen = {
           this.reloading = false;
         }
       }
-      
-      for(mob in this.mobs)
+
+      //player collision
+      if(this.health > 0)
       {
-        if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+        for(mob in this.mobs)
         {
-          //this.capacity = 0;
+          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+          {
+            this.damage(this.mobs[mob].x,this.mobs[mob].y,10);
+            this.mobs[mob].state = 4;
+            for(var i = 0; i < 5; i++)
+            {
+              dx = Math.random() * this.radius/2;
+              dy = Math.random() * this.radius/2;
+              this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy,c:this.mobs[mob].colorId})
+            }
+          }
+        }
+        for(mob in this.smallMobs)
+        {
+          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4))
+          {
+            this.damage(this.smallMobs[mob].x,this.smallMobs[mob].y,5);
+            this.smallMobs[mob].state = 1;
+            for(var i = 0; i < 5; i++)
+            {
+              dx = Math.random() * this.radius/4;
+              dy = Math.random() * this.radius/4;
+              this.debris.push({x:this.smallMobs[mob].x+dx,y:this.smallMobs[mob].y+dy,dx:dx,dy:dy,c:this.smallMobs[mob].colorId})
+            }
+          }
+        }
+        for(mob in this.bigMobs)
+        {
+          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+          {
+            this.damage(this.mobs[mob].x,this.mobs[mob].y,50);
+            this.mobs[mob].state = 1;
+            for(var i = 0; i < 34; i++)
+            {
+              dx = Math.random() * this.radius/2;
+              dy = Math.random() * this.radius/2;
+              this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy,c:this.mobs[mob].colorId})
+            }
+          }
         }
       }
       
+    },
+    
+    damage(x,y,damage)
+    {
+      this.health -= damage;
+      if(this.health <= 0)
+      {
+        this.health = 0;
+        this.handleGameOver();
+      }
+      var vx = x - this.playerX;
+      var vy = y - this.playerY;
+      var dv = this.scaleVector(vx,vy,15);
+      this.playerX -= dv[0];
+      this.playerY -= dv[1];
+    },
+    
+    handleGameOver : function()
+    {
+      switchToScreen(GameOver);
+      g_current_screen.otherScreen = GameScreen;
+      this.stopPlayerInput();
     },
 
     paint: function () {
@@ -895,23 +1145,42 @@ var GameScreen = {
           g_ctx.stroke();
         }
         
-        g_ctx.strokeStyle = "#FFFFFF";
-        g_ctx.fillStyle = "#000000";
+        for(mob in this.bigMobs)
+        {
+          g_ctx.fillStyle = this.bigMobs[mob].color;
+          g_ctx.strokeStyle = ColorEnum.colorString(this.bigMobs[mob].colorId,.5);
+          
+          g_ctx.beginPath();
+          g_ctx.arc(this.bigMobs[mob].x,this.bigMobs[mob].y,this.radius*2,0,2*Math.PI);
+          g_ctx.fill();
+          g_ctx.beginPath();
+          g_ctx.arc(this.bigMobs[mob].x,this.bigMobs[mob].y,this.radius*2,0,2*Math.PI);
+          g_ctx.stroke();
+        }
         
-        g_ctx.beginPath();
-        g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
-        g_ctx.fill();
-        
-        g_ctx.beginPath();
-        g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
-        g_ctx.moveTo(this.playerX,this.playerY);
-        g_ctx.lineTo(this.playerX+this.facingX, this.playerY+this.facingY);
-        g_ctx.stroke();
-        
+        if(this.health > 0)
+        {
+          g_ctx.strokeStyle = "#FFFFFF";
+          g_ctx.fillStyle = "#000000";
+          
+          g_ctx.beginPath();
+          g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
+          g_ctx.fill();
+          
+          g_ctx.beginPath();
+          g_ctx.arc(this.playerX,this.playerY,this.radius,0,2*Math.PI);
+          g_ctx.moveTo(this.playerX,this.playerY);
+          g_ctx.lineTo(this.playerX+this.facingX, this.playerY+this.facingY);
+          g_ctx.stroke();
+        }
+
         g_ctx.setTransform(1, 0, 0, 1, 0, 0);
         
         g_ctx.fillStyle = ColorEnum.colorString(this.ammoColor,1);
         g_ctx.fillRect(10,10,this.capacity,30);
+        
+        g_ctx.fillStyle = "#FFFFFF";
+        g_ctx.fillRect(10,50,Math.round(this.health/100*300),30);
     },
 };
 
@@ -1081,6 +1350,7 @@ function init()
     //loadImage/loadAudio
     ResourceTracker.init();
     GameScreen.init();
+    GameOver.init();
     
     switchToScreen(ResourceTracker);
 
