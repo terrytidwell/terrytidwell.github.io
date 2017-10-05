@@ -351,15 +351,18 @@ var GameScreen = {
         state:Util.randomItem([1,-1]),
         stateTimer:2000,
         color:ColorEnum.colorString(colorId,1),
-        colorId:colorId
+        colorId:colorId,
+        health:3,
       };
     },
     
-    newSmallMob : function(x,y,c)
+    newSmallMob : function(x,y,dx,dy,c)
     {
       return {
         x:x,
         y:y,
+        dx:dx,
+        dy:dy,
         state:0,
         color:ColorEnum.colorString(c,1),
         colorId:c
@@ -567,9 +570,10 @@ var GameScreen = {
         dx = dv[0];
         dy = dv[1];
         if(this.smallMobs[mob].state === 0)
+        
         {
-          this.smallMobs[mob].x += dx;
-          this.smallMobs[mob].y += dy;
+          this.smallMobs[mob].x += this.smallMobs[mob].dx;
+          this.smallMobs[mob].y += this.smallMobs[mob].dy;
         }
         if(this.smallMobs[mob].state !== 1)
         {
@@ -605,7 +609,7 @@ var GameScreen = {
           this.mobs[mob].x += dx;
           this.mobs[mob].y += dy;
         }
-        if(this.mobs[mob].state === 1)
+        else if(this.mobs[mob].state === 1)
         {
           if(this.mobs[mob].stateTimer === 0)
           {
@@ -622,13 +626,13 @@ var GameScreen = {
           if(Math.random() < .01)
           {
             this.smallMobs.push(
-              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, this.mobs[mob].colorId)
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId)
             );
           }
           this.mobs[mob].x -= dy;
           this.mobs[mob].y += dx;
         }
-        if(this.mobs[mob].state === -1)
+        else if(this.mobs[mob].state === -1)
         {
           if(this.mobs[mob].stateTimer === 0)
           {
@@ -645,13 +649,20 @@ var GameScreen = {
           if(Math.random() < .01)
           {
             this.smallMobs.push(
-              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, this.mobs[mob].colorId)
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId)
             );
           }
           
           this.mobs[mob].x += dy;
           this.mobs[mob].y -= dx;
         }
+        else if(this.mobs[mob].state === 4)
+        {
+          this.mobs[mob].x -= 2*dx;
+          this.mobs[mob].y -= 2*dy;
+          this.mobs[mob].state = Util.randomItem([-1,1]);
+        }
+        
         if(this.mobs[mob].state != 5)
         {
           tempMobs.push(this.mobs[mob]);
@@ -714,12 +725,26 @@ var GameScreen = {
             {
               if(currentCollision.colorId === this.ammoColor)
               {
-                currentCollision.state = 5;
-                for(var i = 0; i < 17; i++)
+                currentCollision.health--;
+                if(currentCollision.health <= 0)
                 {
-                  dx = Math.random() * this.radius/2;
-                  dy = Math.random() * this.radius/2;
-                  this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                  currentCollision.state = 5;
+                  for(var i = 0; i < 17; i++)
+                  {
+                    dx = Math.random() * this.radius/2;
+                    dy = Math.random() * this.radius/2;
+                    this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                  }
+                }
+                else
+                {
+                  currentCollision.state = 4;
+                  for(var i = 0; i < 5; i++)
+                  {
+                    dx = Math.random() * this.radius/2;
+                    dy = Math.random() * this.radius/2;
+                    this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                  }
                 }
               }
             }
