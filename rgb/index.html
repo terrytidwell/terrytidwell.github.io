@@ -826,7 +826,7 @@ var GameScreen = {
         
         for(d in this.debris)
         {
-          g_ctx.strokeStyle = ColorEnum.colorString(this.debris[d].c,1);
+          g_ctx.strokeStyle = ColorEnum.colorString(this.debris[d].c,.50);
           g_ctx.fillStyle = "#000000";
           g_ctx.beginPath();
           g_ctx.arc(this.debris[d].x,this.debris[d].y,this.radius/8,0,2*Math.PI);
@@ -846,8 +846,8 @@ var GameScreen = {
         
         for(mob in this.mobs)
         {
-          g_ctx.strokeStyle = this.mobs[mob].color;
-          g_ctx.fillStyle = ColorEnum.colorString(this.mobs[mob].colorId,.5);
+          g_ctx.fillStyle = this.mobs[mob].color;
+          g_ctx.strokeStyle = ColorEnum.colorString(this.mobs[mob].colorId,.5);
           
           g_ctx.beginPath();
           g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
@@ -859,8 +859,8 @@ var GameScreen = {
         
         for(mob in this.smallMobs)
         {
-          g_ctx.strokeStyle = this.smallMobs[mob].color;
-          g_ctx.fillStyle = ColorEnum.colorString(this.smallMobs[mob].colorId,.5);
+          g_ctx.fillStyle = this.smallMobs[mob].color;
+          g_ctx.strokeStyle = ColorEnum.colorString(this.smallMobs[mob].colorId,.5);
           
           g_ctx.beginPath();
           g_ctx.arc(this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4,0,2*Math.PI);
