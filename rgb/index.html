@@ -321,6 +321,7 @@ var GameScreen = {
           this.newMob()
         );
       }
+      this.smallMobs = [];
       this.debris = [];
       this.shots = [];
       this.radius = 15;
@@ -351,6 +352,17 @@ var GameScreen = {
         stateTimer:2000,
         color:ColorEnum.colorString(colorId,1),
         colorId:colorId
+      };
+    },
+    
+    newSmallMob : function(x,y,c)
+    {
+      return {
+        x:x,
+        y:y,
+        state:0,
+        color:ColorEnum.colorString(c,1),
+        colorId:c
       };
     },
     
@@ -546,6 +558,27 @@ var GameScreen = {
       }
       
       var tempMobs = [];
+      for(mob in this.smallMobs)
+      {
+        dv = this.scaleVector(
+          this.playerX - this.smallMobs[mob].x,
+          this.playerY - this.smallMobs[mob].y,
+          5);
+        dx = dv[0];
+        dy = dv[1];
+        if(this.smallMobs[mob].state === 0)
+        {
+          this.smallMobs[mob].x += dx;
+          this.smallMobs[mob].y += dy;
+        }
+        if(this.smallMobs[mob].state !== 1)
+        {
+          tempMobs.push(this.smallMobs[mob]);
+        }
+      }
+      this.smallMobs = tempMobs;
+      
+      var tempMobs = [];
       for(mob in this.mobs)
       {
         dv = this.scaleVector(
@@ -586,7 +619,12 @@ var GameScreen = {
               this.mobs[mob].state = 0;
             }
           }
-          
+          if(Math.random() < .01)
+          {
+            this.smallMobs.push(
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, this.mobs[mob].colorId)
+            );
+          }
           this.mobs[mob].x -= dy;
           this.mobs[mob].y += dx;
         }
@@ -603,6 +641,12 @@ var GameScreen = {
             {
               this.mobs[mob].state = 0;
             }
+          }
+          if(Math.random() < .01)
+          {
+            this.smallMobs.push(
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, this.mobs[mob].colorId)
+            );
           }
           
           this.mobs[mob].x += dy;
@@ -638,6 +682,7 @@ var GameScreen = {
             this.debris.push({x:newShot.x1,y:newShot.y1,dx:-endY*Math.random(),dy:endX*Math.random(),c:this.ammoColor})
             var currentDistance = this.radius * 100;
             var currentCollision = null;
+            var collisionType = 0;
             for(mob in this.mobs)
             {
               if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
@@ -647,11 +692,25 @@ var GameScreen = {
                 {
                   currentDistance = newDist;
                   currentCollision = this.mobs[mob];
+                  collisionType = 1;
+                }
+              }
+            }
+            for(mob in this.smallMobs)
+            {
+              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/2))
+              {
+                var newDist = Math.sqrt((newShot.x1 - this.smallMobs[mob].x)*(newShot.x1 - this.smallMobs[mob].x)+(newShot.y1 - this.smallMobs[mob].y)*(newShot.y1 - this.smallMobs[mob].y));
+                if(newDist < currentDistance)
+                {
+                  currentDistance = newDist;
+                  currentCollision = this.smallMobs[mob];
+                  collisionType = 2;
                 }
               }
             }
 
-            if(currentCollision)
+            if(collisionType === 1)
             {
               if(currentCollision.colorId === this.ammoColor)
               {
@@ -660,6 +719,19 @@ var GameScreen = {
                 {
                   dx = Math.random() * this.radius/2;
                   dy = Math.random() * this.radius/2;
+                  this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                }
+              }
+            }
+            if(collisionType === 2)
+            {
+              if(currentCollision.colorId === this.ammoColor)
+              {
+                currentCollision.state = 1;
+                for(var i = 0; i < 5; i++)
+                {
+                  dx = Math.random() * this.radius/4;
+                  dy = Math.random() * this.radius/4;
                   this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
                 }
               }
@@ -775,9 +847,26 @@ var GameScreen = {
         for(mob in this.mobs)
         {
           g_ctx.strokeStyle = this.mobs[mob].color;
-          g_ctx.fillStyle = "#000000";
+          g_ctx.fillStyle = ColorEnum.colorString(this.mobs[mob].colorId,.5);
+          
           g_ctx.beginPath();
           g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
+          g_ctx.fill();
+          g_ctx.beginPath();
+          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
+          g_ctx.stroke();
+        }
+        
+        for(mob in this.smallMobs)
+        {
+          g_ctx.strokeStyle = this.smallMobs[mob].color;
+          g_ctx.fillStyle = ColorEnum.colorString(this.smallMobs[mob].colorId,.5);
+          
+          g_ctx.beginPath();
+          g_ctx.arc(this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4,0,2*Math.PI);
+          g_ctx.fill();
+          g_ctx.beginPath();
+          g_ctx.arc(this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4,0,2*Math.PI);
           g_ctx.stroke();
         }
         
