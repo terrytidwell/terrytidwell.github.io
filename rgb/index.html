@@ -267,6 +267,45 @@ var Timer = function(timer, callback, parameter)
   };
 };
 
+var ColorEnum = {
+  RED: 0,
+  BLUE: 1,
+  GREEN: 2,
+  properties: {
+    0: {
+    },
+    1: {
+    
+    },
+    2: {
+    
+    }
+  },
+  rgbColorString : function(r,g,b)
+  {
+    return "rgb("+Math.round(255*r)+","+Math.round(255*g)+","+Math.round(255*b)+")";
+  },
+  colorString: function(color,saturation)
+  {
+    switch(color)
+    {
+      case ColorEnum.RED:
+        return ColorEnum.rgbColorString(saturation,0,0);
+        break;
+      case ColorEnum.BLUE:
+        return ColorEnum.rgbColorString(0,0,saturation);
+        break;
+      case ColorEnum.GREEN:
+        return ColorEnum.rgbColorString(0,saturation,0);
+        break;
+    }
+  },
+  random: function()
+  {
+    return Util.randomItem([ColorEnum.RED,ColorEnum.BLUE,ColorEnum.GREEN]);
+  }
+};
+
 //##########################################################################
 var GameScreen = {
 
@@ -279,11 +318,7 @@ var GameScreen = {
       for(var i = 0; i < 10; i++)
       {
         this.mobs.push(
-          {x:Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
-          y:Math.round(Math.random()*g_canvas.height * 2 - g_canvas.height),
-          state:4,//Util.randomItem([1,-1]),
-          stateTimer:2000,
-          color:"white"}
+          this.newMob()
         );
       }
       this.debris = [];
@@ -300,8 +335,48 @@ var GameScreen = {
       this.left = false;
       this.right = false;
       this.firing = false;
+      this.reloading = true;
+      this.ammoColor = ColorEnum.RED;
       this.capacity = 300;
       this.firingCooldown = 0;
+    },
+    
+    newMob : function()
+    {
+      var colorId = ColorEnum.random();
+      return {
+        x:Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
+        y:Math.round(Math.random()*g_canvas.height * 2 - g_canvas.height),
+        state:Util.randomItem([1,-1]),
+        stateTimer:2000,
+        color:ColorEnum.colorString(colorId,1),
+        colorId:colorId
+      };
+    },
+    
+    newDebris : function(x,y,dx,dy,c)
+    {
+      return {
+        x:x,
+        y:y,
+        dx:dx,
+        dy:dy,
+        c:c
+      };
+    },
+    
+    dist : function(x1,y1,x2,y2)
+    {
+      return Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+    },
+    
+    circleCircleIntersect: function(c1x,c1y,r1,c2x,c2y,r2)
+    {
+      if(r1 + r2 > this.dist(c1x,c1y,c2x,c2y))
+      {
+        return true;
+      }
+      return false;
     },
     
     circleLineInstersect: function(ex,ey,lx,ly,cx,cy,r)
@@ -391,6 +466,30 @@ var GameScreen = {
           break;
         case 83: //s
           this.down = value;
+          break;
+        case 49: //1
+          if(value === true)
+          {
+            this.ammoColor = ColorEnum.RED;
+            this.capacity = 0;
+            this.reloading = true;
+          }
+          break;
+        case 50: //2
+          if(value === true)
+          {
+            this.ammoColor = ColorEnum.GREEN;
+            this.capacity = 0;
+            this.reloading = true;
+          }
+          break;
+        case 51: //3
+          if(value === true)
+          {
+            this.ammoColor = ColorEnum.BLUE;
+            this.capacity = 0;
+            this.reloading = true;
+          }
           break;
       }
     },
@@ -521,11 +620,11 @@ var GameScreen = {
         this.firingCooldown--;
       }
       
-      if(this.firing)
+      if(this.firing && !this.reloading)
       {
         if(this.firingCooldown === 0)
         {
-          if(this.capacity > 5)
+          if(this.capacity > 0)
           {
             var endX = this.facingX - 0;
             var endY = this.facingY - 0;
@@ -536,7 +635,7 @@ var GameScreen = {
               y2:this.playerY+this.facingY+endY*100,
               ttl:250}
             
-            this.debris.push({x:newShot.x1,y:newShot.y1,dx:-endY*Math.random(),dy:endX*Math.random()})
+            this.debris.push({x:newShot.x1,y:newShot.y1,dx:-endY*Math.random(),dy:endX*Math.random(),c:this.ammoColor})
             var currentDistance = this.radius * 100;
             var currentCollision = null;
             for(mob in this.mobs)
@@ -554,12 +653,15 @@ var GameScreen = {
 
             if(currentCollision)
             {
-              currentCollision.state = 5;
-              for(var i = 0; i < 17; i++)
+              if(currentCollision.colorId === this.ammoColor)
               {
-                dx = Math.random() * this.radius/2;
-                dy = Math.random() * this.radius/2;
-                this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy})
+                currentCollision.state = 5;
+                for(var i = 0; i < 17; i++)
+                {
+                  dx = Math.random() * this.radius/2;
+                  dy = Math.random() * this.radius/2;
+                  this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
+                }
               }
             }
             this.playerX -= endX * .1;
@@ -574,21 +676,36 @@ var GameScreen = {
           
           if(this.capacity > 0)
           {
-            this.capacity -= 5;
-            if(this.capacity < 0)
+            this.capacity -= 10;
+            if(this.capacity <= 0)
             {
               this.capacity = 0;
+              this.reloading = true;
             }
           }
         }
       }
-      if(!this.firing)
+      else if(this.reloading)
       {
         if (this.capacity < 300)
         {
-          this.capacity += 5;
+          this.capacity += 30;
+        }
+        if (this.capacity >= 300)
+        {
+          this.capacity = 300;
+          this.reloading = false;
         }
       }
+      
+      for(mob in this.mobs)
+      {
+        if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+        {
+          //this.capacity = 0;
+        }
+      }
+      
     },
 
     paint: function () {
@@ -609,7 +726,7 @@ var GameScreen = {
         var rumbleX = 0;
         var rumbleY = 0;
         
-        if(this.firing && this.capacity > 5)
+        if(this.firing && this.capacity > 0 && !this.reloading)
         {
           var rumbleSize = 10;
           rumbleX = Math.random()*rumbleSize - rumbleSize/2;
@@ -635,24 +752,24 @@ var GameScreen = {
         g_ctx.stroke();
         */
         
+        for(d in this.debris)
+        {
+          g_ctx.strokeStyle = ColorEnum.colorString(this.debris[d].c,1);
+          g_ctx.fillStyle = "#000000";
+          g_ctx.beginPath();
+          g_ctx.arc(this.debris[d].x,this.debris[d].y,this.radius/8,0,2*Math.PI);
+          g_ctx.stroke();
+        }
+        
         for(shot in this.shots)
         {
           g_ctx.lineWidth = 1;
-          g_ctx.strokeStyle = "rgb("+this.shots[shot].ttl+",0,0)";
+          g_ctx.strokeStyle = ColorEnum.colorString(this.ammoColor,this.shots[shot].ttl/255);
           g_ctx.beginPath();
           g_ctx.moveTo(this.shots[shot].x1,this.shots[shot].y1);
           g_ctx.lineTo(this.shots[shot].x2,this.shots[shot].y2);
           g_ctx.stroke();
           g_ctx.lineWidth = 1;
-        }
-        
-        for(d in this.debris)
-        {
-          g_ctx.strokeStyle = "white";
-          g_ctx.fillStyle = "#000000";
-          g_ctx.beginPath();
-          g_ctx.arc(this.debris[d].x,this.debris[d].y,this.radius/8,0,2*Math.PI);
-          g_ctx.stroke();
         }
         
         for(mob in this.mobs)
@@ -663,8 +780,6 @@ var GameScreen = {
           g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
           g_ctx.stroke();
         }
-        
-        
         
         g_ctx.strokeStyle = "#FFFFFF";
         g_ctx.fillStyle = "#000000";
@@ -681,7 +796,7 @@ var GameScreen = {
         
         g_ctx.setTransform(1, 0, 0, 1, 0, 0);
         
-        g_ctx.fillStyle = "#FF0000";
+        g_ctx.fillStyle = ColorEnum.colorString(this.ammoColor,1);
         g_ctx.fillRect(10,10,this.capacity,30);
     },
 };
