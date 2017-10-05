@@ -285,6 +285,10 @@ var ColorEnum = {
   {
     return "rgb("+Math.round(255*r)+","+Math.round(255*g)+","+Math.round(255*b)+")";
   },
+  rgbaColorString : function(r,g,b,a)
+  {
+    return "rgba("+Math.round(255*r)+","+Math.round(255*g)+","+Math.round(255*b)+","+a+")";
+  },
   colorString: function(color,saturation)
   {
     switch(color)
@@ -297,6 +301,21 @@ var ColorEnum = {
         break;
       case ColorEnum.GREEN:
         return ColorEnum.rgbColorString(0,saturation,0);
+        break;
+    }
+  },
+  transparentColorString: function(color,saturation,alpha)
+  {
+    switch(color)
+    {
+      case ColorEnum.RED:
+        return ColorEnum.rgbaColorString(saturation,0,0,alpha);
+        break;
+      case ColorEnum.BLUE:
+        return ColorEnum.rgbaColorString(0,0,saturation,alpha);
+        break;
+      case ColorEnum.GREEN:
+        return ColorEnum.rgbaColorString(0,saturation,0,alpha);
         break;
     }
   },
@@ -415,6 +434,9 @@ var GameScreen = {
       this.capacity = 300;
       this.firingCooldown = 0;
       this.health = 100;
+      this.timeInExlusionZone = 0;
+      this.safeZoneLimit = 40;
+      this.timeInSafeZone = 0;
     },
     
     newMob : function()
@@ -830,8 +852,11 @@ var GameScreen = {
         {
           if(this.capacity > 0)
           {
-            var endX = this.facingX - 0;
-            var endY = this.facingY - 0;
+            var theta = Math.random()*Math.PI/60-Math.PI/120;
+            var cos_theta = Math.cos(theta);
+            var sin_theta = Math.sin(theta);
+            var endX = (this.facingX * cos_theta - this.facingY * sin_theta) - 0;
+            var endY = (this.facingX * sin_theta + this.facingY * cos_theta) - 0;
             var newShot = 
               {x1:this.playerX+this.facingX+endX*0,
               y1:this.playerY+this.facingY+endY*0,
@@ -931,7 +956,7 @@ var GameScreen = {
                 if(currentCollision.health <= 0)
                 {
                   currentCollision.state = 2;
-                  for(var i = 0; i < 34; i++)
+                  for(var i = 0; i < 128; i++)
                   {
                     dx = Math.random() * this.radius*2;
                     dy = Math.random() * this.radius*2;
@@ -1017,20 +1042,42 @@ var GameScreen = {
         }
         for(mob in this.bigMobs)
         {
-          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.bigMobs[mob].x,this.bigMobs[mob].y,this.radius*2))
           {
-            this.damage(this.mobs[mob].x,this.mobs[mob].y,50);
-            this.mobs[mob].state = 1;
+            this.damage(this.bigMobs[mob].x,this.bigMobs[mob].y,50);
+            this.bigMobs[mob].state = 1;
             for(var i = 0; i < 34; i++)
             {
               dx = Math.random() * this.radius/2;
               dy = Math.random() * this.radius/2;
-              this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy,c:this.mobs[mob].colorId})
+              this.debris.push({x:this.bigMobs[mob].x+dx,y:this.bigMobs[mob].y+dy,dx:dx,dy:dy,c:this.bigMobs[mob].colorId})
+            }
+          }
+        }
+        if(this.dist(this.playerX,this.playerY,0,0) > this.radius * this.safeZoneLimit)
+        {
+          this.timeInSafeZone = 0;
+          this.timeInExlusionZone++;
+          if(this.timeInExlusionZone > 5)
+          {
+            this.timeInExlusionZone = 0;
+            this.damage(this.playerX,this.playerY,1);
+          }
+        }
+        else
+        {
+          this.timeInExlusionZone = 0;
+          this.timeInSafeZone++;
+          if(this.timeInSafeZone > 15)
+          {
+            this.timeInSafeZone = 0;
+            if(this.health < 100)
+            {
+              this.health++;
             }
           }
         }
       }
-      
     },
     
     damage(x,y,damage)
@@ -1075,7 +1122,7 @@ var GameScreen = {
         
         if(this.firing && this.capacity > 0 && !this.reloading)
         {
-          var rumbleSize = 10;
+          var rumbleSize = 5;
           rumbleX = Math.random()*rumbleSize - rumbleSize/2;
           rumbleY = Math.random()*rumbleSize - rumbleSize/2;
         }
@@ -1099,6 +1146,15 @@ var GameScreen = {
         g_ctx.stroke();
         */
         
+        for(var i = 0; i < 10; i++)
+        {
+          var a = Math.random()*.001 + .01;
+          
+          g_ctx.fillStyle = "rgba(255,255,255,"+a+")"
+          g_ctx.beginPath();
+          g_ctx.arc(Math.random()*2-1,Math.random()*2-1,this.radius*(this.safeZoneLimit-i*.5),0,2*Math.PI);
+          g_ctx.fill();
+        }
         for(d in this.debris)
         {
           g_ctx.strokeStyle = ColorEnum.colorString(this.debris[d].c,.50);
@@ -1111,7 +1167,7 @@ var GameScreen = {
         for(shot in this.shots)
         {
           g_ctx.lineWidth = 1;
-          g_ctx.strokeStyle = ColorEnum.colorString(this.ammoColor,this.shots[shot].ttl/255);
+          g_ctx.strokeStyle = ColorEnum.transparentColorString(this.ammoColor,255,this.shots[shot].ttl/255);
           g_ctx.beginPath();
           g_ctx.moveTo(this.shots[shot].x1,this.shots[shot].y1);
           g_ctx.lineTo(this.shots[shot].x2,this.shots[shot].y2);
