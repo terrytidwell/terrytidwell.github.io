@@ -407,7 +407,7 @@ var GameScreen = {
       }
       this.smallMobs = [];
       this.bigMobs = [];
-      for(var i = 0; i < 1; i++)
+      for(var i = 0; i < 2; i++)
       {
         this.bigMobs.push(this.newBigMob(
           Math.round(Math.random()*g_canvas.width * 2 - g_canvas.width),
@@ -453,7 +453,7 @@ var GameScreen = {
       };
     },
 
-    newSmallMob : function(x,y,dx,dy,c)
+    newSmallMob : function(x,y,dx,dy,c, parent)
     {
       var dv = this.scaleVector(dx,dy,15);
       return {
@@ -465,6 +465,7 @@ var GameScreen = {
         color:ColorEnum.colorString(c,1),
         colorId:c,
         ttl:250,
+        parent:parent,
       };
     },
     
@@ -738,7 +739,7 @@ var GameScreen = {
           var ndx = dx * cos_theta - dy * sin_theta;
           var ndy = dx * sin_theta + dy * cos_theta;
           this.smallMobs.push(
-            this.newSmallMob(this.bigMobs[mob].x + dx, this.bigMobs[mob].y + dy, ndx, ndy, this.bigMobs[mob].colorId)
+            this.newSmallMob(this.bigMobs[mob].x + dx, this.bigMobs[mob].y + dy, ndx, ndy, this.bigMobs[mob].colorId,this.bigMobs[mob])
           );
           if(Math.random() < .05)
           {
@@ -797,7 +798,7 @@ var GameScreen = {
           if(Math.random() < .01)
           {
             this.smallMobs.push(
-              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId)
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId,this.mobs[mob])
             );
           }
           this.mobs[mob].x -= dy;
@@ -820,7 +821,7 @@ var GameScreen = {
           if(Math.random() < .01)
           {
             this.smallMobs.push(
-              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId)
+              this.newSmallMob(this.mobs[mob].x + dx, this.mobs[mob].y + dy, dx, dy, this.mobs[mob].colorId,this.mobs[mob])
             );
           }
           
@@ -870,7 +871,7 @@ var GameScreen = {
             var collisionType = 0;
             for(mob in this.mobs)
             {
-              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.mobs[mob].x,this.mobs[mob].y,this.radius))
               {
                 var newDist = Math.sqrt((newShot.x1 - this.mobs[mob].x)*(newShot.x1 - this.mobs[mob].x)+(newShot.y1 - this.mobs[mob].y)*(newShot.y1 - this.mobs[mob].y));
                 if(newDist < currentDistance)
@@ -883,7 +884,7 @@ var GameScreen = {
             }
             for(mob in this.smallMobs)
             {
-              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/2))
+              if(this.circleLineInstersect(newShot.x1,newShot.y1,newShot.x2,newShot.y2,this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4))
               {
                 var newDist = Math.sqrt((newShot.x1 - this.smallMobs[mob].x)*(newShot.x1 - this.smallMobs[mob].x)+(newShot.y1 - this.smallMobs[mob].y)*(newShot.y1 - this.smallMobs[mob].y));
                 if(newDist < currentDistance)
@@ -918,8 +919,8 @@ var GameScreen = {
                   currentCollision.state = 5;
                   for(var i = 0; i < 17; i++)
                   {
-                    dx = Math.random() * this.radius/2;
-                    dy = Math.random() * this.radius/2;
+                    dx = Math.random() * this.radius;
+                    dy = Math.random() * this.radius;
                     this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
                   }
                 }
@@ -928,8 +929,8 @@ var GameScreen = {
                   currentCollision.state = 4;
                   for(var i = 0; i < 5; i++)
                   {
-                    dx = Math.random() * this.radius/2;
-                    dy = Math.random() * this.radius/2;
+                    dx = Math.random() * this.radius;
+                    dy = Math.random() * this.radius;
                     this.debris.push({x:currentCollision.x+dx,y:currentCollision.y+dy,dx:dx,dy:dy,c:currentCollision.colorId})
                   }
                 }
@@ -1014,14 +1015,14 @@ var GameScreen = {
       {
         for(mob in this.mobs)
         {
-          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius/2))
+          if(this.circleCircleIntersect(this.playerX,this.playerY,this.radius,this.mobs[mob].x,this.mobs[mob].y,this.radius))
           {
             this.damage(this.mobs[mob].x,this.mobs[mob].y,10);
             this.mobs[mob].state = 4;
             for(var i = 0; i < 5; i++)
             {
-              dx = Math.random() * this.radius/2;
-              dy = Math.random() * this.radius/2;
+              dx = Math.random() * this.radius;
+              dy = Math.random() * this.radius;
               this.debris.push({x:this.mobs[mob].x+dx,y:this.mobs[mob].y+dy,dx:dx,dy:dy,c:this.mobs[mob].colorId})
             }
           }
@@ -1039,6 +1040,21 @@ var GameScreen = {
               this.debris.push({x:this.smallMobs[mob].x+dx,y:this.smallMobs[mob].y+dy,dx:dx,dy:dy,c:this.smallMobs[mob].colorId})
             }
           }
+          for(mob2 in this.bigMobs)
+          {
+            if(
+              this.bigMobs[mob2] != this.smallMobs[mob].parent &&
+              this.circleCircleIntersect(this.bigMobs[mob2].x,this.bigMobs[mob2].y,this.radius*2,this.smallMobs[mob].x,this.smallMobs[mob].y,this.radius/4))
+            {
+              this.smallMobs[mob].state = 1;
+              for(var i = 0; i < 5; i++)
+              {
+                dx = Math.random() * this.radius/4;
+                dy = Math.random() * this.radius/4;
+                this.debris.push({x:this.smallMobs[mob].x+dx,y:this.smallMobs[mob].y+dy,dx:dx,dy:dy,c:this.smallMobs[mob].colorId})
+              }
+            }
+          }
         }
         for(mob in this.bigMobs)
         {
@@ -1048,8 +1064,8 @@ var GameScreen = {
             this.bigMobs[mob].state = 1;
             for(var i = 0; i < 34; i++)
             {
-              dx = Math.random() * this.radius/2;
-              dy = Math.random() * this.radius/2;
+              dx = Math.random() * this.radius*2;
+              dy = Math.random() * this.radius*2;
               this.debris.push({x:this.bigMobs[mob].x+dx,y:this.bigMobs[mob].y+dy,dx:dx,dy:dy,c:this.bigMobs[mob].colorId})
             }
           }
@@ -1181,10 +1197,10 @@ var GameScreen = {
           g_ctx.strokeStyle = ColorEnum.colorString(this.mobs[mob].colorId,.5);
           
           g_ctx.beginPath();
-          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
+          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius,0,2*Math.PI);
           g_ctx.fill();
           g_ctx.beginPath();
-          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius/2,0,2*Math.PI);
+          g_ctx.arc(this.mobs[mob].x,this.mobs[mob].y,this.radius,0,2*Math.PI);
           g_ctx.stroke();
         }
         
