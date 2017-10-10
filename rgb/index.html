@@ -1036,6 +1036,11 @@ var GameScreen = {
           this.reloading = false;
         }
       }
+      
+      while(this.debris.length > 1000)
+      {
+        this.debris.shift();
+      }
 
       //player collision
       if(this.health > 0)
@@ -1284,6 +1289,7 @@ var GameScreen = {
         for(var i = ColorEnum.RED; i <= ColorEnum.BLUE; i++)
         {
           g_ctx.lineWidth = 5;
+          g_ctx.lineJoin = "round";
           if(this.ammoColor == i)
           {
             g_ctx.strokeStyle = ColorEnum.colorString(i, 1);
