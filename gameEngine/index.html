@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+<canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
+    
+<script>
+//##########################################################################
+// The game
+//
+
+var g_canvas;
+var g_ctx;
+var g_current_screen;
+var g_font;
+
+var PHI = 1.61803398875;
+var INVERSE_PHI = 0.61803398875;
+
+//--------------------------------------------------------------------------
+const Util = {
+
+    //----------------------------------------------------------------------
+    forEach: function (obj, fn)
+    {
+        var key;
+        for (key in obj)
+        {
+            if (obj.hasOwnProperty(key))
+            {
+                fn(obj[key]);
+            }
+        }
+    },
+
+    //----------------------------------------------------------------------
+    randomItem: function (arr)
+    {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    //----------------------------------------------------------------------
+    shuffle: function (arr)
+    {
+        var current_index = arr.length, temp, random_index;
+        while (0 != current_index)
+        {
+            // Pick a remaining element.
+            random_index = Math.floor(Math.random() * current_index);
+            current_index -= 1;
+
+            // And swap it with the current element.
+            temp = arr[current_index];
+            arr[current_index] = arr[random_index];
+            arr[random_index] = temp;
+        }
+        return arr;
+    },
+
+    //----------------------------------------------------------------------
+    loadImage: function (url, resource_tracker)
+    {
+        var image = new Image();
+        resource_tracker.add();
+        image.onload = function (event) {
+            resource_tracker.onload(event);
+        };
+        image.src = url;
+        return image;
+    },
+
+    //----------------------------------------------------------------------
+    loadAudio: function (url, resource_tracker)
+    {
+        var audio = new buzz.sound(
+          url, {
+          //formats: [ "wav" ],
+          preload: true,
+          autoplay: false,
+          loop: false
+        });
+        resource_tracker.add();
+        audio.bindOnce("canplay", function (event) {
+            resource_tracker.onload(event)
+        });
+        return audio;
+    }
+};
+
+var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
+{
+  
+  this.x = x;
+  this.y = y;
+  this.size = size;
+  this.height = size * text.length;
+  this.width = width;
+  this.inner_size = Math.round(6 * this.size/7);
+  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.inner_width = this.width - this.offset * 2;
+  this.inner_height = this.height - this.offset * 2;
+  this.color = "black"
+  this.font_size = Math.round(INVERSE_PHI * size);
+  this.textLabel = [];
+  for (var i = 0; i < text.length; i++)
+  {
+    this.textLabel.push(new TextLabel(text[i], x + this.width/2, Math.round(y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
+  }
+  
+  this.paint = function(ctx)
+  {
+    //var width = this.textLabel.text_size;
+    ctx.lineJoin ="round";
+    ctx.lineWidth = Math.round(this.size / (10*PHI));
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    ctx.strokeRect(this.x + this.offset, this.y + this.offset, this.inner_width, this.inner_height);
+    for (var i = 0; i < this.textLabel.length; i++)
+    {
+      this.textLabel[i].paint(ctx);
+    }
+  };
+  
+  this.handleMouseDown = function(event)
+  {
+      if(event.offsetX >= this.x &&
+        event.offsetX <= this.x + this.width &&
+        event.offsetY >= this.y &&
+        event.offsetY <= this.y + this.height)
+      {
+        return true;
+      }
+  };
+}
+
+var VerticalLabelBaselineEnum = {
+  TOP: 0,
+  MIDDLE: 1,
+  BOTTOM: 2,
+  properties: {
+    0: { textBaseline: "top" },
+    1: { textBaseline: "middle" },
+    2: { textBaseline: "bottom" },
+  }
+};
+
+
+var HorizontalLabelAlignEnum = {
+  LEFT: 0,
+  CENTER: 1,
+  RIGHT: 2,
+  properties: {
+    0: { textAlign: "left" },
+    1: { textAlign: "center" },
+    2: { textAlign: "right" },
+  }
+};
+
+var TextLabel = function(text, x, y, color, alignment, baseline, size)
+{
+  this.size = size;
+  this.alignment = alignment;
+  this.baseline = baseline;
+  this.x = x;
+  this.y = y;
+  this.text_size = 0;
+  this.color = color;
+  this.text = text;
+  
+  this.getCurrentBounds = function()
+  {
+    var ret_val = {};
+    switch (this.alignment)
+    {
+      case HorizontalLabelAlignEnum.LEFT:
+        ret_val.min_x = this.x;
+        ret_val.max_x = this.x + this.text_size;
+        break;
+      case HorizontalLabelAlignEnum.RIGHT:
+        ret_val.min_x = this.x - this.text_size;
+        ret_val.max_x = this.x;
+        break;
+      case HorizontalLabelAlignEnum.CENTER:
+        ret_val.min_x = this.x - this.text_size / 2;
+        ret_val.max_x = this.x + this.text_size / 2;
+        break;
+      default:
+    }
+    
+    switch (this.baseline)
+    {
+      case VerticalLabelBaselineEnum.TOP:
+        ret_val.min_y = this.y;
+        ret_val.max_y = this.y + this.size;
+        break;
+      case VerticalLabelBaselineEnum.BOTTOM:
+        ret_val.min_y = this.y - this.size;
+        ret_val.max_y = this.y;
+        break;
+      case VerticalLabelBaselineEnum.MIDDLE:
+        ret_val.min_y = this.y - this.size / 2;
+        ret_val.max_y = this.y + this.size / 2;
+        break;
+      default:
+    }
+    
+    return ret_val;
+  }
+  
+  this.handleMouseDown = function (event) 
+  {
+    var dim = this.getCurrentBounds();
+    if (event.offsetX < dim.min_x || event.offsetX > dim.max_x)
+    {
+      return false;
+    }
+    
+    if (event.offsetY < dim.min_y || event.offsetY > dim.max_y)
+    {
+      return false;
+    }
+
+    return true;
+  },
+  
+  this.paint = function(ctx)
+  {
+    ctx.font = Math.round(size) + "px " + g_font;
+    this.text_size = ctx.measureText(this.text).width;
+    ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
+    ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
+    ctx.fillStyle = this.color;
+    ctx.fillText(this.text, this.x, this.y);
+  }
+  
+  this.drawHighlight = function(ctx, color)
+  {
+    var dim = this.getCurrentBounds();
+    ctx.fillStyle = color;
+    ctx.fillRect(dim.min_x, dim.min_y, dim.max_x - dim.min_x, dim.max_y - dim.min_y);
+  }
+};
+
+var Timer = function(timer, callback, parameter)
+{
+  this.current_time = timer;
+  this.callback = callback;
+  this.parameter = parameter;
+  this.handleTimeStep = function()
+  {
+    this.current_time--;
+    if(this.current_time <= 0)
+    {
+      callback(this.parameter);
+    }
+
+  };
+  this.checkPulse = function(){
+        return this.current_time > 0;
+  };
+};
+
+
+//##########################################################################
+
+//--------------------------------------------------------------------------
+var GameScreen = {
+    //----------------------------------------------------------------------
+    init: function ()
+    {
+        this.reset();
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    reset: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleTimeStep: function ()
+    {
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    paint: function ()
+    {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // paint the background
+        g_ctx.fillStyle = "rgb(255, 0, 255)";
+        g_ctx.fillRect(
+            0, 0,
+            g_canvas.width,
+            g_canvas.height);
+    }
+};
+
+//##########################################################################
+
+//--------------------------------------------------------------------------
+var ResourceTracker = {
+    m_added: 1, // I track myself loading
+    m_loaded: 0,
+    m_layout: null,
+
+    //----------------------------------------------------------------------
+    // from Screen
+    init: function ()
+    {
+        this.onload(null); //and here I'm loaded
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    reset: function ()
+    {},
+
+    //----------------------------------------------------------------------
+    // from Screen
+    handleTimeStep: function ()
+    {
+      if (this.m_loaded == this.m_added)
+      {
+        this.onAllLoaded();
+      }
+    },
+
+    //----------------------------------------------------------------------
+    // from Screen
+    paint: function ()
+    {
+        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // paint the background
+        g_ctx.fillStyle = "rgb(255, 255, 255)";
+        g_ctx.fillRect(
+            0, 0,
+            g_canvas.width,
+            g_canvas.height);
+
+        g_ctx.font="Bold 80px " + g_font;
+        g_ctx.fillStyle = "rgb(92, 92, 92)";
+        g_ctx.textAlign = "center";
+        g_ctx.textBaseline = "middle";
+        g_ctx.fillText(
+            Math.floor(100 * this.m_loaded / this.m_added) + "%",
+            g_canvas.width / 2,
+            g_canvas.height / 2
+        );
+    },
+
+
+    //----------------------------------------------------------------------
+    add: function ()
+    {
+        ++this.m_added;
+    },
+
+    //----------------------------------------------------------------------
+    // from Image.onload
+    onload: function (event)
+    {
+        ++this.m_loaded;
+        if (this.m_loaded == this.m_added)
+        {
+            this.onAllLoaded();
+        }
+    },
+
+    //----------------------------------------------------------------------
+    onAllLoaded: function ()
+    {
+        switchToScreen(GameScreen);
+    }
+};
+
+//--------------------------------------------------------------------------
+var AudioComponents = {
+};
+
+//--------------------------------------------------------------------------
+var GraphicComponents = {
+};
+
+//##########################################################################
+// game engine
+
+//--------------------------------------------------------------------------
+function resizeCanvas()
+{
+  var widthToHeightRation = 9/16;
+  var currentWidthToHeightRatio = window.innerWidth/window.innerHeight;
+  if(currentWidthToHeightRatio < widthToHeightRation)
+  {
+    g_canvas.width = window.innerWidth;
+    g_canvas.height = window.innerWidth / widthToHeightRation;
+    g_canvas.style.left = "0px";
+    g_canvas.style.top = Math.floor((window.innerHeight - canvas.height)/2) + "px";
+  }
+  else
+  {
+    g_canvas.width = window.innerHeight * widthToHeightRation;
+    g_canvas.height = window.innerHeight;
+    g_canvas.style.left = Math.floor((window.innerWidth - canvas.width)/2) + "px";
+    g_canvas.style.top = "0px"; 
+  }
+  
+  if (g_current_screen)
+  {
+    g_current_screen.paint(g_ctx);
+  }
+}
+
+//--------------------------------------------------------------------------
+function init()
+{
+    //Canvas stuff
+    g_canvas = document.getElementById("canvas");
+    g_ctx = g_canvas.getContext("2d");
+    g_font = "Lucida Console";
+    
+    document.addEventListener('wheel', function(event) {
+      if(g_current_screen.handleMouseWheel)
+      {
+        g_current_screen.handleMouseWheel(event);
+      }
+    });
+
+    g_canvas.addEventListener("mousedown", function (event) {
+      if(g_current_screen.handleMouseDown)
+      {
+        g_current_screen.handleMouseDown(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseup", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseleave", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mouseout", function (event) {
+      if(g_current_screen.handleMouseUp)
+      {
+        g_current_screen.handleMouseUp(event);
+      }
+    }, false);
+
+    g_canvas.addEventListener("mousemove", function (event) {
+      if(g_current_screen.handleMouseMove)
+      {
+        g_current_screen.handleMouseMove(event);
+      }
+    }, false);
+
+    document.addEventListener("keydown", function (event) {
+      if(g_current_screen.handleKeyDown)
+      {
+        g_current_screen.handleKeyDown(event);
+      }
+    }, false);
+
+    document.addEventListener("keyup", function (event) {
+      if(g_current_screen.handleKeyUp)
+      {
+        g_current_screen.handleKeyUp(event);
+      }
+    }, false);
+    
+    window.addEventListener('resize', resizeCanvas, false);
+    window.addEventListener('orientationchange', resizeCanvas, false);
+    resizeCanvas();
+
+    // can't do this until you've set up canvas_width and canvas_height
+    //ResourceTracker init must be called after all requests to
+    //loadImage/loadAudio
+    ResourceTracker.init();
+    GameScreen.init();
+    
+    switchToScreen(ResourceTracker);
+
+    // start processing events
+    setTimeout(eventLoop, 40);
+}
+
+//--------------------------------------------------------------------------
+function switchToScreen(screen)
+{
+    screen.reset();
+    g_current_screen = screen;
+}
+
+//--------------------------------------------------------------------------
+function eventLoop()
+{
+    var start_time = Date.now();
+
+    g_current_screen.handleTimeStep();
+    g_current_screen.paint(g_ctx);
+
+    var end_time = Date.now();
+    var comp_time = end_time - start_time;
+    if (comp_time > 40 || comp_time < 0) {
+        setTimeout(eventLoop, 0);
+    }
+    else
+    {
+        setTimeout(eventLoop, 40 - comp_time);
+    }
+}
+
+// launch the game once the document is fully loaded
+window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
