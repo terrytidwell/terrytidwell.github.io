@@ -1,35 +1,12 @@
 const JutGameEngine = (function() {
-  var canvas = document.getElementById("canvas");
-  var current_screen = resourceTracker;
-  var ctx = canvas.getContext("2d");
-  var FPS = 25;
-  var MILLIS_PER_SECOND = 1000;
-  
-  var resize = function ()
+
+//public:
+  var switchToScreen = function(screen)
   {
-    var widthToHeightRation = 9/16;
-    var currentWidthToHeightRatio = window.innerWidth/window.innerHeight;
-    if(currentWidthToHeightRatio < widthToHeightRation)
-    {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerWidth / widthToHeightRation;
-      canvas.style.left = "0px";
-      canvas.style.top = Math.floor((window.innerHeight - canvas.height)/2) + "px";
-    }
-    else
-    {
-      canvas.width = window.innerHeight * widthToHeightRation;
-      canvas.height = window.innerHeight;
-      canvas.style.left = Math.floor((window.innerWidth - canvas.width)/2) + "px";
-      canvas.style.top = "0px"; 
-    }
-    
-    if (current_screen)
-    {
-      current_screen.paint(canvas, ctx);
-    }
+    screen.reset();
+    current_screen = screen;
   };
-  
+
   var loadImage = function (url)
   {
     var image = new Image();
@@ -59,61 +36,37 @@ const JutGameEngine = (function() {
     return audio;
   };
   
-  var resourceTracker = {
-    m_added: 1, // I track myself loading
-    m_loaded: 0,
-
-    init: function ()
-    {
-        this.onload(null); //and here I'm loaded
-    },
-
-    handleTimeStep: function ()
-    {
-      if (this.m_loaded == this.m_added)
-      {
-        this.onAllLoaded();
-      }
-    },
-
-    paint: function (canvas, ctx)
-    {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-      // paint the background
-      ctx.fillStyle = "rgb(255, 255, 255)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.font="Bold 80px Arial";
-      ctx.fillStyle = "rgb(92, 92, 92)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        Math.floor(100 * this.m_loaded / this.m_added) + "%",
-        canvas.width / 2,
-        canvas.height / 2
-      );
-    },
-
-    add: function ()
-    {
-      ++this.m_added;
-    },
-
-    onload: function (event)
-    {
-      ++this.m_loaded;
-      if (this.m_loaded == this.m_added)
-      {
-        this.onAllLoaded();
-      }
-    },
-
-    onAllLoaded: function ()
-    {
-      switchToScreen(GameScreen);
-    }
-  };
+  var attachToCanvas = function(new_canvas)
+  {
+    canvas = new_canvas;
+    ctx = canvas.getContext("2d");
+  }
+  
+  var addScreen = function(new_screen)
+  {
+    screens.push(new_screen)
+  }
+  
+  var addTitleScreen = function(new_screen)
+  {
+    screens.unshift(new_screen);
+  }
+  
+  var setFullScreenMode = function()
+  {
+    resize = resizeToFullScreen;
+  }
+  
+  var setMaintainAspectRatioMode = function(new_aspect_ratio)
+  {
+    widthToHeightRatio = new_aspect_ratio;
+    resize = resizeAndMaintainAspectRatio;
+  }
+  
+  var setStaticCanvasMode = function()
+  {
+    resize = resizeNoOp;    
+  }
   
   var init = function()
   {
@@ -178,11 +131,124 @@ const JutGameEngine = (function() {
     resize();
 
     resourceTracker.init();
+    for(screen in screens)
+    {
+      screens[screen].init();
+    }
     
     current_screen = resourceTracker;
 
     // start processing events
     setTimeout(eventLoop, 40);
+  };
+  
+//private:
+  var canvas = null;
+  var current_screen = resourceTracker;
+  var ctx = null;
+  var FPS = 25;
+  var MILLIS_PER_SECOND = 1000;
+  var screens = [];
+  var widthToHeightRatio = 16/9;
+  var resize = resizeNoOp;
+
+  
+  var resizeNoOp = function ()
+  {
+    return;
+  }
+    
+  var resizeToFullScreen = function ()
+  {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerWidth;
+    canvas.style.left = "0px";
+    canvas.style.top = "0px";
+    
+    if (current_screen)
+    {
+      current_screen.paint(canvas, ctx);
+    }
+  }
+  
+  var resizeAndMaintainAspectRatio = function ()
+  {
+    var currentWidthToHeightRatio = window.innerWidth/window.innerHeight;
+    if(currentWidthToHeightRatio < widthToHeightRatio)
+    {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerWidth / widthToHeightRatio;
+      canvas.style.left = "0px";
+      canvas.style.top = Math.floor((window.innerHeight - canvas.height)/2) + "px";
+    }
+    else
+    {
+      canvas.width = window.innerHeight * widthToHeightRatio;
+      canvas.height = window.innerHeight;
+      canvas.style.left = Math.floor((window.innerWidth - canvas.width)/2) + "px";
+      canvas.style.top = "0px"; 
+    }
+    
+    if (current_screen)
+    {
+      current_screen.paint(canvas, ctx);
+    }
+  };
+  
+  var resourceTracker = {
+    m_added: 1, // I track myself loading
+    m_loaded: 0,
+
+    init: function ()
+    {
+        this.onload(null); //and here I'm loaded
+    },
+
+    handleTimeStep: function ()
+    {
+      if (this.m_loaded == this.m_added)
+      {
+        this.onAllLoaded();
+      }
+    },
+
+    paint: function (canvas, ctx)
+    {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      // paint the background
+      ctx.fillStyle = "rgb(255, 255, 255)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font="Bold 80px Arial";
+      ctx.fillStyle = "rgb(92, 92, 92)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        Math.floor(100 * this.m_loaded / this.m_added) + "%",
+        canvas.width / 2,
+        canvas.height / 2
+      );
+    },
+
+    add: function ()
+    {
+      ++this.m_added;
+    },
+
+    onload: function (event)
+    {
+      ++this.m_loaded;
+      if (this.m_loaded == this.m_added)
+      {
+        this.onAllLoaded();
+      }
+    },
+
+    onAllLoaded: function ()
+    {
+      switchToScreen(screens[0]);
+    }
   };
   
   var eventLoop = function()
@@ -201,19 +267,19 @@ const JutGameEngine = (function() {
     {
       setTimeout(eventLoop, (MILLIS_PER_SECOND / FPS) - comp_time);
     }
-  }
-  
-  var switchToScreen = function(screen)
-  {
-    screen.reset();
-    current_screen = screen;
-  };
+  } 
   
   return {
     init : init,
     switchToScreen : switchToScreen,
     loadAudio : loadAudio,
-    loadImage : loadImage
+    loadImage : loadImage,
+    attachToCanvas : attachToCanvas,
+    addScreen : addScreen,
+    addTitleScreen : addTitleScreen,
+    setFullScreenMode : setFullScreenMode,
+    setMaintainAspectRatioMode : setMaintainAspectRatioMode,
+    setStaticCanvasMode : setStaticCanvasMode,
   };
   
 }());

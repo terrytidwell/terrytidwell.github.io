@@ -4,7 +4,7 @@
     <title></title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 </head>
-<body>
+<body bgcolor="#000000">
 <canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
 <script src="engine.js" type="text/javascript"></script>
@@ -239,37 +239,82 @@ var Timer = function(timer, callback, parameter)
 
 //--------------------------------------------------------------------------
 var GameScreen = {
-    //----------------------------------------------------------------------
-    init: function ()
+  //----------------------------------------------------------------------
+  init: function ()
+  {
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  reset: function ()
+  {
+    this.static_points = [
+      [.5,.1],
+      [.2,.9],
+      [.8,.9]
+    ];
+    this.blobs = [[.5,.1]];
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  handleTimeStep: function ()
+  {
+    for(var i = 0; i < 100; i++)
     {
-        this.reset();
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    reset: function ()
-    {},
-
-    //----------------------------------------------------------------------
-    // from Screen
-    handleTimeStep: function ()
-    {
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    paint: function (canvas, ctx)
-    {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // paint the background
-        ctx.fillStyle = "rgb(255, 0, 255)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      var blob_to_copy = this.blobs[this.blobs.length - 1];
+      var static_point = Util.randomItem(this.static_points);
+      this.blobs.push([
+        (blob_to_copy[0]+static_point[0])/2,
+        (blob_to_copy[1]+static_point[1])/2
+      ])
+      while(this.blobs.length > 3000)
+      {
+        this.blobs.shift();
+      }
     }
+  },
+  
+  drawPoint : function(point, canvas, ctx)
+  {
+    var size = canvas.width / 320;
+    var center_x = canvas.width * point[0];
+    var center_y = canvas.height * point[1];
+    ctx.fillRect(center_x - size/2, center_y - size/2, size, size)
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  paint: function (canvas, ctx)
+  {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // paint the background
+    ctx.fillStyle = "rgb(255, 0, 255)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "rgb(255,255,255)";
+    for(static_point in this.static_points)
+    {
+      this.drawPoint(this.static_points[static_point], canvas, ctx);
+    }
+    for(blob in this.blobs)
+    {
+      this.drawPoint(this.blobs[blob], canvas, ctx);
+    }
+  }
 };
 
+var init = function()
+{
+  JutGameEngine.attachToCanvas(document.getElementById("canvas"));
+  JutGameEngine.setMaintainAspectRatioMode(4/3);
+  JutGameEngine.addTitleScreen(GameScreen);
+  JutGameEngine.init();
+}
+
 // launch the game once the document is fully loaded
-window.addEventListener("load", JutGameEngine.init);
+window.addEventListener("load", init);
 
 </script>
 </body>
