@@ -5,18 +5,15 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 </head>
 <body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
 <canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+<script src="engine.js" type="text/javascript"></script>
+
     
 <script>
 //##########################################################################
 // The game
 //
-
-var g_canvas;
-var g_ctx;
-var g_current_screen;
-var g_font;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -59,35 +56,6 @@ const Util = {
             arr[random_index] = temp;
         }
         return arr;
-    },
-
-    //----------------------------------------------------------------------
-    loadImage: function (url, resource_tracker)
-    {
-        var image = new Image();
-        resource_tracker.add();
-        image.onload = function (event) {
-            resource_tracker.onload(event);
-        };
-        image.src = url;
-        return image;
-    },
-
-    //----------------------------------------------------------------------
-    loadAudio: function (url, resource_tracker)
-    {
-        var audio = new buzz.sound(
-          url, {
-          //formats: [ "wav" ],
-          preload: true,
-          autoplay: false,
-          loop: false
-        });
-        resource_tracker.add();
-        audio.bindOnce("canplay", function (event) {
-            resource_tracker.onload(event)
-        });
-        return audio;
     }
 };
 
@@ -290,243 +258,18 @@ var GameScreen = {
 
     //----------------------------------------------------------------------
     // from Screen
-    paint: function ()
+    paint: function (canvas, ctx)
     {
-        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         // paint the background
-        g_ctx.fillStyle = "rgb(255, 0, 255)";
-        g_ctx.fillRect(
-            0, 0,
-            g_canvas.width,
-            g_canvas.height);
+        ctx.fillStyle = "rgb(255, 0, 255)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 };
-
-//##########################################################################
-
-//--------------------------------------------------------------------------
-var ResourceTracker = {
-    m_added: 1, // I track myself loading
-    m_loaded: 0,
-    m_layout: null,
-
-    //----------------------------------------------------------------------
-    // from Screen
-    init: function ()
-    {
-        this.onload(null); //and here I'm loaded
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    reset: function ()
-    {},
-
-    //----------------------------------------------------------------------
-    // from Screen
-    handleTimeStep: function ()
-    {
-      if (this.m_loaded == this.m_added)
-      {
-        this.onAllLoaded();
-      }
-    },
-
-    //----------------------------------------------------------------------
-    // from Screen
-    paint: function ()
-    {
-        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // paint the background
-        g_ctx.fillStyle = "rgb(255, 255, 255)";
-        g_ctx.fillRect(
-            0, 0,
-            g_canvas.width,
-            g_canvas.height);
-
-        g_ctx.font="Bold 80px " + g_font;
-        g_ctx.fillStyle = "rgb(92, 92, 92)";
-        g_ctx.textAlign = "center";
-        g_ctx.textBaseline = "middle";
-        g_ctx.fillText(
-            Math.floor(100 * this.m_loaded / this.m_added) + "%",
-            g_canvas.width / 2,
-            g_canvas.height / 2
-        );
-    },
-
-
-    //----------------------------------------------------------------------
-    add: function ()
-    {
-        ++this.m_added;
-    },
-
-    //----------------------------------------------------------------------
-    // from Image.onload
-    onload: function (event)
-    {
-        ++this.m_loaded;
-        if (this.m_loaded == this.m_added)
-        {
-            this.onAllLoaded();
-        }
-    },
-
-    //----------------------------------------------------------------------
-    onAllLoaded: function ()
-    {
-        switchToScreen(GameScreen);
-    }
-};
-
-//--------------------------------------------------------------------------
-var AudioComponents = {
-};
-
-//--------------------------------------------------------------------------
-var GraphicComponents = {
-};
-
-//##########################################################################
-// game engine
-
-//--------------------------------------------------------------------------
-function resizeCanvas()
-{
-  var widthToHeightRation = 9/16;
-  var currentWidthToHeightRatio = window.innerWidth/window.innerHeight;
-  if(currentWidthToHeightRatio < widthToHeightRation)
-  {
-    g_canvas.width = window.innerWidth;
-    g_canvas.height = window.innerWidth / widthToHeightRation;
-    g_canvas.style.left = "0px";
-    g_canvas.style.top = Math.floor((window.innerHeight - canvas.height)/2) + "px";
-  }
-  else
-  {
-    g_canvas.width = window.innerHeight * widthToHeightRation;
-    g_canvas.height = window.innerHeight;
-    g_canvas.style.left = Math.floor((window.innerWidth - canvas.width)/2) + "px";
-    g_canvas.style.top = "0px"; 
-  }
-  
-  if (g_current_screen)
-  {
-    g_current_screen.paint(g_ctx);
-  }
-}
-
-//--------------------------------------------------------------------------
-function init()
-{
-    //Canvas stuff
-    g_canvas = document.getElementById("canvas");
-    g_ctx = g_canvas.getContext("2d");
-    g_font = "Lucida Console";
-    
-    document.addEventListener('wheel', function(event) {
-      if(g_current_screen.handleMouseWheel)
-      {
-        g_current_screen.handleMouseWheel(event);
-      }
-    });
-
-    g_canvas.addEventListener("mousedown", function (event) {
-      if(g_current_screen.handleMouseDown)
-      {
-        g_current_screen.handleMouseDown(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseup", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseleave", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mouseout", function (event) {
-      if(g_current_screen.handleMouseUp)
-      {
-        g_current_screen.handleMouseUp(event);
-      }
-    }, false);
-
-    g_canvas.addEventListener("mousemove", function (event) {
-      if(g_current_screen.handleMouseMove)
-      {
-        g_current_screen.handleMouseMove(event);
-      }
-    }, false);
-
-    document.addEventListener("keydown", function (event) {
-      if(g_current_screen.handleKeyDown)
-      {
-        g_current_screen.handleKeyDown(event);
-      }
-    }, false);
-
-    document.addEventListener("keyup", function (event) {
-      if(g_current_screen.handleKeyUp)
-      {
-        g_current_screen.handleKeyUp(event);
-      }
-    }, false);
-    
-    window.addEventListener('resize', resizeCanvas, false);
-    window.addEventListener('orientationchange', resizeCanvas, false);
-    resizeCanvas();
-
-    // can't do this until you've set up canvas_width and canvas_height
-    //ResourceTracker init must be called after all requests to
-    //loadImage/loadAudio
-    ResourceTracker.init();
-    GameScreen.init();
-    
-    switchToScreen(ResourceTracker);
-
-    // start processing events
-    setTimeout(eventLoop, 40);
-}
-
-//--------------------------------------------------------------------------
-function switchToScreen(screen)
-{
-    screen.reset();
-    g_current_screen = screen;
-}
-
-//--------------------------------------------------------------------------
-function eventLoop()
-{
-    var start_time = Date.now();
-
-    g_current_screen.handleTimeStep();
-    g_current_screen.paint(g_ctx);
-
-    var end_time = Date.now();
-    var comp_time = end_time - start_time;
-    if (comp_time > 40 || comp_time < 0) {
-        setTimeout(eventLoop, 0);
-    }
-    else
-    {
-        setTimeout(eventLoop, 40 - comp_time);
-    }
-}
 
 // launch the game once the document is fully loaded
-window.addEventListener("load", init);
+window.addEventListener("load", JutGameEngine.init);
 
 </script>
 </body>
