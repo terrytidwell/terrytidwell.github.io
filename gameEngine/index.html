@@ -260,7 +260,7 @@ var GameScreen = {
   // from Screen
   handleTimeStep: function ()
   {
-    for(var i = 0; i < 100; i++)
+    for(var i = 0; i < 320; i++)
     {
       var blob_to_copy = this.blobs[this.blobs.length - 1];
       var static_point = Util.randomItem(this.static_points);
@@ -268,7 +268,7 @@ var GameScreen = {
         (blob_to_copy[0]+static_point[0])/2,
         (blob_to_copy[1]+static_point[1])/2
       ])
-      while(this.blobs.length > 3000)
+      while(this.blobs.length > 16000)
       {
         this.blobs.shift();
       }
@@ -277,7 +277,7 @@ var GameScreen = {
   
   drawPoint : function(point, canvas, ctx)
   {
-    var size = canvas.width / 320;
+    var size = canvas.width / 640;
     var center_x = canvas.width * point[0];
     var center_y = canvas.height * point[1];
     ctx.fillRect(center_x - size/2, center_y - size/2, size, size)
@@ -290,7 +290,7 @@ var GameScreen = {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     
     // paint the background
-    ctx.fillStyle = "rgb(255, 0, 255)";
+    ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = "rgb(255,255,255)";
@@ -300,6 +300,7 @@ var GameScreen = {
     }
     for(blob in this.blobs)
     {
+      ctx.fillStyle = "rgba(255,255,255,"+blob/this.blobs.length+")";
       this.drawPoint(this.blobs[blob], canvas, ctx);
     }
   }
