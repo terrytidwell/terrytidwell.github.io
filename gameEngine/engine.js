@@ -275,7 +275,6 @@ const JutGameEngine = (function() {
     loadAudio : loadAudio,
     loadImage : loadImage,
     attachToCanvas : attachToCanvas,
-    addScreen : addScreen,
     addTitleScreen : addTitleScreen,
     setFullScreenMode : setFullScreenMode,
     setMaintainAspectRatioMode : setMaintainAspectRatioMode,

@@ -65,7 +65,7 @@ function clearCanvas(ctx, canvas)
 
 window.addEventListener("load", function(event)
 {
-  new jut.test_instance(document.getElementById("testing_div"),my_tests);
+  createJutInstance(document.getElementById("testing_div"),my_tests);
   g_canvas = document.getElementById("canvas");
   g_status_window = document.getElementById("statusWindow");
   g_ctx = g_canvas.getContext("2d");
@@ -1335,7 +1335,7 @@ function createGroups(puzzle)
   display("Best Score: " + best_score +"<br>");
 }
 
-function my_tests()
+function my_tests(jut)
 { 
   jut.test("Sanity Check", true);
   jut.test("Min",  0 === minOrNotNull(null, 0));

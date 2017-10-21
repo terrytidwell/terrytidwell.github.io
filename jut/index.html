@@ -10,13 +10,15 @@
 
 <!--testing-->
 <div id="testing_div"></div>
+<div id="testing_div2"></div>
 
 <script type="text/javascript" src="jut.js"></script>
 <script type="text/javascript">
 
 window.addEventListener("load", function(event)
   {
-    new jut.test_instance(document.getElementById("testing_div"),my_tests);
+    createJutInstance(document.getElementById("testing_div"),my_tests);
+    createJutInstance(document.getElementById("testing_div2"),my_tests);
   }
 );
 
@@ -30,7 +32,7 @@ function no_throw()
   return;
 }
 
-function my_tests()
+function my_tests(jut)
 {
   jut.test("Sanity Check", true);
   jut.display("<br>These 2 tests should fail<br>");
@@ -43,13 +45,6 @@ function my_tests()
   jut.test("Expect near fails 2", !jut.expect_near(0,.5,.49));
   jut.test("Expect throw", jut.expect_throw(does_throw));
   jut.test("Expect no throw", !jut.expect_throw(no_throw));
-  for (var j = 0; j < 10; ++j)
-  {
-    //for (var i = 0; i < 1000000000; ++i)
-    {
-      //do nothing
-    }
-  }
 }
 
 </script>
