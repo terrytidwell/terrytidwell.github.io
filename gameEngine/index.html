@@ -308,10 +308,10 @@ var GameScreen = {
 
 var init = function()
 {
-  JutGameEngine.attachToCanvas(document.getElementById("canvas"));
-  JutGameEngine.setMaintainAspectRatioMode(4/3);
-  JutGameEngine.addTitleScreen(GameScreen);
-  JutGameEngine.init();
+  var jut = createJutGameEngine(document.getElementById("canvas"));
+  jut.setMaintainAspectRatioMode(4/3);
+  jut.addTitleScreen(GameScreen);
+  jut.init();
 }
 
 // launch the game once the document is fully loaded

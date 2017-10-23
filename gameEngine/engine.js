@@ -1,4 +1,4 @@
-const JutGameEngine = (function() {
+var createJutGameEngine = function(new_canvas) {
 
 //public:
   var switchToScreen = function(screen)
@@ -35,17 +35,6 @@ const JutGameEngine = (function() {
     });
     return audio;
   };
-  
-  var attachToCanvas = function(new_canvas)
-  {
-    canvas = new_canvas;
-    ctx = canvas.getContext("2d");
-  }
-  
-  var addScreen = function(new_screen)
-  {
-    screens.push(new_screen)
-  }
   
   var addTitleScreen = function(new_screen)
   {
@@ -143,9 +132,9 @@ const JutGameEngine = (function() {
   };
   
 //private:
-  var canvas = null;
+  var canvas = new_canvas;
   var current_screen = resourceTracker;
-  var ctx = null;
+  var ctx = new_canvas.getContext("2d");;
   var FPS = 25;
   var MILLIS_PER_SECOND = 1000;
   var screens = [];
@@ -274,11 +263,9 @@ const JutGameEngine = (function() {
     switchToScreen : switchToScreen,
     loadAudio : loadAudio,
     loadImage : loadImage,
-    attachToCanvas : attachToCanvas,
     addTitleScreen : addTitleScreen,
     setFullScreenMode : setFullScreenMode,
     setMaintainAspectRatioMode : setMaintainAspectRatioMode,
     setStaticCanvasMode : setStaticCanvasMode,
   };
-  
-}());
+};
