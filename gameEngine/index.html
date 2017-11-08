@@ -248,29 +248,94 @@ var GameScreen = {
   // from Screen
   reset: function ()
   {
-    this.static_points = [
-      [.5,.1],
-      [.2,.9],
-      [.8,.9]
+    this.colors = [
+      "black",
+      "white",
+      "gray",
+      "red",
+      "blue",
+      "green",
+      "purple",
+      "orange",
+      "yellow"
     ];
-    this.blobs = [[.5,.1]];
+    this.means = [];
+    this.counts = [];
+    for (var x = 0; x < this.colors.length; x++)
+    {
+      this.means.push([0,0]);
+      this.counts.push(0);
+    }
+    this.tiles = [];
+    for(var x = 0; x < 400; x++)
+    {
+      var row = [];
+      for(var y = 0; y < 300; y++)
+      {
+        row.push(Math.floor(this.colors.length * Math.random()))
+      }
+      this.tiles.push(row);
+    }
   },
 
   //----------------------------------------------------------------------
   // from Screen
   handleTimeStep: function ()
   {
-    for(var i = 0; i < 320; i++)
+    for(var c = 0; c < this.colors.length; c++)
     {
-      var blob_to_copy = this.blobs[this.blobs.length - 1];
-      var static_point = Util.randomItem(this.static_points);
-      this.blobs.push([
-        (blob_to_copy[0]+static_point[0])/2,
-        (blob_to_copy[1]+static_point[1])/2
-      ])
-      while(this.blobs.length > 16000)
+      this.means[c][0] = 0;
+      this.means[c][1] = 0;
+      this.counts[c] = 0;
+    }
+    
+    for(var x = 0; x < 400; x++)
+    {
+      for(var y = 0; y < 300; y++)
       {
-        this.blobs.shift();
+        this.means[this.tiles[x][y]][0] += x;
+        this.means[this.tiles[x][y]][1] += y;
+        this.counts[this.tiles[x][y]]++;
+      }
+    }
+    
+    for(var c = 0; c < this.colors.length; c++)
+    {
+      if(this.counts[c] === 0)
+      {
+        continue;
+      }
+      this.means[c][0] = this.means[c][0] / this.counts[c];
+      this.means[c][1] = this.means[c][1] / this.counts[c];
+    }
+    
+    for(var x = 0; x < 400; x++)
+    {
+      for(var y = 0; y < 300; y++)
+      {
+        var min_dist = 0;
+        var assigned = false;
+        for(var c = 0; c < this.colors.length; c++)
+        {
+          if(this.counts[c] === 0)
+          {
+            continue;
+          }
+          var dx = this.means[c][0] - x;
+          var dy = this.means[c][1] - y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (!assigned)
+          {
+            assigned = true;
+            this.tiles[x][y] = c;
+            min_dist = dist;
+          }
+          else if (min_dist > dist)
+          {
+            this.tiles[x][y] = c;
+            min_dist = dist;
+          }
+        }
       }
     }
   },
@@ -294,14 +359,15 @@ var GameScreen = {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = "rgb(255,255,255)";
-    for(static_point in this.static_points)
+    var width = canvas.width / 400;
+    var height = canvas.height / 300;
+    for(var x = 0; x < 400; x++)
     {
-      this.drawPoint(this.static_points[static_point], canvas, ctx);
-    }
-    for(blob in this.blobs)
-    {
-      ctx.fillStyle = "rgba(255,255,255,"+blob/this.blobs.length+")";
-      this.drawPoint(this.blobs[blob], canvas, ctx);
+      for(var y = 0; y < 300; y++)
+      {
+        ctx.fillStyle = this.colors[this.tiles[x][y]];
+        ctx.fillRect(width * x, height * y, width, height);
+      }
     }
   }
 };
