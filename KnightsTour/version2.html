@@ -61,6 +61,47 @@ const Util = {
 
 //##########################################################################
 
+var TimerLoop = function(initial_offset)
+{
+  this.ttl = initial_offset;
+  this.state = -1;
+  this.states = []
+  this.addState = function(max_ttl, entry_function, warning_function, exit_function)
+  {
+    this.states.push({max_ttl: max_ttl, entry_function: entry_function, warning_function: warning_function, exit_function: exit_function});
+  }
+  
+  this.handleTimeStep = function()
+  {
+    if(this.ttl > 0)
+    {
+      this.ttl--;
+    }
+    else if (this.ttl == 0)
+    {
+      if(this.states[this.state] && this.states[this.state].exit_function)
+      {
+        this.states[this.state].exit_function();
+      }
+      this.state++;
+      if(this.states.length <= this.state)
+      {
+        this.state = 0;
+      }
+      if(this.states[this.state] && this.states[this.state].entry_function)
+      {
+        this.states[this.state].entry_function();
+      }
+      this.ttl = this.states[this.state].max_ttl;
+    }
+    
+    if (this.ttl < 25 && this.states[this.state] && this.states[this.state].warning_function)
+    {
+      this.states[this.state].warning_function();
+    }
+  };
+};
+
 var Button = function(x, y, ttl, pressed_function, warning_function,
   released_function)
 {
@@ -181,43 +222,323 @@ var GameScreen = {
     this.player_x = 2;
     this.player_y = 5;
     this.board = [];
-    this.loadBoard(
-      [
-        "-----00-----",
-        "-----00-----",
-        "--0----000--",
-        "--00--0000--",
-        "--00--0000--",
-        "--00---00000",
-        "--000--00000",
-        "--000--000--",
-        "--000---00--",
-        "--000---00--",
-        "------------",
-        "------------"
-      ]
-    );
-    
-    var board = this.board;
-    this.button = new Button(2,2,200,
-      function(){
-        board[6][9] = '0';
-      },
-      function(){
-        if (this.ttl % 2 == 0)
-        {
-          board[6][9] = '!';
+    this.current_room_x = 0;
+    this.current_room_y = 0;
+    this.gameEntities = [];
+    this.loadRoom(this.current_room_x,this.current_room_y);
+  },
+  
+  loadRoom: function(x,y)
+  {
+    if(x == 0 && y == 0)
+    {
+      this.loadBoard(
+        [
+          "-----00-----",
+          "-----00-----",
+          "--0---0000--",
+          "--00--0000--",
+          "--00--0000--",
+          "--00---00000",
+          "--000--00000",
+          "--000--000--",
+          "--000---00--",
+          "--000---00--",
+          "------------",
+          "------------"
+        ]
+      );
+      
+      this.gameEntities = [];
+      
+      var board = this.board;
+      this.gameEntities.push(
+        new Button(2,2,200,
+          function(){
+            board[6][9] = '0';
+          },
+          function(){
+            if (this.ttl % 2 == 0)
+            {
+              board[6][9] = '!';
+            }
+            else
+            {
+              board[6][9] = '0';
+            }
+          },
+          function(){
+            board[6][9] = '-';
+          }
+        )
+      );
+    }
+    else if(x == 1 && y == 0)
+    {
+      this.loadBoard(
+        [
+          "------------",
+          "------------",
+          "------------",
+          "------------",
+          "--00--------",
+          "0000--------",
+          "0000--------",
+          "--00--------",
+          "------------",
+          "------------",
+          "------------",
+          "------------"
+        ]
+      );
+      
+      this.gameEntities = [];
+      
+    }
+    else if(x == 0 && y == -2)
+    {
+      this.loadBoard(
+        [
+          "------------",
+          "------------",
+          "--00000000--",
+          "--00000000--",
+          "--0--00--0--",
+          "--0--00--0--",
+          "--00000000--",
+          "--00000000--",
+          "--00000000--",
+          "--00000000--",
+          "-----00-----",
+          "-----00-----"
+        ]
+      );
+      
+      this.gameEntities = [];
+    }
+    else if(x == 0 && y == -1)
+    {
+      this.loadBoard(
+        [
+          "-----00-----",
+          "-----00-----",
+          "----0--0----",
+          "------------",
+          "------------",
+          "------------",
+          "------------",
+          "------------",
+          "------------",
+          "----0--0----",
+          "-----00-----",
+          "-----00-----"
+        ]
+      );
+      
+      this.gameEntities = [];
+      
+      var board = this.board;
+      var timer = new TimerLoop(25);
+      timer.addState(50,
+        function(){
+            board[5][7] = '0';
+            board[6][7] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[5][7] = '!';
+            board[6][7] = '!';
+          }
+          else
+          {
+            board[5][7] = '0';
+            board[6][7] = '0';
+          }
+        },
+        function(){
+          board[5][7] = '-';
+          board[6][7] = '-';
         }
-        else
-        {
-          board[6][9] = '0';
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+      
+      var timer = new TimerLoop(50);
+      timer.addState(50,
+        function(){
+            board[3][6] = '0';
+            board[8][6] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[3][6] = '!';
+            board[8][6] = '!';
+          }
+          else
+          {
+            board[3][6] = '0';
+            board[8][6] = '0';
+          }
+        },
+        function(){
+          board[3][6] = '-';
+          board[8][6] = '-';
         }
-      },
-      function(){
-        board[6][9] = '-';
-      }
-    );
-    
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+      
+      var timer = new TimerLoop(75);
+      timer.addState(50,
+        function(){
+            board[2][4] = '0';
+            board[9][4] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[2][4] = '!';
+            board[9][4] = '!';
+          }
+          else
+          {
+            board[2][4] = '0';
+            board[9][4] = '0';
+          }
+        },
+        function(){
+          board[2][4] = '-';
+          board[9][4] = '-';
+        }
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+      
+      var timer = new TimerLoop(100);
+      timer.addState(50,
+        function(){
+            board[4][5] = '0';
+            board[7][5] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[4][5] = '!';
+            board[7][5] = '!';
+          }
+          else
+          {
+            board[4][5] = '0';
+            board[7][5] = '0';
+          }
+        },
+        function(){
+          board[4][5] = '-';
+          board[7][5] = '-';
+        }
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+      
+      var timer = new TimerLoop(125);
+      timer.addState(50,
+        function(){
+            board[5][4] = '0';
+            board[6][4] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[5][4] = '!';
+            board[6][4] = '!';
+          }
+          else
+          {
+            board[5][4] = '0';
+            board[6][4] = '0';
+          }
+        },
+        function(){
+          board[5][4] = '-';
+          board[6][4] = '-';
+        }
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+      
+      var timer = new TimerLoop(150);
+      timer.addState(50,
+        function(){
+            board[4][6] = '0';
+            board[7][6] = '0';
+        },
+        function(){
+          if (timer.ttl % 2 == 0)
+          {
+            board[4][6] = '!';
+            board[7][6] = '!';
+          }
+          else
+          {
+            board[4][6] = '0';
+            board[7][6] = '0';
+          }
+        },
+        function(){
+          board[4][6] = '-';
+          board[7][6] = '-';
+        }
+      );
+      timer.addState(100,
+        null,
+        null,
+        null
+      );
+      this.gameEntities.push(timer);
+    }
+    else
+    {
+      this.loadBoard(
+        [
+          "-----00-----",
+          "-----00-----",
+          "--00000000--",
+          "--00000000--",
+          "--00000000--",
+          "000000000000",
+          "000000000000",
+          "--00000000--",
+          "--00000000--",
+          "--00000000--",
+          "-----00-----",
+          "-----00-----"
+        ]
+      );
+      
+      this.gameEntities = [];
+    }
   },
   
   loadBoard: function(string_array)
@@ -278,14 +599,58 @@ var GameScreen = {
         this.player_x = tile_x;
         this.player_y = tile_y;
         
-        this.button.handlePlayerAttack(this.player_x, this.player_y);
+        for (var i in this.gameEntities)
+        {
+          if(this.gameEntities[i].handlePlayerAttack)
+            {
+              this.gameEntities[i].handlePlayerAttack(this.player_x, this.player_y);
+            }
+        }
+                
+        //did we move into an exit square?
+        if(this.player_x > 9)
+        {
+          this.player_x = this.player_x - 10;
+          this.current_room_x++;
+          this.loadRoom(this.current_room_x,this.current_room_y);
+        }
+        else if(this.player_y > 9)
+        {
+          this.player_y = this.player_y - 10;
+          this.current_room_y++;
+          this.loadRoom(this.current_room_x,this.current_room_y);
+        }
+        else if(this.player_x < 2)
+        {
+          this.player_x = this.player_x + 10;
+          this.current_room_x--;
+          this.loadRoom(this.current_room_x,this.current_room_y);
+        }
+        else if(this.player_y < 2)
+        {
+          this.player_y = this.player_y + 10;
+          this.current_room_y--;
+          this.loadRoom(this.current_room_x,this.current_room_y);
+        }
       }
     }
     
-    this.button.handleTimeStep();
+    for (var i in this.gameEntities)
+    {
+      if(this.gameEntities[i].handleTimeStep)
+      {
+        this.gameEntities[i].handleTimeStep();
+      }
+    }
     
     //collisions
-    this.button.handlePlayerCollision(this.player_x, this.player_y);
+    for (var i in this.gameEntities)
+    {
+      if(this.gameEntities[i].handlePlayerCollision)
+      {
+        this.gameEntities[i].handlePlayerCollision(this.player_x, this.player_y);
+      }
+    }
     
     if(this.board[this.player_x][this.player_y] == '-')
     {
@@ -343,8 +708,14 @@ var GameScreen = {
       }
     }
     
-    this.button.paint(canvas,ctx);
-    
+    for (var i in this.gameEntities)
+    {
+      if (this.gameEntities[i].paint)
+      {
+        this.gameEntities[i].paint(canvas,ctx);
+      }
+    }
+        
     ctx.drawImage(
       GlobalResources.graphic_components.m_pieces,
       436,
