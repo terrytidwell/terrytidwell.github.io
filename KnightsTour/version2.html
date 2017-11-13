@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body bgcolor="#000000">
+<canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+<script src="../gameEngine/engine.js" type="text/javascript"></script>
+
+    
+<script>
+//##########################################################################
+// The game
+//
+
+var PHI = 1.61803398875;
+var INVERSE_PHI = 0.61803398875;
+
+//--------------------------------------------------------------------------
+const Util = {
+
+    //----------------------------------------------------------------------
+    forEach: function (obj, fn)
+    {
+        var key;
+        for (key in obj)
+        {
+            if (obj.hasOwnProperty(key))
+            {
+                fn(obj[key]);
+            }
+        }
+    },
+
+    //----------------------------------------------------------------------
+    randomItem: function (arr)
+    {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    //----------------------------------------------------------------------
+    shuffle: function (arr)
+    {
+        var current_index = arr.length, temp, random_index;
+        while (0 != current_index)
+        {
+            // Pick a remaining element.
+            random_index = Math.floor(Math.random() * current_index);
+            current_index -= 1;
+
+            // And swap it with the current element.
+            temp = arr[current_index];
+            arr[current_index] = arr[random_index];
+            arr[random_index] = temp;
+        }
+        return arr;
+    }
+};
+
+//##########################################################################
+
+var Button = function(x, y, ttl, pressed_function, warning_function,
+  released_function)
+{
+  this.x = x;
+  this.y = y;
+  this.reset = ttl === 0;
+  this.ttl_max = ttl;
+  
+  this.ttl = 0;
+  this.pushed = false;
+  
+  this.pressed_function = pressed_function;
+  this.warning_function = warning_function;
+  this.released_function = released_function;
+  
+  this.handlePlayerAttack = function(x,y)
+  {
+    if (x == this.x &&
+      y == this.y)
+    {
+      this.pushed = true;
+      this.ttl = this.ttl_max;
+      this.pressed_function();
+    }
+  };
+  
+  this.handlePlayerCollision = function(x,y)
+  {
+    if (x != this.x || y != this.y)
+    {
+      return;
+    }
+    
+    this.pushed = true;
+    this.ttl = this.ttl_max;
+  };
+  
+  this.handleTimeStep = function()
+  {
+    if (this.max_ttl === 0)
+    {
+      return;
+    }
+    if (!this.pushed)
+    {
+      return;
+    }
+    
+    if (this.ttl === 0)
+    {
+      this.pushed = false;
+      this.released_function();
+    }
+    
+    if (this.ttl > 0)
+    {
+      this.ttl--;
+    }
+    
+    if (this.ttl > 0 && this.ttl < 25)
+    {
+      this.warning_function();
+    }
+  };
+  
+  this.paint = function (canvas, ctx)
+  {
+    var center_x = Math.round(canvas.width / 2);
+    var center_y = Math.round(canvas.height / 2);
+    var tile_width = Math.round(canvas.width/12);
+    var tile_height = Math.round(canvas.width/24);
+  
+    if(!this.pushed)
+    {
+      ctx.fillStyle = "rgb(192,128,128)";
+      ctx.fillRect(
+        (this.x - 5.75) * tile_width + center_x,
+        (this.y - 5.875) * tile_height + center_y,
+        tile_width/2,
+        tile_height/2);
+      ctx.fillStyle = "rgb(256,192,192)";
+      ctx.fillRect(
+        (this.x - 5.75) * tile_width + center_x,
+        (this.y - 5.5) * tile_height + center_y,
+        tile_width/2,
+        tile_height/4);
+    }
+    else
+    {
+      ctx.fillStyle = "rgb(192,128,128)";
+      ctx.fillRect(
+        (this.x - 5.75) * tile_width + center_x,
+        (this.y - 5.75) * tile_height + center_y,
+        tile_width/2,
+        tile_height/2);    
+    }
+  };
+};
+
+//--------------------------------------------------------------------------
+var GameScreen = {
+  //----------------------------------------------------------------------
+  init: function ()
+  {
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  reset: function ()
+  {
+    this.mouse_event = false;
+    this.mouse_x = 0;
+    this.mouse_y = 0;
+    this.tile_width = 2;
+    this.tile_height = 1;
+    this.center_x = 16;
+    this.center_y = 8;
+    this.player_x = 2;
+    this.player_y = 5;
+    this.board = [];
+    this.loadBoard(
+      [
+        "-----00-----",
+        "-----00-----",
+        "--0----000--",
+        "--00--0000--",
+        "--00--0000--",
+        "--00---00000",
+        "--000--00000",
+        "--000--000--",
+        "--000---00--",
+        "--000---00--",
+        "------------",
+        "------------"
+      ]
+    );
+    
+    var board = this.board;
+    this.button = new Button(2,2,200,
+      function(){
+        board[6][9] = '0';
+      },
+      function(){
+        if (this.ttl % 2 == 0)
+        {
+          board[6][9] = '!';
+        }
+        else
+        {
+          board[6][9] = '0';
+        }
+      },
+      function(){
+        board[6][9] = '-';
+      }
+    );
+    
+  },
+  
+  loadBoard: function(string_array)
+  {
+    this.board = [];
+    var dim_y = string_array.length;
+    var dim_x = 0;
+    for(var i = 0; i < dim_y; i++)
+    {
+      if(i == 0)
+      {
+        dim_x = string_array[i].length;
+      }
+      else
+      {
+        dim_x = Math.max(dim_x, string_array[i].length);
+      }
+    }
+    for(var x = 0; x < dim_x; x++)
+    {
+      var row = [];
+      for(var y = 0; y < dim_y; y++)
+      {
+        if (x < string_array[y].length)
+        {
+          row.push(string_array[y][x]);
+        }
+        else
+        {
+          row.push('-');
+        }
+      }
+      this.board.push(row);
+    }
+  },
+
+  handleMouseDown: function(event)
+  {
+    this.mouse_event = true;
+    this.mouse_x = event.offsetX;
+    this.mouse_y = event.offsetY;
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  handleTimeStep: function ()
+  {
+    if(this.mouse_event)
+    {
+      this.mouse_event = false;
+      var tile_x = Math.floor((this.mouse_x - this.center_x)/this.tile_width) + 6;
+      var tile_y = Math.floor((this.mouse_y - this.center_y)/this.tile_height) + 6;
+      //alert(tile_x + ", " + tile_y)
+      if (this.board[tile_x][tile_y] != '-' && 
+        tile_x != this.player_x && tile_y != this.player_y &&
+        Math.abs(tile_x - this.player_x) + Math.abs(tile_y - this.player_y) == 3)
+      {
+        this.player_x = tile_x;
+        this.player_y = tile_y;
+        
+        this.button.handlePlayerAttack(this.player_x, this.player_y);
+      }
+    }
+    
+    this.button.handleTimeStep();
+    
+    //collisions
+    this.button.handlePlayerCollision(this.player_x, this.player_y);
+    
+    if(this.board[this.player_x][this.player_y] == '-')
+    {
+      GameScreen.reset();
+    }
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  paint: function (canvas, ctx)
+  {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+   
+    // paint the background
+    ctx.fillStyle = "rgb(0, 0, 0)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "rgb(255,255,255)";
+    
+    this.center_x = Math.round(canvas.width / 2);
+    this.center_y = Math.round(canvas.height / 2);
+    this.tile_width = Math.round(canvas.width/12);
+    this.tile_height = Math.round(canvas.width/24);
+    for(var x = 0; x < 12; x++)
+    {
+      for(var y = 0; y < 12; y++)
+      {
+        if (this.board[x][y] != '0')
+        {
+          continue;
+        }
+        //main board
+        if (((x + y)%2) == 0)
+        {
+          ctx.fillStyle = "rgb(128,128,128)";
+        }
+        else
+        {
+          ctx.fillStyle = "rgb(192,192,192)";
+        }
+        ctx.fillRect(
+          (x - 6) * this.tile_width + this.center_x,
+          (y - 6) * this.tile_height + this.center_y,
+          this.tile_width,
+          this.tile_height);
+        if(x != this.player_x && y != this.player_y && Math.abs(x - this.player_x) + Math.abs(y - this.player_y) == 3)
+        {
+          ctx.fillStyle = "rgba(0,255,0,.2)";
+          ctx.fillRect(
+          (x - 6) * this.tile_width + this.center_x,
+          (y - 6) * this.tile_height + this.center_y,
+          this.tile_width,
+          this.tile_height);
+        }
+      }
+    }
+    
+    this.button.paint(canvas,ctx);
+    
+    ctx.drawImage(
+      GlobalResources.graphic_components.m_pieces,
+      436,
+      15,
+      100,
+      250,
+      (this.player_x - 6) * this.tile_width + this.center_x,
+      (this.player_y - 6 + 1) * this.tile_height + this.center_y
+        - Math.floor(2.5 * this.tile_width),
+      this.tile_width,
+      Math.floor(this.tile_width * 2.5)
+    );
+  }
+};
+
+var GlobalResources =
+{
+  audio_components : {},
+  graphic_components : {}
+};
+
+var init = function()
+{
+  var jut = createJutGameEngine(document.getElementById("canvas"));
+  GlobalResources.audio_components.m_bg = jut.loadAudio("Assets/Sound/CrunkKnight.mp3");
+  GlobalResources.graphic_components.m_pieces = jut.loadImage("Assets/Graphics/Chess_pieces.png");
+  GlobalResources.graphic_components.m_gold = jut.loadImage("Assets/Graphics/coin_gold.png");
+  jut.setMaintainAspectRatioMode(4/3);
+  jut.addTitleScreen(GameScreen);
+  jut.init();
+}
+
+// launch the game once the document is fully loaded
+window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
