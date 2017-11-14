@@ -102,6 +102,14 @@ var TimerLoop = function(initial_offset)
   };
 };
 
+var PaintLevelEnum = 
+{
+  BG: 0,
+  FLOOR: 1,
+  LOWER: 2,
+  ENTITIES: 3,
+};
+
 var Button = function(x, y, ttl, pressed_function, warning_function,
   released_function)
 {
@@ -167,37 +175,113 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     }
   };
   
-  this.paint = function (canvas, ctx)
+  this.paintLevel = function()
   {
-    var center_x = Math.round(canvas.width / 2);
-    var center_y = Math.round(canvas.height / 2);
-    var tile_width = Math.round(canvas.width/12);
-    var tile_height = Math.round(canvas.width/24);
+    return PaintLevelEnum.LOWER + this.y * 1000;
+  }
   
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
     if(!this.pushed)
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * tile_width + center_x,
-        (this.y - 5.875) * tile_height + center_y,
-        tile_width/2,
-        tile_height/2);
+        (this.x - 5.75) * layout.tile_width + layout.center_x,
+        (this.y - 5.875) * layout.tile_height + layout.center_y,
+        layout.tile_width/2,
+        layout.tile_height/2);
       ctx.fillStyle = "rgb(256,192,192)";
       ctx.fillRect(
-        (this.x - 5.75) * tile_width + center_x,
-        (this.y - 5.5) * tile_height + center_y,
-        tile_width/2,
-        tile_height/4);
+        (this.x - 5.75) * layout.tile_width + layout.center_x,
+        (this.y - 5.5) * layout.tile_height + layout.center_y,
+        layout.tile_width/2,
+        layout.tile_height/4);
     }
     else
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * tile_width + center_x,
-        (this.y - 5.75) * tile_height + center_y,
-        tile_width/2,
-        tile_height/2);    
+        (this.x - 5.75) * layout.tile_width + layout.center_x,
+        (this.y - 5.75) * layout.tile_height + layout.center_y,
+        layout.tile_width/2,
+        layout.tile_height/2);    
     }
+  };
+};
+
+var FloorTile = function(x, y, solid)
+{
+  this.x = x;
+  this.y = y;
+  this.visible = solid;
+  this.solid = solid;
+  
+  this.handlePlayerCollision = function(x,y)
+  {
+  };
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.FLOOR + this.y * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if(!this.visible)
+    {
+      return;
+    }
+    
+    if (((this.x + this.y)%2) == 0)
+    {
+      ctx.fillStyle = "rgb(128,128,128)";
+    }
+    else
+    {
+      ctx.fillStyle = "rgb(192,192,192)";
+    }
+    ctx.fillRect(
+      (this.x - 6) * layout.tile_width + layout.center_x,
+      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.tile_width,
+      layout.tile_height);
+    if(x != gamestate.player_x && y != gamestate.player_y && Math.abs(x - gamestate.player_x) + Math.abs(y - gamestate.player_y) == 3)
+    {
+      ctx.fillStyle = "rgba(0,255,0,.2)";
+      ctx.fillRect(
+      (this.x - 6) * layout.tile_width + layout.center_x,
+      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.tile_width,
+      layout.tile_height);
+    }
+  };
+};
+
+var PlayerPainter = function(x,y)
+{
+  this.x = x;
+  this.y = y;
+  this.y_offset = 0;
+
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.ENTITIES + this.y * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    ctx.drawImage(
+      GlobalResources.graphic_components.m_pieces,
+      436,
+      15,
+      100,
+      250,
+      (gamestate.player_x - 6) * layout.tile_width + layout.center_x,
+      (gamestate.player_y - 6 + 1) * layout.tile_height + layout.center_y
+        - Math.floor(2.5 * layout.tile_width) + this.y_offset,
+      layout.tile_width,
+      Math.floor(layout.tile_width * 2.5)
+    );
   };
 };
 
@@ -215,12 +299,16 @@ var GameScreen = {
     this.mouse_event = false;
     this.mouse_x = 0;
     this.mouse_y = 0;
-    this.tile_width = 2;
-    this.tile_height = 1;
-    this.center_x = 16;
-    this.center_y = 8;
-    this.player_x = 2;
-    this.player_y = 5;
+    
+    //stores information about graphical layout
+    this.layout = null;
+
+    this.gamestate = 
+    {
+      player_x : 2,
+      player_y : 5,
+    }
+    this.playerPainter = new PlayerPainter(this.gamestate.player_x,this.gamestate.player_y)
     this.board = [];
     this.current_room_x = 0;
     this.current_room_y = 0;
@@ -230,6 +318,8 @@ var GameScreen = {
   
   loadRoom: function(x,y)
   {
+    this.gameEntities = [];
+    
     if(x == 0 && y == 0)
     {
       this.loadBoard(
@@ -249,26 +339,26 @@ var GameScreen = {
         ]
       );
       
-      this.gameEntities = [];
-      
       var board = this.board;
       this.gameEntities.push(
         new Button(2,2,200,
           function(){
-            board[6][9] = '0';
+            board[6][9].solid = true;
+            board[6][9].visible = true;
           },
           function(){
             if (this.ttl % 2 == 0)
             {
-              board[6][9] = '!';
+              board[6][9].visible = false;
             }
             else
             {
-              board[6][9] = '0';
+              board[6][9].visible = true;
             }
           },
           function(){
-            board[6][9] = '-';
+            board[6][9].solid = false;
+            board[6][9].visible = false;
           }
         )
       );
@@ -291,9 +381,6 @@ var GameScreen = {
           "------------"
         ]
       );
-      
-      this.gameEntities = [];
-      
     }
     else if(x == 0 && y == -2)
     {
@@ -313,8 +400,6 @@ var GameScreen = {
           "-----00-----"
         ]
       );
-      
-      this.gameEntities = [];
     }
     else if(x == 0 && y == -1)
     {
@@ -335,30 +420,32 @@ var GameScreen = {
         ]
       );
       
-      this.gameEntities = [];
-      
       var board = this.board;
       var timer = new TimerLoop(25);
       timer.addState(50,
         function(){
-            board[5][7] = '0';
-            board[6][7] = '0';
+            board[5][7].solid = true;
+            board[5][7].visible = true;
+            board[6][7].solid = true;
+            board[6][7].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[5][7] = '!';
-            board[6][7] = '!';
+            board[5][7].visible = false;
+            board[6][7].visible = false;
           }
           else
           {
-            board[5][7] = '0';
-            board[6][7] = '0';
+            board[5][7].visible = true;
+            board[6][7].visible = true;
           }
         },
         function(){
-          board[5][7] = '-';
-          board[6][7] = '-';
+            board[5][7].solid = false;
+            board[5][7].visible = false;
+            board[6][7].solid = false;
+            board[6][7].visible = false;
         }
       );
       timer.addState(100,
@@ -371,24 +458,28 @@ var GameScreen = {
       var timer = new TimerLoop(50);
       timer.addState(50,
         function(){
-            board[3][6] = '0';
-            board[8][6] = '0';
+            board[3][6].solid = true;
+            board[3][6].visible = true;
+            board[8][6].solid = true;
+            board[8][6].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[3][6] = '!';
-            board[8][6] = '!';
+            board[3][6].visible = false;
+            board[8][6].visible = false;
           }
           else
           {
-            board[3][6] = '0';
-            board[8][6] = '0';
+            board[3][6].visible = true;
+            board[8][6].visible = true;
           }
         },
         function(){
-          board[3][6] = '-';
-          board[8][6] = '-';
+            board[3][6].solid = false;
+            board[3][6].visible = false;
+            board[8][6].solid = false;
+            board[8][6].visible = false;
         }
       );
       timer.addState(100,
@@ -401,24 +492,28 @@ var GameScreen = {
       var timer = new TimerLoop(75);
       timer.addState(50,
         function(){
-            board[2][4] = '0';
-            board[9][4] = '0';
+            board[2][4].solid = true;
+            board[2][4].visible = true;
+            board[9][4].solid = true;
+            board[9][4].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[2][4] = '!';
-            board[9][4] = '!';
+            board[2][4].visible = false;
+            board[9][4].visible = false;
           }
           else
           {
-            board[2][4] = '0';
-            board[9][4] = '0';
+            board[2][4].visible = true;
+            board[9][4].visible = true;
           }
         },
         function(){
-          board[2][4] = '-';
-          board[9][4] = '-';
+            board[2][4].solid = false;
+            board[2][4].visible = false;
+            board[9][4].solid = false;
+            board[9][4].visible = false;
         }
       );
       timer.addState(100,
@@ -431,24 +526,28 @@ var GameScreen = {
       var timer = new TimerLoop(100);
       timer.addState(50,
         function(){
-            board[4][5] = '0';
-            board[7][5] = '0';
+            board[4][5].solid = true;
+            board[4][5].visible = true;
+            board[7][5].solid = true;
+            board[7][5].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[4][5] = '!';
-            board[7][5] = '!';
+            board[4][5].visible = false;
+            board[7][5].visible = false;
           }
           else
           {
-            board[4][5] = '0';
-            board[7][5] = '0';
+            board[4][5].visible = true;
+            board[7][5].visible = true;
           }
         },
         function(){
-          board[4][5] = '-';
-          board[7][5] = '-';
+            board[4][5].solid = false;
+            board[4][5].visible = false;
+            board[7][5].solid = false;
+            board[7][5].visible = false;
         }
       );
       timer.addState(100,
@@ -461,24 +560,28 @@ var GameScreen = {
       var timer = new TimerLoop(125);
       timer.addState(50,
         function(){
-            board[5][4] = '0';
-            board[6][4] = '0';
+            board[5][4].solid = true;
+            board[5][4].visible = true;
+            board[6][4].solid = true;
+            board[6][4].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[5][4] = '!';
-            board[6][4] = '!';
+            board[5][4].visible = false;
+            board[6][4].visible = false;
           }
           else
           {
-            board[5][4] = '0';
-            board[6][4] = '0';
+            board[5][4].visible = true;
+            board[6][4].visible = true;
           }
         },
         function(){
-          board[5][4] = '-';
-          board[6][4] = '-';
+            board[5][4].solid = false;
+            board[5][4].visible = false;
+            board[6][4].solid = false;
+            board[6][4].visible = false;
         }
       );
       timer.addState(100,
@@ -491,24 +594,28 @@ var GameScreen = {
       var timer = new TimerLoop(150);
       timer.addState(50,
         function(){
-            board[4][6] = '0';
-            board[7][6] = '0';
+            board[4][6].solid = true;
+            board[4][6].visible = true;
+            board[7][6].solid = true;
+            board[7][6].visible = true;
         },
         function(){
           if (timer.ttl % 2 == 0)
           {
-            board[4][6] = '!';
-            board[7][6] = '!';
+            board[4][6].visible = false;
+            board[7][6].visible = false;
           }
           else
           {
-            board[4][6] = '0';
-            board[7][6] = '0';
+            board[4][6].visible = true;
+            board[7][6].visible = true;
           }
         },
         function(){
-          board[4][6] = '-';
-          board[7][6] = '-';
+            board[4][6].solid = false;
+            board[4][6].visible = false;
+            board[7][6].solid = false;
+            board[7][6].visible = false;
         }
       );
       timer.addState(100,
@@ -536,9 +643,9 @@ var GameScreen = {
           "-----00-----"
         ]
       );
-      
-      this.gameEntities = [];
     }
+    
+    this.gameEntities.push(this.playerPainter);
   },
   
   loadBoard: function(string_array)
@@ -562,13 +669,17 @@ var GameScreen = {
       var row = [];
       for(var y = 0; y < dim_y; y++)
       {
-        if (x < string_array[y].length)
+        if (x < string_array[y].length && string_array[y][x] != '-')
         {
-          row.push(string_array[y][x]);
+          var tile = new FloorTile(x,y,true)
+          row.push(tile);
+          this.gameEntities.push(tile);
         }
         else
         {
-          row.push('-');
+          var tile = new FloorTile(x,y,false)
+          row.push(tile);
+          this.gameEntities.push(tile);
         }
       }
       this.board.push(row);
@@ -577,58 +688,61 @@ var GameScreen = {
 
   handleMouseDown: function(event)
   {
-    this.mouse_event = true;
-    this.mouse_x = event.offsetX;
-    this.mouse_y = event.offsetY;
+    if (this.layout)
+    {
+      this.mouse_event = true;
+      this.mouse_x = event.offsetX;
+      this.mouse_y = event.offsetY;
+    }
   },
   
   //----------------------------------------------------------------------
   // from Screen
   handleTimeStep: function ()
   {
-    if(this.mouse_event)
+    if(this.mouse_event && this.layout)
     {
       this.mouse_event = false;
-      var tile_x = Math.floor((this.mouse_x - this.center_x)/this.tile_width) + 6;
-      var tile_y = Math.floor((this.mouse_y - this.center_y)/this.tile_height) + 6;
+      var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
+      var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
       //alert(tile_x + ", " + tile_y)
-      if (this.board[tile_x][tile_y] != '-' && 
-        tile_x != this.player_x && tile_y != this.player_y &&
-        Math.abs(tile_x - this.player_x) + Math.abs(tile_y - this.player_y) == 3)
+      if (this.board[tile_x][tile_y].solid && 
+        tile_x != this.gamestate.player_x && tile_y != this.gamestate.player_y &&
+        Math.abs(tile_x - this.gamestate.player_x) + Math.abs(tile_y - this.gamestate.player_y) == 3)
       {
-        this.player_x = tile_x;
-        this.player_y = tile_y;
+        this.gamestate.player_x = tile_x;
+        this.gamestate.player_y = tile_y;
         
         for (var i in this.gameEntities)
         {
           if(this.gameEntities[i].handlePlayerAttack)
             {
-              this.gameEntities[i].handlePlayerAttack(this.player_x, this.player_y);
+              this.gameEntities[i].handlePlayerAttack(this.gamestate.player_x, this.gamestate.player_y);
             }
         }
                 
         //did we move into an exit square?
-        if(this.player_x > 9)
+        if(this.gamestate.player_x > 9)
         {
-          this.player_x = this.player_x - 10;
+          this.gamestate.player_x = this.gamestate.player_x - 10;
           this.current_room_x++;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.player_y > 9)
+        else if(this.gamestate.player_y > 9)
         {
-          this.player_y = this.player_y - 10;
+          this.gamestate.player_y = this.gamestate.player_y - 10;
           this.current_room_y++;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.player_x < 2)
+        else if(this.gamestate.player_x < 2)
         {
-          this.player_x = this.player_x + 10;
+          this.gamestate.player_x = this.gamestate.player_x + 10;
           this.current_room_x--;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.player_y < 2)
+        else if(this.gamestate.player_y < 2)
         {
-          this.player_y = this.player_y + 10;
+          this.gamestate.player_y = this.gamestate.player_y + 10;
           this.current_room_y--;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
@@ -648,13 +762,24 @@ var GameScreen = {
     {
       if(this.gameEntities[i].handlePlayerCollision)
       {
-        this.gameEntities[i].handlePlayerCollision(this.player_x, this.player_y);
+        this.gameEntities[i].handlePlayerCollision(this.gamestate.player_x, this.gamestate.player_y);
       }
     }
     
-    if(this.board[this.player_x][this.player_y] == '-')
+    if(!this.board[this.gamestate.player_x][this.gamestate.player_y].solid)
     {
-      GameScreen.reset();
+      if(this.playerPainter.y_offset === 0)
+      {
+        this.playerPainter.y_offset = 20;
+      }
+      else
+      {
+        this.playerPainter.y_offset += this.playerPainter.y_offset;
+      }
+      if(this.playerPainter.y_offset > 25 * 40)
+      {
+        this.reset();
+      }
     }
   },
   
@@ -662,6 +787,10 @@ var GameScreen = {
   // from Screen
   paint: function (canvas, ctx)
   {
+  
+    this.playerPainter.x = this.gamestate.player_x;
+    this.playerPainter.y = this.gamestate.player_y;
+  
     ctx.setTransform(1, 0, 0, 1, 0, 0);
    
     // paint the background
@@ -670,64 +799,36 @@ var GameScreen = {
     
     ctx.fillStyle = "rgb(255,255,255)";
     
-    this.center_x = Math.round(canvas.width / 2);
-    this.center_y = Math.round(canvas.height / 2);
-    this.tile_width = Math.round(canvas.width/12);
-    this.tile_height = Math.round(canvas.width/24);
-    for(var x = 0; x < 12; x++)
+    if (this.layout === null)
     {
-      for(var y = 0; y < 12; y++)
-      {
-        if (this.board[x][y] != '0')
-        {
-          continue;
-        }
-        //main board
-        if (((x + y)%2) == 0)
-        {
-          ctx.fillStyle = "rgb(128,128,128)";
-        }
-        else
-        {
-          ctx.fillStyle = "rgb(192,192,192)";
-        }
-        ctx.fillRect(
-          (x - 6) * this.tile_width + this.center_x,
-          (y - 6) * this.tile_height + this.center_y,
-          this.tile_width,
-          this.tile_height);
-        if(x != this.player_x && y != this.player_y && Math.abs(x - this.player_x) + Math.abs(y - this.player_y) == 3)
-        {
-          ctx.fillStyle = "rgba(0,255,0,.2)";
-          ctx.fillRect(
-          (x - 6) * this.tile_width + this.center_x,
-          (y - 6) * this.tile_height + this.center_y,
-          this.tile_width,
-          this.tile_height);
-        }
-      }
+      this.layout = {};
     }
+    this.layout.center_x = Math.round(canvas.width / 2);
+    this.layout.center_y = Math.round(canvas.height / 2);
+    this.layout.tile_width = Math.round(canvas.width/12);
+    this.layout.tile_height = Math.round(canvas.width/24);
+
+    this.gameEntities.sort(function(a,b){
+      var a_lvl = 0;
+      var b_lvl = 0;
+      if(a.paintLevel)
+      {
+        a_lvl = a.paintLevel();
+      }
+      if(b.paintLevel)
+      {
+        b_lvl = b.paintLevel();
+      }
+      return a_lvl - b_lvl;
+    });
     
     for (var i in this.gameEntities)
     {
       if (this.gameEntities[i].paint)
       {
-        this.gameEntities[i].paint(canvas,ctx);
+        this.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
       }
     }
-        
-    ctx.drawImage(
-      GlobalResources.graphic_components.m_pieces,
-      436,
-      15,
-      100,
-      250,
-      (this.player_x - 6) * this.tile_width + this.center_x,
-      (this.player_y - 6 + 1) * this.tile_height + this.center_y
-        - Math.floor(2.5 * this.tile_width),
-      this.tile_width,
-      Math.floor(this.tile_width * 2.5)
-    );
   }
 };
 
