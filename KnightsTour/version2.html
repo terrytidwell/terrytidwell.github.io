@@ -245,7 +245,7 @@ var FloorTile = function(x, y, solid)
       (this.y - 6) * layout.tile_height + layout.center_y,
       layout.tile_width,
       layout.tile_height);
-    if(x != gamestate.player_x && y != gamestate.player_y && Math.abs(x - gamestate.player_x) + Math.abs(y - gamestate.player_y) == 3)
+    if(x != gamestate.player.x && y != gamestate.player.y && Math.abs(x - gamestate.player.x) + Math.abs(y - gamestate.player.y) == 3)
     {
       ctx.fillStyle = "rgba(0,255,0,.2)";
       ctx.fillRect(
@@ -257,7 +257,7 @@ var FloorTile = function(x, y, solid)
   };
 };
 
-var PlayerPainter = function(x,y)
+var Player = function(x,y)
 {
   this.x = x;
   this.y = y;
@@ -276,8 +276,8 @@ var PlayerPainter = function(x,y)
       15,
       100,
       250,
-      (gamestate.player_x - 6) * layout.tile_width + layout.center_x,
-      (gamestate.player_y - 6 + 1) * layout.tile_height + layout.center_y
+      (gamestate.player.x - 6) * layout.tile_width + layout.center_x,
+      (gamestate.player.y - 6 + 1) * layout.tile_height + layout.center_y
         - Math.floor(2.5 * layout.tile_width) + this.y_offset,
       layout.tile_width,
       Math.floor(layout.tile_width * 2.5)
@@ -305,10 +305,8 @@ var GameScreen = {
 
     this.gamestate = 
     {
-      player_x : 2,
-      player_y : 5,
+      player : new Player(2,5),
     }
-    this.playerPainter = new PlayerPainter(this.gamestate.player_x,this.gamestate.player_y)
     this.board = [];
     this.current_room_x = 0;
     this.current_room_y = 0;
@@ -645,7 +643,7 @@ var GameScreen = {
       );
     }
     
-    this.gameEntities.push(this.playerPainter);
+    this.gameEntities.push(this.gamestate.player);
   },
   
   loadBoard: function(string_array)
@@ -707,42 +705,42 @@ var GameScreen = {
       var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
       //alert(tile_x + ", " + tile_y)
       if (this.board[tile_x][tile_y].solid && 
-        tile_x != this.gamestate.player_x && tile_y != this.gamestate.player_y &&
-        Math.abs(tile_x - this.gamestate.player_x) + Math.abs(tile_y - this.gamestate.player_y) == 3)
+        tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
+        Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
       {
-        this.gamestate.player_x = tile_x;
-        this.gamestate.player_y = tile_y;
+        this.gamestate.player.x = tile_x;
+        this.gamestate.player.y = tile_y;
         
         for (var i in this.gameEntities)
         {
           if(this.gameEntities[i].handlePlayerAttack)
             {
-              this.gameEntities[i].handlePlayerAttack(this.gamestate.player_x, this.gamestate.player_y);
+              this.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y);
             }
         }
                 
         //did we move into an exit square?
-        if(this.gamestate.player_x > 9)
+        if(this.gamestate.player.x > 9)
         {
-          this.gamestate.player_x = this.gamestate.player_x - 10;
+          this.gamestate.player.x = this.gamestate.player.x - 10;
           this.current_room_x++;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.gamestate.player_y > 9)
+        else if(this.gamestate.player.y > 9)
         {
-          this.gamestate.player_y = this.gamestate.player_y - 10;
+          this.gamestate.player.y = this.gamestate.player.y - 10;
           this.current_room_y++;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.gamestate.player_x < 2)
+        else if(this.gamestate.player.x < 2)
         {
-          this.gamestate.player_x = this.gamestate.player_x + 10;
+          this.gamestate.player.x = this.gamestate.player.x + 10;
           this.current_room_x--;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
-        else if(this.gamestate.player_y < 2)
+        else if(this.gamestate.player.y < 2)
         {
-          this.gamestate.player_y = this.gamestate.player_y + 10;
+          this.gamestate.player.y = this.gamestate.player.y + 10;
           this.current_room_y--;
           this.loadRoom(this.current_room_x,this.current_room_y);
         }
@@ -762,21 +760,21 @@ var GameScreen = {
     {
       if(this.gameEntities[i].handlePlayerCollision)
       {
-        this.gameEntities[i].handlePlayerCollision(this.gamestate.player_x, this.gamestate.player_y);
+        this.gameEntities[i].handlePlayerCollision(this.gamestate.player.x, this.gamestate.player.y);
       }
     }
     
-    if(!this.board[this.gamestate.player_x][this.gamestate.player_y].solid)
+    if(!this.board[this.gamestate.player.x][this.gamestate.player.y].solid)
     {
-      if(this.playerPainter.y_offset === 0)
+      if(this.gamestate.player.y_offset === 0)
       {
-        this.playerPainter.y_offset = 20;
+        this.gamestate.player.y_offset = 20;
       }
       else
       {
-        this.playerPainter.y_offset += this.playerPainter.y_offset;
+        this.gamestate.player.y_offset += this.gamestate.player.y_offset;
       }
-      if(this.playerPainter.y_offset > 25 * 40)
+      if(this.gamestate.player.y_offset > 25 * 40)
       {
         this.reset();
       }
@@ -787,10 +785,6 @@ var GameScreen = {
   // from Screen
   paint: function (canvas, ctx)
   {
-  
-    this.playerPainter.x = this.gamestate.player_x;
-    this.playerPainter.y = this.gamestate.player_y;
-  
     ctx.setTransform(1, 0, 0, 1, 0, 0);
    
     // paint the background
