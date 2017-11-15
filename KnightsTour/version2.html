@@ -252,25 +252,48 @@ var ButtonArrayButton = function(x, y)
 var ButtonArray = function()
 {
   this.buttons = [];
+  this.pressed = false;
 
-  this.handlePlayerCollision = function(x,y)
+  this.handlePlayerAttack = function(x,y)
   {
-    var collision = false;
+    if (this.pressed)
+    {
+      return;
+    }
+    var needs_reset = true;
+    this.pressed = true;
+    var collidided = -1;
     for (b in this.buttons)
     {
       if(this.buttons[b].x === x && this.buttons[b].y === y)
       {
-        collision = true;
-        this.buttons[b].pushed = true;
+        collidided = b;
+        if (!this.buttons[b].pushed)
+        {
+          needs_reset = false;
+          this.buttons[b].pushed = true;
+        }
+      }
+      if (!this.buttons[b].pushed)
+      {
+        this.pressed = false;
       }
     }
     
-    if (!collision)
+    if (needs_reset)
     {
       for (b in this.buttons)
       {
-        this.buttons[b].pushed = false;
+        if (b !== collidided)
+        {
+          this.buttons[b].pushed = false;
+        }
       }
+    }
+    
+    if (this.pressed)
+    {
+      //alert("Huzzah!");
     }
   };
 };
@@ -426,16 +449,6 @@ var GameScreen = {
           }
         )
       );
-      /*
-      var button_array = new ButtonArray();
-      button_array.buttons.push(new ButtonArrayButton(8,8));
-      button_array.buttons.push(new ButtonArrayButton(7,6));
-      button_array.buttons.push(new ButtonArrayButton(8,4));
-      this.gameEntities.push(button_array);
-      this.gameEntities.push(button_array.buttons[0]);
-      this.gameEntities.push(button_array.buttons[1]);
-      this.gameEntities.push(button_array.buttons[2]);
-      */
     }
     else if(x == 1 && y == 0)
     {
@@ -443,18 +456,31 @@ var GameScreen = {
         [
           "------------",
           "------------",
-          "------------",
-          "------------",
-          "--00--------",
-          "0000--------",
-          "0000--------",
-          "--00--------",
-          "------------",
-          "------------",
+          "--00000000--",
+          "--00000000--",
           "------------",
           "------------"
         ]
       );
+      var button_array = new ButtonArray();
+      button_array.buttons.push(new ButtonArrayButton(5,8));
+      button_array.buttons.push(new ButtonArrayButton(6,8));
+      button_array.buttons.push(new ButtonArrayButton(4,7));
+      button_array.buttons.push(new ButtonArrayButton(7,7));
+      button_array.buttons.push(new ButtonArrayButton(5,6));
+      button_array.buttons.push(new ButtonArrayButton(6,6));
+      button_array.buttons.push(new ButtonArrayButton(5,5));
+      button_array.buttons.push(new ButtonArrayButton(6,5));
+      button_array.buttons.push(new ButtonArrayButton(4,4));
+      button_array.buttons.push(new ButtonArrayButton(7,4));
+      button_array.buttons.push(new ButtonArrayButton(5,3));
+      button_array.buttons.push(new ButtonArrayButton(6,3));
+      
+      this.gameEntities.push(button_array);
+      for (var b in button_array.buttons)
+      {
+        this.gameEntities.push(button_array.buttons[b]);
+      }
     }
     else if(x == 0 && y == -2)
     {
