@@ -61,6 +61,289 @@ const Util = {
 
 //##########################################################################
 
+var PaintLevelEnum = 
+{
+  BG: 0,
+  FLOOR: 1,
+  LOWER: 2,
+  ENTITIES: 3,
+};
+
+const Pawn = function (x,y){
+  this.x = x;
+  this.y = y;
+  this.m_vel = [-1,-1];
+  this.m_invincible = false;
+  this.m_invincible_timer = 0;
+  this.m_state_timer = 0;
+  this.m_pushed = false;
+  this.m_attack_pos = [8,8];
+  this.m_move_flip_flop = 0;
+  this.m_health = 2;
+  this.offset_x = 0;
+  this.offset_y = 0;
+  this.attack = new Attack(8,8,-1,-1);
+  
+  this.INVINCIBLE_TIME = 50,
+  this.STUNNED_TIME = 40,
+  this.ATTACK_TIME = 16;
+  this.MOVE_TIME = 4;
+  this.DELAY_BEFORE_MOVE = 12;
+  this.ATTACK_DELAY = 8;
+  
+  //state machine
+  this.PREMOVE = 0,
+  this.MOVE = 1,
+  this.ATTACK = 2,
+  this.STUNNED = 3,
+  this.m_state = this.PREMOVE,
+  
+  this.handleTimeStep = function (gamestate)
+  {
+    if(this.m_invincible)
+    {
+      this.m_invincible_timer++;
+      if(this.m_invincible_timer >= this.INVINCIBLE_TIME)
+      {
+        this.m_invincible = false;
+        this.m_invincible_timer = 0;
+      }
+    }
+    var move_me = false;
+    var delta_x = gamestate.player.x - this.x;
+    var delta_y = gamestate.player.y - this.y;
+    
+    this.m_state_timer++;
+    
+    if(this.m_state != this.MOVE)
+    {
+      this.offset_x = 0;
+      this.offset_y = 0;
+    }
+    
+    if(this.m_state != this.ATTACK)
+    {
+      this.attack.m_active = false;
+    }
+    
+    if(this.m_state == this.ATTACK && this.m_state_timer >= this.ATTACK_TIME)
+    {
+      this.m_state_timer = 0;
+      this.m_state = this.PREMOVE;
+      return;
+    }
+    
+    if(this.m_state == this.PREMOVE && this.m_state_timer >= this.DELAY_BEFORE_MOVE)
+    {
+      if(Math.abs(delta_x) + Math.abs(delta_y) == 2 &&
+        delta_x != 0 &&
+        delta_y != 0)
+      {
+        this.m_state = this.ATTACK;
+        this.m_state_timer = 0;
+        this.m_attack_pos[0] = gamestate.player.x;
+        this.m_attack_pos[1] = gamestate.player.y;
+        this.attack.x = this.m_attack_pos[0];
+        this.attack.y = this.m_attack_pos[1];
+        this.attack.dx = delta_x;
+        this.attack.dy = delta_y;
+        this.attack.m_active = true;
+        gamestate.gameEntities.push(this.attack);
+        return;
+      }
+      else
+      {
+        this.m_state = this.MOVE;
+        this.m_state_timer = 0;
+        this.m_vel[0] = 1; 
+        if(delta_x < 0 || (delta_x == 0 && Math.floor(Math.random()*2) == 0))
+        {
+          this.m_vel[0] = -1; 
+        }
+        this.m_vel[1] = 1; 
+        if(delta_y < 0 || (delta_y == 0 && Math.floor(Math.random()*2) == 0))
+        {
+          this.m_vel[1] = -1; 
+        }
+        if(Math.abs(delta_x) + Math.abs(delta_y) < 2)
+        {
+          this.m_vel[0] *= -1;
+          this.m_vel[1] *= -1;
+        }
+        if(Math.random() < .80)
+        {
+          this.m_move_flip_flop = (this.m_move_flip_flop + 1) % 2;
+        }
+        var potential_moves;
+        if (this.m_move_flip_flop == 0)
+        {
+          //preferentially prefer vertical
+          potential_moves = [[0,this.m_vel[1]],[0,-1 *this.m_vel[1]],[this.m_vel[0],0],[-1 * this.m_vel[0],0]];
+        }
+        else
+        {
+          //preferentially prefer horizontal
+          potential_moves = [[this.m_vel[0],0],[-1 * this.m_vel[0],0],[0,this.m_vel[1]],[0,-1 *this.m_vel[1]]];
+        }
+        for(p in potential_moves)
+        {
+          if(gamestate.board[this.x+potential_moves[p][0]][this.y+potential_moves[p][1]].solid)
+          {
+            this.m_vel[0] = potential_moves[p][0];
+            this.m_vel[1] = potential_moves[p][1];
+            break;
+          }
+        }
+        return;
+      }
+    }
+    
+    if(this.m_state == this.MOVE)
+    {
+      if(this.m_state_timer == Math.round(this.MOVE_TIME / 2))
+      {
+        move_me = true;
+      }
+      var ratio = this.m_state_timer / this.MOVE_TIME;
+      if(this.m_state_timer >= Math.round(this.MOVE_TIME / 2))
+      {
+        ratio = ratio - 1;
+      }
+      this.offset_x = this.m_vel[0] * ratio;
+      this.offset_y = this.m_vel[1] * ratio;
+      if(this.m_state_timer >= this.MOVE_TIME)
+      {
+        this.m_state_timer = 0;
+        this.m_state = this.PREMOVE;
+      }
+    }
+    if(this.m_state == this.STUNNED && this.m_state_timer >= this.STUNNED_TIME)
+    {
+      this.m_state = this.PREMOVE;
+      this.m_state_timer = 0;
+    }
+    if(this.m_pushed)
+    {
+      this.m_vel[0] = 0;
+      this.m_vel[1] = 0;
+      var potential_directions = Util.shuffle([[1,0],[0,1],[-1,0],[0,-1]]);
+      for(p in potential_directions)
+      {
+        if(gamestate.board[this.x+potential_directions[p][0]][this.y+potential_directions[p][1]].solid)
+        {
+          this.m_vel[0] = potential_directions[p][0];
+          this.m_vel[1] = potential_directions[p][1];
+          break;
+        }
+      }
+      move_me = true;
+      this.m_pushed = false;
+    }
+    
+    if(move_me)
+    {
+      this.x += this.m_vel[0];
+      this.y += this.m_vel[1];
+    }       
+  };
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.ENTITIES + (this.y + this.offset_y + .5) * 1000;
+  };
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+  /*
+    if(this.m_state == this.ATTACK)
+    {
+      ctx.fillStyle = "rgba(255,0,0,.5)";
+      ctx.fillRect(
+        (this.m_attack_pos[0] - 6) * layout.tile_width + layout.center_x,
+        (this.m_attack_pos[1] - 6) * layout.tile_height + layout.center_y,
+        layout.tile_width,
+        layout.tile_height
+      );
+    }
+  */
+    if(this.m_invincible && this.m_invincible_timer % 2 == 0)
+    {
+      return;
+    }
+    
+    ctx.drawImage(
+      GlobalResources.graphic_components.m_pieces,
+      536,
+      15,
+      100,
+      250,
+      Math.round((this.x + this.offset_x - 6) * layout.tile_width + layout.center_x),
+      Math.round((this.y + this.offset_y - 6 + 1) * layout.tile_height + layout.center_y)
+        - Math.floor(2.5 * layout.tile_width),
+      layout.tile_width,
+      Math.floor(2.5 * layout.tile_width)
+    );
+  };
+  
+  this.handlePlayerCollision = function(x, y, gamestate)
+  {
+    if(this.m_state == this.ATTACK)
+    {
+      if(x == this.m_attack_pos[0] && y == this.m_attack_pos[1])
+      {
+        delta_x = 1;
+        if(this.x > x)
+        {
+          delta_x = -1;
+        }
+        delta_y = 1;
+        if(this.y > y)
+        {
+          delta_y = -1;
+        }
+        gamestate.player.handleDamage(delta_x, delta_y);
+      }
+    }
+    
+    if(!this.m_invincible)
+    {
+      if(x == this.x && y == this.y)
+      {
+        gamestate.player.handleDamage(this.m_vel[0], this.m_vel[1]);
+      }
+    }
+  };
+  
+  this.handlePlayerAttack = function(x,y)
+  {
+    if(x != this.x || y != this.y)
+    {
+      return;
+    }
+  
+    if(this.m_invincible)
+    {
+      return;
+    }
+    
+    this.m_state = this.STUNNED;
+    this.m_state_timer = 0;
+    this.m_invincible = true;
+    this.m_invincible_timer = 0;
+    this.m_pushed = true;
+    this.m_health--;
+    if(this.m_health <= 0)
+    {
+      this.attack.m_active = false;
+    }
+  }
+  
+  this.active = function()
+  {
+    return this.m_health > 0;
+  }
+};
+
 var TimerLoop = function(initial_offset)
 {
   this.ttl = initial_offset;
@@ -71,7 +354,7 @@ var TimerLoop = function(initial_offset)
     this.states.push({max_ttl: max_ttl, entry_function: entry_function, warning_function: warning_function, exit_function: exit_function});
   }
   
-  this.handleTimeStep = function()
+  this.handleTimeStep = function(gamestate)
   {
     if(this.ttl > 0)
     {
@@ -102,14 +385,6 @@ var TimerLoop = function(initial_offset)
   };
 };
 
-var PaintLevelEnum = 
-{
-  BG: 0,
-  FLOOR: 1,
-  LOWER: 2,
-  ENTITIES: 3,
-};
-
 var Button = function(x, y, ttl, pressed_function, warning_function,
   released_function)
 {
@@ -136,7 +411,7 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     }
   };
   
-  this.handlePlayerCollision = function(x,y)
+  this.handlePlayerCollision = function(x, y, gamestate)
   {
     if (x != this.x || y != this.y)
     {
@@ -147,7 +422,7 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     this.ttl = this.ttl_max;
   };
   
-  this.handleTimeStep = function()
+  this.handleTimeStep = function(gamestate)
   {
     if (this.max_ttl === 0)
     {
@@ -298,16 +573,50 @@ var ButtonArray = function()
   };
 };
 
+var Attack = function(x, y, dx, dy)
+{
+  this.x = x;
+  this.y = y;
+  this.dx = dx;
+  this.dy = dy;
+  this.m_active = true;
+
+  this.handlePlayerCollision = function (x, y, gamestate)
+  {
+    if(x == this.x && y == this.y)
+    {
+      gamestate.player.handleDamage(dx, dy);
+    }
+  }
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + (this.y) * 1000;
+  };
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+    ctx.fillStyle = "rgba(255,0,0,.5)";
+    ctx.fillRect(
+      (this.x - 6) * layout.tile_width + layout.center_x,
+      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.tile_width,
+      layout.tile_height
+    );
+  };
+  
+  this.active = function()
+  {
+    return this.m_active;
+  };
+};
+
 var FloorTile = function(x, y, solid)
 {
   this.x = x;
   this.y = y;
   this.visible = solid;
   this.solid = solid;
-  
-  this.handlePlayerCollision = function(x,y)
-  {
-  };
   
   this.paintLevel = function()
   {
@@ -334,6 +643,10 @@ var FloorTile = function(x, y, solid)
       (this.y - 6) * layout.tile_height + layout.center_y,
       layout.tile_width,
       layout.tile_height);
+    if(gamestate.player.player_health == 0)
+    {
+      return;
+    }
     if(x != gamestate.player.x && y != gamestate.player.y && Math.abs(x - gamestate.player.x) + Math.abs(y - gamestate.player.y) == 3)
     {
       ctx.fillStyle = "rgba(0,255,0,.2)";
@@ -351,14 +664,98 @@ var Player = function(x,y)
   this.x = x;
   this.y = y;
   this.y_offset = 0;
+  this.player_health = 20;
+  this.player_pushed = false;
+  this.player_push_x = 0;
+  this.player_push_y = 0;
+  this.player_stun_timer = 0;
+  this.PLAYER_STUN_PERIOD = 10;
+  this.PLAYER_INVINCIBLE_PERIOD = 30;
+  this.player_stun_timer_active = false;
+  this.player_invincible_timer = 0;
+  this.player_invincible_timer_active = false;
+  
+  this.handleTimeStep = function(gamestate)
+  {
+    if(this.player_stun_timer_active)
+    {
+      this.player_stun_timer++;
+      if(this.player_stun_timer >= this.PLAYER_STUN_PERIOD)
+      {
+        this.player_stun_timer_active = false;
+        this.player_stun_timer = 0;
+      }
+    }
+    
+    if(this.player_pushed)
+    {
+      if(this.x <= 2 && this.player_push_x == -1)
+      {
+        this.player_push_x = 1;
+      }
+      if(this.x >= 9 && this.player_push_x == 1)
+      {
+        this.player_push_x = -1;
+      }
+      
+      if(this.y <= 2 && this.player_push_y == -1)
+      {
+        this.player_push_y = 1;
+      }
+      if(this.y >= 9 && this.player_push_y == 1)
+      {
+        this.player_push_y = -1;
+      }
+      this.player_pushed = false;
+      this.x += this.player_push_x;
+      this.y += this.player_push_y;
+    }
+    
+    if(this.player_invincible_timer_active)
+    {
+      this.player_invincible_timer++;
+      if(this.player_invincible_timer >= this.PLAYER_INVINCIBLE_PERIOD)
+      {
+        this.player_invincible_timer_active = false;
+        this.player_invincible_timer = 0;
+      }
+    }
+  }
+  
+  this.handleDamage = function(delta_x, delta_y)
+  {
+    if(this.player_invincible_timer_active)
+    {
+      return;
+    }
+    this.player_stun_timer = 0;
+    this.player_stun_timer_active = true;
+    this.player_invincible_timer = 0;
+    this.player_invincible_timer_active = true;
+    this.player_pushed = true;
+    this.player_push_x = delta_x;
+    this.player_push_y = delta_y;
+    if(this.player_health > 0)
+    {
+      this.player_health--;
+    }
+  }
 
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + this.y * 1000;
+    return PaintLevelEnum.ENTITIES + (this.y + .5) * 1000;
   }
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
+    if (this.player_invincible_timer_active && this.player_invincible_timer % 2 === 0)
+    {
+      return;
+    }
+    if (this.player_health === 0)
+    {
+      return;
+    }
     ctx.drawImage(
       GlobalResources.graphic_components.m_pieces,
       436,
@@ -395,17 +792,17 @@ var GameScreen = {
     this.gamestate = 
     {
       player : new Player(2,5),
+      board : [],
+      gameEntities: []
     }
-    this.board = [];
     this.current_room_x = 0;
     this.current_room_y = 0;
-    this.gameEntities = [];
     this.loadRoom(this.current_room_x,this.current_room_y);
   },
   
   loadRoom: function(x,y)
   {
-    this.gameEntities = [];
+    this.gamestate.gameEntities = [];
     
     if(x == 0 && y == 0)
     {
@@ -426,8 +823,8 @@ var GameScreen = {
         ]
       );
       
-      var board = this.board;
-      this.gameEntities.push(
+      var board = this.gamestate.board;
+      this.gamestate.gameEntities.push(
         new Button(2,2,200,
           function(){
             board[6][9].solid = true;
@@ -448,6 +845,9 @@ var GameScreen = {
             board[6][9].visible = false;
           }
         )
+      );
+      this.gamestate.gameEntities.push(
+        new Pawn(9,2)
       );
     }
     else if(x == 1 && y == 0)
@@ -482,10 +882,10 @@ var GameScreen = {
       button_array.buttons.push(new ButtonArrayButton(5,3));
       button_array.buttons.push(new ButtonArrayButton(6,3));
       
-      this.gameEntities.push(button_array);
+      this.gamestate.gameEntities.push(button_array);
       for (var b in button_array.buttons)
       {
-        this.gameEntities.push(button_array.buttons[b]);
+        this.gamestate.gameEntities.push(button_array.buttons[b]);
       }
     }
     else if(x == 0 && y == -2)
@@ -526,7 +926,7 @@ var GameScreen = {
         ]
       );
       
-      var board = this.board;
+      var board = this.gamestate.board;
       var timer = new TimerLoop(25);
       timer.addState(50,
         function(){
@@ -559,7 +959,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
       
       var timer = new TimerLoop(50);
       timer.addState(50,
@@ -593,7 +993,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
       
       var timer = new TimerLoop(75);
       timer.addState(50,
@@ -627,7 +1027,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
       
       var timer = new TimerLoop(100);
       timer.addState(50,
@@ -661,7 +1061,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
       
       var timer = new TimerLoop(125);
       timer.addState(50,
@@ -695,7 +1095,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
       
       var timer = new TimerLoop(150);
       timer.addState(50,
@@ -729,7 +1129,7 @@ var GameScreen = {
         null,
         null
       );
-      this.gameEntities.push(timer);
+      this.gamestate.gameEntities.push(timer);
     }
     else
     {
@@ -751,12 +1151,12 @@ var GameScreen = {
       );
     }
     
-    this.gameEntities.push(this.gamestate.player);
+    this.gamestate.gameEntities.push(this.gamestate.player);
   },
   
   loadBoard: function(string_array)
   {
-    this.board = [];
+    this.gamestate.board = [];
     var dim_y = string_array.length;
     var dim_x = 0;
     for(var i = 0; i < dim_y; i++)
@@ -779,27 +1179,34 @@ var GameScreen = {
         {
           var tile = new FloorTile(x,y,true)
           row.push(tile);
-          this.gameEntities.push(tile);
+          this.gamestate.gameEntities.push(tile);
         }
         else
         {
           var tile = new FloorTile(x,y,false)
           row.push(tile);
-          this.gameEntities.push(tile);
+          this.gamestate.gameEntities.push(tile);
         }
       }
-      this.board.push(row);
+      this.gamestate.board.push(row);
     }
   },
 
   handleMouseDown: function(event)
   {
-    if (this.layout)
+    if (!this.layout)
     {
-      this.mouse_event = true;
-      this.mouse_x = event.offsetX;
-      this.mouse_y = event.offsetY;
+      return;
     }
+    
+    if (this.gamestate.player.player_stun_timer_active)
+    {
+      return;
+    }
+    
+    this.mouse_event = true;
+    this.mouse_x = event.offsetX;
+    this.mouse_y = event.offsetY;
   },
   
   //----------------------------------------------------------------------
@@ -812,18 +1219,18 @@ var GameScreen = {
       var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
       var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
       //alert(tile_x + ", " + tile_y)
-      if (this.board[tile_x][tile_y].solid && 
+      if (this.gamestate.board[tile_x][tile_y].solid && 
         tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
         Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
       {
         this.gamestate.player.x = tile_x;
         this.gamestate.player.y = tile_y;
         
-        for (var i in this.gameEntities)
+        for (var i in this.gamestate.gameEntities)
         {
-          if(this.gameEntities[i].handlePlayerAttack)
+          if(this.gamestate.gameEntities[i].handlePlayerAttack)
             {
-              this.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y);
+              this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y);
             }
         }
                 
@@ -855,24 +1262,24 @@ var GameScreen = {
       }
     }
     
-    for (var i in this.gameEntities)
+    for (var i in this.gamestate.gameEntities)
     {
-      if(this.gameEntities[i].handleTimeStep)
+      if(this.gamestate.gameEntities[i].handleTimeStep)
       {
-        this.gameEntities[i].handleTimeStep();
+        this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
       }
     }
     
     //collisions
-    for (var i in this.gameEntities)
+    for (var i in this.gamestate.gameEntities)
     {
-      if(this.gameEntities[i].handlePlayerCollision)
+      if(this.gamestate.gameEntities[i].handlePlayerCollision)
       {
-        this.gameEntities[i].handlePlayerCollision(this.gamestate.player.x, this.gamestate.player.y);
+        this.gamestate.gameEntities[i].handlePlayerCollision(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
       }
     }
     
-    if(!this.board[this.gamestate.player.x][this.gamestate.player.y].solid)
+    if(!this.gamestate.board[this.gamestate.player.x][this.gamestate.player.y].solid)
     {
       if(this.gamestate.player.y_offset === 0)
       {
@@ -887,6 +1294,20 @@ var GameScreen = {
         this.reset();
       }
     }
+    
+    var temp_entities = [];
+    for (var i in this.gamestate.gameEntities)
+    {
+      if(this.gamestate.gameEntities[i].active)
+      {
+        if(!this.gamestate.gameEntities[i].active())
+        {
+          continue;
+        }
+      }
+      temp_entities.push(this.gamestate.gameEntities[i]);
+    }
+    this.gamestate.gameEntities = temp_entities;
   },
   
   //----------------------------------------------------------------------
@@ -910,7 +1331,7 @@ var GameScreen = {
     this.layout.tile_width = Math.round(canvas.width/12);
     this.layout.tile_height = Math.round(canvas.width/24);
 
-    this.gameEntities.sort(function(a,b){
+    this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
       var b_lvl = 0;
       if(a.paintLevel)
@@ -924,11 +1345,11 @@ var GameScreen = {
       return a_lvl - b_lvl;
     });
     
-    for (var i in this.gameEntities)
+    for (var i in this.gamestate.gameEntities)
     {
-      if (this.gameEntities[i].paint)
+      if (this.gamestate.gameEntities[i].paint)
       {
-        this.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
       }
     }
   }
