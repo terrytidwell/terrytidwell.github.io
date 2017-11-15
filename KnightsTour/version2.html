@@ -659,6 +659,40 @@ var FloorTile = function(x, y, solid)
   };
 };
 
+var DeathWatch = function()
+{
+  this.m_active = true;
+  this.children = [];
+  this.addChild = function(child)
+  {
+    this.children.push(child);
+  };
+  
+  this.handleTimeStep = function(gamestate)
+  {
+    this.m_active = false;
+    for (c in this.children)
+    {
+      if (this.children[c].active)
+      {
+        if (this.children[c].active())
+        {
+          this.m_active = true;
+        }
+      }
+    }
+    if(!this.m_active)
+    {
+      alert("Huzzah!");
+    }
+  };
+  
+  this.active = function()
+  {
+    return this.m_active;
+  };
+};
+
 var Player = function(x,y)
 {
   this.x = x;
@@ -903,11 +937,18 @@ var GameScreen = {
           "-----00-----"
         ]
       );
+      var death_watch = new DeathWatch();
       this.gamestate.gameEntities.push(
-        new Pawn(8,6)
+        death_watch
+      );
+      death_watch.addChild(new Pawn(8,6));
+      death_watch.addChild(new Pawn(3,8));
+      
+      this.gamestate.gameEntities.push(
+        death_watch.children[0]
       );
       this.gamestate.gameEntities.push(
-        new Pawn(3,8)
+        death_watch.children[1]
       );
     }
     else if(x == 0 && y == -1)
