@@ -718,6 +718,10 @@ var DeathWatch = function(victory_function)
   
   this.handleTimeStep = function(gamestate)
   {
+    if(!this.m_active)
+    {
+      return;
+    }
     this.m_active = false;
     for (let c = 0; c < this.children.length; c++)
     {
@@ -880,6 +884,411 @@ var Player = function(x,y)
   };
 };
 
+var Dungeon = {
+  rooms : [],
+  addRoom : function(x,y, string_array, gameEntities) 
+  {
+    var new_room = this.loadBoard(string_array);
+    for(let i = 0; i < gameEntities.length; i++)
+    {
+      new_room.gameEntities.push(gameEntities[i]);
+    }
+    
+    if(!this.rooms[x])
+    {
+      this.rooms[x] = [];
+    }
+    this.rooms[x][y] = new_room;
+  },
+  
+  loadBoard: function(string_array)
+  {
+    var board = [];
+    var gameEntities = [];
+    var dim_y = string_array.length;
+    var dim_x = 0;
+    for(let i = 0; i < dim_y; i++)
+    {
+      if(i == 0)
+      {
+        dim_x = string_array[i].length;
+      }
+      else
+      {
+        dim_x = Math.max(dim_x, string_array[i].length);
+      }
+    }
+    for(let x = 0; x < dim_x; x++)
+    {
+      var row = [];
+      for(let y = 0; y < dim_y; y++)
+      {
+        if (x < string_array[y].length && string_array[y][x] != '-')
+        {
+          var tile = new FloorTile(x,y,true)
+          row.push(tile);
+          gameEntities.push(tile);
+        }
+        else
+        {
+          var tile = new FloorTile(x,y,false)
+          row.push(tile);
+          gameEntities.push(tile);
+        }
+      }
+      board.push(row);
+    }
+    return {board: board, gameEntities: gameEntities, visited: false};
+  },
+  
+  loadRoom: function(x, y, gamestate)
+  {
+    gamestate.board = this.rooms[x][y].board;
+    gamestate.gameEntities = this.rooms[x][y].gameEntities;
+    if(!this.rooms[x][y].visited)
+    {
+      gamestate.gameEntities.push(gamestate.player);
+      this.rooms[x][y].visited = true;
+    }
+  },
+  
+  resetDungeon: function()
+  {
+    var game_entities = [];
+    game_entities.push(
+      new Button(2,2,200,
+        function(g){
+          g.board[6][9].solid = true;
+          g.board[6][9].visible = true;
+        },
+        function(g){
+          if (this.ttl % 2 == 0)
+          {
+            g.board[6][9].visible = false;
+          }
+          else
+          {
+            g.board[6][9].visible = true;
+          }
+        },
+        function(g){
+          g.board[6][9].solid = false;
+          g.board[6][9].visible = false;
+        }
+      )
+    );
+    Dungeon.addRoom(0,0,
+      [
+        "-----00-----",
+        "-----00-----",
+        "--0---0000--",
+        "--00--0000--",
+        "--00--0000--",
+        "--00---00000",
+        "--000--00000",
+        "--000--000--",
+        "--000---00--",
+        "--000---00--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
+    var button_array = new ButtonArray(function(g){ g.gameEntities.push(new Key(9,9)); });
+    button_array.buttons.push(new ButtonArrayButton(5,8));
+    button_array.buttons.push(new ButtonArrayButton(6,8));
+    button_array.buttons.push(new ButtonArrayButton(4,7));
+    button_array.buttons.push(new ButtonArrayButton(7,7));
+    button_array.buttons.push(new ButtonArrayButton(5,6));
+    button_array.buttons.push(new ButtonArrayButton(6,6));
+    button_array.buttons.push(new ButtonArrayButton(5,5));
+    button_array.buttons.push(new ButtonArrayButton(6,5));
+    button_array.buttons.push(new ButtonArrayButton(4,4));
+    button_array.buttons.push(new ButtonArrayButton(7,4));
+    button_array.buttons.push(new ButtonArrayButton(5,3));
+    button_array.buttons.push(new ButtonArrayButton(6,3));
+    
+    game_entities.push(button_array);
+    for (let b = 0; b < button_array.buttons.length; b++)
+    {
+      game_entities.push(button_array.buttons[b]);
+    }
+    Dungeon.addRoom(1,0,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "0000000000--",
+        "0000000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
+    var death_watch = new DeathWatch(function(g){ g.gameEntities.push(new Key(9,9)); });
+    game_entities.push(
+      death_watch
+    );
+    death_watch.addChild(new Pawn(8,6));
+    death_watch.addChild(new Pawn(3,8));
+    
+    game_entities.push(
+      death_watch.children[0]
+    );
+    game_entities.push(
+      death_watch.children[1]
+    );
+    Dungeon.addRoom(0,-2,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--0--00--0--",
+        "--0--00--0--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
+    var timer = new TimerLoop(25);
+    timer.addState(50,
+      function(g){
+          g.board[5][7].solid = true;
+          g.board[5][7].visible = true;
+          g.board[6][7].solid = true;
+          g.board[6][7].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[5][7].visible = false;
+          g.board[6][7].visible = false;
+        }
+        else
+        {
+          g.board[5][7].visible = true;
+          g.board[6][7].visible = true;
+        }
+      },
+      function(g){
+          g.board[5][7].solid = false;
+          g.board[5][7].visible = false;
+          g.board[6][7].solid = false;
+          g.board[6][7].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    
+    var timer = new TimerLoop(50);
+    timer.addState(50,
+      function(g){
+          g.board[3][6].solid = true;
+          g.board[3][6].visible = true;
+          g.board[8][6].solid = true;
+          g.board[8][6].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[3][6].visible = false;
+          g.board[8][6].visible = false;
+        }
+        else
+        {
+          g.board[3][6].visible = true;
+          g.board[8][6].visible = true;
+        }
+      },
+      function(g){
+          g.board[3][6].solid = false;
+          g.board[3][6].visible = false;
+          g.board[8][6].solid = false;
+          g.board[8][6].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    
+    var timer = new TimerLoop(75);
+    timer.addState(50,
+      function(g){
+          g.board[2][4].solid = true;
+          g.board[2][4].visible = true;
+          g.board[9][4].solid = true;
+          g.board[9][4].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[2][4].visible = false;
+          g.board[9][4].visible = false;
+        }
+        else
+        {
+          g.board[2][4].visible = true;
+          g.board[9][4].visible = true;
+        }
+      },
+      function(g){
+          g.board[2][4].solid = false;
+          g.board[2][4].visible = false;
+          g.board[9][4].solid = false;
+          g.board[9][4].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    
+    var timer = new TimerLoop(100);
+    timer.addState(50,
+      function(g){
+          g.board[4][5].solid = true;
+          g.board[4][5].visible = true;
+          g.board[7][5].solid = true;
+          g.board[7][5].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[4][5].visible = false;
+          g.board[7][5].visible = false;
+        }
+        else
+        {
+          g.board[4][5].visible = true;
+          g.board[7][5].visible = true;
+        }
+      },
+      function(g){
+          g.board[4][5].solid = false;
+          g.board[4][5].visible = false;
+          g.board[7][5].solid = false;
+          g.board[7][5].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    
+    var timer = new TimerLoop(125);
+    timer.addState(50,
+      function(g){
+          g.board[5][4].solid = true;
+          g.board[5][4].visible = true;
+          g.board[6][4].solid = true;
+          g.board[6][4].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[5][4].visible = false;
+          g.board[6][4].visible = false;
+        }
+        else
+        {
+          g.board[5][4].visible = true;
+          g.board[6][4].visible = true;
+        }
+      },
+      function(g){
+          g.board[5][4].solid = false;
+          g.board[5][4].visible = false;
+          g.board[6][4].solid = false;
+          g.board[6][4].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    
+    var timer = new TimerLoop(150);
+    timer.addState(50,
+      function(g){
+          g.board[4][6].solid = true;
+          g.board[4][6].visible = true;
+          g.board[7][6].solid = true;
+          g.board[7][6].visible = true;
+      },
+      function(g){
+        if (timer.ttl % 2 == 0)
+        {
+          g.board[4][6].visible = false;
+          g.board[7][6].visible = false;
+        }
+        else
+        {
+          g.board[4][6].visible = true;
+          g.board[7][6].visible = true;
+        }
+      },
+      function(g){
+          g.board[4][6].solid = false;
+          g.board[4][6].visible = false;
+          g.board[7][6].solid = false;
+          g.board[7][6].visible = false;
+      }
+    );
+    timer.addState(100,
+      null,
+      null,
+      null
+    );
+    game_entities.push(timer);
+    Dungeon.addRoom(0,-1,
+      [
+        "-----00-----",
+        "-----00-----",
+        "----0--0----",
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "----0--0----",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+  }
+};
+
 //--------------------------------------------------------------------------
 var GameScreen = {
   //----------------------------------------------------------------------
@@ -891,6 +1300,8 @@ var GameScreen = {
   // from Screen
   reset: function ()
   {
+    Dungeon.resetDungeon();
+    
     this.mouse_event = false;
     this.mouse_x = 0;
     this.mouse_y = 0;
@@ -911,364 +1322,8 @@ var GameScreen = {
   
   loadRoom: function(x,y)
   {
-    this.gamestate.gameEntities = [];
-    
-    if(x == 0 && y == 0)
-    {
-      this.loadBoard(
-        [
-          "-----00-----",
-          "-----00-----",
-          "--0---0000--",
-          "--00--0000--",
-          "--00--0000--",
-          "--00---00000",
-          "--000--00000",
-          "--000--000--",
-          "--000---00--",
-          "--000---00--",
-          "------------",
-          "------------"
-        ]
-      );
-      
-      this.gamestate.gameEntities.push(
-        new Button(2,2,200,
-          function(g){
-            g.board[6][9].solid = true;
-            g.board[6][9].visible = true;
-          },
-          function(g){
-            if (this.ttl % 2 == 0)
-            {
-              g.board[6][9].visible = false;
-            }
-            else
-            {
-              g.board[6][9].visible = true;
-            }
-          },
-          function(g){
-            g.board[6][9].solid = false;
-            g.board[6][9].visible = false;
-          }
-        )
-      );
-    }
-    else if(x == 1 && y == 0)
-    {
-      this.loadBoard(
-        [
-          "------------",
-          "------------",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "0000000000--",
-          "0000000000--",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "------------",
-          "------------"
-        ]
-      );
-      var button_array = new ButtonArray(function(g){ g.gameEntities.push(new Key(9,9)); });
-      button_array.buttons.push(new ButtonArrayButton(5,8));
-      button_array.buttons.push(new ButtonArrayButton(6,8));
-      button_array.buttons.push(new ButtonArrayButton(4,7));
-      button_array.buttons.push(new ButtonArrayButton(7,7));
-      button_array.buttons.push(new ButtonArrayButton(5,6));
-      button_array.buttons.push(new ButtonArrayButton(6,6));
-      button_array.buttons.push(new ButtonArrayButton(5,5));
-      button_array.buttons.push(new ButtonArrayButton(6,5));
-      button_array.buttons.push(new ButtonArrayButton(4,4));
-      button_array.buttons.push(new ButtonArrayButton(7,4));
-      button_array.buttons.push(new ButtonArrayButton(5,3));
-      button_array.buttons.push(new ButtonArrayButton(6,3));
-      
-      this.gamestate.gameEntities.push(button_array);
-      for (let b = 0; b < button_array.buttons.length; b++)
-      {
-        this.gamestate.gameEntities.push(button_array.buttons[b]);
-      }
-    }
-    else if(x == 0 && y == -2)
-    {
-      this.loadBoard(
-        [
-          "------------",
-          "------------",
-          "--00000000--",
-          "--00000000--",
-          "--0--00--0--",
-          "--0--00--0--",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "-----00-----",
-          "-----00-----"
-        ]
-      );
-      var death_watch = new DeathWatch(function(g){ g.gameEntities.push(new Key(9,9)); });
-      this.gamestate.gameEntities.push(
-        death_watch
-      );
-      death_watch.addChild(new Pawn(8,6));
-      death_watch.addChild(new Pawn(3,8));
-      
-      this.gamestate.gameEntities.push(
-        death_watch.children[0]
-      );
-      this.gamestate.gameEntities.push(
-        death_watch.children[1]
-      );
-    }
-    else if(x == 0 && y == -1)
-    {
-      this.loadBoard(
-        [
-          "-----00-----",
-          "-----00-----",
-          "----0--0----",
-          "------------",
-          "------------",
-          "------------",
-          "------------",
-          "------------",
-          "------------",
-          "----0--0----",
-          "-----00-----",
-          "-----00-----"
-        ]
-      );
-
-      var timer = new TimerLoop(25);
-      timer.addState(50,
-        function(g){
-            g.board[5][7].solid = true;
-            g.board[5][7].visible = true;
-            g.board[6][7].solid = true;
-            g.board[6][7].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[5][7].visible = false;
-            g.board[6][7].visible = false;
-          }
-          else
-          {
-            g.board[5][7].visible = true;
-            g.board[6][7].visible = true;
-          }
-        },
-        function(g){
-            g.board[5][7].solid = false;
-            g.board[5][7].visible = false;
-            g.board[6][7].solid = false;
-            g.board[6][7].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-      
-      var timer = new TimerLoop(50);
-      timer.addState(50,
-        function(g){
-            g.board[3][6].solid = true;
-            g.board[3][6].visible = true;
-            g.board[8][6].solid = true;
-            g.board[8][6].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[3][6].visible = false;
-            g.board[8][6].visible = false;
-          }
-          else
-          {
-            g.board[3][6].visible = true;
-            g.board[8][6].visible = true;
-          }
-        },
-        function(g){
-            g.board[3][6].solid = false;
-            g.board[3][6].visible = false;
-            g.board[8][6].solid = false;
-            g.board[8][6].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-      
-      var timer = new TimerLoop(75);
-      timer.addState(50,
-        function(g){
-            g.board[2][4].solid = true;
-            g.board[2][4].visible = true;
-            g.board[9][4].solid = true;
-            g.board[9][4].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[2][4].visible = false;
-            g.board[9][4].visible = false;
-          }
-          else
-          {
-            g.board[2][4].visible = true;
-            g.board[9][4].visible = true;
-          }
-        },
-        function(g){
-            g.board[2][4].solid = false;
-            g.board[2][4].visible = false;
-            g.board[9][4].solid = false;
-            g.board[9][4].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-      
-      var timer = new TimerLoop(100);
-      timer.addState(50,
-        function(g){
-            g.board[4][5].solid = true;
-            g.board[4][5].visible = true;
-            g.board[7][5].solid = true;
-            g.board[7][5].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[4][5].visible = false;
-            g.board[7][5].visible = false;
-          }
-          else
-          {
-            g.board[4][5].visible = true;
-            g.board[7][5].visible = true;
-          }
-        },
-        function(g){
-            g.board[4][5].solid = false;
-            g.board[4][5].visible = false;
-            g.board[7][5].solid = false;
-            g.board[7][5].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-      
-      var timer = new TimerLoop(125);
-      timer.addState(50,
-        function(g){
-            g.board[5][4].solid = true;
-            g.board[5][4].visible = true;
-            g.board[6][4].solid = true;
-            g.board[6][4].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[5][4].visible = false;
-            g.board[6][4].visible = false;
-          }
-          else
-          {
-            g.board[5][4].visible = true;
-            g.board[6][4].visible = true;
-          }
-        },
-        function(g){
-            g.board[5][4].solid = false;
-            g.board[5][4].visible = false;
-            g.board[6][4].solid = false;
-            g.board[6][4].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-      
-      var timer = new TimerLoop(150);
-      timer.addState(50,
-        function(g){
-            g.board[4][6].solid = true;
-            g.board[4][6].visible = true;
-            g.board[7][6].solid = true;
-            g.board[7][6].visible = true;
-        },
-        function(g){
-          if (timer.ttl % 2 == 0)
-          {
-            g.board[4][6].visible = false;
-            g.board[7][6].visible = false;
-          }
-          else
-          {
-            g.board[4][6].visible = true;
-            g.board[7][6].visible = true;
-          }
-        },
-        function(g){
-            g.board[4][6].solid = false;
-            g.board[4][6].visible = false;
-            g.board[7][6].solid = false;
-            g.board[7][6].visible = false;
-        }
-      );
-      timer.addState(100,
-        null,
-        null,
-        null
-      );
-      this.gamestate.gameEntities.push(timer);
-    }
-    else
-    {
-      this.loadBoard(
-        [
-          "-----00-----",
-          "-----00-----",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "000000000000",
-          "000000000000",
-          "--00000000--",
-          "--00000000--",
-          "--00000000--",
-          "-----00-----",
-          "-----00-----"
-        ]
-      );
-    }
-    
-    this.gamestate.gameEntities.push(this.gamestate.player);
+    Dungeon.loadRoom(x,y,this.gamestate);
+    return;
   },
   
   loadBoard: function(string_array)
