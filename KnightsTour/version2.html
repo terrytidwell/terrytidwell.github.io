@@ -566,12 +566,13 @@ var ButtonArrayButton = function(x, y)
   };
 };
 
-var ButtonArray = function()
+var ButtonArray = function(victory_function)
 {
   this.buttons = [];
   this.pressed = false;
+  this.victory_function = victory_function;
 
-  this.handlePlayerAttack = function(x,y)
+  this.handlePlayerAttack = function(x, y, gamestate)
   {
     if (this.pressed)
     {
@@ -610,7 +611,10 @@ var ButtonArray = function()
     
     if (this.pressed)
     {
-      alert("Huzzah!");
+      if(this.victory_function)
+      {
+        this.victory_function(gamestate);
+      }
     }
   };
 };
@@ -701,10 +705,12 @@ var FloorTile = function(x, y, solid)
   };
 };
 
-var DeathWatch = function()
+var DeathWatch = function(victory_function)
 {
   this.m_active = true;
   this.children = [];
+  this.victory_function = victory_function;
+  
   this.addChild = function(child)
   {
     this.children.push(child);
@@ -725,7 +731,10 @@ var DeathWatch = function()
     }
     if(!this.m_active)
     {
-      alert("Huzzah!");
+      if(this.victory_function)
+      {
+        this.victory_function(gamestate);
+      }
     }
   };
   
@@ -763,7 +772,8 @@ var Player = function(x,y)
     
     if(this.player_pushed)
     {
-      /*
+      this.player_push_x = Math.sign(this.player_push_x);
+      this.player_push_y = Math.sign(this.player_push_y);
       var lookup=[
         [4,5,6],
         [3,8,7],
@@ -780,26 +790,37 @@ var Player = function(x,y)
         [-1,1],
         [0,1]
       ];
-      var original_pos = lookup[this.player_push_x + 1][this.player_push_y + 1];
-      this.player_push_x = 0;
-      this.player_push_y = 0;
-      */
-      if(this.x <= 2 && this.player_push_x == -1)
+      var possible_moves = [];
+      if (this.player_push_x == 0 && this.player_push_y == 0)
       {
-        this.player_push_x = 1;
+        possible_moves = Util.shuffle(rev_lookup);
       }
-      if(this.x >= 9 && this.player_push_x == 1)
+      else
       {
-        this.player_push_x = -1;
+        var original_pos = lookup[this.player_push_x + 1][this.player_push_y + 1];
+        possible_moves.push(rev_lookup[original_pos]);
+        
+        for (let j = 1; j <= 3; j++)
+        {
+          var next_moves = 
+            Util.shuffle([(original_pos + j) % 8,(original_pos + (7*j)) % 8]);
+          for(let i = 0; i < next_moves.length; ++i)
+          {
+            possible_moves.push(rev_lookup[next_moves[i]]);
+          }
+        }
       }
       
-      if(this.y <= 2 && this.player_push_y == -1)
+      this.player_push_x = 0;
+      this.player_push_y = 0;
+      for (let i = 0; i < possible_moves.length; i++)
       {
-        this.player_push_y = 1;
-      }
-      if(this.y >= 9 && this.player_push_y == 1)
-      {
-        this.player_push_y = -1;
+        if (gamestate.board[this.x + possible_moves[i][0]][this.y + possible_moves[i][1]].solid)
+        {
+          this.player_push_x = possible_moves[i][0];
+          this.player_push_y = possible_moves[i][1];
+          break;
+        }
       }
       this.player_pushed = false;
       this.x += this.player_push_x;
@@ -934,7 +955,6 @@ var GameScreen = {
           }
         )
       );
-      this.gamestate.gameEntities.push(new Key(9,2));
     }
     else if(x == 1 && y == 0)
     {
@@ -954,7 +974,7 @@ var GameScreen = {
           "------------"
         ]
       );
-      var button_array = new ButtonArray();
+      var button_array = new ButtonArray(function(g){ g.gameEntities.push(new Key(9,9)); });
       button_array.buttons.push(new ButtonArrayButton(5,8));
       button_array.buttons.push(new ButtonArrayButton(6,8));
       button_array.buttons.push(new ButtonArrayButton(4,7));
@@ -992,7 +1012,7 @@ var GameScreen = {
           "-----00-----"
         ]
       );
-      var death_watch = new DeathWatch();
+      var death_watch = new DeathWatch(function(g){ g.gameEntities.push(new Key(9,9)); });
       this.gamestate.gameEntities.push(
         death_watch
       );
@@ -1328,9 +1348,9 @@ var GameScreen = {
         for (let i = 0; i < this.gamestate.gameEntities.length; i++)
         {
           if(this.gamestate.gameEntities[i].handlePlayerAttack)
-            {
-              this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y);
-            }
+          {
+            this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
+          }
         }
                 
         //did we move into an exit square?
