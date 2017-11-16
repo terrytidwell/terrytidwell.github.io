@@ -364,7 +364,7 @@ var TimerLoop = function(initial_offset)
     {
       if(this.states[this.state] && this.states[this.state].exit_function)
       {
-        this.states[this.state].exit_function();
+        this.states[this.state].exit_function(gamestate);
       }
       this.state++;
       if(this.states.length <= this.state)
@@ -373,14 +373,14 @@ var TimerLoop = function(initial_offset)
       }
       if(this.states[this.state] && this.states[this.state].entry_function)
       {
-        this.states[this.state].entry_function();
+        this.states[this.state].entry_function(gamestate);
       }
       this.ttl = this.states[this.state].max_ttl;
     }
     
     if (this.ttl < 25 && this.states[this.state] && this.states[this.state].warning_function)
     {
-      this.states[this.state].warning_function();
+      this.states[this.state].warning_function(gamestate);
     }
   };
 };
@@ -400,14 +400,14 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
   this.warning_function = warning_function;
   this.released_function = released_function;
   
-  this.handlePlayerAttack = function(x,y)
+  this.handlePlayerAttack = function(x, y, gamestate)
   {
     if (x == this.x &&
       y == this.y)
     {
       this.pushed = true;
       this.ttl = this.ttl_max;
-      this.pressed_function();
+      this.pressed_function(gamestate);
     }
   };
   
@@ -436,7 +436,7 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     if (this.ttl === 0)
     {
       this.pushed = false;
-      this.released_function();
+      this.released_function(gamestate);
     }
     
     if (this.ttl > 0)
@@ -446,7 +446,7 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     
     if (this.ttl > 0 && this.ttl < 25)
     {
-      this.warning_function();
+      this.warning_function(gamestate);
     }
   };
   
@@ -932,26 +932,25 @@ var GameScreen = {
         ]
       );
       
-      var board = this.gamestate.board;
       this.gamestate.gameEntities.push(
         new Button(2,2,200,
-          function(){
-            board[6][9].solid = true;
-            board[6][9].visible = true;
+          function(g){
+            g.board[6][9].solid = true;
+            g.board[6][9].visible = true;
           },
-          function(){
+          function(g){
             if (this.ttl % 2 == 0)
             {
-              board[6][9].visible = false;
+              g.board[6][9].visible = false;
             }
             else
             {
-              board[6][9].visible = true;
+              g.board[6][9].visible = true;
             }
           },
-          function(){
-            board[6][9].solid = false;
-            board[6][9].visible = false;
+          function(g){
+            g.board[6][9].solid = false;
+            g.board[6][9].visible = false;
           }
         )
       );
@@ -1044,33 +1043,32 @@ var GameScreen = {
           "-----00-----"
         ]
       );
-      
-      var board = this.gamestate.board;
+
       var timer = new TimerLoop(25);
       timer.addState(50,
-        function(){
-            board[5][7].solid = true;
-            board[5][7].visible = true;
-            board[6][7].solid = true;
-            board[6][7].visible = true;
+        function(g){
+            g.board[5][7].solid = true;
+            g.board[5][7].visible = true;
+            g.board[6][7].solid = true;
+            g.board[6][7].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[5][7].visible = false;
-            board[6][7].visible = false;
+            g.board[5][7].visible = false;
+            g.board[6][7].visible = false;
           }
           else
           {
-            board[5][7].visible = true;
-            board[6][7].visible = true;
+            g.board[5][7].visible = true;
+            g.board[6][7].visible = true;
           }
         },
-        function(){
-            board[5][7].solid = false;
-            board[5][7].visible = false;
-            board[6][7].solid = false;
-            board[6][7].visible = false;
+        function(g){
+            g.board[5][7].solid = false;
+            g.board[5][7].visible = false;
+            g.board[6][7].solid = false;
+            g.board[6][7].visible = false;
         }
       );
       timer.addState(100,
@@ -1082,29 +1080,29 @@ var GameScreen = {
       
       var timer = new TimerLoop(50);
       timer.addState(50,
-        function(){
-            board[3][6].solid = true;
-            board[3][6].visible = true;
-            board[8][6].solid = true;
-            board[8][6].visible = true;
+        function(g){
+            g.board[3][6].solid = true;
+            g.board[3][6].visible = true;
+            g.board[8][6].solid = true;
+            g.board[8][6].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[3][6].visible = false;
-            board[8][6].visible = false;
+            g.board[3][6].visible = false;
+            g.board[8][6].visible = false;
           }
           else
           {
-            board[3][6].visible = true;
-            board[8][6].visible = true;
+            g.board[3][6].visible = true;
+            g.board[8][6].visible = true;
           }
         },
-        function(){
-            board[3][6].solid = false;
-            board[3][6].visible = false;
-            board[8][6].solid = false;
-            board[8][6].visible = false;
+        function(g){
+            g.board[3][6].solid = false;
+            g.board[3][6].visible = false;
+            g.board[8][6].solid = false;
+            g.board[8][6].visible = false;
         }
       );
       timer.addState(100,
@@ -1116,29 +1114,29 @@ var GameScreen = {
       
       var timer = new TimerLoop(75);
       timer.addState(50,
-        function(){
-            board[2][4].solid = true;
-            board[2][4].visible = true;
-            board[9][4].solid = true;
-            board[9][4].visible = true;
+        function(g){
+            g.board[2][4].solid = true;
+            g.board[2][4].visible = true;
+            g.board[9][4].solid = true;
+            g.board[9][4].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[2][4].visible = false;
-            board[9][4].visible = false;
+            g.board[2][4].visible = false;
+            g.board[9][4].visible = false;
           }
           else
           {
-            board[2][4].visible = true;
-            board[9][4].visible = true;
+            g.board[2][4].visible = true;
+            g.board[9][4].visible = true;
           }
         },
-        function(){
-            board[2][4].solid = false;
-            board[2][4].visible = false;
-            board[9][4].solid = false;
-            board[9][4].visible = false;
+        function(g){
+            g.board[2][4].solid = false;
+            g.board[2][4].visible = false;
+            g.board[9][4].solid = false;
+            g.board[9][4].visible = false;
         }
       );
       timer.addState(100,
@@ -1150,29 +1148,29 @@ var GameScreen = {
       
       var timer = new TimerLoop(100);
       timer.addState(50,
-        function(){
-            board[4][5].solid = true;
-            board[4][5].visible = true;
-            board[7][5].solid = true;
-            board[7][5].visible = true;
+        function(g){
+            g.board[4][5].solid = true;
+            g.board[4][5].visible = true;
+            g.board[7][5].solid = true;
+            g.board[7][5].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[4][5].visible = false;
-            board[7][5].visible = false;
+            g.board[4][5].visible = false;
+            g.board[7][5].visible = false;
           }
           else
           {
-            board[4][5].visible = true;
-            board[7][5].visible = true;
+            g.board[4][5].visible = true;
+            g.board[7][5].visible = true;
           }
         },
-        function(){
-            board[4][5].solid = false;
-            board[4][5].visible = false;
-            board[7][5].solid = false;
-            board[7][5].visible = false;
+        function(g){
+            g.board[4][5].solid = false;
+            g.board[4][5].visible = false;
+            g.board[7][5].solid = false;
+            g.board[7][5].visible = false;
         }
       );
       timer.addState(100,
@@ -1184,29 +1182,29 @@ var GameScreen = {
       
       var timer = new TimerLoop(125);
       timer.addState(50,
-        function(){
-            board[5][4].solid = true;
-            board[5][4].visible = true;
-            board[6][4].solid = true;
-            board[6][4].visible = true;
+        function(g){
+            g.board[5][4].solid = true;
+            g.board[5][4].visible = true;
+            g.board[6][4].solid = true;
+            g.board[6][4].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[5][4].visible = false;
-            board[6][4].visible = false;
+            g.board[5][4].visible = false;
+            g.board[6][4].visible = false;
           }
           else
           {
-            board[5][4].visible = true;
-            board[6][4].visible = true;
+            g.board[5][4].visible = true;
+            g.board[6][4].visible = true;
           }
         },
-        function(){
-            board[5][4].solid = false;
-            board[5][4].visible = false;
-            board[6][4].solid = false;
-            board[6][4].visible = false;
+        function(g){
+            g.board[5][4].solid = false;
+            g.board[5][4].visible = false;
+            g.board[6][4].solid = false;
+            g.board[6][4].visible = false;
         }
       );
       timer.addState(100,
@@ -1218,29 +1216,29 @@ var GameScreen = {
       
       var timer = new TimerLoop(150);
       timer.addState(50,
-        function(){
-            board[4][6].solid = true;
-            board[4][6].visible = true;
-            board[7][6].solid = true;
-            board[7][6].visible = true;
+        function(g){
+            g.board[4][6].solid = true;
+            g.board[4][6].visible = true;
+            g.board[7][6].solid = true;
+            g.board[7][6].visible = true;
         },
-        function(){
+        function(g){
           if (timer.ttl % 2 == 0)
           {
-            board[4][6].visible = false;
-            board[7][6].visible = false;
+            g.board[4][6].visible = false;
+            g.board[7][6].visible = false;
           }
           else
           {
-            board[4][6].visible = true;
-            board[7][6].visible = true;
+            g.board[4][6].visible = true;
+            g.board[7][6].visible = true;
           }
         },
-        function(){
-            board[4][6].solid = false;
-            board[4][6].visible = false;
-            board[7][6].solid = false;
-            board[7][6].visible = false;
+        function(g){
+            g.board[4][6].solid = false;
+            g.board[4][6].visible = false;
+            g.board[7][6].solid = false;
+            g.board[7][6].visible = false;
         }
       );
       timer.addState(100,
