@@ -185,7 +185,7 @@ const Pawn = function (x,y){
           //preferentially prefer horizontal
           potential_moves = [[this.m_vel[0],0],[-1 * this.m_vel[0],0],[0,this.m_vel[1]],[0,-1 *this.m_vel[1]]];
         }
-        for(p in potential_moves)
+        for(let p = 0; p < potential_moves.length; p++)
         {
           if(gamestate.board[this.x+potential_moves[p][0]][this.y+potential_moves[p][1]].solid)
           {
@@ -538,7 +538,7 @@ var ButtonArray = function()
     var needs_reset = true;
     this.pressed = true;
     var collidided = -1;
-    for (b in this.buttons)
+    for (let b = 0; b < this.buttons.length; b++)
     {
       if(this.buttons[b].x === x && this.buttons[b].y === y)
       {
@@ -557,7 +557,7 @@ var ButtonArray = function()
     
     if (needs_reset)
     {
-      for (b in this.buttons)
+      for (let b = 0; b < this.buttons.length; b++)
       {
         if (b !== collidided)
         {
@@ -671,7 +671,7 @@ var DeathWatch = function()
   this.handleTimeStep = function(gamestate)
   {
     this.m_active = false;
-    for (c in this.children)
+    for (let c = 0; c < this.children.length; c++)
     {
       if (this.children[c].active)
       {
@@ -723,6 +723,27 @@ var Player = function(x,y)
     
     if(this.player_pushed)
     {
+      /*
+      var lookup=[
+        [4,5,6],
+        [3,8,7],
+        [2,1,0]
+      ];
+      var rev_lookup=
+      [
+        [1,1],
+        [1,0],
+        [1,-1],
+        [0,-1],
+        [-1,-1],
+        [-1,0],
+        [-1,1],
+        [0,1]
+      ];
+      var original_pos = lookup[this.player_push_x + 1][this.player_push_y + 1];
+      this.player_push_x = 0;
+      this.player_push_y = 0;
+      */
       if(this.x <= 2 && this.player_push_x == -1)
       {
         this.player_push_x = 1;
@@ -914,7 +935,7 @@ var GameScreen = {
       button_array.buttons.push(new ButtonArrayButton(6,3));
       
       this.gamestate.gameEntities.push(button_array);
-      for (var b in button_array.buttons)
+      for (let b = 0; b < button_array.buttons.length; b++)
       {
         this.gamestate.gameEntities.push(button_array.buttons[b]);
       }
@@ -1203,7 +1224,7 @@ var GameScreen = {
     this.gamestate.board = [];
     var dim_y = string_array.length;
     var dim_x = 0;
-    for(var i = 0; i < dim_y; i++)
+    for(let i = 0; i < dim_y; i++)
     {
       if(i == 0)
       {
@@ -1214,10 +1235,10 @@ var GameScreen = {
         dim_x = Math.max(dim_x, string_array[i].length);
       }
     }
-    for(var x = 0; x < dim_x; x++)
+    for(let x = 0; x < dim_x; x++)
     {
       var row = [];
-      for(var y = 0; y < dim_y; y++)
+      for(let y = 0; y < dim_y; y++)
       {
         if (x < string_array[y].length && string_array[y][x] != '-')
         {
@@ -1270,7 +1291,7 @@ var GameScreen = {
         this.gamestate.player.x = tile_x;
         this.gamestate.player.y = tile_y;
         
-        for (var i in this.gamestate.gameEntities)
+        for (let i = 0; i < this.gamestate.gameEntities.length; i++)
         {
           if(this.gamestate.gameEntities[i].handlePlayerAttack)
             {
@@ -1306,7 +1327,7 @@ var GameScreen = {
       }
     }
     
-    for (var i in this.gamestate.gameEntities)
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].handleTimeStep)
       {
@@ -1315,7 +1336,7 @@ var GameScreen = {
     }
     
     //collisions
-    for (var i in this.gamestate.gameEntities)
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].handlePlayerCollision)
       {
@@ -1340,7 +1361,7 @@ var GameScreen = {
     }
     
     var temp_entities = [];
-    for (var i in this.gamestate.gameEntities)
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].active)
       {
@@ -1389,7 +1410,7 @@ var GameScreen = {
       return a_lvl - b_lvl;
     });
     
-    for (var i in this.gamestate.gameEntities)
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if (this.gamestate.gameEntities[i].paint)
       {
