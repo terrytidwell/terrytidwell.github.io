@@ -69,6 +69,9 @@ var Dungeon = {
   resetDungeon: function()
   {
     var game_entities = [];
+    game_entities.push(
+      new MinionSpawn(4,4, new Pawn(4,4))
+    );
     Dungeon.addRoom(0,0,
       [
         "------------",

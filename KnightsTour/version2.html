@@ -70,6 +70,102 @@ var PaintLevelEnum =
   ENTITIES: 3,
 };
 
+const MinionSpawn = function (x, y, minion)
+{
+  this.m_pos = [x,y],
+  this.m_timer = 0,
+  this.m_state = 0,
+  this.WARM_UP_DURATION = 30,
+  this.COOL_DOWN_DURATION = 3,
+  this.minion = minion;
+      
+  this.handleTimeStep = function (gamestate)
+  {
+    this.m_timer++;
+    if(this.m_state == 0)
+    {
+      if(this.m_timer >= this.WARM_UP_DURATION)
+      {
+        gamestate.gameEntities.push(this.minion);
+        this.m_timer = 0;
+        this.m_state = 1;
+      }
+    }
+  }
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.ENTITIES + (this.m_pos[1]) * 1000;
+  };
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+    var alpha = (this.m_timer / this.WARM_UP_DURATION) + (Math.random() - .5) * .2;
+    
+    if(this.m_state == 1)
+    {
+      alpha = 1 - (this.m_timer / this.COOL_DOWN_DURATION);
+    }
+    if(this.m_state == 0)
+    {
+      ctx.globalAlpha = alpha * alpha * alpha;
+      this.minion.paint(gamestate, layout, canvas, ctx);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = "rgba(255,255,255,"+.05*alpha+")";
+    ctx.strokeStyle = ctx.fillStyle;
+
+    for(var x = 0.1; x < .9; x*=1.05)
+    {
+      
+      var width = layout.tile_width * alpha * x;
+      ctx.lineCap = "round";
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(
+        (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x,
+        -1 * layout.tile_height);
+      ctx.lineTo(
+        (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x ,
+        (this.m_pos[1] + .5 - 6) * layout.tile_height + layout.center_y - width * .10);
+      ctx.stroke();
+      /*
+      g_ctx.fillRect(
+        (this.m_pos[0] + .5) * this.m_layout.m_cell_width - (width / 2),
+        0,
+        width,
+        (this.m_pos[1] + .75) * this.m_layout.m_cell_height - width
+      );
+      */
+      var cx = (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x;
+      var cy = (this.m_pos[1] + .5 - 6) * layout.tile_height + layout.center_y;
+      var rx = width/2;
+      var ry = width/4;
+      ctx.save(); // save state
+      ctx.beginPath();
+
+      ctx.translate(cx-rx, cy-ry);
+      ctx.scale(rx, ry);
+      ctx.arc(1, 1, 1, 0, 2 * Math.PI, false);
+
+      ctx.restore(); // restore to original state
+      ctx.fill();
+    }
+
+    if(this.m_state == 2)
+    {
+      ctx.globalAlpha = alpha * alpha * alpha;
+      this.minion.paint(gamestate, layout, canvas, ctx);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  this.active = function()
+  {
+    return this.m_state != 1 || this.m_timer < this.COOL_DOWN_DURATION;
+  };
+};
+
 const Pawn = function (x,y){
   this.x = x;
   this.y = y;
