@@ -254,18 +254,6 @@ const Pawn = function (x,y){
   
   this.paint = function(gamestate, layout, canvas, ctx)
   {
-  /*
-    if(this.m_state == this.ATTACK)
-    {
-      ctx.fillStyle = "rgba(255,0,0,.5)";
-      ctx.fillRect(
-        (this.m_attack_pos[0] - 6) * layout.tile_width + layout.center_x,
-        (this.m_attack_pos[1] - 6) * layout.tile_height + layout.center_y,
-        layout.tile_width,
-        layout.tile_height
-      );
-    }
-  */
     if(this.m_invincible && this.m_invincible_timer % 2 == 0)
     {
       return;
@@ -492,11 +480,12 @@ var Key = function(x, y)
   
   this.handlePlayerCollision = function(x, y, gamestate)
   {
-    if(this.x != x || this.y != y)
+    if(this.x != x || this.y != y || !this.m_active)
     {
       return;
     }
     this.m_active = false;
+    gamestate.player.keys++;
   };
   
   this.paintLevel = function()
@@ -523,6 +512,71 @@ var Key = function(x, y)
   this.active = function()
   {
     return this.m_active;
+  };
+};
+
+var LockPaint = function(x, y)
+{
+  this.x = x;
+  this.y = y;
+  this.m_active = true;
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + this.y * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    ctx.fillStyle = "rgba(128,128,0,.2)";
+    ctx.fillRect(
+      (this.x - 6) * layout.tile_width + layout.center_x,
+      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.tile_width,
+      layout.tile_height);
+  };
+  
+  this.active = function()
+  {
+    return this.m_active
+  };
+};
+
+var Lock = function(victory_function)
+{
+  this.locks = [];
+  this.m_active = true;
+  this.victory_function = victory_function;
+
+  this.handlePlayerAttack = function(x, y, gamestate)
+  {
+    if (!this.m_active)
+    {
+      return;
+    }
+  
+    for (let l = 0; l < this.locks.length; l++)
+    {
+      if (this.locks[l].x === x && this.locks[l].y === y)
+      {
+        if (gamestate.player.keys > 0)
+        {
+          gamestate.player.keys--;
+          this.victory_function(gamestate);
+          this.m_active = false;
+          for (let i = 0; i < this.locks.length; i++)
+          {
+            this.locks[i].m_active = false;
+          }
+        }
+      }
+    }
+    
+  };
+  
+  this.active = function()
+  {
+    return this.m_active
   };
 };
 
@@ -753,6 +807,7 @@ var Player = function(x,y)
   this.x = x;
   this.y = y;
   this.y_offset = 0;
+  this.keys = 0;
   this.player_health = 20;
   this.player_pushed = false;
   this.player_push_x = 0;
@@ -1034,6 +1089,63 @@ var Dungeon = {
     );
     
     game_entities = [];
+    var lock = new Lock(
+      function(g) { 
+        g.board[10][5].solid = true;
+        g.board[10][5].visible = true;
+        g.board[10][6].visible = true;
+        g.board[10][6].visible = true;
+        g.board[11][5].solid = true;
+        g.board[11][5].visible = true;
+        g.board[11][6].visible = true;
+        g.board[11][6].visible = true;
+      }
+    );
+    lock.locks.push(new LockPaint(9,5));
+    lock.locks.push(new LockPaint(9,6));
+    for (let l = 0; l < lock.locks.length; l++)
+    {
+      game_entities.push(lock.locks[l]);
+    }
+    game_entities.push(lock);
+    Dungeon.addRoom(0,-2,
+      [
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00000--",
+        "-----00000--",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
+    Dungeon.addRoom(1,-2,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "0000000000--",
+        "0000000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
     var death_watch = new DeathWatch(function(g){ g.gameEntities.push(new Key(9,9)); });
     game_entities.push(
       death_watch
@@ -1047,7 +1159,7 @@ var Dungeon = {
     game_entities.push(
       death_watch.children[1]
     );
-    Dungeon.addRoom(0,-2,
+    Dungeon.addRoom(0,-3,
       [
         "------------",
         "------------",
