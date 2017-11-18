@@ -123,11 +123,11 @@ const MinionSpawn = function (x, y, minion)
       ctx.lineWidth = width;
       ctx.beginPath();
       ctx.moveTo(
-        (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x,
+        layout.left(this.m_pos[0] + .5),
         -1 * layout.tile_height);
       ctx.lineTo(
-        (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x ,
-        (this.m_pos[1] + .5 - 6) * layout.tile_height + layout.center_y - width * .10);
+        layout.left(this.m_pos[0] + .5),
+        layout.top(this.m_pos[1] + .5), - width * .10);
       ctx.stroke();
       /*
       g_ctx.fillRect(
@@ -137,8 +137,8 @@ const MinionSpawn = function (x, y, minion)
         (this.m_pos[1] + .75) * this.m_layout.m_cell_height - width
       );
       */
-      var cx = (this.m_pos[0] + .5 - 6) * layout.tile_width + layout.center_x;
-      var cy = (this.m_pos[1] + .5 - 6) * layout.tile_height + layout.center_y;
+      var cx = layout.left(this.m_pos[0] + .5);
+      var cy = layout.top(this.m_pos[1] + .5);
       var rx = width/2;
       var ry = width/4;
       ctx.save(); // save state
@@ -447,8 +447,8 @@ const Pawn = function (x,y){
       15,
       100,
       250,
-      Math.round((this.x + this.offset_x - 6) * layout.tile_width + layout.center_x),
-      Math.round((this.y + this.offset_y - 6 + 1) * layout.tile_height + layout.center_y)
+      layout.left(this.x + this.offset_x),
+      layout.top(this.y + this.offset_y + 1)
         - Math.floor(2.5 * layout.tile_width),
       layout.tile_width,
       Math.floor(2.5 * layout.tile_width)
@@ -631,14 +631,14 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.875) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .125),
         layout.tile_width/2,
         layout.tile_height/2);
       ctx.fillStyle = "rgb(256,192,192)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.5) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .5),
         layout.tile_width/2,
         layout.tile_height/4);
     }
@@ -646,8 +646,8 @@ var Button = function(x, y, ttl, pressed_function, warning_function,
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.75) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .25),
         layout.tile_width/2,
         layout.tile_height/2);    
     }
@@ -683,8 +683,7 @@ var Key = function(x, y)
       0,
       512,
       1024,
-      (this.x - 6 + .25) * layout.tile_width + layout.center_x,
-      (this.y - 6 + 1 - .25) * layout.tile_height + layout.center_y
+      layout.left(this.x + .25),
         - Math.floor(.5 * layout.tile_width * 2),
       layout.tile_width * .5,
       Math.floor(.5 * layout.tile_width * 2)
@@ -712,8 +711,8 @@ var LockPaint = function(x, y)
   {
     ctx.fillStyle = "rgba(128,128,0,.2)";
     ctx.fillRect(
-      (this.x - 6) * layout.tile_width + layout.center_x,
-      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.left(this.x),
+      layout.top(this.y),
       layout.tile_width,
       layout.tile_height);
   };
@@ -779,14 +778,14 @@ var ButtonArrayButton = function(x, y)
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.875) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .125),
         layout.tile_width/2,
         layout.tile_height/2);
       ctx.fillStyle = "rgb(256,192,192)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.5) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .5),
         layout.tile_width/2,
         layout.tile_height/4);
     }
@@ -794,10 +793,10 @@ var ButtonArrayButton = function(x, y)
     {
       ctx.fillStyle = "rgb(192,128,128)";
       ctx.fillRect(
-        (this.x - 5.75) * layout.tile_width + layout.center_x,
-        (this.y - 5.75) * layout.tile_height + layout.center_y,
+        layout.left(this.x + .25),
+        layout.top(this.y + .25),
         layout.tile_width/2,
-        layout.tile_height/2);    
+        layout.tile_height/2);
     }
   };
 };
@@ -880,8 +879,8 @@ var Attack = function(x, y, dx, dy)
   {
     ctx.fillStyle = "rgba(255,0,0,.5)";
     ctx.fillRect(
-      (this.x - 6) * layout.tile_width + layout.center_x,
-      (this.y - 6) * layout.tile_height + layout.center_y,
+      layout.left(this.x),
+      layout.top(this.y),
       layout.tile_width,
       layout.tile_height
     );
@@ -920,11 +919,13 @@ var FloorTile = function(x, y, solid)
     {
       ctx.fillStyle = "rgb(192,192,192)";
     }
-    ctx.fillRect(
-      (this.x - 6) * layout.tile_width + layout.center_x,
-      (this.y - 6) * layout.tile_height + layout.center_y,
+    ctx.fillRect
+    (
+      layout.left(this.x),
+      layout.top(this.y),
       layout.tile_width,
-      layout.tile_height);
+      layout.tile_height
+    );
     if(gamestate.player.player_health == 0)
     {
       return;
@@ -932,11 +933,13 @@ var FloorTile = function(x, y, solid)
     if(x != gamestate.player.x && y != gamestate.player.y && Math.abs(x - gamestate.player.x) + Math.abs(y - gamestate.player.y) == 3)
     {
       ctx.fillStyle = "rgba(0,255,0,.2)";
-      ctx.fillRect(
-      (this.x - 6) * layout.tile_width + layout.center_x,
-      (this.y - 6) * layout.tile_height + layout.center_y,
-      layout.tile_width,
-      layout.tile_height);
+      ctx.fillRect
+      (
+        layout.left(this.x),
+        layout.top(this.y),
+        layout.tile_width,
+        layout.tile_height
+      );
     }
   };
 };
@@ -1144,8 +1147,8 @@ var Player = function(x,y)
       15,
       100,
       250,
-      (gamestate.player.x - 6) * layout.tile_width + layout.center_x,
-      (gamestate.player.y - 6 + 1) * layout.tile_height + layout.center_y
+      layout.left(this.x),
+      layout.top(this.y + 1)
         - Math.floor(2.5 * layout.tile_width) + this.y_offset,
       layout.tile_width,
       Math.floor(layout.tile_width * 2.5)
@@ -1254,46 +1257,49 @@ var GameScreen = {
       this.mouse_event = false;
       var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
       var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
-      //alert(tile_x + ", " + tile_y)
-      if (this.gamestate.board[tile_x][tile_y].solid && 
-        tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
-        Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
+      if(tile_x >= 0 && tile_x <= 11 && tile_y >= 0 && tile_y <= 11)
       {
-        this.gamestate.player.x = tile_x;
-        this.gamestate.player.y = tile_y;
-        
-        for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+        //alert(tile_x + ", " + tile_y)
+        if (this.gamestate.board[tile_x][tile_y].solid && 
+          tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
+          Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
         {
-          if(this.gamestate.gameEntities[i].handlePlayerAttack)
+          this.gamestate.player.x = tile_x;
+          this.gamestate.player.y = tile_y;
+          
+          for (let i = 0; i < this.gamestate.gameEntities.length; i++)
           {
-            this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
+            if(this.gamestate.gameEntities[i].handlePlayerAttack)
+            {
+              this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
+            }
           }
-        }
-                
-        //did we move into an exit square?
-        if(this.gamestate.player.x > 9)
-        {
-          this.gamestate.player.x = this.gamestate.player.x - 10;
-          this.current_room_x++;
-          this.loadRoom(this.current_room_x,this.current_room_y);
-        }
-        else if(this.gamestate.player.y > 9)
-        {
-          this.gamestate.player.y = this.gamestate.player.y - 10;
-          this.current_room_y++;
-          this.loadRoom(this.current_room_x,this.current_room_y);
-        }
-        else if(this.gamestate.player.x < 2)
-        {
-          this.gamestate.player.x = this.gamestate.player.x + 10;
-          this.current_room_x--;
-          this.loadRoom(this.current_room_x,this.current_room_y);
-        }
-        else if(this.gamestate.player.y < 2)
-        {
-          this.gamestate.player.y = this.gamestate.player.y + 10;
-          this.current_room_y--;
-          this.loadRoom(this.current_room_x,this.current_room_y);
+                  
+          //did we move into an exit square?
+          if(this.gamestate.player.x > 9)
+          {
+            this.gamestate.player.x = this.gamestate.player.x - 10;
+            this.current_room_x++;
+            this.loadRoom(this.current_room_x,this.current_room_y);
+          }
+          else if(this.gamestate.player.y > 9)
+          {
+            this.gamestate.player.y = this.gamestate.player.y - 10;
+            this.current_room_y++;
+            this.loadRoom(this.current_room_x,this.current_room_y);
+          }
+          else if(this.gamestate.player.x < 2)
+          {
+            this.gamestate.player.x = this.gamestate.player.x + 10;
+            this.current_room_x--;
+            this.loadRoom(this.current_room_x,this.current_room_y);
+          }
+          else if(this.gamestate.player.y < 2)
+          {
+            this.gamestate.player.y = this.gamestate.player.y + 10;
+            this.current_room_y--;
+            this.loadRoom(this.current_room_x,this.current_room_y);
+          }
         }
       }
     }
@@ -1360,7 +1366,16 @@ var GameScreen = {
     
     if (this.layout === null)
     {
-      this.layout = {};
+      this.layout = {
+        left : function(x)
+        {
+          return Math.round((x - 6) * this.tile_width + this.center_x);
+        },
+        top : function(y)
+        {
+          return Math.round((y - 6) * this.tile_height + this.center_y);
+        }
+      };
     }
     this.layout.center_x = Math.round(canvas.width / 2);
     this.layout.center_y = Math.round(canvas.height / 2);
