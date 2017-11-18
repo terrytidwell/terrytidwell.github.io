@@ -251,6 +251,60 @@ const FlameWave = function (x,y,gamestate)
   };
 };
 
+const Sparkle = function (x, y){
+  this.LIFETIME = 30;
+  this.pixel_pos = [0,0];
+  this.pos = [x,y];
+
+  //initialization continued below
+  this.reset = function()
+  {
+    //all these numbers were scaled to a grid_size of 10
+    this.m_timer = 0;
+    this.pixel_pos[0] = Math.random();// * this.m_layout.m_cell_width;
+    this.pixel_pos[1] = Math.random() * 2;// * this.m_layout.m_cell_height;
+    this.alpha = Math.random();
+    //this.plane = Math.floor(2 * Math.random());
+    this.rise_rate = Math.random() / 40; // layout.tile_width/5;
+    this.size = Math.random() * .0625 + .025; //2 to 6
+  }
+  
+  //end initialization
+  this.reset();
+  
+  this.handleTimeStep = function (gamestate)
+  {
+    this.m_timer++;
+    if(this.m_timer >= this.LIFETIME)
+    {
+      if(Math.random() < .1)
+      {
+        this.reset();
+      }
+    }
+    this.alpha+=(Math.random()-.5)*.05;
+    this.pixel_pos[1] -= this.rise_rate;
+    this.pixel_pos[0] += Math.random() * .025 - .0125;    
+  }
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.ENTITIES + (this.pos[1] + this.pixel_pos[1] + .5) * 1000;
+  };
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+    //g_ctx.globalAlpha = this.m_timer/this.LIFETIME;
+    ctx.fillStyle="rgba(255,255,255,"+this.alpha+")"
+    ctx.beginPath();
+    ctx.arc(
+      layout.left(this.pos[0] + this.pixel_pos[0]),
+      layout.top(this.pos[1] - 2 + this.pixel_pos[1]),
+      layout.tile_width * (this.size +  Math.random() * .025 - .0125),0,2*Math.PI);
+    ctx.fill();
+  }
+}
+
 const Pawn = function (x,y){
   this.x = x;
   this.y = y;
