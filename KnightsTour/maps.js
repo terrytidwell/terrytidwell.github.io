@@ -69,9 +69,6 @@ var Dungeon = {
   resetDungeon: function()
   {
     var game_entities = [];
-    game_entities.push(
-      new MinionSpawn(4,4, new Pawn(4,4))
-    );
     Dungeon.addRoom(0,0,
       [
         "------------",
@@ -219,6 +216,30 @@ var Dungeon = {
         g.board[1][5].visible = false;
         g.board[1][6].solid = false;
         g.board[1][6].visible = false;
+        var ff = new FlameFountain(8,3);
+        var pawn1 = new MinionSpawn(3,7, new Pawn(3,7));
+        var pawn2 = new MinionSpawn(5,9, new Pawn(5,9));
+        g.gameEntities.push(ff);
+        g.gameEntities.push(pawn1);
+        g.gameEntities.push(pawn2);
+        var dw = new DeathWatch
+        (
+          function(g)
+          {
+            ff.m_active = false;
+            g.board[0][5].solid = true;
+            g.board[0][5].visible = true;
+            g.board[0][6].solid = true;
+            g.board[0][6].visible = true;
+            g.board[1][5].solid = true;
+            g.board[1][5].visible = true;
+            g.board[1][6].solid = true;
+            g.board[1][6].visible = true;
+          }
+        );
+        dw.addChild(pawn1.minion);
+        dw.addChild(pawn2.minion);
+        g.gameEntities.push(dw);
       }
     ));
     Dungeon.addRoom(2,-2,

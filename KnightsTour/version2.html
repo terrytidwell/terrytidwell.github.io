@@ -166,6 +166,91 @@ const MinionSpawn = function (x, y, minion)
   };
 };
 
+const FlameFountain = function (x, y)
+{
+  this.x = x;
+  this.y = y;
+  this.attack = new Attack(x,y,0,0);
+  this.m_timer = 25;
+  this.m_active = true;
+  
+  this.handleTimeStep = function(gamestate)
+  {
+    this.m_timer--
+    if(this.m_timer === 0)
+    {
+      gamestate.gameEntities.push(new FlameWave(this.x, this.y, gamestate));
+      this.m_timer = 100;
+    }
+  }
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + this.y * 1000;
+  }
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+    if(this.m_timer < 25 && this.m_timer % 2 == 0)
+    {
+      this.attack.paint(gamestate, layout, canvas, ctx);
+    }
+  }
+  
+  this.active = function()
+  {
+    return this.m_active;
+  }
+}
+
+const FlameWave = function (x,y,gamestate)
+{
+  this.m_pos = [x,y],
+  this.m_width = 0,
+  this.m_timer = 0,
+  this.FLAME_DURATION = 120,
+  this.FLAME_WIDEN_TIME = 10,
+  this.attacks = [new Attack(x,y,0,0)];
+  gamestate.gameEntities.push(this.attacks[0]);
+        
+  this.handleTimeStep = function (gamestate)
+  {
+    this.m_timer++;
+    if((this.m_timer % this.FLAME_WIDEN_TIME) == 0)
+    {
+      for (let i = 0; i < this.attacks.length; i++)
+      {
+        this.attacks[i].m_active = false;
+      }
+      this.attacks = [];
+      this.m_width++;
+      for (let i = -1 * this.m_width; i <= this.m_width; i++)
+      {
+        let j = this.m_width - Math.abs(i);
+        if(x+i >= 2 && x+i <= 9 && y+j >= 2 && y+j <= 9)
+        {
+          let attack = new Attack(x+i, y+j, i, j);
+          this.attacks.push(attack);
+          gamestate.gameEntities.push(attack);
+        }
+        if (0 !== j)
+        {
+          if(x+i >= 2 && x+i <= 9 && y-j >= 2 && y-j <= 9)
+          {
+            let attack = new Attack(x+i, y-j, i, -1 * j);
+            this.attacks.push(attack);
+            gamestate.gameEntities.push(attack);
+          }
+        }
+      }
+    }
+  }
+  this.active = function()
+  {
+    return this.attacks.length !== 0;
+  };
+};
+
 const Pawn = function (x,y){
   this.x = x;
   this.y = y;
@@ -1028,7 +1113,7 @@ var Player = function(x,y)
       return;
     }
     this.player_stun_timer = this.PLAYER_STUN_PERIOD;
-    this.player_invincible_timer = this.PLAYER_STUN_PERIOD;
+    this.player_invincible_timer = this.PLAYER_INVINCIBLE_PERIOD;
     this.player_pushed = true;
     this.player_push_x = delta_x;
     this.player_push_y = delta_y;
