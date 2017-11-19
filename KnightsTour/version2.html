@@ -255,6 +255,7 @@ const Sparkle = function (x, y){
   this.LIFETIME = 30;
   this.pixel_pos = [0,0];
   this.pos = [x,y];
+  this.m_active = true;
 
   //initialization continued below
   this.reset = function()
@@ -303,7 +304,418 @@ const Sparkle = function (x, y){
       layout.tile_width * (this.size +  Math.random() * .025 - .0125),0,2*Math.PI);
     ctx.fill();
   }
+  
+  this.active = function()
+  {
+    return this.m_active;
+  }
 }
+
+const EnemyWave = function ()
+{
+  this.ELEMENT_TYPE = 0;
+  this.TIMER_TYPE = 1;
+  this.ON_IDLE_TYPE = 2;
+  this.m_queue = [];
+  this.m_active_queue = [];
+        
+  this.handleTimeStep = function (gamestate)
+  {
+    var new_active_queue = [];
+    for (let i = 0; i < this.m_active_queue.length; i++)
+    {
+      if (this.m_active_queue[i].active && this.m_active_queue[i].active())
+      {
+        new_active_queue.push(this.m_active_queue[i]);
+      }
+    }
+    this.m_active_queue = new_active_queue;
+    
+    while(true)
+    {
+      if(this.m_queue.length == 0)
+      {
+        return;
+      }
+      var queue_item = this.m_queue[this.m_queue.length - 1];
+      if(queue_item.type == this.ON_IDLE_TYPE)
+      {
+        if(this.m_active_queue.length < queue_item.value)
+        {
+          this.m_queue.pop();
+        }
+        else
+        {           
+          return;
+        }
+      }
+      if(queue_item.type == this.TIMER_TYPE)
+      {
+        queue_item.value--;
+        if(queue_item.value <= 0)
+        {
+          this.m_queue.pop();
+        }
+        else
+        {
+          return;
+        }
+      }
+      if(queue_item.type == this.ELEMENT_TYPE)
+      {
+        var elemenent = this.m_queue.pop().value;
+        gamestate.gameEntities.push(elemenent);
+        this.m_active_queue.push(elemenent.minion);
+      }
+    }
+  }
+  this.addOnIdle = function(level)
+  {
+    this.m_queue.push({type: this.ON_IDLE_TYPE, value: level});
+    return this;
+  }
+  this.addOnTimeout = function(timesteps)
+  {
+    this.m_queue.push({type: this.TIMER_TYPE, value: timesteps});
+    return this;
+  }
+  this.addElement = function(element)
+  {
+    this.m_queue.push({type: this.ELEMENT_TYPE, value: element});
+    return this;
+  }
+  this.active = function()
+  {
+    return this.m_queue.length > 0;
+  };
+};
+
+const Bishop = function (x, y)
+{
+  this.CAST_TIME = 30,
+  this.MOVE_TIME = 4,
+  this.INVINCIBLE_TIME = 50,
+  this.FULL_HEALTH = 9,
+
+  this.m_pos = [x,y],
+  this.m_vel = [-1,-1],
+  this.m_invincible = false,
+  this.m_invincible_timer = 0,
+  this.m_pushed = false,
+  this.m_health = this.FULL_HEALTH,
+  this.m_x_offset = 0,
+  this.m_y_offset = 0,
+  this.m_shadows = [],
+  this.m_sparkles = [];
+  for(var i = 0; i < 30; i++)
+  {
+    this.m_sparkles.push(new Sparkle(x, y));
+  }
+
+  //state machine
+  this.m_state_timers = [12,9,12,9,12,30,45,0,40],
+  this.SLIDE_1 = 0,
+  this.PAUSE_1 = 1,
+  this.SLIDE_2 = 2,
+  this.PAUSE_2 = 3,
+  this.SLIDE_3 = 4,
+  this.CAST = 5,
+  this.REST = 6,
+  this.END_LOOP = 7,
+  this.STUNNED = 8,
+  this.m_state = this.REST,
+  this.m_state_timer = this.m_state_timers[this.REST],
+  this.m_spells_since_summon = 0,
+  
+  this.handleTimeStep = function (gamestate)
+  {
+    for(var i = 0; i < this.m_shadows.length; i++)
+    {
+      this.m_shadows[i].handleTimeStep();
+    }
+    if(this.m_shadows.length > 0)
+    {
+      if(!this.m_shadows[0].active())
+      {
+        this.m_shadows.shift();
+      }
+    }
+    
+    if(this.m_invincible)
+    {
+      this.m_invincible_timer++;
+      if(this.m_invincible_timer >= this.INVINCIBLE_TIME)
+      {
+        this.m_invincible = false;
+        this.m_invincible_timer = 0;
+      }
+    }
+    this.m_state_timer++;
+    if(this.m_state_timer >= this.m_state_timers[this.m_state])
+    {
+      //exit state
+      if(this.m_state == this.SLIDE_1 || 
+      this.m_state == this.SLIDE_2 ||
+      this.m_state == this.SLIDE_3)
+      {
+        /*
+        var shadow = new BishopShadow(this.m_layout);
+        shadow.pos[0] = this.m_pos[0];
+        shadow.pos[1] = this.m_pos[1];
+        shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+        shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+          - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+        this.m_shadows.push(shadow);
+        */
+        this.m_x_offset = 0;
+        this.m_y_offset = 0;
+        
+      }
+      if(this.m_state == this.CAST)
+      {
+        if(this.m_spells_since_summon >= 4 && Math.random() <= .33)
+        {
+          this.m_spells_since_summon = 0;
+          let minion_pos = gamestate.getRandomSpawnSquare()
+          var minion = new MinionSpawn
+          (
+            minion_pos[0],
+            minion_pos[1],
+            new Pawn(minion_pos[0], minion_pos[1])
+          );
+          gamestate.gameEntities.push(minion);
+        }
+        else
+        {
+          this.m_spells_since_summon++;
+          var flame = new FlameWave(this.m_pos[0], this.m_pos[1], gamestate);
+          gamestate.gameEntities.push(flame);
+        }
+        for(let i = 0; i < this.m_sparkles.length; i++)
+        {
+          this.m_sparkles[i].m_active = false;
+        }
+      }
+      //change state
+      this.m_state = (this.m_state + 1);
+      if(this.m_state >= this.END_LOOP)
+      {
+        this.m_state = 0;
+      }
+      this.m_state_timer = 0;
+      //enter state
+      if(this.m_state == this.CAST)
+      {
+        for(let i = 0; i < this.m_sparkles.length; i++)
+        {
+          this.m_sparkles[i].pos[0] = this.m_pos[0];
+          this.m_sparkles[i].pos[1] = this.m_pos[1];
+          this.m_sparkles[i].m_active = true;
+          gamestate.gameEntities.push(this.m_sparkles[i]);
+        }
+      }
+      if(this.m_state == this.SLIDE_1)
+      {
+        this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+        this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+      }
+      if(this.m_state == this.SLIDE_2 ||
+        this.m_state == this.SLIDE_3)
+      {
+        var direction = Math.floor(Math.random() * 2);
+        this.m_vel[direction] = -1 * this.m_vel[direction];
+      }
+    }
+    
+    var move_me = false;
+    if(this.m_state == this.SLIDE_1 || 
+      this.m_state == this.SLIDE_2 ||
+      this.m_state == this.SLIDE_3)
+    {
+      if((this.m_state_timer % this.MOVE_TIME) == Math.round(this.MOVE_TIME/2))
+      {
+        move_me = true;
+      }
+      if((this.m_state_timer % this.MOVE_TIME) == 0)
+      {
+        for (let i = 0; i < 4; i++)
+        {
+          if (gamestate.board[this.m_pos[0] + this.m_vel[0]][this.m_pos[1] + this.m_vel[1]].solid)
+          {
+            break;
+          }
+          
+          let old_vel_0 = this.m_vel[0];
+          let old_vel_1 = this.m_vel[1]
+          
+          if (i == 0)
+          {
+            //90 degrees counter-clockwise
+            this.m_vel[0] = old_vel_1 * -1;
+            this.m_vel[1] = old_vel_0 * 1;
+          }
+          else if (i == 1)
+          {
+            //180 degrees
+            this.m_vel[0] = old_vel_0 * -1;
+            this.m_vel[1] = old_vel_1 * -1;
+          }
+          else if (i == 2)
+          {
+            //90 degrees clockwise
+            this.m_vel[0] = old_vel_1 * 1;
+            this.m_vel[1] = old_vel_0 * -1;
+          }
+          else if (i == 3)
+          {
+            this.m_vel[0] = 0;
+            this.m_vel[1] = 0;
+          }
+        }
+      }
+      /*
+      var shadow = new BishopShadow(this.m_layout);
+      shadow.pos[0] = this.m_pos[0];
+      shadow.pos[1] = this.m_pos[1];
+      shadow.pixel_pos[0] = this.m_pos[0] * this.m_layout.m_cell_width + this.m_x_offset;
+      shadow.pixel_pos[1] = (this.m_pos[1] + 1) * this.m_layout.m_cell_height
+        - Math.floor(2.5 * this.m_layout.m_cell_width) + this.m_y_offset;
+      this.m_shadows.push(shadow);
+      */
+      this.m_x_offset = this.m_vel[0] *
+        (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+      this.m_y_offset = this.m_vel[1] * 
+        (this.m_state_timer % this.MOVE_TIME) / this.MOVE_TIME;
+      if((this.m_state_timer % this.MOVE_TIME) >= Math.round(this.MOVE_TIME/2))
+      {
+        this.m_x_offset = this.m_x_offset - this.m_vel[0];
+        this.m_y_offset = this.m_y_offset - this.m_vel[1];
+      }
+    }
+
+    if(this.m_pushed)
+    {
+      move_me = true;
+      this.m_pushed = false;
+      for (let i = 0; i < 4; i++)
+      {
+        if (gamestate.board[this.m_pos[0] + this.m_vel[0]][this.m_pos[1] + this.m_vel[1]].solid)
+        {
+          break;
+        }
+        
+        let old_vel_0 = this.m_vel[0];
+        let old_vel_1 = this.m_vel[1]
+        
+        this.m_vel[0] = old_vel_1 * -1;
+        this.m_vel[1] = old_vel_0 * 1;
+        
+        if (i == 3)
+        {
+          this.m_vel[0] = 0;
+          this.m_vel[1] = 0;
+        }
+      }
+      this.m_x_offset = 0;
+      this.m_y_offset = 0;
+    }
+    
+    if(move_me)
+    {
+      this.m_pos[0] += this.m_vel[0];
+      this.m_pos[1] += this.m_vel[1];
+    }
+  };
+  
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.ENTITIES + (this.m_pos[1] + this.m_y_offset + .5) * 1000;
+  };
+  
+  this.paint = function(gamestate, layout, canvas, ctx)
+  {
+    /*
+      g_ctx.fillStyle = "rgba(0,0,255,.5)";
+      g_ctx.fillRect(
+        this.m_pos[0] * this.m_layout.m_cell_width,
+        this.m_pos[1] * this.m_layout.m_cell_height,
+        this.m_layout.m_cell_width,
+        this.m_layout.m_cell_height
+      );
+    */
+    ctx.fillStyle = "rgba(255,0,0,.5)";
+    ctx.fillRect(
+      layout.left(this.m_pos[0] + this.m_x_offset),
+      layout.top(this.m_pos[1] + 1 + this.m_y_offset)
+        - Math.floor(2.5 * layout.tile_width) + Math.floor(layout.tile_height/4),
+      Math.floor(layout.tile_width * this.m_health / this.FULL_HEALTH),
+      Math.floor(layout.tile_height/8)
+    );
+  
+    if(!this.m_invincible || this.m_invincible_timer % 2 != 0)
+    {
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.drawImage(
+        GlobalResources.graphic_components.m_pieces,
+        223,
+        15,
+        100,
+        250,
+        layout.left(this.m_pos[0] + this.m_x_offset),
+        layout.top(this.m_pos[1] + 1 + this.m_y_offset)
+          - Math.floor(2.5 * layout.tile_width),
+        layout.tile_width,
+        Math.floor(layout.tile_width * 2.5)
+      );
+    }
+
+    for(var i = this.m_shadows.length-1; i > 0; --i)
+    {
+      this.m_shadows[i].paint(y, priority);
+    }
+  };
+  
+  this.handlePlayerCollision = function(x, y, gamestate)
+  {
+    if(!this.m_invincible)
+    {
+      if(x == this.m_pos[0] && y == this.m_pos[1])
+      {
+        gamestate.player.handleDamage(this.m_vel[0], this.m_vel[1]);
+      }
+    }
+  };
+  
+  this.handlePlayerAttack = function(x,y)
+  {
+    if(x != this.m_pos[0] || y != this.m_pos[1])
+    {
+      return;
+    }
+  
+    if(this.m_invincible)
+    {
+      return;
+    }
+    this.m_state = this.STUNNED;
+    this.m_state_timer = 0;
+    this.m_invincible = true;
+    this.m_invincible_timer = 0;
+    this.m_vel[0] = 2 * Math.floor(Math.random() * 2) - 1;
+    this.m_vel[1] = 2 * Math.floor(Math.random() * 2) - 1;
+    for(let i = 0; i < this.m_sparkles.length; i++)
+    {
+      this.m_sparkles[i].m_active = false;
+    }
+    this.m_pushed = true;
+    this.m_health--;
+  }
+  
+  this.active = function()
+  {
+     return this.m_health > 0;
+  }
+};
 
 const Pawn = function (x,y){
   this.x = x;
@@ -1081,6 +1493,7 @@ var Player = function(x,y)
   this.y_offset = 0;
   this.keys = 0;
   this.player_health = 20;
+  this.PLAYER_FULL_HEALTH = 20;
   this.player_pushed = false;
   this.player_push_x = 0;
   this.player_push_y = 0;
@@ -1203,8 +1616,8 @@ var Player = function(x,y)
       100,
       250,
       layout.left(this.x),
-      layout.top(this.y + 1)
-        - Math.floor(2.5 * layout.tile_width) + this.y_offset,
+      layout.top(this.y + 1 + this.y_offset)
+        - Math.floor(2.5 * layout.tile_width),
       layout.tile_width,
       Math.floor(layout.tile_width * 2.5)
     );
@@ -1233,12 +1646,27 @@ var GameScreen = {
 
     this.gamestate = 
     {
-      player : new Player(5,5),
+      player : new Player(Dungeon.starting_x,Dungeon.starting_y),
       board : [],
-      gameEntities: []
+      gameEntities: [],
+      getRandomSpawnSquare : function()
+      {
+        var potentials = [];
+        for(let x = 2; x < 10; x++)
+        {
+          for (let y = 2; y < 10; y++)
+          {
+            if (this.board[x] && this.board[x][y] && this.board[x][y].solid)
+            {
+              potentials.push([x,y]);
+            }
+          }
+        }
+        return Util.randomItem(potentials);
+      },
     }
-    this.current_room_x = 0;
-    this.current_room_y = 0;
+    this.current_room_x = Dungeon.starting_room_x;
+    this.current_room_y = Dungeon.starting_room_y;
     this.loadRoom(this.current_room_x,this.current_room_y);
   },
   
@@ -1380,13 +1808,13 @@ var GameScreen = {
     {
       if(this.gamestate.player.y_offset === 0)
       {
-        this.gamestate.player.y_offset = 20;
+        this.gamestate.player.y_offset = .05;
       }
       else
       {
         this.gamestate.player.y_offset += this.gamestate.player.y_offset;
       }
-      if(this.gamestate.player.y_offset > 25 * 40)
+      if(this.gamestate.player.y_offset > 24)
       {
         this.reset();
       }
@@ -1458,6 +1886,28 @@ var GameScreen = {
         this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
       }
     }
+    
+    //paint health bar
+    /*
+    var edge = Math.round(this.layout.tile_width / 8);
+    ctx.fillStyle = "rgb(96,96,96)";      
+    ctx.fillRect(
+      this.layout.top(0) + edge,
+      this.layout.left(0) + edge,
+      4 * this.layout.tile_width - 2 * edge,
+      this.layout.tile_height - 2 * edge
+    );
+    var fill = Math.floor((4 * this.layout.tile_width - 2 * edge)
+      * this.gamestate.player.player_health / this.gamestate.player.PLAYER_FULL_HEALTH);
+    ctx.fillStyle = "rgb(192,96,96)";
+    ctx.fillRect(
+      this.layout.top(0) + edge,
+      this.layout.left(0) + edge,
+      fill,
+      this.layout.tile_height - 2 * edge
+    );
+    */
+
   }
 };
 

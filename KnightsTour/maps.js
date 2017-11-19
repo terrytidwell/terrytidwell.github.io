@@ -1,5 +1,9 @@
 var Dungeon = {
   rooms : [],
+  starting_x : 5,
+  starting_y : 5,
+  starting_room_x : 0, //0,
+  starting_room_y : 0, //0,
   addRoom : function(x,y, string_array, gameEntities) 
   {
     var new_room = this.loadBoard(string_array);
@@ -68,6 +72,67 @@ var Dungeon = {
   
   resetDungeon: function()
   {
+    var game_entities = [];
+    
+    var current_wave = new EnemyWave();
+    game_entities.push(current_wave);
+    
+    var x = Math.floor(Math.random()*8)+2;
+    var y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Bishop(x,y))).addOnTimeout(25).addOnIdle(1);
+    
+    //pawn rush
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1)
+    
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1);
+    
+    for(var i = 0; i < 7; i++)
+    {
+      x = Math.floor(Math.random()*8)+2;
+      y = Math.floor(Math.random()*8)+2;
+      current_wave.addOnIdle(2).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
+    }
+
+    for(var i = 0; i < 2; i++)
+    {
+      x = Math.floor(Math.random()*8)+2;
+      y = Math.floor(Math.random()*8)+2;
+      current_wave.addOnIdle(1).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
+    }
+    
+    current_wave.addOnTimeout(75);
+
+    Dungeon.addRoom(6,6,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
     var game_entities = [];
     Dungeon.addRoom(0,0,
       [
