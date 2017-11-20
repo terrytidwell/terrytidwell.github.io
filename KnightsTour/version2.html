@@ -95,7 +95,7 @@ const MinionSpawn = function (x, y, minion)
   
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + (this.m_pos[1]) * 1000;
+    return PaintLevelEnum.ENTITIES + (this.m_pos[1] + .5) * 1000;
   };
   
   this.paint = function(gamestate, layout, canvas, ctx)
@@ -290,7 +290,7 @@ const Sparkle = function (x, y){
   
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + (this.pos[1] + this.pixel_pos[1] + .5) * 1000;
+    return PaintLevelEnum.ENTITIES + (this.pos[1] + this.pixel_pos[1] + .75) * 1000;
   };
   
   this.paint = function(gamestate, layout, canvas, ctx)
@@ -390,6 +390,24 @@ const EnemyWave = function ()
   };
 };
 
+const SlowBishop = function(x,y)
+{
+  var bishop = new Bishop(x,y);
+  bishop.CAST_TIME = 60;
+  bishop.MOVE_TIME = 8;
+  bishop.FULL_HEALTH = 3;
+  bishop.m_health = 3;
+  bishop.m_state_timers[bishop.SLIDE_1] = bishop.MOVE_TIME*3;
+  bishop.m_state_timers[bishop.PAUSE_1] = 18;
+  bishop.m_state_timers[bishop.SLIDE_2] = bishop.MOVE_TIME*3;
+  bishop.m_state_timers[bishop.PAUSE_2] = 18;
+  bishop.m_state_timers[bishop.SLIDE_3] = bishop.MOVE_TIME*3;
+  bishop.m_state_timers[bishop.PAUSE_3] = 18;
+  bishop.m_state_timers[bishop.CAST] = bishop.CAST_TIME;
+  bishop.m_state_timers[bishop.REST] = 90;
+  return bishop;
+}
+
 const Bishop = function (x, y)
 {
   this.CAST_TIME = 30,
@@ -413,7 +431,7 @@ const Bishop = function (x, y)
   }
 
   //state machine
-  this.m_state_timers = [12,9,12,9,12,30,45,0,40],
+  this.m_state_timers = [this.MOVE_TIME*3,9,this.MOVE_TIME*3,9,this.MOVE_TIME*3,this.CAST_TIME,45,0,40],
   this.SLIDE_1 = 0,
   this.PAUSE_1 = 1,
   this.SLIDE_2 = 2,
@@ -629,7 +647,7 @@ const Bishop = function (x, y)
   
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + (this.m_pos[1] + this.m_y_offset + .5) * 1000;
+    return PaintLevelEnum.ENTITIES + (this.m_pos[1] + this.m_y_offset + .75) * 1000;
   };
   
   this.paint = function(gamestate, layout, canvas, ctx)
@@ -716,6 +734,16 @@ const Bishop = function (x, y)
      return this.m_health > 0;
   }
 };
+
+const SlowPawn = function(x,y)
+{
+  var pawn = new Pawn(x,y);
+  pawn.m_health = 1;
+  pawn.MOVE_TIME = 24;
+  pawn.DELAY_BEFORE_MOVE = 24;
+  pawn.ATTACK_DELAY = 16;
+  return pawn;
+}
 
 const Pawn = function (x,y){
   this.x = x;
@@ -897,7 +925,7 @@ const Pawn = function (x,y){
   
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + (this.y + this.offset_y + .5) * 1000;
+    return PaintLevelEnum.ENTITIES + (this.y + this.offset_y + .75) * 1000;
   };
   
   this.paint = function(gamestate, layout, canvas, ctx)
@@ -1596,7 +1624,7 @@ var Player = function(x,y)
 
   this.paintLevel = function()
   {
-    return PaintLevelEnum.ENTITIES + (this.y + .5) * 1000;
+    return PaintLevelEnum.ENTITIES + (this.y + .75) * 1000;
   }
   
   this.paint = function (gamestate, layout, canvas, ctx)

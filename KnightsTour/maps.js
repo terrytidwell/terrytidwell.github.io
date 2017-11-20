@@ -113,6 +113,13 @@ var Dungeon = {
       current_wave.addOnIdle(1).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
     }
     
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new SlowBishop(x,y)));
+    x = Math.floor(Math.random()*8)+2;
+    y = Math.floor(Math.random()*8)+2;
+    current_wave.addElement(new MinionSpawn(x,y,new SlowPawn(x,y)));
+    
     current_wave.addOnTimeout(75);
 
     Dungeon.addRoom(6,6,
