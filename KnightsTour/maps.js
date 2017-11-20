@@ -78,7 +78,7 @@ var Dungeon = {
       function(g)
       {
         GlobalResources.audio_components.m_bg.loop().stop();
-        GlobalResources.audio_components.m_bg.setVolume(45);
+        GlobalResources.audio_components.m_bg.setVolume(10);
         GlobalResources.audio_components.m_bg.loop().play();
         g.board[0][5].solid = false;
         g.board[0][5].visible = false;
@@ -177,7 +177,7 @@ var Dungeon = {
       function(g)
       {
         GlobalResources.audio_components.m_bg.loop().stop();
-        GlobalResources.audio_components.m_bg.setVolume(45);
+        GlobalResources.audio_components.m_bg.setVolume(10);
         GlobalResources.audio_components.m_bg.loop().play();
         g.board[0][5].solid = false;
         g.board[0][5].visible = false;

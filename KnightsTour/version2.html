@@ -1779,6 +1779,9 @@ var GameScreen = {
         {
           this.gamestate.player.x = tile_x;
           this.gamestate.player.y = tile_y;
+          GlobalResources.audio_components.m_move.stop();
+          GlobalResources.audio_components.m_move.setVolume(15);
+          GlobalResources.audio_components.m_move.play();
           
           for (let i = 0; i < this.gamestate.gameEntities.length; i++)
           {
@@ -1846,7 +1849,10 @@ var GameScreen = {
       }
       if(this.gamestate.player.y_offset > 24)
       {
-        this.reset();
+        if (this.gamestate.player.player_health > 0)
+        {
+          this.gamestate.player.player_health--;
+        }
       }
     }
     
@@ -1863,6 +1869,12 @@ var GameScreen = {
       temp_entities.push(this.gamestate.gameEntities[i]);
     }
     this.gamestate.gameEntities = temp_entities;
+    
+    if (this.gamestate.player.player_health == 0)
+    {
+      GlobalResources.audio_components.m_bg.loop().stop();
+      this.reset();
+    }
   },
   
   //----------------------------------------------------------------------
@@ -1967,6 +1979,7 @@ var init = function()
   var jut = createJutGameEngine(document.getElementById("canvas"));
   
   GlobalResources.audio_components.m_bg = jut.loadAudio("Assets/Sound/CrunkKnight.mp3");
+  GlobalResources.audio_components.m_move = jut.loadAudio("Assets/Sound/Bounce-SoundBible.com-12678623.mp3");
   GlobalResources.graphic_components.m_pieces = jut.loadImage("Assets/Graphics/Chess_pieces.png");
   GlobalResources.graphic_components.m_gold = jut.loadImage("Assets/Graphics/coin_gold.png");
   GlobalResources.graphic_components.key = jut.loadImage("Assets/Graphics/key2.png");
