@@ -307,6 +307,14 @@ var Dungeon = {
             g.board[1][5].visible = true;
             g.board[1][6].solid = true;
             g.board[1][6].visible = true;
+            g.board[10][5].solid = true;
+            g.board[10][5].visible = true;
+            g.board[10][6].solid = true;
+            g.board[10][6].visible = true;
+            g.board[11][5].solid = true;
+            g.board[11][5].visible = true;
+            g.board[11][6].solid = true;
+            g.board[11][6].visible = true;
           }
         );
         dw.addChild(pawn1.minion);
@@ -315,6 +323,25 @@ var Dungeon = {
       }
     ));
     Dungeon.addRoom(2,-2,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--000000-0--",
+        "--00000000--",
+        "0000000000--",
+        "0000000000--",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    game_entities = [];
+    Dungeon.addRoom(3,-2,
       [
         "------------",
         "------------",
@@ -331,7 +358,7 @@ var Dungeon = {
       ],
       game_entities
     );
-    
+
     game_entities = [];
     var death_watch = new DeathWatch(function(g){ g.gameEntities.push(new Key(9,9)); });
     game_entities.push(
