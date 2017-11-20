@@ -386,7 +386,7 @@ const EnemyWave = function ()
   }
   this.active = function()
   {
-    return this.m_queue.length > 0;
+    return this.m_queue.length > 0 || this.m_active_queue.length > 0;
   };
 };
 

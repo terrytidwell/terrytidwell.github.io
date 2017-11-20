@@ -74,63 +74,199 @@ var Dungeon = {
   {
     var game_entities = [];
     
+    game_entities.push(new RoomEnter(
+      function(g)
+      {
+        GlobalResources.audio_components.m_bg.loop().stop();
+        GlobalResources.audio_components.m_bg.setVolume(45);
+        GlobalResources.audio_components.m_bg.loop().play();
+        g.board[0][5].solid = false;
+        g.board[0][5].visible = false;
+        g.board[0][6].solid = false;
+        g.board[0][6].visible = false;
+        g.board[1][5].solid = false;
+        g.board[1][5].visible = false;
+        g.board[1][6].solid = false;
+        g.board[1][6].visible = false;
+        
+        var current_wave = new EnemyWave();
+        g.gameEntities.push(current_wave);
+      
+        for(var i = 0; i < 2; i++)
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          var next_minion = new MinionSpawn(x,y,new Bishop(x,y));
+          current_wave.addElement(next_minion);
+          current_wave.addOnTimeout(25);
+        }
+        
+        current_wave.addOnIdle(1);
+        
+        for(var i = 0; i < 4; i++)
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          var next_minion = new MinionSpawn(x,y,new Pawn(x,y));
+          current_wave.addElement(next_minion);
+        }
+        
+        current_wave.addOnTimeout(250);
+        
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          var next_minion = new MinionSpawn(x,y,new Bishop(x,y));
+          current_wave.addElement(next_minion);
+        }
+        
+        current_wave.addOnTimeout(150);
+        
+        for(var i = 0; i < 4; i++)
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          var next_minion = new MinionSpawn(x,y,new Pawn(x,y));
+          current_wave.addElement(next_minion);
+        }
+        
+        current_wave.addOnTimeout(75);
+        var dw = new DeathWatch
+        (
+          function(g)
+          {
+            g.board[0][5].solid = true;
+            g.board[0][5].visible = true;
+            g.board[0][6].solid = true;
+            g.board[0][6].visible = true;
+            g.board[1][5].solid = true;
+            g.board[1][5].visible = true;
+            g.board[1][6].solid = true;
+            g.board[1][6].visible = true;
+            GlobalResources.audio_components.m_bg.loop().stop();
+          }
+        );
+        dw.addChild(current_wave);
+        g.gameEntities.push(dw);
+      }
+    ));
+    
     var current_wave = new EnemyWave();
     game_entities.push(current_wave);
     
-    var x = Math.floor(Math.random()*8)+2;
-    var y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Bishop(x,y))).addOnTimeout(25).addOnIdle(1);
-    
-    //pawn rush
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1)
-    
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1);
-    
-    for(var i = 0; i < 7; i++)
-    {
-      x = Math.floor(Math.random()*8)+2;
-      y = Math.floor(Math.random()*8)+2;
-      current_wave.addOnIdle(2).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
-    }
-
-    for(var i = 0; i < 2; i++)
-    {
-      x = Math.floor(Math.random()*8)+2;
-      y = Math.floor(Math.random()*8)+2;
-      current_wave.addOnIdle(1).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
-    }
-    
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new SlowBishop(x,y)));
-    x = Math.floor(Math.random()*8)+2;
-    y = Math.floor(Math.random()*8)+2;
-    current_wave.addElement(new MinionSpawn(x,y,new SlowPawn(x,y)));
-    
-    current_wave.addOnTimeout(75);
-
-    Dungeon.addRoom(6,6,
+    Dungeon.addRoom(1,2,
       [
         "------------",
         "------------",
         "--00000000--",
         "--00000000--",
         "--00000000--",
+        "0000000000--",
+        "0000000000--",
         "--00000000--",
         "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );   
+    
+    var game_entities = [];
+    game_entities.push(new RoomEnter(
+      function(g)
+      {
+        GlobalResources.audio_components.m_bg.loop().stop();
+        GlobalResources.audio_components.m_bg.setVolume(45);
+        GlobalResources.audio_components.m_bg.loop().play();
+        g.board[0][5].solid = false;
+        g.board[0][5].visible = false;
+        g.board[0][6].solid = false;
+        g.board[0][6].visible = false;
+        g.board[1][5].solid = false;
+        g.board[1][5].visible = false;
+        g.board[1][6].solid = false;
+        g.board[1][6].visible = false;
+        
+        var current_wave = new EnemyWave();
+        g.gameEntities.push(current_wave);
+      
+        var x = Math.floor(Math.random()*8)+2;
+        var y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Bishop(x,y))).addOnTimeout(25).addOnIdle(1);
+        
+        //pawn rush
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y)))
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1)
+        
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new Pawn(x,y))).addOnIdle(1);
+        
+        for(var i = 0; i < 7; i++)
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          current_wave.addOnIdle(2).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
+        }
+
+        for(var i = 0; i < 2; i++)
+        {
+          x = Math.floor(Math.random()*8)+2;
+          y = Math.floor(Math.random()*8)+2;
+          current_wave.addOnIdle(1).addElement(new MinionSpawn(x,y,new Pawn(x,y)));
+        }
+        
+        /*
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new SlowBishop(x,y)));
+
+        x = Math.floor(Math.random()*8)+2;
+        y = Math.floor(Math.random()*8)+2;
+        current_wave.addElement(new MinionSpawn(x,y,new SlowPawn(x,y)));
+        */
+        
+        current_wave.addOnTimeout(75);
+        var dw = new DeathWatch
+        (
+          function(g)
+          {
+            g.board[0][5].solid = true;
+            g.board[0][5].visible = true;
+            g.board[0][6].solid = true;
+            g.board[0][6].visible = true;
+            g.board[1][5].solid = true;
+            g.board[1][5].visible = true;
+            g.board[1][6].solid = true;
+            g.board[1][6].visible = true;
+            GlobalResources.audio_components.m_bg.loop().stop();
+          }
+        );
+        dw.addChild(current_wave);
+        g.gameEntities.push(dw);
+      }
+    ));
+
+    Dungeon.addRoom(1,1,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--00000000--",
+        "0000000000--",
+        "0000000000--",
         "--00000000--",
         "--00000000--",
         "--00000000--",
@@ -147,6 +283,44 @@ var Dungeon = {
         "------------",
         "------------",
         "------------",
+        "----0000----",
+        "----00000000",
+        "----00000000",
+        "----0000----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    Dungeon.addRoom(0,1,
+      [
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "----0000----",
+        "----00000000",
+        "----00000000",
+        "----0000----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    Dungeon.addRoom(0,2,
+      [
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
+        "-----00-----",
         "----0000----",
         "----00000000",
         "----00000000",
