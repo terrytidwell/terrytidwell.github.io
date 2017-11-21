@@ -1671,6 +1671,12 @@ var GameScreen = {
     this.mouse_x = 0;
     this.mouse_y = 0;
     
+    this.screen_transition_timer = 0;
+    this.old_entities = null;
+    this.old_room_x = null;
+    this.old_room_y = null;
+    this.old_layout = {};
+    
     //stores information about graphical layout
     this.layout = null;
 
@@ -1698,10 +1704,17 @@ var GameScreen = {
     this.current_room_x = Dungeon.starting_room_x;
     this.current_room_y = Dungeon.starting_room_y;
     this.loadRoom(this.current_room_x,this.current_room_y);
+    this.screen_transition_timer = 0;
   },
   
   loadRoom: function(x,y)
   {
+    this.old_entities = this.gamestate.gameEntities;
+    this.old_room_x = this.current_room_x;
+    this.old_room_y = this.current_room_y;
+    this.current_room_x = x;
+    this.current_room_y = y;
+    this.screen_transition_timer = this.SCREEN_TRANSITION_TIME;
     Dungeon.loadRoom(x,y,this.gamestate);
     return;
   },
@@ -1765,7 +1778,13 @@ var GameScreen = {
   // from Screen
   handleTimeStep: function ()
   {
-    if(this.mouse_event && this.layout)
+    if (this.screen_transition_timer > 0)
+    {
+      this.screen_transition_timer--;
+      return;
+    }
+    
+    if (this.mouse_event && this.layout)
     {
       this.mouse_event = false;
       var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
@@ -1795,26 +1814,22 @@ var GameScreen = {
           if(this.gamestate.player.x > 9)
           {
             this.gamestate.player.x = this.gamestate.player.x - 10;
-            this.current_room_x++;
-            this.loadRoom(this.current_room_x,this.current_room_y);
+            this.loadRoom(this.current_room_x+1,this.current_room_y);
           }
           else if(this.gamestate.player.y > 9)
           {
             this.gamestate.player.y = this.gamestate.player.y - 10;
-            this.current_room_y++;
-            this.loadRoom(this.current_room_x,this.current_room_y);
+            this.loadRoom(this.current_room_x,this.current_room_y+1);
           }
           else if(this.gamestate.player.x < 2)
           {
             this.gamestate.player.x = this.gamestate.player.x + 10;
-            this.current_room_x--;
-            this.loadRoom(this.current_room_x,this.current_room_y);
+            this.loadRoom(this.current_room_x-1,this.current_room_y);
           }
           else if(this.gamestate.player.y < 2)
           {
             this.gamestate.player.y = this.gamestate.player.y + 10;
-            this.current_room_y--;
-            this.loadRoom(this.current_room_x,this.current_room_y);
+            this.loadRoom(this.current_room_x,this.current_room_y-1);
           }
         }
       }
@@ -1906,7 +1921,48 @@ var GameScreen = {
     this.layout.center_y = Math.round(canvas.height / 2);
     this.layout.tile_width = Math.round(canvas.width/12);
     this.layout.tile_height = Math.round(canvas.width/24);
-
+    
+    if(this.screen_transition_timer > 0)
+    {
+      percentage_transitioned = 1 - this.screen_transition_timer/this.SCREEN_TRANSITION_TIME;
+    
+      this.old_layout.center_x = this.layout.center_x + (this.old_room_x - this.current_room_x) * 10 * this.layout.tile_width * (percentage_transitioned);
+      this.old_layout.center_y = this.layout.center_y + (this.old_room_y - this.current_room_y) * 10 * this.layout.tile_height * (percentage_transitioned);
+      this.old_layout.tile_width = this.layout.tile_width;
+      this.old_layout.tile_height = this.layout.tile_height;
+      this.old_layout.left = this.layout.left;
+      this.old_layout.top = this.layout.top;
+    
+      this.layout.center_x = this.layout.center_x + (this.current_room_x - this.old_room_x) * 10 * this.layout.tile_width * (1-percentage_transitioned);
+      this.layout.center_y = this.layout.center_y + (this.current_room_y - this.old_room_y) * 10 * this.layout.tile_height * (1-percentage_transitioned);
+      
+      this.old_entities.sort(function(a,b){
+        var a_lvl = 0;
+        var b_lvl = 0;
+        if(a.paintLevel)
+        {
+          a_lvl = a.paintLevel();
+        }
+        if(b.paintLevel)
+        {
+          b_lvl = b.paintLevel();
+        }
+        return a_lvl - b_lvl;
+      });
+      
+      for (let i = 0; i < this.old_entities.length; i++)
+      {
+        if (this.old_entities[i].paint)
+        {
+          if (!this.old_entities[i].PLAYER_FULL_HEALTH)
+          {
+            this.old_entities[i].paint(this.gamestate,this.old_layout,canvas,ctx);
+          }
+        }
+      }
+    }
+    
+    
     this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
       var b_lvl = 0;
