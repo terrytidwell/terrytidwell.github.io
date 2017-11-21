@@ -1671,7 +1671,9 @@ var GameScreen = {
     this.mouse_x = 0;
     this.mouse_y = 0;
     
-    this.SCREEN_TRANSITION_TIME = 16; //use 12 for vertical, 16 for horizontal
+    this.HORIZONTAL_SCREEN_TRANSITION_TIME = 16; //use 12 for vertical, 16 for horizontal
+    this.VERTICAL_SCREEN_TRANSITION_TIME = 12; //use 12 for vertical, 16 for horizontal
+    this.screen_transition_timer_max = 0; //used for choosing which timer constant to use
     this.screen_transition_timer = 0;
     this.old_entities = null;
     this.old_room_x = null;
@@ -1715,7 +1717,15 @@ var GameScreen = {
     this.old_room_y = this.current_room_y;
     this.current_room_x = x;
     this.current_room_y = y;
-    this.screen_transition_timer = this.SCREEN_TRANSITION_TIME;
+    if(this.current_room_x != this.old_room_x)
+    {
+      this.screen_transition_timer_max = this.HORIZONTAL_SCREEN_TRANSITION_TIME;
+    }
+    else
+    {
+      this.screen_transition_timer_max = this.VERTICAL_SCREEN_TRANSITION_TIME;
+    }
+    this.screen_transition_timer = this.screen_transition_timer_max;
     Dungeon.loadRoom(x,y,this.gamestate);
     return;
   },
@@ -1900,7 +1910,7 @@ var GameScreen = {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
    
     // paint the background
-    ctx.fillStyle = "rgb(0, 0, 0)";
+    ctx.fillStyle = "rgb(16, 16, 16)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = "rgb(255,255,255)";
@@ -1925,7 +1935,7 @@ var GameScreen = {
     
     if(this.screen_transition_timer > 0)
     {
-      percentage_transitioned = 1 - this.screen_transition_timer/this.SCREEN_TRANSITION_TIME;
+      percentage_transitioned = 1 - this.screen_transition_timer/this.screen_transition_timer_max;
     
       this.old_layout.center_x = this.layout.center_x + (this.old_room_x - this.current_room_x) * 10 * this.layout.tile_width * (percentage_transitioned);
       this.old_layout.center_y = this.layout.center_y + (this.old_room_y - this.current_room_y) * 10 * this.layout.tile_height * (percentage_transitioned);
@@ -1986,6 +1996,12 @@ var GameScreen = {
       }
     }
 
+    this.layout.center_y = Math.round(canvas.height / 2);
+    
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.fillRect(0,0,canvas.width,this.layout.top(0));
+    ctx.fillRect(0,this.layout.top(12),canvas.width,this.layout.top(0));
+    
     //paint health bar
     // /*
     var edge = Math.round(this.layout.tile_height / 4);
