@@ -1153,6 +1153,9 @@ var Key = function(x, y)
   this.x = x;
   this.y = y;
   this.m_active = true;
+  this.y_offset = -12;
+  this.dy_offset = 0;
+  this.bounce = 0;
   
   this.handlePlayerCollision = function(x, y, gamestate)
   {
@@ -1163,6 +1166,21 @@ var Key = function(x, y)
     this.m_active = false;
     gamestate.player.keys++;
   };
+  
+  this.handleTimeStep = function(gamestate)
+  {
+    if (this.bounce < 5)
+    {
+      this.y_offset += this.dy_offset;
+      this.dy_offset += 1/8;
+      if (this.y_offset > 0)
+      {
+        this.bounce++;
+        this.y_offset *= -1;
+        this.dy_offset *= -.40;
+      }
+    }
+  }
   
   this.paintLevel = function()
   {
@@ -1178,7 +1196,7 @@ var Key = function(x, y)
       512,
       1024,
       layout.left(this.x + .25),
-      layout.top(this.y + .75)
+      layout.top(this.y + .75 + this.y_offset)
         - Math.floor(.5 * layout.tile_width * 2),
       layout.tile_width * .5,
       Math.floor(.5 * layout.tile_width * 2)
@@ -1210,6 +1228,17 @@ var LockPaint = function(x, y)
       layout.top(this.y),
       layout.tile_width,
       layout.tile_height);
+    ctx.drawImage(
+      GlobalResources.graphic_components.lock,
+      0,
+      0,
+      50,
+      50,
+      layout.left(this.x + .25),
+      layout.top(this.y),
+      layout.tile_height,
+      layout.tile_height
+    );
   };
   
   this.active = function()
@@ -1514,6 +1543,222 @@ var RoomEnter = function(victory_function)
   };
 };
 
+var LeftArrowTop = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 5 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.x > 1)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(.75),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(1.25),
+      layout.top(5.25));
+    ctx.lineTo(
+      layout.left(1.25),
+      layout.top(6));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var LeftArrowBottom = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 6 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.x > 1)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(.75),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(1.25),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(1.25),
+      layout.top(6.75));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var RightArrowTop = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 5 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.x < 10)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(11.25),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(10.75),
+      layout.top(5.25));
+    ctx.lineTo(
+      layout.left(10.75),
+      layout.top(6));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var TopArrowTop = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 1 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.y > 1)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(6.75),
+      layout.top(1.5));
+    ctx.lineTo(
+      layout.left(6),
+      layout.top(.5));
+    ctx.lineTo(
+      layout.left(5.25),
+      layout.top(1.5));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var BottomArrowTop = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 11 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.y < 10)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(6.375),
+      layout.top(11));
+    ctx.lineTo(
+      layout.left(6),
+      layout.top(11.5));
+    ctx.lineTo(
+      layout.left(5.625),
+      layout.top(11));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var BottomArrowBottom = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 10 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.y < 10)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(5.25),
+      layout.top(10.5));
+    ctx.lineTo(  
+      layout.left(5.625),
+      layout.top(11));
+    ctx.lineTo(  
+      layout.left(6.375),
+      layout.top(11));
+    ctx.lineTo(
+      layout.left(6.75),
+      layout.top(10.5));
+    ctx.lineTo(
+      layout.left(5.25),
+      layout.top(10.5));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+var RightArrowBottom = function()
+{
+  this.paintLevel = function()
+  {
+    return PaintLevelEnum.LOWER + 6 * 1000;
+  }
+  
+  this.paint = function (gamestate, layout, canvas, ctx)
+  {
+    if (gamestate.player.x < 10)
+    {
+      return;
+    }
+    
+    ctx.fillStyle = "rgba(0,255,0,.2)";
+    ctx.beginPath();
+    ctx.moveTo(
+      layout.left(11.25),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(10.75),
+      layout.top(6));
+    ctx.lineTo(
+      layout.left(10.75),
+      layout.top(6.75));
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
 var Player = function(x,y)
 {
   this.x = x;
@@ -1800,8 +2045,40 @@ var GameScreen = {
       this.mouse_event = false;
       var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
       var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
-      if(tile_x >= 0 && tile_x <= 11 && tile_y >= 0 && tile_y <= 11)
+      if (tile_x >= 0 && tile_x <= 11 && tile_y >= 0 && tile_y <= 11)
       {
+        if (this.gamestate.player.x > 9 && tile_x > 9 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.x = this.gamestate.player.x - 10;
+          this.loadRoom(this.current_room_x+1,this.current_room_y);
+          return;
+        }
+        if (this.gamestate.player.x < 2 && tile_x < 2 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.x = this.gamestate.player.x + 10;
+          this.loadRoom(this.current_room_x-1,this.current_room_y);
+          return;
+        }
+        if (this.gamestate.player.y > 9 && tile_y > 9 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.y = this.gamestate.player.y - 10;
+          this.loadRoom(this.current_room_x,this.current_room_y+1);
+          return;
+        }
+        if (this.gamestate.player.y < 2 && tile_y < 2 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.y = this.gamestate.player.y + 10;
+          this.loadRoom(this.current_room_x,this.current_room_y-1);
+          return;
+        }
         //alert(tile_x + ", " + tile_y)
         if (this.gamestate.board[tile_x][tile_y].solid && 
           tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
@@ -1826,21 +2103,25 @@ var GameScreen = {
           {
             this.gamestate.player.x = this.gamestate.player.x - 10;
             this.loadRoom(this.current_room_x+1,this.current_room_y);
+            return;
           }
           else if(this.gamestate.player.y > 9)
           {
             this.gamestate.player.y = this.gamestate.player.y - 10;
             this.loadRoom(this.current_room_x,this.current_room_y+1);
+            return;
           }
           else if(this.gamestate.player.x < 2)
           {
             this.gamestate.player.x = this.gamestate.player.x + 10;
             this.loadRoom(this.current_room_x-1,this.current_room_y);
+            return;
           }
           else if(this.gamestate.player.y < 2)
           {
             this.gamestate.player.y = this.gamestate.player.y + 10;
             this.loadRoom(this.current_room_x,this.current_room_y-1);
+            return;
           }
         }
       }
@@ -1882,19 +2163,16 @@ var GameScreen = {
       }
     }
     
-    var temp_entities = [];
-    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    for (let i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
     {
       if(this.gamestate.gameEntities[i].active)
       {
         if(!this.gamestate.gameEntities[i].active())
         {
-          continue;
+          this.gamestate.gameEntities.splice(i,1);
         }
       }
-      temp_entities.push(this.gamestate.gameEntities[i]);
     }
-    this.gamestate.gameEntities = temp_entities;
     
     if (this.gamestate.player.player_health == 0)
     {
@@ -1972,7 +2250,6 @@ var GameScreen = {
         }
       }
     }
-    
     
     this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
@@ -2056,6 +2333,7 @@ var init = function()
   GlobalResources.graphic_components.m_pieces = jut.loadImage("Assets/Graphics/Chess_pieces.png");
   GlobalResources.graphic_components.m_gold = jut.loadImage("Assets/Graphics/coin_gold.png");
   GlobalResources.graphic_components.key = jut.loadImage("Assets/Graphics/key2.png");
+  GlobalResources.graphic_components.lock = jut.loadImage("Assets/Graphics/locked.png");
   
   jut.setMaintainAspectRatioMode(4/3);
   jut.addTitleScreen(GameScreen);

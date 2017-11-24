@@ -56,6 +56,13 @@ var Dungeon = {
       }
       board.push(row);
     }
+    gameEntities.push(new LeftArrowTop());
+    gameEntities.push(new LeftArrowBottom());
+    gameEntities.push(new RightArrowTop());
+    gameEntities.push(new RightArrowBottom());
+    gameEntities.push(new TopArrowTop());
+    gameEntities.push(new BottomArrowTop());
+    gameEntities.push(new BottomArrowBottom());
     return {board: board, gameEntities: gameEntities, visited: false};
   },
   
@@ -277,6 +284,7 @@ var Dungeon = {
     );
     
     var game_entities = [];
+    //game_entities.push(new Key(7,7));
     Dungeon.addRoom(0,0,
       [
         "------------",
@@ -284,13 +292,113 @@ var Dungeon = {
         "------------",
         "------------",
         "----0000----",
-        "----00000000",
-        "----00000000",
+        "000000000000",
+        "000000000000",
         "----0000----",
         "-----00-----",
         "-----00-----",
         "-----00-----",
         "-----00-----"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    game_entities.push(new SlowPawn(3,4));
+    Dungeon.addRoom(-1,0,
+      [
+        "------------",
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "000000000000",
+        "000000000000",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    game_entities.push(new SlowPawn(8,8));
+    Dungeon.addRoom(-2,0,
+      [
+        "-----00-----",
+        "-----00-----",
+        "--00000000--",
+        "--00000000--",
+        "--00----00--",
+        "0000-00-0000",
+        "0000-00-0000",
+        "--00----00--",
+        "--00000000--",
+        "--00000000--",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    game_entities.push(new SlowPawn(3,5));
+    Dungeon.addRoom(-2,1,
+      [
+        "-----00-----",
+        "-----00-----",
+        "--00000000--",
+        "--00000000--",
+        "--00----00--",
+        "--00-00-00--",
+        "--00-00-00--",
+        "--00----00--",
+        "--00000000--",
+        "--00000000--",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    game_entities.push(new SlowPawn(8,5));
+    Dungeon.addRoom(-2,-1,
+      [
+        "------------",
+        "------------",
+        "--00000000--",
+        "--00000000--",
+        "--00----00--",
+        "--00-00-00--",
+        "--00-00-00--",
+        "--00----00--",
+        "--00000000--",
+        "--00000000--",
+        "-----00-----",
+        "-----00-----"
+      ],
+      game_entities
+    );
+    
+    var game_entities = [];
+    game_entities.push(SlowBishop(4,7));
+    Dungeon.addRoom(-3,0,
+      [
+        "------------",
+        "------------",
+        "--000000----",
+        "--000000-0--",
+        "--000000-0--",
+        "--000000--00",
+        "--000000--00",
+        "--000000-0--",
+        "--000000-0--",
+        "--000000----",
+        "------------",
+        "------------"
       ],
       game_entities
     );
