@@ -1172,12 +1172,12 @@ var Key = function(x, y)
     if (this.bounce < 5)
     {
       this.y_offset += this.dy_offset;
-      this.dy_offset += 1/8;
+      this.dy_offset += 1/16;
       if (this.y_offset > 0)
       {
         this.bounce++;
         this.y_offset *= -1;
-        this.dy_offset *= -.40;
+        this.dy_offset *= -.30;
       }
     }
   }
@@ -1189,6 +1189,19 @@ var Key = function(x, y)
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
+    ctx.fillStyle = "rgba(0,0,0,.2)";
+    ctx.beginPath()
+    ctx.ellipse(
+      layout.left(this.x + .5),
+      layout.top(this.y + .50),
+      layout.tile_width * .25 / (Math.abs(this.y_offset) + 1),
+      layout.tile_width / 16 / (Math.abs(this.y_offset) + 1),
+      0,
+      0,
+      2 * Math.PI
+    )
+    ctx.fill();
+
     ctx.drawImage(
       GlobalResources.graphic_components.key,
       0,
@@ -1196,7 +1209,7 @@ var Key = function(x, y)
       512,
       1024,
       layout.left(this.x + .25),
-      layout.top(this.y + .75 + this.y_offset)
+      layout.top(this.y + .60 + this.y_offset)
         - Math.floor(.5 * layout.tile_width * 2),
       layout.tile_width * .5,
       Math.floor(.5 * layout.tile_width * 2)

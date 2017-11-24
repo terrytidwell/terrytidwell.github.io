@@ -284,7 +284,7 @@ var Dungeon = {
     );
     
     var game_entities = [];
-    //game_entities.push(new Key(7,7));
+    game_entities.push(new Key(7,7));
     Dungeon.addRoom(0,0,
       [
         "------------",
