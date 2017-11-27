@@ -1463,7 +1463,7 @@ var FloorTile = function(x, y, solid)
       layout.tile_width,
       layout.tile_height
     );
-    if(gamestate.player.player_health == 0)
+    if(gamestate.player.player_health == 0 || !gamestate.player.acceptInput())
     {
       return;
     }
@@ -1565,7 +1565,7 @@ var LeftArrowTop = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.x > 1)
+    if (gamestate.player.x > 1 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1595,7 +1595,7 @@ var LeftArrowBottom = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.x > 1)
+    if (gamestate.player.x > 1 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1625,7 +1625,7 @@ var RightArrowTop = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.x < 10)
+    if (gamestate.player.x < 10 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1655,7 +1655,7 @@ var TopArrowTop = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.y > 1)
+    if (gamestate.player.y > 1 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1685,7 +1685,7 @@ var BottomArrowTop = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.y < 10)
+    if (gamestate.player.y < 10 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1715,7 +1715,7 @@ var BottomArrowBottom = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.y < 10)
+    if (gamestate.player.y < 10 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1751,7 +1751,7 @@ var RightArrowBottom = function()
   
   this.paint = function (gamestate, layout, canvas, ctx)
   {
-    if (gamestate.player.x < 10)
+    if (gamestate.player.x < 10 || gamestate.player.player_gamestate_unmovable)
     {
       return;
     }
@@ -1787,10 +1787,11 @@ var Player = function(x,y)
   this.PLAYER_STUN_PERIOD = 10;
   this.PLAYER_INVINCIBLE_PERIOD = 30;
   this.player_invincible_timer = 0;
+  this.player_gamestate_unmovable = false;
   
   this.acceptInput = function()
   {
-    return this.player_stun_timer === 0 && this.y_offset === 0;
+    return this.player_stun_timer === 0 && this.y_offset === 0 && !this.player_gamestate_unmovable;
   };
   
   this.handleTimeStep = function(gamestate)
@@ -1984,6 +1985,7 @@ var GameScreen = {
       this.screen_transition_timer_max = this.VERTICAL_SCREEN_TRANSITION_TIME;
     }
     this.screen_transition_timer = this.screen_transition_timer_max;
+    this.gamestate.player.player_gamestate_unmovable = true;
     Dungeon.loadRoom(x,y,this.gamestate);
     return;
   },
@@ -2052,6 +2054,8 @@ var GameScreen = {
       this.screen_transition_timer--;
       return;
     }
+    
+    this.gamestate.player.player_gamestate_unmovable = false;
     
     if (this.mouse_event && this.layout)
     {
