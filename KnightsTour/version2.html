@@ -1463,6 +1463,22 @@ var FloorTile = function(x, y, solid)
       layout.tile_width,
       layout.tile_height
     );
+    if (((this.x + this.y)%2) == 0)
+    {
+      ctx.fillStyle = "rgb(96,96,96)";
+    }
+    else
+    {
+      ctx.fillStyle = "rgb(160,160,160)";
+    }
+    ctx.fillRect
+    (
+      layout.left(this.x),
+      layout.top(this.y + 1),
+      layout.tile_width,
+      layout.tile_height / 4
+    );
+    
     if(gamestate.player.player_health == 0 || !gamestate.player.acceptInput())
     {
       return;
@@ -1475,7 +1491,7 @@ var FloorTile = function(x, y, solid)
         layout.left(this.x),
         layout.top(this.y),
         layout.tile_width,
-        layout.tile_height
+        layout.tile_height * 1.25
       );
     }
   };
@@ -2249,7 +2265,8 @@ var GameScreen = {
       {
         if (this.gamestate.player.player_health > 0)
         {
-          this.gamestate.player.player_health--;
+          this.gamestate.player.player_health-=
+            Math.min(3,this.gamestate.player.player_health);
         }
       }
     }
