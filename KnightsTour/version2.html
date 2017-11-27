@@ -1913,11 +1913,84 @@ var Player = function(x,y)
   };
 };
 
+const GameOver = {
+  m_timer: 0,
+  m_steps: 1,
+  DIM_STEP_SIZE: .01,
+  TIME_LIMIT: 120,
+  STEP_TIME: 2,
+  MUSIC_VOLUME_STEP_SIZE: 1,
+
+  init: function (jut)
+  {
+    this.jut = jut;
+  },
+  
+  reset: function ()
+  {
+    this.m_timer = 0;
+    this.m_steps = 1;
+    /*
+    var volume = GameConstants.MUSIC_VOLUME 
+        - this.m_steps * this.MUSIC_VOLUME_STEP_SIZE;
+    if(volume < 0)
+    {
+      volume = 0;
+    }
+    AudioComponents.m_bg.setVolume(volume);
+    */
+  },
+  handleTimeStep: function ()
+  {
+    this.m_timer++;
+    if(this.m_timer > this.TIME_LIMIT)
+    {
+      this.jut.switchToScreen(GameScreen);
+    }
+    if((this.m_timer % this.STEP_TIME) == 0)
+    {
+      this.m_steps++;
+      /*
+      var volume = GameConstants.MUSIC_VOLUME 
+        - this.m_steps * this.MUSIC_VOLUME_STEP_SIZE;
+      if(volume < 0)
+      {
+        volume = 0;
+      }
+      AudioComponents.m_bg.setVolume(volume);
+      */
+      GameScreen.handleTimeStep();
+    }
+  },
+  paint: function (canvas, ctx)
+  {
+    GameScreen.paint(canvas,ctx);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    var alpha = this.m_timer * this.DIM_STEP_SIZE
+    ctx.fillStyle = "rgba(0, 0, 0,"+alpha+")";
+    ctx.fillRect(
+        0, 0,
+        canvas.width,
+        canvas.height);
+    var fontsize = Math.round(canvas.height / 8);
+    ctx.font="Bold "+fontsize+"px Arial";
+    ctx.fillStyle = "rgba(128, 128, 128,"+alpha+")";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+        "Game Over",
+        canvas.width / 2,
+        canvas.height / 2
+    );
+  }
+};
+
 //--------------------------------------------------------------------------
 var GameScreen = {
   //----------------------------------------------------------------------
-  init: function ()
+  init: function (jut)
   {
+    this.jut = jut;
   },
 
   //----------------------------------------------------------------------
@@ -1938,6 +2011,7 @@ var GameScreen = {
     this.old_room_x = null;
     this.old_room_y = null;
     this.old_layout = {};
+    this.game_over = false;
     
     //stores information about graphical layout
     this.layout = null;
@@ -2191,10 +2265,11 @@ var GameScreen = {
       }
     }
     
-    if (this.gamestate.player.player_health == 0)
+    if (this.gamestate.player.player_health == 0 && !this.game_over)
     {
+      this.game_over = true;
       GlobalResources.audio_components.m_bg.loop().stop();
-      this.reset();
+      this.jut.switchToScreen(GameOver);
     }
   },
   
@@ -2354,7 +2429,10 @@ var init = function()
   
   jut.setMaintainAspectRatioMode(4/3);
   jut.addTitleScreen(GameScreen);
+  GameScreen.init(jut);
+  GameOver.init(jut);
   jut.init();
+  
 }
 
 // launch the game once the document is fully loaded

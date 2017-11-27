@@ -120,10 +120,11 @@ var createJutGameEngine = function(new_canvas) {
     resize();
 
     resourceTracker.init();
-    for(let screen = 0; screen < screens.length; screen++)
+    /*for(let screen = 0; screen < screens.length; screen++)
     {
       screens[screen].init();
     }
+    */
     
     current_screen = resourceTracker;
 
