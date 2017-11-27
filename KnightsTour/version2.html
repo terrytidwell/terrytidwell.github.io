@@ -1159,7 +1159,7 @@ var Key = function(x, y)
   
   this.handlePlayerCollision = function(x, y, gamestate)
   {
-    if(this.x != x || this.y != y || !this.m_active)
+    if(this.x != x || this.y != y || !this.m_active || this.y_offset < -3)
     {
       return;
     }
