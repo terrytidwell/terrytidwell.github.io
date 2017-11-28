@@ -1414,12 +1414,19 @@ var Attack = function(x, y, dx, dy)
   
   this.paint = function(gamestate, layout, canvas, ctx)
   {
+    let height = layout.tile_height;
+    let y = layout.top(this.y + 1/4);
+    if(gamestate.board[this.x][this.y].solid)
+    {
+      y = layout.top(this.y)
+      height *= 1.25;
+    }
     ctx.fillStyle = "rgba(255,0,0,.5)";
     ctx.fillRect(
       layout.left(this.x),
-      layout.top(this.y),
+      y,
       layout.tile_width,
-      layout.tile_height * 1.25
+      height
     );
   };
   

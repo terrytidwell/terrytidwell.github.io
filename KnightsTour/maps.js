@@ -2,8 +2,8 @@ var Dungeon = {
   rooms : [],
   starting_x : 5,
   starting_y : 5,
-  starting_room_x : 0, //0,
-  starting_room_y : 0, //0,
+  starting_room_x : 0,
+  starting_room_y : 0,
   addRoom : function(x,y, string_array, gameEntities) 
   {
     var new_room = this.loadBoard(string_array);
@@ -623,16 +623,31 @@ var Dungeon = {
     );
     
     game_entities = [];
+    
+    /*
+    var timer = new TimerLoop(0);
+    timer.flame = new FlameFountain(Math.floor(Math.random()*4)+4,Math.floor(Math.random()*4)+4);
+    timer.addState(110,
+      function(g){
+        timer.flame.m_active = false;
+        timer.flame = new FlameFountain(Math.floor(Math.random()*4)+4,Math.floor(Math.random()*4)+4);
+        g.gameEntities.push(timer.flame);
+      },
+      null,
+      null);
+    game_entities.push(timer.flame);
+    game_entities.push(timer);
+    */
     Dungeon.addRoom(3,-2,
       [
         "------------",
         "------------",
         "--00000000--",
         "--00000000--",
-        "--00000000--",
-        "0000000000--",
-        "0000000000--",
-        "--00000000--",
+        "--00----00--",
+        "0000----00--",
+        "0000----00--",
+        "--00----00--",
         "--00000000--",
         "--00000000--",
         "------------",
