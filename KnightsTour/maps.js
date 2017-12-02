@@ -570,7 +570,7 @@ var Dungeon = {
         g.board[1][5].visible = false;
         g.board[1][6].solid = false;
         g.board[1][6].visible = false;
-        var ff = new FlameFountain(8,3);
+        var ff = new FlameFountain(8,3, true);
         var pawn1 = new MinionSpawn(3,7, new Pawn(3,7));
         var pawn2 = new MinionSpawn(5,9, new Pawn(5,9));
         g.gameEntities.push(ff);
@@ -604,7 +604,7 @@ var Dungeon = {
         g.gameEntities.push(dw);
       }
     ));
-    Dungeon.addRoom(2,-2,
+    Dungeon.addRoom(3,-2,
       [
         "------------",
         "------------",
@@ -623,30 +623,51 @@ var Dungeon = {
     );
     
     game_entities = [];
+    Dungeon.addRoom(4,-2,
+      [
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "00----------",
+        "00----------",
+        "------------",
+        "------------",
+        "------------",
+        "------------",
+        "------------"
+      ],
+      game_entities
+    );
     
-    /*
+    game_entities = [];
+    
     var timer = new TimerLoop(0);
-    timer.flame = new FlameFountain(Math.floor(Math.random()*4)+4,Math.floor(Math.random()*4)+4);
-    timer.addState(110,
+    timer.addState(150,
       function(g){
-        timer.flame.m_active = false;
-        timer.flame = new FlameFountain(Math.floor(Math.random()*4)+4,Math.floor(Math.random()*4)+4);
-        g.gameEntities.push(timer.flame);
+        g.gameEntities.push
+        (
+          new FlameFountain
+          (
+            Math.floor(Math.random()*4)+4,
+            Math.floor(Math.random()*4)+4,
+            false
+          )
+        );
       },
       null,
       null);
-    game_entities.push(timer.flame);
     game_entities.push(timer);
-    */
-    Dungeon.addRoom(3,-2,
+    Dungeon.addRoom(2,-2,
       [
         "------------",
         "------------",
         "--00000000--",
         "--00000000--",
         "--00----00--",
-        "0000----00--",
-        "0000----00--",
+        "0000----0000",
+        "0000----0000",
         "--00----00--",
         "--00000000--",
         "--00000000--",

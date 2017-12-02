@@ -94,13 +94,14 @@ const MinionSpawn = function (x, y, minion)
   };
 };
 
-const FlameFountain = function (x, y)
+const FlameFountain = function (x, y, continuous)
 {
   this.x = x;
   this.y = y;
   this.attack = new Attack(x,y,0,0);
   this.m_timer = 25;
   this.m_active = true;
+  this.continuous = continuous;
   
   this.handleTimeStep = function(gamestate)
   {
@@ -108,7 +109,14 @@ const FlameFountain = function (x, y)
     if(this.m_timer === 0)
     {
       gamestate.gameEntities.push(new FlameWave(this.x, this.y, gamestate));
-      this.m_timer = 100;
+      if (this.continuous)
+      {
+        this.m_timer = 100;
+      }
+      else
+      {
+        this.m_active = false;
+      }
     }
   }
   
