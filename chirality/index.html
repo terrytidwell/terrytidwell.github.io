@@ -86,6 +86,7 @@ const Logo = {
     this.textFadeInTimer = 0;
     this.cursorTimer = 0;
     this.scanline=0;
+    this.polarity = 1;
     this.bounce=30;
   },
   
@@ -93,7 +94,12 @@ const Logo = {
   {
     if (this.loadTimer < 99)
     {
-      this.loadTimer+=.25;
+      this.loadTimer+=.5;
+    }
+    else
+    {
+      this.polarity = -10;
+      this.textFadeInTimer += this.polarity
     }
 
     if (this.textTimer < this.textTimerLimit)
@@ -101,9 +107,15 @@ const Logo = {
       this.textTimer++;
     }
     
+    
     if (this.textFadeInTimer < this.textFadeInTimerLimit)
     {
-      this.textFadeInTimer++;
+      this.textFadeInTimer += this.polarity;
+      if (this.textFadeInTimer <= 0)
+      {
+        this.polarity = 1;
+        this.loadTimer = 0;
+      }
     }
 
     this.scanline+=5;
