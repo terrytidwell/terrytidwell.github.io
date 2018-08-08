@@ -129,7 +129,7 @@ var createJutGameEngine = function(new_canvas) {
     current_screen = resourceTracker;
 
     // start processing events
-    setTimeout(eventLoop, 40);
+    setTimeout(eventLoop, 0);
   };
   
 //private:

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chirality</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body bgcolor="#000000">
+<canvas style = 'position: absolute; left: 0px; top: 0px;' id="canvas" width="1024" height="800"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/1.1.10/buzz.min.js" type="text/javascript"></script>
+<script src="../gameEngine/engine.js" type="text/javascript"></script>
+    
+<script>
+//##########################################################################
+// The game
+//
+
+var g_font;
+var PHI = 1.61803398875;
+var INVERSE_PHI = 0.61803398875;
+
+//--------------------------------------------------------------------------
+const Util = {
+
+    //----------------------------------------------------------------------
+    forEach: function (obj, fn)
+    {
+        var key;
+        for (key in obj)
+        {
+            if (obj.hasOwnProperty(key))
+            {
+                fn(obj[key]);
+            }
+        }
+    },
+
+    //----------------------------------------------------------------------
+    randomItem: function (arr)
+    {
+        return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    //----------------------------------------------------------------------
+    shuffle: function (arr)
+    {
+        var current_index = arr.length, temp, random_index;
+        while (0 != current_index)
+        {
+            // Pick a remaining element.
+            random_index = Math.floor(Math.random() * current_index);
+            current_index -= 1;
+
+            // And swap it with the current element.
+            temp = arr[current_index];
+            arr[current_index] = arr[random_index];
+            arr[random_index] = temp;
+        }
+        return arr;
+    }
+};
+
+//##########################################################################
+
+var PaintLevelEnum = 
+{
+  BG: 0,
+  FLOOR: 1,
+  LOWER: 2,
+  ENTITIES: 3,
+};
+
+//##########################################################################
+
+const Logo = {
+  init: function (jut)
+  {
+    this.jut = jut;
+  },
+  
+  reset: function ()
+  {
+    this.loadTimer = 0;
+    this.textTimerLimit = 40;
+    this.textTimer = 0;
+    this.textFadeInTimerLimit = 10;
+    this.textFadeInTimer = 0;
+    this.cursorTimer = 0;
+  },
+  
+  handleTimeStep: function ()
+  {
+    if (this.loadTimer < 100)
+    {
+      this.loadTimer++;
+    }
+
+    if (this.textTimer < this.textTimerLimit)
+    {
+      this.textTimer++;
+    }
+    
+    if (this.textFadeInTimer < this.textFadeInTimerLimit)
+    {
+      this.textFadeInTimer++;
+    }
+
+    this.cursorTimer++;
+  },
+  
+  paint: function (canvas, ctx)
+  {
+   //this.otherScreen.paint();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // paint the background
+    ctx.fillStyle = "rgba(0,0,0)";
+    ctx.fillRect(
+      0, 0,
+      canvas.width,
+      canvas.height);
+
+    var text_size = Math.round(canvas.height / 6);
+    var game_over = "velociGames";
+    var jitter = Math.random() * text_size / 30 - text_size / 60;
+    var text = game_over.substring(0, Math.round(this.textTimer / this.textTimerLimit * game_over.length));
+    if (Math.floor(this.cursorTimer / 10) % 2)
+    {
+      text += "_"
+    }
+    else
+    {
+      text += " ";
+    }
+      
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowOffsetX = canvas.width;
+    ctx.shadowOffsetY = 0;
+    
+    ctx.shadowColor = "rgba(0,192,0," + .5 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+
+    ctx.font = text_size * 2 + "px " + g_font;
+    ctx.shadowBlur = Math.round(text_size / 4);;
+    ctx.fillText(this.loadTimer + "%", -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
+    
+    
+    ctx.font = text_size + "px " + g_font;
+    ctx.shadowBlur = Math.round(text_size * 2 / 3);
+    ctx.fillText(text, -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
+    ctx.shadowBlur = Math.round(text_size / 3);
+    ctx.fillText(text, -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(0,0,0,1)"; // + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
+    ctx.strokeStyle = "rgba(0,0,0," + .25 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+    
+    for(var y = 0; y < canvas.height; y+=2*ctx.lineWidth)
+    {
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(canvas.width,y);
+      ctx.stroke();
+    }
+    
+    /*
+    for(var x = 0; x < canvas.width; x+=2*ctx.lineWidth)
+    {
+      ctx.beginPath();
+      ctx.moveTo(x,0);
+      ctx.lineTo(x,canvas.height);
+      ctx.stroke();
+    }
+    // */
+  }
+};
+
+//--------------------------------------------------------------------------
+var GameScreen = {
+  //----------------------------------------------------------------------
+  init: function (jut)
+  {
+    this.jut = jut;
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  reset: function ()
+  {
+    Dungeon.resetDungeon();
+    
+    this.mouse_event = false;
+    this.mouse_x = 0;
+    this.mouse_y = 0;
+    
+    this.HORIZONTAL_SCREEN_TRANSITION_TIME = 16; //use 12 for vertical, 16 for horizontal
+    this.VERTICAL_SCREEN_TRANSITION_TIME = 12; //use 12 for vertical, 16 for horizontal
+    this.screen_transition_timer_max = 0; //used for choosing which timer constant to use
+    this.screen_transition_timer = 0;
+    this.old_entities = null;
+    this.old_room_x = null;
+    this.old_room_y = null;
+    this.old_layout = {};
+    this.game_over = false;
+    
+    //stores information about graphical layout
+    this.layout = null;
+
+    this.gamestate = 
+    {
+      player : new Player(Dungeon.starting_x,Dungeon.starting_y),
+      board : [],
+      gameEntities: [],
+      getRandomSpawnSquare : function()
+      {
+        var potentials = [];
+        for(let x = 2; x < 10; x++)
+        {
+          for (let y = 2; y < 10; y++)
+          {
+            if (this.board[x] && this.board[x][y] && this.board[x][y].solid)
+            {
+              potentials.push([x,y]);
+            }
+          }
+        }
+        return Util.randomItem(potentials);
+      },
+    }
+    this.current_room_x = Dungeon.starting_room_x;
+    this.current_room_y = Dungeon.starting_room_y;
+    this.loadRoom(this.current_room_x,this.current_room_y);
+    this.screen_transition_timer = 0;
+  },
+  
+  loadRoom: function(x,y)
+  {
+    this.old_entities = this.gamestate.gameEntities;
+    this.old_room_x = this.current_room_x;
+    this.old_room_y = this.current_room_y;
+    this.current_room_x = x;
+    this.current_room_y = y;
+    if(this.current_room_x != this.old_room_x)
+    {
+      this.screen_transition_timer_max = this.HORIZONTAL_SCREEN_TRANSITION_TIME;
+    }
+    else
+    {
+      this.screen_transition_timer_max = this.VERTICAL_SCREEN_TRANSITION_TIME;
+    }
+    this.screen_transition_timer = this.screen_transition_timer_max;
+    this.gamestate.player.player_gamestate_unmovable = true;
+    Dungeon.loadRoom(x,y,this.gamestate);
+    return;
+  },
+  
+  loadBoard: function(string_array)
+  {
+    this.gamestate.board = [];
+    var dim_y = string_array.length;
+    var dim_x = 0;
+    for(let i = 0; i < dim_y; i++)
+    {
+      if(i == 0)
+      {
+        dim_x = string_array[i].length;
+      }
+      else
+      {
+        dim_x = Math.max(dim_x, string_array[i].length);
+      }
+    }
+    for(let x = 0; x < dim_x; x++)
+    {
+      var row = [];
+      for(let y = 0; y < dim_y; y++)
+      {
+        if (x < string_array[y].length && string_array[y][x] != '-')
+        {
+          var tile = new FloorTile(x,y,true)
+          row.push(tile);
+          this.gamestate.gameEntities.push(tile);
+        }
+        else
+        {
+          var tile = new FloorTile(x,y,false)
+          row.push(tile);
+          this.gamestate.gameEntities.push(tile);
+        }
+      }
+      this.gamestate.board.push(row);
+    }
+  },
+
+  handleMouseDown: function(event)
+  {
+    if (!this.layout)
+    {
+      return;
+    }
+    
+    if (!this.gamestate.player.acceptInput())
+    {
+      return;
+    }
+    
+    this.mouse_event = true;
+    this.mouse_x = event.offsetX;
+    this.mouse_y = event.offsetY;
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  handleTimeStep: function ()
+  {
+    if (this.screen_transition_timer > 0)
+    {
+      this.screen_transition_timer--;
+      return;
+    }
+    
+    this.gamestate.player.player_gamestate_unmovable = false;
+    
+    if (this.mouse_event && this.layout)
+    {
+      this.mouse_event = false;
+      var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
+      var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
+      if (tile_x >= 0 && tile_x <= 11 && tile_y >= 0 && tile_y <= 11)
+      {
+        if (this.gamestate.player.x > 9 && tile_x > 9 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.x = this.gamestate.player.x - 10;
+          this.loadRoom(this.current_room_x+1,this.current_room_y);
+          return;
+        }
+        if (this.gamestate.player.x < 2 && tile_x < 2 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.x = this.gamestate.player.x + 10;
+          this.loadRoom(this.current_room_x-1,this.current_room_y);
+          return;
+        }
+        if (this.gamestate.player.y > 9 && tile_y > 9 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.y = this.gamestate.player.y - 10;
+          this.loadRoom(this.current_room_x,this.current_room_y+1);
+          return;
+        }
+        if (this.gamestate.player.y < 2 && tile_y < 2 &&
+          this.gamestate.board[tile_x][tile_y].solid
+        )
+        {
+          this.gamestate.player.y = this.gamestate.player.y + 10;
+          this.loadRoom(this.current_room_x,this.current_room_y-1);
+          return;
+        }
+        //alert(tile_x + ", " + tile_y)
+        if (this.gamestate.board[tile_x][tile_y].solid && 
+          tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
+          Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
+        {
+          this.gamestate.player.x = tile_x;
+          this.gamestate.player.y = tile_y;
+          GlobalResources.audio_components.m_move.stop();
+          GlobalResources.audio_components.m_move.setVolume(15);
+          GlobalResources.audio_components.m_move.play();
+          
+          for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+          {
+            if(this.gamestate.gameEntities[i].handlePlayerAttack)
+            {
+              this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
+            }
+          }
+                  
+          //did we move into an exit square?
+          if(this.gamestate.player.x > 9)
+          {
+            this.gamestate.player.x = this.gamestate.player.x - 10;
+            this.loadRoom(this.current_room_x+1,this.current_room_y);
+            return;
+          }
+          else if(this.gamestate.player.y > 9)
+          {
+            this.gamestate.player.y = this.gamestate.player.y - 10;
+            this.loadRoom(this.current_room_x,this.current_room_y+1);
+            return;
+          }
+          else if(this.gamestate.player.x < 2)
+          {
+            this.gamestate.player.x = this.gamestate.player.x + 10;
+            this.loadRoom(this.current_room_x-1,this.current_room_y);
+            return;
+          }
+          else if(this.gamestate.player.y < 2)
+          {
+            this.gamestate.player.y = this.gamestate.player.y + 10;
+            this.loadRoom(this.current_room_x,this.current_room_y-1);
+            return;
+          }
+        }
+      }
+    }
+    
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if(this.gamestate.gameEntities[i].handleTimeStep)
+      {
+        this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
+      }
+    }
+    
+    //collisions
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if(this.gamestate.gameEntities[i].handlePlayerCollision)
+      {
+        this.gamestate.gameEntities[i].handlePlayerCollision(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
+      }
+    }
+    
+    if(!this.gamestate.board[this.gamestate.player.x][this.gamestate.player.y].solid)
+    {
+      if(this.gamestate.player.y_offset === 0)
+      {
+        this.gamestate.player.y_offset = .05;
+      }
+      else
+      {
+        this.gamestate.player.y_offset += this.gamestate.player.y_offset;
+      }
+      if(this.gamestate.player.y_offset > 24)
+      {
+        if (this.gamestate.player.player_health > 0)
+        {
+          this.gamestate.player.player_health-=
+            Math.min(3,this.gamestate.player.player_health);
+        }
+      }
+    }
+    
+    for (let i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
+    {
+      if(this.gamestate.gameEntities[i].active)
+      {
+        if(!this.gamestate.gameEntities[i].active())
+        {
+          this.gamestate.gameEntities.splice(i,1);
+        }
+      }
+    }
+    
+    if (this.gamestate.player.player_health == 0 && !this.game_over)
+    {
+      this.game_over = true;
+      GlobalResources.audio_components.m_bg.loop().stop();
+      this.jut.switchToScreen(GameOver);
+    }
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  paint: function (canvas, ctx)
+  {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+   
+    // paint the background
+    ctx.fillStyle = "rgb(16, 16, 16)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "rgb(255,255,255)";
+    
+    if (this.layout === null)
+    {
+      this.layout = {
+        left : function(x)
+        {
+          return Math.round((x - 6) * this.tile_width + this.center_x);
+        },
+        top : function(y)
+        {
+          return Math.round((y - 6) * this.tile_height + this.center_y);
+        }
+      };
+    }
+    this.layout.center_x = Math.round(canvas.width / 2);
+    this.layout.center_y = Math.round(canvas.height / 2);
+    this.layout.tile_width = Math.round(canvas.width/12);
+    this.layout.tile_height = Math.round(canvas.width/24);
+    
+    if(this.screen_transition_timer > 0)
+    {
+      percentage_transitioned = 1 - this.screen_transition_timer/this.screen_transition_timer_max;
+    
+      this.old_layout.center_x = this.layout.center_x + (this.old_room_x - this.current_room_x) * 10 * this.layout.tile_width * (percentage_transitioned);
+      this.old_layout.center_y = this.layout.center_y + (this.old_room_y - this.current_room_y) * 10 * this.layout.tile_height * (percentage_transitioned);
+      this.old_layout.tile_width = this.layout.tile_width;
+      this.old_layout.tile_height = this.layout.tile_height;
+      this.old_layout.left = this.layout.left;
+      this.old_layout.top = this.layout.top;
+    
+      this.layout.center_x = this.layout.center_x + (this.current_room_x - this.old_room_x) * 10 * this.layout.tile_width * (1-percentage_transitioned);
+      this.layout.center_y = this.layout.center_y + (this.current_room_y - this.old_room_y) * 10 * this.layout.tile_height * (1-percentage_transitioned);
+      
+      this.old_entities.sort(function(a,b){
+        var a_lvl = 0;
+        var b_lvl = 0;
+        if(a.paintLevel)
+        {
+          a_lvl = a.paintLevel();
+        }
+        if(b.paintLevel)
+        {
+          b_lvl = b.paintLevel();
+        }
+        return a_lvl - b_lvl;
+      });
+      
+      for (let i = 0; i < this.old_entities.length; i++)
+      {
+        if (this.old_entities[i].paint)
+        {
+          if (!this.old_entities[i].PLAYER_FULL_HEALTH)
+          {
+            this.old_entities[i].paint(this.gamestate,this.old_layout,canvas,ctx);
+          }
+        }
+      }
+    }
+    
+    this.gamestate.gameEntities.sort(function(a,b){
+      var a_lvl = 0;
+      var b_lvl = 0;
+      if(a.paintLevel)
+      {
+        a_lvl = a.paintLevel();
+      }
+      if(b.paintLevel)
+      {
+        b_lvl = b.paintLevel();
+      }
+      return a_lvl - b_lvl;
+    });
+    
+    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if (this.gamestate.gameEntities[i].paint)
+      {
+        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+      }
+    }
+
+    this.layout.center_y = Math.round(canvas.height / 2);
+    
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.fillRect(0,0,canvas.width,this.layout.top(0));
+    ctx.fillRect(0,this.layout.top(12),canvas.width,this.layout.top(0));
+    
+    //paint health bar
+    // /*
+    var edge = Math.round(this.layout.tile_height / 4);
+    ctx.fillStyle = "rgb(96,96,96)";      
+    ctx.fillRect(
+      edge,
+      edge,
+      4 * this.layout.tile_width - 2 * edge,
+      this.layout.tile_height / 2
+    );
+    var fill = Math.floor((4 * this.layout.tile_width - 2 * edge)
+      * this.gamestate.player.player_health / this.gamestate.player.PLAYER_FULL_HEALTH);
+    ctx.fillStyle = "rgb(192,96,96)";
+    ctx.fillRect(
+      edge,
+      edge,
+      fill,
+      this.layout.tile_height / 2
+    );
+    // */
+    
+    for (let i = 0; i < this.gamestate.player.keys; i++)
+    {
+      ctx.drawImage(
+        GlobalResources.graphic_components.key,
+        0,
+        0,
+        512,
+        1024,
+        i * edge + edge,
+        edge + this.layout.tile_height,
+        this.layout.tile_height / 4,
+        this.layout.tile_height / 2
+      );
+    }
+  }
+};
+
+var GlobalResources =
+{
+  audio_components : {},
+  graphic_components : {}
+};
+
+var init = function()
+{
+  g_font = "Lucida Console";
+  var jut = createJutGameEngine(document.getElementById("canvas"));
+  
+  /*
+  GlobalResources.audio_components.m_bg = jut.loadAudio("Assets/Sound/CrunkKnight.mp3");
+  GlobalResources.audio_components.m_move = jut.loadAudio("Assets/Sound/Bounce-SoundBible.com-12678623.mp3");
+  GlobalResources.graphic_components.m_pieces = jut.loadImage("Assets/Graphics/Chess_pieces.png");
+  GlobalResources.graphic_components.m_gold = jut.loadImage("Assets/Graphics/coin_gold.png");
+  GlobalResources.graphic_components.key = jut.loadImage("Assets/Graphics/key2.png");
+  GlobalResources.graphic_components.lock = jut.loadImage("Assets/Graphics/locked.png");
+  */
+  
+  jut.setMaintainAspectRatioMode(4/3);
+  jut.addTitleScreen(Logo);
+  GameScreen.init(jut);
+  Logo.init(jut);
+  jut.init();
+  
+}
+
+// launch the game once the document is fully loaded
+window.addEventListener("load", init);
+
+</script>
+</body>
+</html>
+
