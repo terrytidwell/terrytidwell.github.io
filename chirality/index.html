@@ -94,7 +94,7 @@ const Logo = {
   {
     if (this.loadTimer < 99)
     {
-      this.loadTimer+=.5;
+      this.loadTimer+=1;
     }
     else
     {
@@ -113,9 +113,7 @@ const Logo = {
       this.textFadeInTimer += this.polarity;
       if (this.textFadeInTimer <= 0)
       {
-        this.polarity = 1;
-        this.loadTimer = 0;
-        this.textTimer = 0;
+        this.reset();
       }
     }
 
@@ -150,14 +148,6 @@ const Logo = {
     var game_over = "VelociGames";
     var jitter = Math.random() * text_size / 30 - text_size / 60;
     var text = game_over.substring(0, Math.round(this.textTimer / this.textTimerLimit * game_over.length));
-    if (Math.floor(this.cursorTimer / 10) % 2)
-    {
-      text += "_"
-    }
-    else
-    {
-      text += " ";
-    }
       
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -176,16 +166,28 @@ const Logo = {
     }
     ctx.fillText(load_text, -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
     
-    ctx.shadowColor = "rgba(0,192,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
     ctx.font = text_size + "px " + g_font;
+    ctx.textAlign = "left";
+    var textWidth = ctx.measureText(text + "_").width;
+    if (Math.floor(this.cursorTimer / 10) % 2)
+    {
+      text += "_"
+    }
+    else
+    {
+      text += " ";
+    }
+    var textPosition = Math.round(canvas.width / 2 - textWidth / 2);
+    
+    ctx.shadowColor = "rgba(0,192,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
     ctx.shadowBlur = Math.round(text_size * 2 / 3);
-    ctx.fillText(text, -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
+    ctx.fillText(text, -canvas.width + textPosition + jitter, canvas.height / 2);
     ctx.shadowBlur = Math.round(text_size / 3);
-    ctx.fillText(text, -canvas.width + canvas.width / 2 + jitter, canvas.height / 2);
+    ctx.fillText(text, -canvas.width + textPosition + jitter, canvas.height / 2);
     //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
     ctx.shadowBlur = 2;
     //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
-    ctx.fillText(text, -canvas.width + canvas.width / 2, canvas.height / 2);
+    ctx.fillText(text, -canvas.width + textPosition, canvas.height / 2);
     //ctx.fillText(text, canvas.width / 2, canvas.height / 2);
     ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
     ctx.strokeStyle = "rgba(0,0,0," + .25 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";

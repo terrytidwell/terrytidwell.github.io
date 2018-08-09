@@ -18,7 +18,7 @@
 window.addEventListener("load", function(event)
   {
     createJutInstance(document.getElementById("testing_div"),my_tests);
-    createJutInstance(document.getElementById("testing_div2"),my_tests);
+    createJutInstance(document.getElementById("testing_div2"),my_tests2);
   }
 );
 
@@ -45,6 +45,11 @@ function my_tests(jut)
   jut.test("Expect near fails 2", !jut.expect_near(0,.5,.49));
   jut.test("Expect throw", jut.expect_throw(does_throw));
   jut.test("Expect no throw", !jut.expect_throw(no_throw));
+}
+
+function my_tests2(jut)
+{
+  jut.test("Different Test", true);
 }
 
 </script>
