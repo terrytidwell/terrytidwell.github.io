@@ -238,119 +238,20 @@ var GameScreen = {
   // from Screen
   reset: function ()
   {
-    Dungeon.resetDungeon();
-    
-    this.mouse_event = false;
-    this.mouse_x = 0;
-    this.mouse_y = 0;
-    
-    this.HORIZONTAL_SCREEN_TRANSITION_TIME = 16; //use 12 for vertical, 16 for horizontal
-    this.VERTICAL_SCREEN_TRANSITION_TIME = 12; //use 12 for vertical, 16 for horizontal
-    this.screen_transition_timer_max = 0; //used for choosing which timer constant to use
-    this.screen_transition_timer = 0;
-    this.old_entities = null;
-    this.old_room_x = null;
-    this.old_room_y = null;
-    this.old_layout = {};
-    this.game_over = false;
-    
     //stores information about graphical layout
     this.layout = null;
-
+    this.scanline = 0;
+    this.bounce = 0;
+    
     this.gamestate = 
     {
-      player : new Player(Dungeon.starting_x,Dungeon.starting_y),
-      board : [],
-      gameEntities: [],
-      getRandomSpawnSquare : function()
-      {
-        var potentials = [];
-        for(let x = 2; x < 10; x++)
-        {
-          for (let y = 2; y < 10; y++)
-          {
-            if (this.board[x] && this.board[x][y] && this.board[x][y].solid)
-            {
-              potentials.push([x,y]);
-            }
-          }
-        }
-        return Util.randomItem(potentials);
-      },
-    }
-    this.current_room_x = Dungeon.starting_room_x;
-    this.current_room_y = Dungeon.starting_room_y;
-    this.loadRoom(this.current_room_x,this.current_room_y);
-    this.screen_transition_timer = 0;
+      gameEntities: []
+    };
   },
   
-  loadRoom: function(x,y)
-  {
-    this.old_entities = this.gamestate.gameEntities;
-    this.old_room_x = this.current_room_x;
-    this.old_room_y = this.current_room_y;
-    this.current_room_x = x;
-    this.current_room_y = y;
-    if(this.current_room_x != this.old_room_x)
-    {
-      this.screen_transition_timer_max = this.HORIZONTAL_SCREEN_TRANSITION_TIME;
-    }
-    else
-    {
-      this.screen_transition_timer_max = this.VERTICAL_SCREEN_TRANSITION_TIME;
-    }
-    this.screen_transition_timer = this.screen_transition_timer_max;
-    this.gamestate.player.player_gamestate_unmovable = true;
-    Dungeon.loadRoom(x,y,this.gamestate);
-    return;
-  },
-  
-  loadBoard: function(string_array)
-  {
-    this.gamestate.board = [];
-    var dim_y = string_array.length;
-    var dim_x = 0;
-    for(let i = 0; i < dim_y; i++)
-    {
-      if(i == 0)
-      {
-        dim_x = string_array[i].length;
-      }
-      else
-      {
-        dim_x = Math.max(dim_x, string_array[i].length);
-      }
-    }
-    for(let x = 0; x < dim_x; x++)
-    {
-      var row = [];
-      for(let y = 0; y < dim_y; y++)
-      {
-        if (x < string_array[y].length && string_array[y][x] != '-')
-        {
-          var tile = new FloorTile(x,y,true)
-          row.push(tile);
-          this.gamestate.gameEntities.push(tile);
-        }
-        else
-        {
-          var tile = new FloorTile(x,y,false)
-          row.push(tile);
-          this.gamestate.gameEntities.push(tile);
-        }
-      }
-      this.gamestate.board.push(row);
-    }
-  },
-
   handleMouseDown: function(event)
   {
     if (!this.layout)
-    {
-      return;
-    }
-    
-    if (!this.gamestate.player.acceptInput())
     {
       return;
     }
@@ -364,135 +265,13 @@ var GameScreen = {
   // from Screen
   handleTimeStep: function ()
   {
-    if (this.screen_transition_timer > 0)
-    {
-      this.screen_transition_timer--;
-      return;
-    }
-    
-    this.gamestate.player.player_gamestate_unmovable = false;
-    
-    if (this.mouse_event && this.layout)
-    {
-      this.mouse_event = false;
-      var tile_x = Math.floor((this.mouse_x - this.layout.center_x)/this.layout.tile_width) + 6;
-      var tile_y = Math.floor((this.mouse_y - this.layout.center_y)/this.layout.tile_height) + 6;
-      if (tile_x >= 0 && tile_x <= 11 && tile_y >= 0 && tile_y <= 11)
-      {
-        if (this.gamestate.player.x > 9 && tile_x > 9 &&
-          this.gamestate.board[tile_x][tile_y].solid
-        )
-        {
-          this.gamestate.player.x = this.gamestate.player.x - 10;
-          this.loadRoom(this.current_room_x+1,this.current_room_y);
-          return;
-        }
-        if (this.gamestate.player.x < 2 && tile_x < 2 &&
-          this.gamestate.board[tile_x][tile_y].solid
-        )
-        {
-          this.gamestate.player.x = this.gamestate.player.x + 10;
-          this.loadRoom(this.current_room_x-1,this.current_room_y);
-          return;
-        }
-        if (this.gamestate.player.y > 9 && tile_y > 9 &&
-          this.gamestate.board[tile_x][tile_y].solid
-        )
-        {
-          this.gamestate.player.y = this.gamestate.player.y - 10;
-          this.loadRoom(this.current_room_x,this.current_room_y+1);
-          return;
-        }
-        if (this.gamestate.player.y < 2 && tile_y < 2 &&
-          this.gamestate.board[tile_x][tile_y].solid
-        )
-        {
-          this.gamestate.player.y = this.gamestate.player.y + 10;
-          this.loadRoom(this.current_room_x,this.current_room_y-1);
-          return;
-        }
-        //alert(tile_x + ", " + tile_y)
-        if (this.gamestate.board[tile_x][tile_y].solid && 
-          tile_x != this.gamestate.player.x && tile_y != this.gamestate.player.y &&
-          Math.abs(tile_x - this.gamestate.player.x) + Math.abs(tile_y - this.gamestate.player.y) == 3)
-        {
-          this.gamestate.player.x = tile_x;
-          this.gamestate.player.y = tile_y;
-          GlobalResources.audio_components.m_move.stop();
-          GlobalResources.audio_components.m_move.setVolume(15);
-          GlobalResources.audio_components.m_move.play();
-          
-          for (let i = 0; i < this.gamestate.gameEntities.length; i++)
-          {
-            if(this.gamestate.gameEntities[i].handlePlayerAttack)
-            {
-              this.gamestate.gameEntities[i].handlePlayerAttack(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
-            }
-          }
-                  
-          //did we move into an exit square?
-          if(this.gamestate.player.x > 9)
-          {
-            this.gamestate.player.x = this.gamestate.player.x - 10;
-            this.loadRoom(this.current_room_x+1,this.current_room_y);
-            return;
-          }
-          else if(this.gamestate.player.y > 9)
-          {
-            this.gamestate.player.y = this.gamestate.player.y - 10;
-            this.loadRoom(this.current_room_x,this.current_room_y+1);
-            return;
-          }
-          else if(this.gamestate.player.x < 2)
-          {
-            this.gamestate.player.x = this.gamestate.player.x + 10;
-            this.loadRoom(this.current_room_x-1,this.current_room_y);
-            return;
-          }
-          else if(this.gamestate.player.y < 2)
-          {
-            this.gamestate.player.y = this.gamestate.player.y + 10;
-            this.loadRoom(this.current_room_x,this.current_room_y-1);
-            return;
-          }
-        }
-      }
-    }
-    
+    this.scanline+=5;
+  
     for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].handleTimeStep)
       {
         this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
-      }
-    }
-    
-    //collisions
-    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
-    {
-      if(this.gamestate.gameEntities[i].handlePlayerCollision)
-      {
-        this.gamestate.gameEntities[i].handlePlayerCollision(this.gamestate.player.x, this.gamestate.player.y, this.gamestate);
-      }
-    }
-    
-    if(!this.gamestate.board[this.gamestate.player.x][this.gamestate.player.y].solid)
-    {
-      if(this.gamestate.player.y_offset === 0)
-      {
-        this.gamestate.player.y_offset = .05;
-      }
-      else
-      {
-        this.gamestate.player.y_offset += this.gamestate.player.y_offset;
-      }
-      if(this.gamestate.player.y_offset > 24)
-      {
-        if (this.gamestate.player.player_health > 0)
-        {
-          this.gamestate.player.player_health-=
-            Math.min(3,this.gamestate.player.player_health);
-        }
       }
     }
     
@@ -506,13 +285,20 @@ var GameScreen = {
         }
       }
     }
-    
-    if (this.gamestate.player.player_health == 0 && !this.game_over)
-    {
-      this.game_over = true;
-      GlobalResources.audio_components.m_bg.loop().stop();
-      this.jut.switchToScreen(GameOver);
-    }
+  },
+  
+  draw_panel: function (canvas, ctx, panel)
+  {
+    ctx.shadowOffsetX = canvas.width * 2;
+    ctx.shadowColor = "rgb(0, 192, 0)";
+    ctx.lineCap = "round";
+    ctx.shadowBlur = 80;
+    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
+    ctx.shadowBlur = 40;
+    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
+    ctx.shadowBlur = 2;
+    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
+    ctx.shadowBlur = 0;
   },
   
   //----------------------------------------------------------------------
@@ -522,69 +308,51 @@ var GameScreen = {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
    
     // paint the background
-    ctx.fillStyle = "rgb(16, 16, 16)";
+    ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = "rgb(255,255,255)";
+    ctx.lineWidth = canvas.width / 200;
     
     if (this.layout === null)
     {
-      this.layout = {
-        left : function(x)
-        {
-          return Math.round((x - 6) * this.tile_width + this.center_x);
-        },
-        top : function(y)
-        {
-          return Math.round((y - 6) * this.tile_height + this.center_y);
-        }
-      };
+      this.layout = {};
     }
-    this.layout.center_x = Math.round(canvas.width / 2);
-    this.layout.center_y = Math.round(canvas.height / 2);
-    this.layout.tile_width = Math.round(canvas.width/12);
-    this.layout.tile_height = Math.round(canvas.width/24);
+    var height = canvas.height - 2 * ctx.lineWidth;
+    var width = canvas.width - 2 * ctx.lineWidth;
+    this.layout.left_panel = {x : ctx.lineWidth, y:  ctx.lineWidth, width: Math.round(width/4), height: Math.round(height * 2 / 3)};
+    this.layout.right_panel = {x : Math.round(width/4) + ctx.lineWidth, y: ctx.lineWidth, width: Math.round(width * 3 / 4), height: Math.round(height * 2 / 3)};
+    this.layout.bottom_panel = {x : ctx.lineWidth, y: Math.round(height * 2 / 3) + ctx.lineWidth, width: width, height: Math.round(height / 3)};
     
-    if(this.screen_transition_timer > 0)
+    this.draw_panel(canvas, ctx, this.layout.left_panel);
+    this.draw_panel(canvas, ctx, this.layout.right_panel);
+    this.draw_panel(canvas, ctx, this.layout.bottom_panel);
+    
+    ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
+    ctx.strokeStyle = "rgba(0,0,0,.25)";
+    if(this.scanline > canvas.height)
     {
-      percentage_transitioned = 1 - this.screen_transition_timer/this.screen_transition_timer_max;
-    
-      this.old_layout.center_x = this.layout.center_x + (this.old_room_x - this.current_room_x) * 10 * this.layout.tile_width * (percentage_transitioned);
-      this.old_layout.center_y = this.layout.center_y + (this.old_room_y - this.current_room_y) * 10 * this.layout.tile_height * (percentage_transitioned);
-      this.old_layout.tile_width = this.layout.tile_width;
-      this.old_layout.tile_height = this.layout.tile_height;
-      this.old_layout.left = this.layout.left;
-      this.old_layout.top = this.layout.top;
-    
-      this.layout.center_x = this.layout.center_x + (this.current_room_x - this.old_room_x) * 10 * this.layout.tile_width * (1-percentage_transitioned);
-      this.layout.center_y = this.layout.center_y + (this.current_room_y - this.old_room_y) * 10 * this.layout.tile_height * (1-percentage_transitioned);
-      
-      this.old_entities.sort(function(a,b){
-        var a_lvl = 0;
-        var b_lvl = 0;
-        if(a.paintLevel)
-        {
-          a_lvl = a.paintLevel();
-        }
-        if(b.paintLevel)
-        {
-          b_lvl = b.paintLevel();
-        }
-        return a_lvl - b_lvl;
-      });
-      
-      for (let i = 0; i < this.old_entities.length; i++)
+      this.scanline=0;
+    }
+    ctx.putImageData(ctx.getImageData(0,Math.round(this.scanline), canvas.width, ctx.lineWidth*2), -3, Math.round(this.scanline));
+    if (this.bounce > 0)
+    {
+      var current_bounce = Math.random()+this.bounce - this.bounce/2;
+      for(var y = 0; y < canvas.width; y+=ctx.lineWidth*2)
       {
-        if (this.old_entities[i].paint)
-        {
-          if (!this.old_entities[i].PLAYER_FULL_HEALTH)
-          {
-            this.old_entities[i].paint(this.gamestate,this.old_layout,canvas,ctx);
-          }
-        }
+        current_bounce += Math.random() * 20 - 10;
+        ctx.putImageData(ctx.getImageData(0,y, canvas.width, ctx.lineWidth*2), current_bounce, y);
       }
     }
     
+    for(var y = 0; y < canvas.height; y+=2*ctx.lineWidth)
+    {
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(canvas.width,y);
+      ctx.stroke();
+    }
+    
+    //
     this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
       var b_lvl = 0;
@@ -605,48 +373,6 @@ var GameScreen = {
       {
         this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
       }
-    }
-
-    this.layout.center_y = Math.round(canvas.height / 2);
-    
-    ctx.fillStyle = "rgb(0,0,0)";
-    ctx.fillRect(0,0,canvas.width,this.layout.top(0));
-    ctx.fillRect(0,this.layout.top(12),canvas.width,this.layout.top(0));
-    
-    //paint health bar
-    // /*
-    var edge = Math.round(this.layout.tile_height / 4);
-    ctx.fillStyle = "rgb(96,96,96)";      
-    ctx.fillRect(
-      edge,
-      edge,
-      4 * this.layout.tile_width - 2 * edge,
-      this.layout.tile_height / 2
-    );
-    var fill = Math.floor((4 * this.layout.tile_width - 2 * edge)
-      * this.gamestate.player.player_health / this.gamestate.player.PLAYER_FULL_HEALTH);
-    ctx.fillStyle = "rgb(192,96,96)";
-    ctx.fillRect(
-      edge,
-      edge,
-      fill,
-      this.layout.tile_height / 2
-    );
-    // */
-    
-    for (let i = 0; i < this.gamestate.player.keys; i++)
-    {
-      ctx.drawImage(
-        GlobalResources.graphic_components.key,
-        0,
-        0,
-        512,
-        1024,
-        i * edge + edge,
-        edge + this.layout.tile_height,
-        this.layout.tile_height / 4,
-        this.layout.tile_height / 2
-      );
     }
   }
 };
@@ -672,7 +398,7 @@ var init = function()
   */
   
   jut.setMaintainAspectRatioMode(4/3);
-  jut.addTitleScreen(Logo);
+  jut.addTitleScreen(GameScreen);
   GameScreen.init(jut);
   Logo.init(jut);
   jut.init();

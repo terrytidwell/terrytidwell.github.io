@@ -246,7 +246,9 @@ var createJutGameEngine = function(new_canvas) {
     var start_time = Date.now();
 
     current_screen.handleTimeStep();
+    ctx.save();
     current_screen.paint(canvas, ctx);
+    ctx.restore();
 
     var end_time = Date.now();
     var comp_time = end_time - start_time;
