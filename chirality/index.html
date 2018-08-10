@@ -383,12 +383,17 @@ var GameScreen = {
         }
         
         if (this.mouse_click_event &&
-          this.mouse_click_x_x >= box_bound_x && 
+          this.mouse_click_x >= box_bound_x && 
           this.mouse_click_x <= box_bound_x + unit * 5 &&
           this.mouse_click_y >= box_bound_y && 
           this.mouse_click_y <= box_bound_y + unit * 5)
         {
-          
+          if((Math.abs(x - this.player_x) == 1 && this.player_y == y) ||
+            (Math.abs(y - this.player_y) == 1 && this.player_x == x))
+          {
+            this.player_x = x;
+            this.player_y = y;
+          }
         }
         
         ctx.shadowBlur = 20;
