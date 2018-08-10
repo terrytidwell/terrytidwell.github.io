@@ -113,7 +113,7 @@ const Logo = {
       this.textFadeInTimer += this.polarity;
       if (this.textFadeInTimer <= 0)
       {
-        this.reset();
+        this.jut.switchToScreen(GameScreen);
       }
     }
 
@@ -198,10 +198,10 @@ const Logo = {
     ctx.putImageData(ctx.getImageData(0,Math.round(this.scanline), canvas.width, ctx.lineWidth*2), -3, Math.round(this.scanline));
     if (this.bounce > 0)
     {
-    var current_bounce = Math.random()+this.bounce - this.bounce/2;
+    var current_bounce = Math.random()*this.bounce - this.bounce/2;
     for(var y = 0; y < canvas.width; y+=ctx.lineWidth*2)
     {
-      current_bounce += Math.random() * 20 - 10;
+      current_bounce += Math.random()*this.bounce - this.bounce/2;
       ctx.putImageData(ctx.getImageData(0,y, canvas.width, ctx.lineWidth*2), current_bounce, y);
     }
     }
@@ -242,13 +242,21 @@ var GameScreen = {
     this.layout = null;
     this.scanline = 0;
     this.bounce = 0;
+    this.mouse_click_event = false;
+    this.mouse_click_x = 0;
+    this.mouse_click_y = 0;
+    this.mouse_x = 0;
+    this.mouse_y = 0;
+    this.player_x = 0;
+    this.player_y = 0;
+    this.percentage = 0;
     
-    this.gamestate = 
+    this.gamestate =
     {
       gameEntities: []
     };
   },
-  
+
   handleMouseDown: function(event)
   {
     if (!this.layout)
@@ -256,16 +264,46 @@ var GameScreen = {
       return;
     }
     
-    this.mouse_event = true;
+    this.mouse_click_event = true;
+    this.mouse_click_x = event.offsetX;
+    this.mouse_click_y = event.offsetY;
+    //event.currentTarget.width;
+  },
+  
+  handleMouseMove: function(event)
+  {
+    if (!this.layout)
+    {
+      return;
+    }
+    
     this.mouse_x = event.offsetX;
     this.mouse_y = event.offsetY;
+    
   },
   
   //----------------------------------------------------------------------
   // from Screen
   handleTimeStep: function ()
   {
-    this.scanline+=5;
+    this.scanline+=.75;
+    if (this.scanline > 100)
+    {
+      this.scanline = this.scanline - 100;
+    }
+    if (this.bounce > 0)
+    {
+      this.bounce--;
+    }
+    if (Math.random() < .01)
+    {
+      this.bounce = 5;
+    }
+    this.percentage += 3;
+    if (this.percentage > 100)
+    {
+      this.percentage-=100;
+    }
   
     for (let i = 0; i < this.gamestate.gameEntities.length; i++)
     {
@@ -290,15 +328,120 @@ var GameScreen = {
   draw_panel: function (canvas, ctx, panel)
   {
     ctx.shadowOffsetX = canvas.width * 2;
+    ctx.strokeStyle = "rgb(0, 192, 0)";
     ctx.shadowColor = "rgb(0, 192, 0)";
     ctx.lineCap = "round";
-    ctx.shadowBlur = 80;
+    ctx.shadowBlur = 20;
     ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
-    ctx.shadowBlur = 40;
+    ctx.shadowBlur = 10;
     ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
-    ctx.shadowBlur = 2;
+    ctx.shadowBlur = 1;
     ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
     ctx.shadowBlur = 0;
+  },
+  
+  draw_map: function (canvas, ctx, panel)
+  {
+  
+    ctx.shadowOffsetX = canvas.width * 2;
+    ctx.strokeStyle = "rgb(0, 32, 0)";
+    ctx.shadowColor = "rgb(0, 32, 0)";
+    ctx.lineCap = "round";
+    var boxes = 4;
+    var centerY = Math.round(panel.height/2 + panel.y);
+    var centerX = Math.round(panel.width/2 + panel.x);
+    var dimension = 0;
+    if (panel.height > panel.width)
+    {
+      dimension = panel.width;      
+    }
+    else
+    {
+      dimension = panel.height;
+    }
+    var division = boxes * 5 + boxes + 1;
+    var unit = Math.floor(dimension / division);
+    var left = centerX - (unit * division / 2) + unit;
+    var top = centerY - (unit * division / 2) + unit;
+    for (var x = 0; x < boxes; x++)
+    {
+      for(var y = 0; y < boxes; y++)
+      {
+        var box_bound_x = 6 * unit * x + left;
+        var box_bound_y = 6 * unit * y + top
+        if (this.mouse_x >= box_bound_x && 
+          this.mouse_x <= box_bound_x + unit * 5 &&
+          this.mouse_y >= box_bound_y && 
+          this.mouse_y <= box_bound_y + unit * 5 &&
+          Math.random() < .95)
+        {
+          ctx.shadowColor = "rgb(0, 64, 0)";
+        }
+        else
+        {
+          ctx.shadowColor = "rgb(0, 32, 0)";
+        }
+        
+        if (this.mouse_click_event &&
+          this.mouse_click_x_x >= box_bound_x && 
+          this.mouse_click_x <= box_bound_x + unit * 5 &&
+          this.mouse_click_y >= box_bound_y && 
+          this.mouse_click_y <= box_bound_y + unit * 5)
+        {
+          
+        }
+        
+        ctx.shadowBlur = 20;
+        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
+        ctx.shadowBlur = 10;
+        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
+        ctx.shadowBlur = 1;
+        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
+        ctx.shadowBlur = 0;
+      }
+    }
+    
+    if(Math.random() < .01)
+    {
+      return;
+    }
+    x = this.player_x; y = this.player_y;
+    var playerCenterX = Math.round(-canvas.width * 2 + 6 * unit * x + left + unit * 5/2);
+    var playerCenterY = Math.round(6 * unit * y + top + unit * 5/ 2);
+    ctx.beginPath();
+    ctx.fillStyle = "rgb(0,0,0)"
+    ctx.shadowColor = "rgb(0,255,0)"
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.shadowBlur = 2;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
+    ctx.fill();
+    
+    var min_ring_size = (unit * 5/16);
+    var max_ring_size = (unit * 4/2);
+    var ring_size = Math.round((max_ring_size - min_ring_size) * (this.percentage/100) + min_ring_size);
+    ctx.shadowColor = "rgba(0,255,0," + (1-this.percentage/100) + ")";
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.shadowBlur = 2;
+    ctx.beginPath();
+    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+    ctx.stroke();
+    
+    
   },
   
   //----------------------------------------------------------------------
@@ -311,35 +454,48 @@ var GameScreen = {
     ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.lineWidth = canvas.width / 200;
+    ctx.lineWidth = Math.round(Math.max(1, canvas.width / 600));
     
     if (this.layout === null)
     {
       this.layout = {};
+      this.layout.left_panel = {};
+      this.layout.right_panel = {};
+      this.layout.bottom_panel = {};
     }
-    var height = canvas.height - 2 * ctx.lineWidth;
-    var width = canvas.width - 2 * ctx.lineWidth;
-    this.layout.left_panel = {x : ctx.lineWidth, y:  ctx.lineWidth, width: Math.round(width/4), height: Math.round(height * 2 / 3)};
-    this.layout.right_panel = {x : Math.round(width/4) + ctx.lineWidth, y: ctx.lineWidth, width: Math.round(width * 3 / 4), height: Math.round(height * 2 / 3)};
-    this.layout.bottom_panel = {x : ctx.lineWidth, y: Math.round(height * 2 / 3) + ctx.lineWidth, width: width, height: Math.round(height / 3)};
+    var margin = 6 * ctx.lineWidth;
+    var height = canvas.height - 2 * margin;
+    var width = canvas.width - 2 * margin;
+    this.layout.left_panel.x = margin;
+    this.layout.left_panel.y = margin;
+    this.layout.left_panel.width = Math.round(width/4), 
+    this.layout.left_panel.height = Math.round(height * 2 / 3);
+    this.layout.right_panel.x = Math.round(width/4) + margin;
+    this.layout.right_panel.y = margin;
+    this.layout.right_panel.width = Math.round(width * 3 / 4);
+    this.layout.right_panel.height = Math.round(height * 2 / 3);
+    this.layout.bottom_panel.x = margin;
+    this.layout.bottom_panel.y = Math.round(height * 2 / 3) + margin;
+    this.layout.bottom_panel.width = width;
+    this.layout.bottom_panel.height = Math.round(height / 3);
     
     this.draw_panel(canvas, ctx, this.layout.left_panel);
     this.draw_panel(canvas, ctx, this.layout.right_panel);
     this.draw_panel(canvas, ctx, this.layout.bottom_panel);
     
+    this.draw_map(canvas, ctx, this.layout.left_panel);
+    this.draw_map(canvas, ctx, this.layout.right_panel);
+    this.draw_map(canvas, ctx, this.layout.bottom_panel);
+    
     ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
     ctx.strokeStyle = "rgba(0,0,0,.25)";
-    if(this.scanline > canvas.height)
-    {
-      this.scanline=0;
-    }
-    ctx.putImageData(ctx.getImageData(0,Math.round(this.scanline), canvas.width, ctx.lineWidth*2), -3, Math.round(this.scanline));
+    ctx.putImageData(ctx.getImageData(0,Math.round(canvas.height * this.scanline / 100), canvas.width, ctx.lineWidth*2), -3, Math.round(canvas.height * this.scanline / 100));
     if (this.bounce > 0)
     {
-      var current_bounce = Math.random()+this.bounce - this.bounce/2;
+      var current_bounce = Math.random()*this.bounce - this.bounce/2;
       for(var y = 0; y < canvas.width; y+=ctx.lineWidth*2)
       {
-        current_bounce += Math.random() * 20 - 10;
+        current_bounce += Math.random()*this.bounce - this.bounce/2;
         ctx.putImageData(ctx.getImageData(0,y, canvas.width, ctx.lineWidth*2), current_bounce, y);
       }
     }
@@ -352,7 +508,6 @@ var GameScreen = {
       ctx.stroke();
     }
     
-    //
     this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
       var b_lvl = 0;
@@ -398,7 +553,7 @@ var init = function()
   */
   
   jut.setMaintainAspectRatioMode(4/3);
-  jut.addTitleScreen(GameScreen);
+  jut.addTitleScreen(Logo);
   GameScreen.init(jut);
   Logo.init(jut);
   jut.init();
