@@ -104,7 +104,7 @@ const Logo = {
       this.textFadeInTimer += this.polarity;
       if (this.textFadeInTimer <= 0)
       {
-        this.jut.switchToScreen(GameScreen);
+        this.jut.switchToScreen(Intro);
       }
     }
 
@@ -250,9 +250,9 @@ function createPanel(x,y,width,height,parent) {
       ctx.strokeStyle = "rgb(0, 192, 0)";
       ctx.shadowColor = "rgb(0, 192, 0)";
       ctx.lineCap = "round";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = Math.round(canvas.height/40);
       ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = Math.round(canvas.height/80);
       ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
       ctx.shadowBlur = 1;
       ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
@@ -299,9 +299,9 @@ function createMapSquare(x,y,width,height,parent) {
       var height = Math.round(this.height * canvas.height);
       ctx.shadowOffsetX = canvas.width * 2;
       ctx.shadowColor = (this.highlighted && Math.random() < .95 ? "rgb(0, 64, 0)" : "rgb(0, 32, 0)");
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = Math.round(canvas.height/40);
       ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = Math.round(canvas.height/80);
       ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
       ctx.shadowBlur = 1;
       ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
@@ -348,15 +348,15 @@ function createPlayerIcon(location) {
       ctx.shadowOffsetX = canvas.width * 2;
       ctx.fillStyle = "rgb(0,0,0)"
       ctx.shadowColor = "rgb(0,255,0," + (1-this.percentage/100) + ")";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = Math.round(canvas.height/40);
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
       ctx.fill();
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = Math.round(canvas.height/80);
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
       ctx.fill();
-      ctx.shadowBlur = 2;
+      ctx.shadowBlur = 1;
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
       ctx.fill();
@@ -365,15 +365,15 @@ function createPlayerIcon(location) {
       var max_ring_size = (radius * 4/5);
       var ring_size = Math.round((max_ring_size - min_ring_size) * (this.percentage/100) + min_ring_size);
       ctx.shadowColor = "rgba(0,255,0," + (1-this.percentage/100) + ")";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = Math.round(canvas.height/40);
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
       ctx.stroke();
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = Math.round(canvas.height/80);
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
       ctx.stroke();
-      ctx.shadowBlur = 2;
+      ctx.shadowBlur = 1;
       ctx.beginPath();
       ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
       ctx.stroke();
@@ -503,7 +503,205 @@ function createMap(gameState,parent)
   }
 };
 
-//--------------------------------------------------------------------------
+function createTimer(timeout, event)
+{
+  return {
+    timeout : timeout,
+    event : event,
+    active : function()
+    {
+      return this.timeout > 0;
+    },
+    handleTimeStep : function()
+    {
+      if (this.timeout > 0)
+      {
+        this.timeout--;
+      }
+      
+      if (this.timeout === 0)
+      {
+        this.event()
+      }
+    }
+  };
+};
+
+function createConditionalEvent(condition, event)
+{
+  return {
+    condition : condition,
+    event : event,
+    waiting : true,
+    active : function()
+    {
+      return this.waiting;
+    },
+    handleTimeStep : function()
+    {
+      this.waiting = !this.condition();
+      
+      if (!this.waiting)
+      {
+        this.event()
+      }
+    }
+  };
+};
+
+//------------------------------------------------------------------------
+var Intro = {
+  init: function (jut)
+  {
+    this.jut = jut;
+  },
+  reset: function ()
+  {
+    this.cursorTimer = 0;
+    this.timestamp = 1000;
+    this.script = [];
+    this.visible = [""];
+    this.type_time = 1;
+    this.gamestate = 
+    {
+      gameEntities : []
+    };
+    this.game_events = [];
+    var intro_screen = this;
+    this.game_events.push(createTimer(40, function() {
+      intro_screen.addLineToScript("rift activity detected");
+    }));
+    this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; }, 
+      function () {}));
+    this.game_events.push(createTimer(80, function () { intro_screen.clearVisible(); }));
+    this.game_events.push(createTimer(40, function () { intro_screen.addLineToScript("engaging primary systems"); }));
+    this.game_events.push(createTimer(40, function () { 
+      intro_screen.visible.push("");
+      intro_screen.visible.push("");
+      intro_screen.addLineToScript("primary power core"); }));
+    this.game_events.push(createTimer(80, function () { intro_screen.jut.switchToScreen(GameScreen) }));
+    this.gamestate.gameEntities.push(this.game_events[0]);
+    this.gamestate.gameEntities.push(createDeGauss());
+    this.gamestate.gameEntities.push(createLcdLines());
+    this.gamestate.gameEntities.push(createScanLine());
+  },
+  clearVisible : function()
+  {
+    this.visible = [""];
+  },
+  addLineToScript : function(string)
+  {
+    for(var i = 0; i < string.length; i++)
+    {
+      this.script.push(string.charAt(i));
+    }
+  },
+  handleTimeStep: function ()
+  {
+    this.cursorTimer++;
+    
+    if(this.game_events.length !== 0 && !this.game_events[0].active())
+    {
+      this.game_events.shift();
+      if(this.game_events.length !== 0)
+      {
+        this.gamestate.gameEntities.push(this.game_events[0]);
+      }
+    }
+    
+    if(this.script.length !== 0)
+    {
+      if (this.type_time > 0)
+      {
+        this.type_time--;
+      }
+      
+      if (this.type_time === 0)
+      {
+        this.type_time = 1;
+        this.visible[this.visible.length - 1] += this.script.shift();
+      }
+    }
+    
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if(this.gamestate.gameEntities[i].handleTimeStep)
+      {
+        this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
+      }
+    }
+    
+    for (var i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
+    {
+      if(this.gamestate.gameEntities[i].active)
+      {
+        if(!this.gamestate.gameEntities[i].active())
+        {
+          this.gamestate.gameEntities.splice(i,1);
+        }
+      }
+    }
+  },
+  paint: function (canvas, ctx)
+  {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+   
+    // paint the background
+    ctx.fillStyle = "rgb(0, 0, 0)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.shadowOffsetX = canvas.width;
+    ctx.shadowOffsetY = 0;
+    ctx.shadowColor = "rgb(0,128,0)";
+    
+    var text_size = Math.round(canvas.height / 30);
+    ctx.font = text_size + "px " + g_font;
+    var indent = Math.round(canvas.height / 30 * 1.5);
+    for(var i = 0; i < this.visible.length; i++)
+    {
+      var line_level = Math.round(canvas.height / 30 * (i + 1.5))
+      var text = this.visible[i];
+      if (Math.floor(this.cursorTimer / 10) % 2 && i === this.visible.length - 1)
+      {
+        text += "_";
+      }
+      ctx.shadowBlur = Math.round(text_size * 2 / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      ctx.shadowBlur = Math.round(text_size / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.shadowBlur = 2;
+      //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.fillText(text, -canvas.width + indent, line_level);
+    }
+    
+    this.gamestate.gameEntities.sort(function(a,b){
+      var a_lvl = 0;
+      var b_lvl = 0;
+      if(a.paintLevel)
+      {
+        a_lvl = a.paintLevel();
+      }
+      if(b.paintLevel)
+      {
+        b_lvl = b.paintLevel();
+      }
+      return a_lvl - b_lvl;
+    });
+    
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if (this.gamestate.gameEntities[i].paint)
+      {
+        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+      }
+    }
+  }
+};
+
+//------------------------------------------------------------------------
 var GameScreen = {
   //----------------------------------------------------------------------
   init: function (jut)
@@ -661,6 +859,7 @@ var init = function()
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(Logo);
   GameScreen.init(jut);
+  Intro.init(jut);
   Logo.init(jut);
   jut.init();
   
