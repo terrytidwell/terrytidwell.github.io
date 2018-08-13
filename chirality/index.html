@@ -615,60 +615,6 @@ var GameScreen = {
     ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.lineWidth = Math.round(Math.max(1, canvas.width / 600));
-    
-    if (this.layout === null)
-    {
-      this.layout = {};
-      this.layout.left_panel = {};
-      this.layout.right_panel = {};
-      this.layout.bottom_panel = {};
-    }
-    var margin = 6 * ctx.lineWidth;
-    var height = canvas.height - 2 * margin;
-    var width = canvas.width - 2 * margin;
-    this.layout.left_panel.x = margin;
-    this.layout.left_panel.y = margin;
-    this.layout.left_panel.width = Math.round(width/4), 
-    this.layout.left_panel.height = Math.round(height * 2 / 3);
-    this.layout.right_panel.x = Math.round(width/4) + margin;
-    this.layout.right_panel.y = margin;
-    this.layout.right_panel.width = Math.round(width * 3 / 4);
-    this.layout.right_panel.height = Math.round(height * 2 / 3);
-    this.layout.bottom_panel.x = margin;
-    this.layout.bottom_panel.y = Math.round(height * 2 / 3) + margin;
-    this.layout.bottom_panel.width = width;
-    this.layout.bottom_panel.height = Math.round(height / 3);
-    
-    this.draw_panel(canvas, ctx, this.layout.left_panel);
-    this.draw_panel(canvas, ctx, this.layout.right_panel);
-    this.draw_panel(canvas, ctx, this.layout.bottom_panel);
-    
-    this.draw_map(canvas, ctx, this.layout.left_panel);
-    this.draw_map(canvas, ctx, this.layout.right_panel);
-    this.draw_map(canvas, ctx, this.layout.bottom_panel);
-    
-    ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
-    ctx.strokeStyle = "rgba(0,0,0,.25)";
-    ctx.putImageData(ctx.getImageData(0,Math.round(canvas.height * this.scanline / 100), canvas.width, ctx.lineWidth*2), -3, Math.round(canvas.height * this.scanline / 100));
-    if (this.bounce > 0)
-    {
-      var current_bounce = Math.random()*this.bounce - this.bounce/2;
-      for(var y = 0; y < canvas.width; y+=ctx.lineWidth*2)
-      {
-        current_bounce += Math.random()*this.bounce - this.bounce/2;
-        ctx.putImageData(ctx.getImageData(0,y, canvas.width, ctx.lineWidth*2), current_bounce, y);
-      }
-    }
-    
-    for(var y = 0; y < canvas.height; y+=2*ctx.lineWidth)
-    {
-      ctx.beginPath();
-      ctx.moveTo(0,y);
-      ctx.lineTo(canvas.width,y);
-      ctx.stroke();
-    }
-    
     this.gamestate.gameEntities.sort(function(a,b){
       var a_lvl = 0;
       var b_lvl = 0;
