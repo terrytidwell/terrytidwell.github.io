@@ -14,7 +14,8 @@
 // The game
 //
 
-var g_font;
+var g_font = "Lucida Console";
+var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
 
@@ -57,16 +58,6 @@ const Util = {
         }
         return arr;
     }
-};
-
-//##########################################################################
-
-var PaintLevelEnum = 
-{
-  BG: 0,
-  FLOOR: 1,
-  LOWER: 2,
-  ENTITIES: 3,
 };
 
 //##########################################################################
@@ -226,6 +217,292 @@ const Logo = {
   }
 };
 
+function createContainer(x,y,width,height) {
+  return {
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    paint : function (gamestate, layout, canvas, context)
+    {
+    },
+    paintLevel : function()
+    {
+      return 0;
+    }
+  };
+};
+
+function createPanel(x,y,width,height,parent) {
+  return {
+    x: x * parent.width + parent.x,
+    y: y * parent.height + parent.y,
+    width: width * parent.width,
+    height: height * parent.height,
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      var x = Math.round(canvas.height * this.x);
+      var width = Math.round(canvas.height * this.width);
+      var y = Math.round(canvas.height * this.y);
+      var height = Math.round(canvas.height * this.height);
+      ctx.lineWidth = Math.max(1,canvas.width/600)
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.strokeStyle = "rgb(0, 192, 0)";
+      ctx.shadowColor = "rgb(0, 192, 0)";
+      ctx.lineCap = "round";
+      ctx.shadowBlur = 20;
+      ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
+      ctx.shadowBlur = 10;
+      ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
+      ctx.shadowBlur = 1;
+      ctx.strokeRect(-canvas.width * 2 + x, y, width, height);
+      ctx.shadowBlur = 0;
+    },
+    paintLevel : function()
+    {
+      return 0;
+    }
+  };
+};
+
+function createMapSquare(x,y,width,height,parent) {
+  return {
+    x: x + parent.x,
+    y: y + parent.y,
+    width: width,
+    height: height,
+    highlighted : false,
+    move_signal: false,
+    handleMouseMove : function(x,y)
+    {
+      this.highlighted = (x > this.x && x < this.x + this.width &&
+        y > this.y && y < this.y + this.height);
+    },
+    handleMouseDown : function(x,y)
+    {
+      this.move_signal = (x > this.x && x < this.x + this.width &&
+        y > this.y && y < this.y + this.height);
+    },
+    handleTimeStep(gamestate)
+    {
+      if (this.move_signal)
+      {
+        this.move_signal = false;
+        gamestate.player.setLocation(this);
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      var box_bound_x = Math.round(this.x * canvas.height);
+      var box_bound_y = Math.round(this.y * canvas.height);
+      var width = Math.round(this.width * canvas.height);
+      var height = Math.round(this.height * canvas.height);
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.shadowColor = (this.highlighted && Math.random() < .95 ? "rgb(0, 64, 0)" : "rgb(0, 32, 0)");
+      ctx.shadowBlur = 20;
+      ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
+      ctx.shadowBlur = 10;
+      ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
+      ctx.shadowBlur = 1;
+      ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
+      ctx.shadowBlur = 0;
+    },
+    paintLevel : function()
+    {
+      return 0;
+    }
+  };
+};
+
+function createPlayerIcon(location) {
+  return {
+    percentage: 0,
+    location: location,
+    handleTimeStep : function(gamestate)
+    {
+      this.percentage += 3;
+      if (this.percentage > 100)
+      {
+        this.percentage-=100;
+      }
+    },
+    setLocation : function(location)
+    {
+      this.location = location;
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      if(this.location === null)
+      {
+        return;
+      }
+      if(Math.random() < .01)
+      {
+        return;
+      }
+      var radius = Math.min(this.location.width/2, this.location.height/2) * canvas.height;
+      
+      var playerCenterX = Math.round(-canvas.width * 2 + (this.location.x + this.location.width/2) * canvas.height);
+      var playerCenterY = Math.round((this.location.y + this.location.height/2) * canvas.height);
+      ctx.beginPath();
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.fillStyle = "rgb(0,0,0)"
+      ctx.shadowColor = "rgb(0,255,0," + (1-this.percentage/100) + ")";
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.shadowBlur = 2;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, Math.round(radius/8), 0, 2 * Math.PI);
+      ctx.fill();
+      
+      var min_ring_size = (radius/8);
+      var max_ring_size = (radius * 4/5);
+      var ring_size = Math.round((max_ring_size - min_ring_size) * (this.percentage/100) + min_ring_size);
+      ctx.shadowColor = "rgba(0,255,0," + (1-this.percentage/100) + ")";
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.shadowBlur = 2;
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
+      ctx.stroke();
+    },
+    paintLevel : function()
+    {
+      return 1;
+    }
+  };
+};
+
+function createScanLine() {
+  return {
+    y : 0,
+    handleTimeStep : function(gamestate)
+    {
+      this.y+=.75;
+      if(this.y > 100)
+      {
+        this.y = 0;
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
+      ctx.strokeStyle = "rgba(0,0,0,.25)";
+      ctx.putImageData(ctx.getImageData(0,Math.round(canvas.height * this.y / 100), canvas.width, ctx.lineWidth*2), -3, Math.round(canvas.height * this.y / 100));
+    },
+    paintLevel : function()
+    {
+      return 100;
+    }
+  };
+};
+
+function createDeGauss()
+{
+  return {
+    bounce : 0,
+    handleTimeStep : function(gamestate)
+    {
+      if (this.bounce > 0)
+      {
+        this.bounce--;
+      }
+      if (Math.random() < .01)
+      {
+        this.bounce = 5;
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      if (this.bounce <= 0)
+      {
+        return;
+      }
+      ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
+      var current_bounce = Math.random()*this.bounce - this.bounce/2;
+      for(var y = 0; y < canvas.width; y+=ctx.lineWidth*2)
+      {
+        current_bounce += Math.random()*this.bounce - this.bounce/2;
+        ctx.putImageData(ctx.getImageData(0,y, canvas.width, ctx.lineWidth*2), current_bounce, y);
+      }
+    },
+    paintLevel : function()
+    {
+      return 101;
+    }
+  };
+};
+
+function createLcdLines()
+{
+  return {
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
+      ctx.strokeStyle = "rgba(0,0,0,.25)";
+      for(var y = 0; y < canvas.height; y+=2*ctx.lineWidth)
+      {
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(canvas.width,y);
+        ctx.stroke();
+      }
+    },
+    paintLevel : function()
+    {
+      return 102;
+    }
+  };
+};
+
+function createMap(gameState,parent)
+{
+  var boxes = 4;
+  var centerY = parent.height / 2;
+  var centerX = parent.width / 2;
+  var unit = 0;
+  var divisions = boxes * 5 + boxes + 1;
+  var dimension = 0;
+  if (parent.height > parent.width)
+  {
+    dimension = parent.width;
+  }
+  else
+  {
+    dimension = parent.height;
+  }
+  var unit = dimension / divisions;
+  var left = centerX - (dimension / 2) + unit;
+  var top = centerY - (dimension / 2) + unit;
+  for (var x = 0; x < boxes; x++)
+  {
+    for(var y = 0; y < boxes; y++)
+    {
+      var box_bound_x = 6 * unit * x + left;
+      var box_bound_y = 6 * unit * y + top
+      var mapSquare = createMapSquare(box_bound_x, box_bound_y, unit*5, unit*5, parent);
+      gameState.gameEntities.push(mapSquare);
+      if (x == 0 && y == 0)
+      {
+        gameState.player = createPlayerIcon(mapSquare);
+        gameState.gameEntities.push(gameState.player);
+      }
+    }
+  }
+};
+
 //--------------------------------------------------------------------------
 var GameScreen = {
   //----------------------------------------------------------------------
@@ -240,8 +517,6 @@ var GameScreen = {
   {
     //stores information about graphical layout
     this.layout = null;
-    this.scanline = 0;
-    this.bounce = 0;
     this.mouse_click_event = false;
     this.mouse_click_x = 0;
     this.mouse_click_y = 0;
@@ -249,63 +524,68 @@ var GameScreen = {
     this.mouse_y = 0;
     this.player_x = 0;
     this.player_y = 0;
-    this.percentage = 0;
     
     this.gamestate =
     {
-      gameEntities: []
+      gameEntities: [],
+      player: null,
     };
+    var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
+    this.gamestate.gameEntities.push(mainContainer);
+    var left_panel = createPanel(0, 0, 1/4, 2/3, mainContainer);
+    this.gamestate.gameEntities.push(left_panel);
+    var right_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
+    this.gamestate.gameEntities.push(right_panel);
+    var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
+    this.gamestate.gameEntities.push(bottom_panel);
+    createMap(this.gamestate, right_panel);
+    //createMap(this.gamestate.gameEntities, left_panel);
+    //createMap(this.gamestate.gameEntities, bottom_panel);
+    this.gamestate.gameEntities.push(createScanLine());
+    this.gamestate.gameEntities.push(createDeGauss());
+    this.gamestate.gameEntities.push(createLcdLines());
   },
 
   handleMouseDown: function(event)
   {
-    if (!this.layout)
-    {
-      return;
-    }
-    
     this.mouse_click_event = true;
-    this.mouse_click_x = event.offsetX;
-    this.mouse_click_y = event.offsetY;
+    this.mouse_click_x = event.offsetX / event.currentTarget.height;
+    this.mouse_click_y = event.offsetY / event.currentTarget.height;
     //event.currentTarget.width;
   },
   
   handleMouseMove: function(event)
   {
-    if (!this.layout)
-    {
-      return;
-    }
-    
-    this.mouse_x = event.offsetX;
-    this.mouse_y = event.offsetY;
-    
+    this.mouse_x = event.offsetX / event.currentTarget.height;
+    this.mouse_y = event.offsetY / event.currentTarget.height;
   },
   
   //----------------------------------------------------------------------
   // from Screen
   handleTimeStep: function ()
   {
-    this.scanline+=.75;
-    if (this.scanline > 100)
+
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
     {
-      this.scanline = this.scanline - 100;
+      if(this.gamestate.gameEntities[i].handleMouseMove)
+      {
+        this.gamestate.gameEntities[i].handleMouseMove(this.mouse_x, this.mouse_y);
+      }
     }
-    if (this.bounce > 0)
+    
+    if (this.mouse_click_event)
     {
-      this.bounce--;
-    }
-    if (Math.random() < .01)
-    {
-      this.bounce = 5;
-    }
-    this.percentage += 3;
-    if (this.percentage > 100)
-    {
-      this.percentage-=100;
+      this.mouse_click_event = false;
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if(this.gamestate.gameEntities[i].handleMouseDown)
+        {
+          this.gamestate.gameEntities[i].handleMouseDown(this.mouse_click_x, this.mouse_click_y);
+        }
+      }
     }
   
-    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].handleTimeStep)
       {
@@ -313,7 +593,7 @@ var GameScreen = {
       }
     }
     
-    for (let i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
+    for (var i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
     {
       if(this.gamestate.gameEntities[i].active)
       {
@@ -323,130 +603,6 @@ var GameScreen = {
         }
       }
     }
-  },
-  
-  draw_panel: function (canvas, ctx, panel)
-  {
-    ctx.shadowOffsetX = canvas.width * 2;
-    ctx.strokeStyle = "rgb(0, 192, 0)";
-    ctx.shadowColor = "rgb(0, 192, 0)";
-    ctx.lineCap = "round";
-    ctx.shadowBlur = 20;
-    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
-    ctx.shadowBlur = 10;
-    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
-    ctx.shadowBlur = 1;
-    ctx.strokeRect(-canvas.width * 2 + panel.x, panel.y, panel.width, panel.height);
-    ctx.shadowBlur = 0;
-  },
-  
-  draw_map: function (canvas, ctx, panel)
-  {
-  
-    ctx.shadowOffsetX = canvas.width * 2;
-    ctx.strokeStyle = "rgb(0, 32, 0)";
-    ctx.shadowColor = "rgb(0, 32, 0)";
-    ctx.lineCap = "round";
-    var boxes = 4;
-    var centerY = Math.round(panel.height/2 + panel.y);
-    var centerX = Math.round(panel.width/2 + panel.x);
-    var dimension = 0;
-    if (panel.height > panel.width)
-    {
-      dimension = panel.width;      
-    }
-    else
-    {
-      dimension = panel.height;
-    }
-    var division = boxes * 5 + boxes + 1;
-    var unit = Math.floor(dimension / division);
-    var left = centerX - (unit * division / 2) + unit;
-    var top = centerY - (unit * division / 2) + unit;
-    for (var x = 0; x < boxes; x++)
-    {
-      for(var y = 0; y < boxes; y++)
-      {
-        var box_bound_x = 6 * unit * x + left;
-        var box_bound_y = 6 * unit * y + top
-        if (this.mouse_x >= box_bound_x && 
-          this.mouse_x <= box_bound_x + unit * 5 &&
-          this.mouse_y >= box_bound_y && 
-          this.mouse_y <= box_bound_y + unit * 5 &&
-          Math.random() < .95)
-        {
-          ctx.shadowColor = "rgb(0, 64, 0)";
-        }
-        else
-        {
-          ctx.shadowColor = "rgb(0, 32, 0)";
-        }
-        
-        if (this.mouse_click_event &&
-          this.mouse_click_x >= box_bound_x && 
-          this.mouse_click_x <= box_bound_x + unit * 5 &&
-          this.mouse_click_y >= box_bound_y && 
-          this.mouse_click_y <= box_bound_y + unit * 5)
-        {
-          if((Math.abs(x - this.player_x) == 1 && this.player_y == y) ||
-            (Math.abs(y - this.player_y) == 1 && this.player_x == x))
-          {
-            this.player_x = x;
-            this.player_y = y;
-          }
-        }
-        
-        ctx.shadowBlur = 20;
-        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
-        ctx.shadowBlur = 10;
-        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
-        ctx.shadowBlur = 1;
-        ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, unit * 5, unit * 5);
-        ctx.shadowBlur = 0;
-      }
-    }
-    
-    if(Math.random() < .01)
-    {
-      return;
-    }
-    x = this.player_x; y = this.player_y;
-    var playerCenterX = Math.round(-canvas.width * 2 + 6 * unit * x + left + unit * 5/2);
-    var playerCenterY = Math.round(6 * unit * y + top + unit * 5/ 2);
-    ctx.beginPath();
-    ctx.fillStyle = "rgb(0,0,0)"
-    ctx.shadowColor = "rgb(0,255,0)"
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.shadowBlur = 2;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, Math.round(unit * 5/16), 0, 2 * Math.PI);
-    ctx.fill();
-    
-    var min_ring_size = (unit * 5/16);
-    var max_ring_size = (unit * 4/2);
-    var ring_size = Math.round((max_ring_size - min_ring_size) * (this.percentage/100) + min_ring_size);
-    ctx.shadowColor = "rgba(0,255,0," + (1-this.percentage/100) + ")";
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.shadowBlur = 2;
-    ctx.beginPath();
-    ctx.arc(playerCenterX, playerCenterY, ring_size, 0, 2 * Math.PI);
-    ctx.stroke();
-    
-    
   },
   
   //----------------------------------------------------------------------
@@ -527,7 +683,7 @@ var GameScreen = {
       return a_lvl - b_lvl;
     });
     
-    for (let i = 0; i < this.gamestate.gameEntities.length; i++)
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if (this.gamestate.gameEntities[i].paint)
       {
@@ -545,7 +701,6 @@ var GlobalResources =
 
 var init = function()
 {
-  g_font = "Lucida Console";
   var jut = createJutGameEngine(document.getElementById("canvas"));
   
   /*
@@ -557,7 +712,7 @@ var init = function()
   GlobalResources.graphic_components.lock = jut.loadImage("Assets/Graphics/locked.png");
   */
   
-  jut.setMaintainAspectRatioMode(4/3);
+  jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(Logo);
   GameScreen.init(jut);
   Logo.init(jut);
