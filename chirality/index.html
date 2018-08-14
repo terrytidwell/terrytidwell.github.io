@@ -176,7 +176,7 @@ const Logo = {
     ctx.shadowBlur = Math.round(text_size / 3);
     ctx.fillText(text, -canvas.width + textPosition + jitter, canvas.height / 2);
     //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
-    ctx.shadowBlur = 2;
+    ctx.shadowBlur = 1;
     //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
     ctx.fillText(text, -canvas.width + textPosition, canvas.height / 2);
     //ctx.fillText(text, canvas.width / 2, canvas.height / 2);
@@ -503,6 +503,28 @@ function createMap(gameState,parent)
   }
 };
 
+function createTimerLoop(timeout, event)
+{
+  return {
+    timeout : timeout,
+    event : event,
+    active : function()
+    {
+      return this.timeout > 0;
+    },
+    handleTimeStep : function()
+    {
+      if (this.timeout > 0)
+      {
+        this.timeout--;
+      }
+      
+      this.event();
+    }
+  };
+};
+
+
 function createTimer(timeout, event)
 {
   return {
@@ -549,6 +571,74 @@ function createConditionalEvent(condition, event)
   };
 };
 
+function createIncomingMessage(panel, sender, message)
+{
+  return {
+    panel : panel,
+    sender : sender,
+    message : message,
+    displayed_sender : "",
+    displayed_message : "",
+    position : 0,
+    outro_timer : 50,
+    active : function()
+    {
+      return this.outro_timer > 0;
+    },
+    handleTimeStep : function(gamestate)
+    {
+      if (this.sender.length > this.displayed_sender.length)
+      {
+        this.displayed_sender += this.sender.charAt(this.displayed_sender.length);
+      }
+      else if (this.message.length > this.displayed_message.length)
+      {
+        this.displayed_message += this.message.charAt(this.displayed_message.length);
+      }
+      else if (this.outro_timer > 0)
+      {
+        this.outro_timer--
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.shadowOffsetX = canvas.width;
+      ctx.shadowOffsetY = 0;
+      ctx.shadowColor = "rgb(0,128,0)";
+      var text_size = Math.round(canvas.height / 30);
+      ctx.font = text_size + "px " + g_font;
+      var indent = Math.round(canvas.height / 30 * 1.5 + this.panel.x * canvas.height);
+      var line_level = Math.round(canvas.height / 30 * 1.5 + this.panel.y * canvas.height);
+      var text = this.displayed_sender;
+      ctx.shadowBlur = Math.round(text_size * 2 / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      ctx.shadowBlur = Math.round(text_size / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.shadowBlur = 1;
+      //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      
+      var line_level = Math.round(canvas.height / 30 * 3.5 + this.panel.y * canvas.height);
+      var text = this.displayed_message;
+      ctx.shadowBlur = Math.round(text_size * 2 / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      ctx.shadowBlur = Math.round(text_size / 3);
+      ctx.fillText(text, -canvas.width + indent, line_level);
+      //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.shadowBlur = 1;
+      //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+      ctx.fillText(text, -canvas.width + indent, line_level);
+    },
+    paintLevel : function ()
+    {
+      return 1;
+    }
+  };
+};
+
 //------------------------------------------------------------------------
 var Intro = {
   init: function (jut)
@@ -561,7 +651,7 @@ var Intro = {
     this.timestamp = 1000;
     this.script = [];
     this.visible = [""];
-    this.type_time = 1;
+    this.type_time = 0;
     this.gamestate = 
     {
       gameEntities : []
@@ -574,14 +664,67 @@ var Intro = {
     this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; }, 
       function () {}));
     this.game_events.push(createTimer(80, function () { intro_screen.clearVisible(); }));
-    this.game_events.push(createTimer(40, function () { intro_screen.addLineToScript("engaging primary systems"); }));
+    this.game_events.push(createTimer(40, function () { intro_screen.addLineToScript("starting primary systems"); }));
     this.game_events.push(createTimer(40, function () { 
       intro_screen.visible.push("");
       intro_screen.visible.push("");
-      intro_screen.addLineToScript("primary power core"); }));
-    this.game_events.push(createTimer(80, function () { intro_screen.jut.switchToScreen(GameScreen) }));
+      intro_screen.addLineToScript("power generators online"); }));
+    this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; },
+      function () { 
+      intro_screen.visible.push("");
+      intro_screen.addLineToScript("cognitive engine online"); }));  
+    this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; },
+      function () { 
+      intro_screen.visible.push("");
+      intro_screen.addLineToScript("system interface online"); }));
+      this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; },
+      function () { 
+      intro_screen.visible.push("");
+      intro_screen.addLineToScript("enviromental monitoring online"); }));
+        this.game_events.push(createConditionalEvent(function () { return intro_screen.script.length === 0; },
+      function () { 
+      intro_screen.visible.push("");
+      intro_screen.addLineToScript("speech recoginition interface online"); }));
+    this.game_events.push(createTimer(80, function () { 
+      var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
+      intro_screen.gamestate.gameEntities.push(mainContainer);
+      intro_screen.gamestate.bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.bottom_panel);
+      intro_screen.gamestate.degauss.bounce = 5;
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "incoming message...", "")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    this.game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.clearVisible();
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm ... stepping through the ... now... Preparing for ...")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    this.game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.addLineToScript("rift breach imminent");
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "... about ... to cross ... barrier ...")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    this.game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {}));
+    this.game_events.push(createTimer(25, function () {
+      intro_screen.clearVisible();
+    }));
+    this.game_events.push(createTimer(25, function () {
+      intro_screen.addLineToScript("rift breached");
+    }));
+    this.game_events.push(createTimerLoop(75, function () { intro_screen.gamestate.degauss.bounce = 10; }));
+    this.game_events.push(createTimer(1, function () {
+      intro_screen.jut.switchToScreen(GameScreen);
+    }));
+    
     this.gamestate.gameEntities.push(this.game_events[0]);
-    this.gamestate.gameEntities.push(createDeGauss());
+    this.gamestate.degauss = createDeGauss();
+    this.gamestate.gameEntities.push(this.gamestate.degauss);
     this.gamestate.gameEntities.push(createLcdLines());
     this.gamestate.gameEntities.push(createScanLine());
   },
@@ -672,7 +815,7 @@ var Intro = {
       ctx.shadowBlur = Math.round(text_size / 3);
       ctx.fillText(text, -canvas.width + indent, line_level);
       //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
-      ctx.shadowBlur = 2;
+      ctx.shadowBlur = 1;
       //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
       ctx.fillText(text, -canvas.width + indent, line_level);
     }
