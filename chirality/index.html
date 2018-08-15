@@ -577,8 +577,10 @@ function createIncomingMessage(panel, sender, message)
     panel : panel,
     sender : sender,
     message : message,
+    need_to_parse : true,
+    parsed_message : [""],
     displayed_sender : "",
-    displayed_message : "",
+    displayed_message : [""],
     position : 0,
     outro_timer : 50,
     active : function()
@@ -587,6 +589,10 @@ function createIncomingMessage(panel, sender, message)
     },
     handleTimeStep : function(gamestate)
     {
+      if (this.need_to_parse)
+      {
+        return;
+      }
       if (this.sender.length > this.displayed_sender.length)
       {
         this.displayed_sender += this.sender.charAt(this.displayed_sender.length);
@@ -610,6 +616,27 @@ function createIncomingMessage(panel, sender, message)
       var text_size = Math.round(canvas.height / 30);
       ctx.font = text_size + "px " + g_font;
       var indent = Math.round(canvas.height / 30 * 1.5 + this.panel.x * canvas.height);
+      if (this.need_to_parse)
+      {
+        var bounds = this.panel.width * canvas.height - indent * 2;
+        this.need_to_parse = false;
+        var words = this.message.split(" ");
+        var current_line = "";
+        for ( word in words)
+        {
+          if (ctx.measureText(current_line + " " + words[word]).width < bounds)
+          {
+            current_line += " " + words[word];
+            this.parsed_message[this.parsed_message.length - 1] += " " + words[word];
+          }
+          else
+          {
+            current_line = words[word];
+            this.parsed_message.push(current_line);
+          }
+        }
+      }
+      
       var line_level = Math.round(canvas.height / 30 * 1.5 + this.panel.y * canvas.height);
       var text = this.displayed_sender;
       ctx.shadowBlur = Math.round(text_size * 2 / 3);
