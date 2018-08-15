@@ -690,7 +690,7 @@ var Intro = {
       intro_screen.gamestate.gameEntities.push(mainContainer);
       intro_screen.gamestate.bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.bottom_panel);
-      intro_screen.gamestate.degauss.bounce = 5;
+      intro_screen.gamestate.degauss.bounce = 1;
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "incoming message...", "")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
@@ -717,8 +717,8 @@ var Intro = {
     this.game_events.push(createTimer(25, function () {
       intro_screen.addLineToScript("rift breached");
     }));
-    this.game_events.push(createTimerLoop(75, function () { intro_screen.gamestate.degauss.bounce = 10; }));
-    this.game_events.push(createTimer(1, function () {
+    this.game_events.push(createTimerLoop(15, function () { intro_screen.gamestate.degauss.bounce = 10; }));
+    this.game_events.push(createTimer(50, function () {
       intro_screen.jut.switchToScreen(GameScreen);
     }));
     
