@@ -593,13 +593,23 @@ function createIncomingMessage(panel, sender, message)
       {
         return;
       }
+      
+      var display_line = this.displayed_message.length - 1;
       if (this.sender.length > this.displayed_sender.length)
       {
         this.displayed_sender += this.sender.charAt(this.displayed_sender.length);
       }
-      else if (this.message.length > this.displayed_message.length)
+      else if (this.parsed_message[display_line].length > 
+        this.displayed_message[display_line].length)
       {
-        this.displayed_message += this.message.charAt(this.displayed_message.length);
+        this.displayed_message[display_line] += 
+          this.parsed_message[display_line].charAt(this.displayed_message[display_line].length);
+      }
+      else if (this.parsed_message[display_line].length ===
+        this.displayed_message[display_line].length && 
+        this.parsed_message.length > this.displayed_message.length)
+      {
+        this.displayed_message.push("");
       }
       else if (this.outro_timer > 0)
       {
@@ -626,8 +636,8 @@ function createIncomingMessage(panel, sender, message)
         {
           if (ctx.measureText(current_line + " " + words[word]).width < bounds)
           {
-            current_line += " " + words[word];
-            this.parsed_message[this.parsed_message.length - 1] += " " + words[word];
+            current_line += words[word] + " ";
+            this.parsed_message[this.parsed_message.length - 1] += words[word] + " ";
           }
           else
           {
@@ -648,16 +658,19 @@ function createIncomingMessage(panel, sender, message)
       //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
       ctx.fillText(text, -canvas.width + indent, line_level);
       
-      var line_level = Math.round(canvas.height / 30 * 3.5 + this.panel.y * canvas.height);
-      var text = this.displayed_message;
-      ctx.shadowBlur = Math.round(text_size * 2 / 3);
-      ctx.fillText(text, -canvas.width + indent, line_level);
-      ctx.shadowBlur = Math.round(text_size / 3);
-      ctx.fillText(text, -canvas.width + indent, line_level);
-      //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
-      ctx.shadowBlur = 1;
-      //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
-      ctx.fillText(text, -canvas.width + indent, line_level);
+      for (var i = 0; i < this.displayed_message.length; i++)
+      {
+        var line_level = Math.round(canvas.height / 30 * (3.5 + i) + this.panel.y * canvas.height);
+        var text = this.displayed_message[i];
+        ctx.shadowBlur = Math.round(text_size * 2 / 3);
+        ctx.fillText(text, -canvas.width + indent, line_level);
+        ctx.shadowBlur = Math.round(text_size / 3);
+        ctx.fillText(text, -canvas.width + indent, line_level);
+        //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+        ctx.shadowBlur = 1;
+        //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
+        ctx.fillText(text, -canvas.width + indent, line_level);
+      }
     },
     paintLevel : function ()
     {
@@ -675,7 +688,6 @@ var Intro = {
   reset: function ()
   {
     this.cursorTimer = 0;
-    this.timestamp = 1000;
     this.script = [];
     this.visible = [""];
     this.type_time = 0;
@@ -744,10 +756,31 @@ var Intro = {
     this.game_events.push(createTimer(25, function () {
       intro_screen.addLineToScript("rift breached");
     }));
-    this.game_events.push(createTimerLoop(15, function () { intro_screen.gamestate.degauss.bounce = 10; }));
+    this.game_events.push(createTimerLoop(15, function () {
+      intro_screen.gamestate.degauss.bounce = 10;
+    }));
+    this.game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm through! This is Alice, I'm trying to uplink to you now.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    this.game_events.push(createTimer(50, function () {
+      intro_screen.clearVisible();
+      intro_screen.addLineToScript("remote uplink detected");
+    }));
+    this.game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "I'm connected! Computer are you there?")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    
+    //GAME TIME!
     this.game_events.push(createTimer(50, function () {
       intro_screen.jut.switchToScreen(GameScreen);
     }));
+    
     
     this.gamestate.gameEntities.push(this.game_events[0]);
     this.gamestate.degauss = createDeGauss();
