@@ -157,7 +157,9 @@ var createJutGameEngine = function(new_canvas) {
     
     if (current_screen)
     {
+      ctx.save();
       current_screen.paint(canvas, ctx);
+      ctx.restore();
     }
   }
   
@@ -181,7 +183,9 @@ var createJutGameEngine = function(new_canvas) {
     
     if (current_screen)
     {
+      ctx.save();
       current_screen.paint(canvas, ctx);
+      ctx.restore();
     }
   };
   
