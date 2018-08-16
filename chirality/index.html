@@ -545,6 +545,7 @@ function createMenuItems(name, parent, x, width, y, height)
     name : name,
     highlighted : false,
     click_signal : false,
+    selected : false,
     handleMouseMove : function(x,y)
     {
       if(!parent.visible)
@@ -590,7 +591,16 @@ function createMenuItems(name, parent, x, width, y, height)
       var width = Math.round(this.width * canvas.height);
       var height = Math.round(this.height * canvas.height);
       ctx.shadowOffsetX = canvas.width * 2;
-      ctx.shadowColor = (this.highlighted ? "rgb(0, 64, 0)" : "rgb(0, 32, 0)");
+      var shadow_intensity = 32;
+      if (this.highlighted)
+      {
+        shadow_intensity+=32;
+      }
+      if (this.selected)
+      {
+        shadow_intensity+=64;
+      }
+      ctx.shadowColor = "rgb(0, " + shadow_intensity + ", 0)";
       ctx.shadowBlur = Math.round(canvas.height/40);
       ctx.fillRect(-canvas.width * 2 + box_bound_x, box_bound_y, width, height);
       ctx.shadowBlur = Math.round(canvas.height/80);
@@ -601,7 +611,7 @@ function createMenuItems(name, parent, x, width, y, height)
       
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = (this.highlighted ? "rgb(0, 128, 0)" : "rgb(0, 64, 0)");
+      ctx.shadowColor = "rgb(0, " + (shadow_intensity + 32) + ", 0)";
       var text_size = Math.round(this.height * INVERSE_PHI * canvas.height);
       ctx.font = text_size + "px " + g_font;
       
@@ -1074,18 +1084,27 @@ var GameScreen = {
     this.gamestate.gameEntities.push(createScanLine());
     this.gamestate.gameEntities.push(createDeGauss());
     this.gamestate.gameEntities.push(createLcdLines());
-    var border = left_panel.height / 25;
-    this.gamestate.gameEntities.push(createMenuItems("Map", left_panel, border, left_panel.width - 2 * border,
-      border, left_panel.height/5 - 2 * border));
-    this.gamestate.gameEntities.push(createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
-      left_panel.height/5 + border, left_panel.height/5 - 2 * border));
+    var buttons = 6;
+    var divisions = 2 * buttons + buttons + 1;
+    var border = left_panel.height / divisions;
+    var button_height = border * 2;
+    var map_item = createMenuItems("Map", left_panel, border, left_panel.width - 2 * border,
+      border, button_height)
+    this.gamestate.gameEntities.push(map_item);
+    var scan_item = createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
+      button_height + 2*border, button_height);
+    this.gamestate.gameEntities.push(scan_item);
     this.gamestate.menu_handler["Map"] = function() {
       scan_panel.visible = false;
       map_panel.visible = true; 
+      map_item.selected = true;
+      scan_item.selected = false;
     }
     this.gamestate.menu_handler["Scan"] = function() {
       scan_panel.visible = true;
       map_panel.visible = false;
+      map_item.selected = false;
+      scan_item.selected = true;
     }
   },
 
@@ -1202,7 +1221,7 @@ var init = function()
   */
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
-  jut.addTitleScreen(Logo);
+  jut.addTitleScreen(GameScreen);
   GameScreen.init(jut);
   Intro.init(jut);
   Logo.init(jut);
