@@ -777,7 +777,7 @@ function createMap(gamestate, map_panel, scan_panel)
       var scanSquare = createScanSquare(box_bound_x, box_bound_y, unit*5, unit*5, scan_panel, x, y);
       gamestate.gameEntities.push(scanSquare);
       gamestate.radar[x].push(mapSquare);
-      if (x == 0 && y == 0)
+      if (x === 0 && y === 0)
       {
         gamestate.player_marker = createPlayerIcon(mapSquare, map_panel);
         gamestate.player_radar = createMonsterIcon(scanSquare, scan_panel);
@@ -786,13 +786,17 @@ function createMap(gamestate, map_panel, scan_panel)
         gamestate.gameEntities.push(gamestate.player);
         gamestate.gameEntities.push(gamestate.player_radar);
       }
-      if (x == 3 && y == 3 || x == 0 && y == 3)
+      if (x === 3 && y === 3 || x === 0 && y === 3)
       {
         var monster_icon = createMonsterIcon(scanSquare, scan_panel);
         var monster = createMonster(mapSquare, monster_icon);
         gamestate.gameEntities.push(monster_icon);
         gamestate.gameEntities.push(monster);
         gamestate.monsters.push(monster);
+      }
+      if (x === 2 && y === 1 || x===1 && y === 2 || x === 3 && y ===2)
+      {
+        gamestate.gameEntities.push(createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center"));
       }
     }
   }
@@ -813,17 +817,9 @@ function createText(text, x, y, height, parent, align)
       {
         return;
       }
-      var box_bound_x = Math.round((this.x + this.parent.x + this.parent.width / 2) * canvas.height);
-      if (this.align === "left")
-      {
-        box_bound_x = Math.round((this.x + this.parent.x) * canvas.height);
-      } 
-      else if (this.align === "right")
-      {
-        box_bound_x = Math.round((this.x + this.parent.x + this.parent.width) * canvas.height);
-      }
+      var box_bound_x = Math.round((this.x + this.parent.x) * canvas.height);
       
-      box_bound_y = Math.round((this.y + this.parent.y + this.parent.height / 2) * canvas.height);
+      var box_bound_y = Math.round((this.y + this.parent.y) * canvas.height);
       
       ctx.textAlign = this.align;
       ctx.textBaseline = "middle";
@@ -842,7 +838,7 @@ function createText(text, x, y, height, parent, align)
     },
     paintLevel : function ()
     {
-      return 1;
+      return 2;
     }
   };
 };

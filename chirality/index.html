@@ -475,13 +475,13 @@ var DemoScreen = {
     
     //this.gamestate.gameEntities.push(createPanel(0,0,1,1,titleContainer));
     this.gamestate.gameEntities.push(titleContainer);
-    var text = createText("chirality", 0, 0, 1/4, titleContainer, "center");
+    var text = createText("chirality", titleContainer.width/2, titleContainer.height/2, 1/4, titleContainer, "center");
     this.gamestate.gameEntities.push(text);
     var menuContainer = createContainer(1/4 * g_aspect_ratio, 1/2, 1/2 * g_aspect_ratio, 2/8);
     var demoContainer = createContainer(3/4 * g_aspect_ratio, 15/16, 1/4 * g_aspect_ratio, 1/16);
-    this.gamestate.gameEntities.push(createText("demo v0.0", 0, 0, demoContainer.height, demoContainer, "right"));
+    this.gamestate.gameEntities.push(createText("demo v0.0", demoContainer.width, demoContainer.height/2, demoContainer.height, demoContainer, "right"));
     var demoContainer2 = createContainer(0, 15/16, 1/4 * g_aspect_ratio, 1/16);
-    this.gamestate.gameEntities.push(createText("velociGames", 0, 0, demoContainer2.height, demoContainer2, "left"));
+    this.gamestate.gameEntities.push(createText("VelociGames", 0, demoContainer2.height/2, demoContainer2.height, demoContainer2, "left"));
 
     this.gamestate.gameEntities.push(menuContainer);
     this.gamestate.gameEntities.push(createScanLine());
@@ -648,7 +648,7 @@ var GameScreen = {
     var hud_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     hud_panel.visible = false;
     this.gamestate.gameEntities.push(hud_panel);
-    this.gamestate.gameEntities.push(createText("no signal", 0, 0, 1/30, hud_panel, "center"));
+    this.gamestate.gameEntities.push(createText("no signal", hud_panel.width/2, hud_panel.height/2, 1/30, hud_panel, "center"));
     var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
     
     this.gamestate.bottom_panel = bottom_panel;
