@@ -794,12 +794,100 @@ function createMap(gamestate, map_panel, scan_panel)
         gamestate.gameEntities.push(monster);
         gamestate.monsters.push(monster);
       }
-      if (x === 2 && y === 1 || x===1 && y === 2 || x === 3 && y ===2)
-      {
-        gamestate.gameEntities.push(createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center"));
-      }
     }
   }
+};
+
+function createRepairHud(game_x,game_y,parent,icon)
+{
+  return {
+    game_x : game_x,
+    game_y : game_y,
+    selected : false,
+    parent: parent,
+    percent_completed : 0,
+    total_percent : 600,
+    icon : icon,
+    text : createText("-", parent.width/2, parent.height/2, 1/30, parent, "center"),
+    handleTimeStep : function(gamestate)
+    {
+      if (this.selected && parent.visible)
+      {
+        if (this.percent_completed < this.total_percent)
+        {
+          this.percent_completed = Math.min(this.total_percent, this.percent_completed + 2);
+        }
+      }
+      else
+      {
+        if (this.percent_completed < this.total_percent)
+        {
+          this.percent_completed = Math.max(0, this.percent_completed - 1);
+        }
+      }
+      if (this.percent_completed >= this.total_percent)
+      {
+        this.icon.alive = false;
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      this.text.text = "repaired " + Math.round(this.percent_completed / this.total_percent * 100) + "%";
+      this.text.paint(gamestate, layout, canvas, ctx);
+    },
+  };
+};
+
+function createHudHolder(parent)
+{
+  return {
+    parent : parent,
+    default_objects : [
+      createText("no signal", parent.width/2, parent.height/2, 1/30, parent, "center")
+    ],
+    huds : [],
+    hud_indicator : [],
+    selected_hud : null,
+    handleTimeStep : function(gamestate)
+    {
+      this.selected_hud = null;
+      for (hud in this.huds)
+      {
+        this.huds[hud].selected = false;
+        if (this.huds[hud].game_x === gamestate.player.current_location.game_x &&
+          this.huds[hud].game_y === gamestate.player.current_location.game_y &&
+          gamestate.player.state === gamestate.player.WAITING_STATE)
+        {
+          this.selected_hud = this.huds[hud];
+          this.selected_hud.selected = true;
+        }
+        this.huds[hud].handleTimeStep();
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      if(!parent.visible)
+      {
+        return;
+      }
+      
+      if(this.selected_hud === null)
+      {
+        for (object in this.default_objects)
+        {
+          this.default_objects[object].paint(gamestate, layout, canvas, ctx);
+        }
+      }
+      else
+      {
+        this.selected_hud.paint(gamestate, layout, canvas, ctx);
+      }
+    },
+    paintLevel : function ()
+    {
+      return 1;
+    }
+  }; 
 };
 
 function createText(text, x, y, height, parent, align)
@@ -811,6 +899,11 @@ function createText(text, x, y, height, parent, align)
     parent : parent,
     text : text,
     align : align,
+    alive : true,
+    active : function ()
+    { 
+      return this.alive;
+    },
     paint : function (gamestate, layout, canvas, ctx)
     {
       if(!parent.visible)
@@ -838,7 +931,7 @@ function createText(text, x, y, height, parent, align)
     },
     paintLevel : function ()
     {
-      return 2;
+      return 1;
     }
   };
 };

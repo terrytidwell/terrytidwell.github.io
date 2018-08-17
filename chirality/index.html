@@ -472,7 +472,6 @@ var DemoScreen = {
       menu_handler: {},
     };
     var titleContainer = createContainer(0, 1/4, g_aspect_ratio, 1/4)
-    
     //this.gamestate.gameEntities.push(createPanel(0,0,1,1,titleContainer));
     this.gamestate.gameEntities.push(titleContainer);
     var text = createText("chirality", titleContainer.width/2, titleContainer.height/2, 1/4, titleContainer, "center");
@@ -647,13 +646,35 @@ var GameScreen = {
     this.gamestate.gameEntities.push(scan_panel);
     var hud_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     hud_panel.visible = false;
-    this.gamestate.gameEntities.push(hud_panel);
-    this.gamestate.gameEntities.push(createText("no signal", hud_panel.width/2, hud_panel.height/2, 1/30, hud_panel, "center"));
+
+    
     var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
     
     this.gamestate.bottom_panel = bottom_panel;
     this.gamestate.gameEntities.push(bottom_panel);
+    
     createMap(this.gamestate, map_panel, scan_panel);
+    this.gamestate.gameEntities.push(hud_panel);
+    
+    var hud_holder = createHudHolder(hud_panel);
+    var mapSquare = this.gamestate.map[2][1];
+    var unit = mapSquare.width / 5;
+    var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
+    this.gamestate.gameEntities.push(icon);
+    hud_holder.huds.push(createRepairHud(2,1,hud_panel,icon));
+    mapSquare = this.gamestate.map[3][2];
+    unit = mapSquare.width / 5;
+    icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
+    this.gamestate.gameEntities.push(icon);
+    hud_holder.huds.push(createRepairHud(3,2,hud_panel,icon));
+    mapSquare = this.gamestate.map[1][2];
+    unit = mapSquare.width / 5;
+    icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
+    this.gamestate.gameEntities.push(icon);
+    hud_holder.huds.push(createRepairHud(1,2,hud_panel,icon));
+    this.gamestate.gameEntities.push(hud_holder);
+
+
     this.gamestate.gameEntities.push(createScanLine());
     this.gamestate.gameEntities.push(createDeGauss());
     this.gamestate.gameEntities.push(createLcdLines());
