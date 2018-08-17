@@ -176,6 +176,16 @@ function createPlayer(location) {
     waypoint_signal : null,
     current_waypoint : null,
     current_location : location,
+    suggestDialogue : function (gamestate, name, line)
+    {
+      if (gamestate.current_message.active())
+      {
+        return false;
+      }
+      gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, name, line);
+      gamestate.gameEntities.push(gamestate.current_message);
+      return true;
+    },
     setWaypoint : function(location)
     {
       this.waypoint_signal_waiting = true;
@@ -270,10 +280,7 @@ function createPlayer(location) {
             if (this.current_location.game_x == this.waypoint_signal.game_x &&
               this.current_location.game_y == this.waypoint_signal.game_y)
             {
-              gamestate.current_message.cancel();
-              var string = Util.randomItem(["I'm there.", "Made it."]);
-              gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-              gamestate.gameEntities.push(gamestate.current_message);
+              this.suggestDialogue(gamestate,"Alice", Util.randomItem(["I'm there.", "Made it."]));
               this.state = this.WAITING_STATE;
               return;
             }
@@ -324,10 +331,7 @@ function createPlayer(location) {
             if (this.current_location.game_x == this.waypoint.game_x &&
               this.current_location.game_y == this.waypoint.game_y)
             {
-              gamestate.current_message.cancel();
-              var string = Util.randomItem(["I'm there.", "Made it."]);
-              gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-              gamestate.gameEntities.push(gamestate.current_message);
+              this.suggestDialogue(gamestate,"Alice", Util.randomItem(["I'm there.", "Made it."]));
               this.state = this.WAITING_STATE;
             }
             this.state_timer = 50;
@@ -375,17 +379,11 @@ function createPlayer(location) {
           if (this.current_location.game_x == this.waypoint.game_x &&
             this.current_location.game_y == this.waypoint.game_y)
           {
-            gamestate.current_message.cancel();
-            var string = Util.randomItem(["Already there."]);
-            gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-            gamestate.gameEntities.push(gamestate.current_message);
+            this.suggestDialogue(gamestate, "Alice", Util.randomItem(["Already there."]));
             this.state = this.WAITING_STATE;
             return;
           }
-          gamestate.current_message.cancel();
-          var string = Util.randomItem(["Roger.", "On the move.", "OK. Heading that way now."]);
-          gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-          gamestate.gameEntities.push(gamestate.current_message);
+          this.suggestDialogue(gamestate, "Alice", Util.randomItem(["Roger.", "On the move.", "OK. Heading that way now."]));
           this.state_timer = 50;
           break;
       }
@@ -1180,7 +1178,7 @@ function createIncomingMessage(panel, sender, message)
           }
           else
           {
-            current_line = words[word];
+            current_line = words[word] + " ";
             this.parsed_message.push(current_line);
           }
         }

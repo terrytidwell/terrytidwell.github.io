@@ -634,6 +634,8 @@ var GameScreen = {
       radar : [],
       monsters : []
     };
+    var gamestate = this.gamestate;
+    
     var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
     this.gamestate.gameEntities.push(mainContainer);
     var left_panel = createPanel(0, 0, 1/4, 2/3, mainContainer);
@@ -738,6 +740,9 @@ var GameScreen = {
       hud_item.selected = true;
       hud_panel.visible = true;
     }
+    this.gamestate.gameEntities.push(createTimer(1, function() {
+      gamestate.player.suggestDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
+    }));
   },
 
   handleMouseDown: function(event)
