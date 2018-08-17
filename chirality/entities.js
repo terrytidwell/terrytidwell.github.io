@@ -4,6 +4,10 @@ function createContainer(x,y,width,height) {
     y: y,
     width: width,
     height: height,
+    visible : function ()
+    {
+      return true;
+    },
     paint : function (gamestate, layout, canvas, context)
     {
     },
@@ -14,7 +18,7 @@ function createContainer(x,y,width,height) {
   };
 };
 
-function createPanel(x,y,width,height,parent) {
+function createPanel(x, y, width, height, parent) {
   return {
     x: x * parent.width + parent.x,
     y: y * parent.height + parent.y,
@@ -266,14 +270,10 @@ function createPlayer(location) {
             if (this.current_location.game_x == this.waypoint_signal.game_x &&
               this.current_location.game_y == this.waypoint_signal.game_y)
             {
-              var dialogue_trigger = createConditionalEvent(function () {
-                return !gamestate.current_message.active();
-              }, function () {
-                var string = Util.randomItem(["I'm there.", "Made it."]);
-                gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-                gamestate.gameEntities.push(gamestate.current_message);
-              });
-              gamestate.gameEntities.push(dialogue_trigger);
+              gamestate.current_message.cancel();
+              var string = Util.randomItem(["I'm there.", "Made it."]);
+              gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
+              gamestate.gameEntities.push(gamestate.current_message);
               this.state = this.WAITING_STATE;
               return;
             }
@@ -324,14 +324,10 @@ function createPlayer(location) {
             if (this.current_location.game_x == this.waypoint.game_x &&
               this.current_location.game_y == this.waypoint.game_y)
             {
-              var dialogue_trigger = createConditionalEvent(function () {
-                return !gamestate.current_message.active();
-              }, function () {
-                var string = Util.randomItem(["I'm there.", "Made it."]);
-                gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
-                gamestate.gameEntities.push(gamestate.current_message);
-              });
-              gamestate.gameEntities.push(dialogue_trigger);
+              gamestate.current_message.cancel();
+              var string = Util.randomItem(["I'm there.", "Made it."]);
+              gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
+              gamestate.gameEntities.push(gamestate.current_message);
               this.state = this.WAITING_STATE;
             }
             this.state_timer = 50;
@@ -379,24 +375,17 @@ function createPlayer(location) {
           if (this.current_location.game_x == this.waypoint.game_x &&
             this.current_location.game_y == this.waypoint.game_y)
           {
-            var dialogue_trigger = createConditionalEvent(function () {
-              return !gamestate.current_message.active();
-            }, function () {
-              gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", "Already there.")
-              gamestate.gameEntities.push(gamestate.current_message);
-            });
-            gamestate.gameEntities.push(dialogue_trigger);
+            gamestate.current_message.cancel();
+            var string = Util.randomItem(["Already there."]);
+            gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
+            gamestate.gameEntities.push(gamestate.current_message);
             this.state = this.WAITING_STATE;
             return;
           }
-          var dialogue_trigger = createConditionalEvent(function () {
-            return !gamestate.current_message.active();
-          }, function () {
-            var string = Util.randomItem(["Roger.", "On the move.", "OK. Heading that way now."]);
-            gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string)
-            gamestate.gameEntities.push(gamestate.current_message);
-          });
-          gamestate.gameEntities.push(dialogue_trigger);
+          gamestate.current_message.cancel();
+          var string = Util.randomItem(["Roger.", "On the move.", "OK. Heading that way now."]);
+          gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, "Alice", string);
+          gamestate.gameEntities.push(gamestate.current_message);
           this.state_timer = 50;
           break;
       }
@@ -743,7 +732,7 @@ function createDeathVeil()
       }
       else
       {
-        gamestate.jut.switchToScreen(GameScreen);
+        gamestate.jut.switchToScreen(DemoScreen);
       }
       ctx.fillStyle = "rgba(0,0,0,"+this.percent/100+")";
       ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -807,6 +796,55 @@ function createMap(gamestate, map_panel, scan_panel)
       }
     }
   }
+};
+
+function createText(text, x, y, height, parent, align)
+{
+  return {
+    x: x,
+    y : y,
+    height : height,
+    parent : parent,
+    text : text,
+    align : align,
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      if(!parent.visible)
+      {
+        return;
+      }
+      var box_bound_x = Math.round((this.x + this.parent.x + this.parent.width / 2) * canvas.height);
+      if (this.align === "left")
+      {
+        box_bound_x = Math.round((this.x + this.parent.x) * canvas.height);
+      } 
+      else if (this.align === "right")
+      {
+        box_bound_x = Math.round((this.x + this.parent.x + this.parent.width) * canvas.height);
+      }
+      
+      box_bound_y = Math.round((this.y + this.parent.y + this.parent.height / 2) * canvas.height);
+      
+      ctx.textAlign = this.align;
+      ctx.textBaseline = "middle";
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.shadowColor = "rgb(0,192,0)";
+      var text_size = Math.round(this.height * INVERSE_PHI * canvas.height);
+      ctx.font = text_size + "px " + g_font;
+        
+      var text = this.text;
+      ctx.shadowBlur = Math.round(text_size * 2 / 3);
+      ctx.fillText(text, -canvas.width * 2 + box_bound_x, box_bound_y);
+      ctx.shadowBlur = Math.round(text_size / 3);
+      ctx.fillText(text, -canvas.width * 2 + box_bound_x, box_bound_y);
+      ctx.shadowBlur = 1;
+      ctx.fillText(text, -canvas.width * 2 + box_bound_x, box_bound_y);
+    },
+    paintLevel : function ()
+    {
+      return 1;
+    }
+  };
 };
 
 function createMenuItems(name, parent, x, width, y, height)
@@ -899,9 +937,7 @@ function createMenuItems(name, parent, x, width, y, height)
       ctx.fillText(text, 
         Math.round(-canvas.width * 2 + (this.x + this.parent.x + this.width / 2) * canvas.height),
         Math.round((this.y + this.parent.y + this.height / 2) * canvas.height));
-      //ctx.shadowColor = "rgba(0,255,0," + (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
       ctx.shadowBlur = 1;
-      //ctx.fillStyle = "rgba(0,0,0," + .75 * (this.textFadeInTimer / this.textFadeInTimerLimit) + ")";
       ctx.fillText(text, 
         Math.round(-canvas.width * 2 + (this.x + this.parent.x + this.width / 2) * canvas.height),
         Math.round((this.y + this.parent.y + this.height / 2) * canvas.height));

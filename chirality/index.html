@@ -444,6 +444,162 @@ var Intro = {
 };
 
 //------------------------------------------------------------------------
+var DemoScreen = {
+  //----------------------------------------------------------------------
+  init: function (jut)
+  {
+    this.jut = jut;
+  },
+
+  //----------------------------------------------------------------------
+  // from Screen
+  reset: function ()
+  {
+    //stores information about graphical layout
+    this.layout = null;
+    this.mouse_click_event = false;
+    this.mouse_click_x = 0;
+    this.mouse_click_y = 0;
+    this.mouse_x = 0;
+    this.mouse_y = 0;
+    this.player_x = 0;
+    this.player_y = 0;
+    
+    this.gamestate =
+    {
+      jut : this.jut,
+      gameEntities: [],
+      menu_handler: {},
+    };
+    var titleContainer = createContainer(0, 1/4, g_aspect_ratio, 1/4)
+    
+    //this.gamestate.gameEntities.push(createPanel(0,0,1,1,titleContainer));
+    this.gamestate.gameEntities.push(titleContainer);
+    var text = createText("chirality", 0, 0, 1/4, titleContainer, "center");
+    this.gamestate.gameEntities.push(text);
+    var menuContainer = createContainer(1/4 * g_aspect_ratio, 1/2, 1/2 * g_aspect_ratio, 2/8);
+    var demoContainer = createContainer(3/4 * g_aspect_ratio, 15/16, 1/4 * g_aspect_ratio, 1/16);
+    this.gamestate.gameEntities.push(createText("demo v0.0", 0, 0, demoContainer.height, demoContainer, "right"));
+    var demoContainer2 = createContainer(0, 15/16, 1/4 * g_aspect_ratio, 1/16);
+    this.gamestate.gameEntities.push(createText("velociGames", 0, 0, demoContainer2.height, demoContainer2, "left"));
+
+    this.gamestate.gameEntities.push(menuContainer);
+    this.gamestate.gameEntities.push(createScanLine());
+    this.gamestate.gameEntities.push(createDeGauss());
+    this.gamestate.gameEntities.push(createLcdLines());
+    var buttons = 2;
+    var divisions = 2 * buttons + buttons + 1;
+    var border = menuContainer.height / divisions;
+    var button_height = border * 2;
+    var map_item = createMenuItems("Introduction", menuContainer, 0, menuContainer.width,
+      border, button_height)
+    this.gamestate.gameEntities.push(map_item);
+    var scan_item = createMenuItems("Game Screen", menuContainer, 0, menuContainer.width,
+      button_height + 2*border, button_height);
+    this.gamestate.gameEntities.push(scan_item);
+    var jut = this.jut;
+    this.gamestate.menu_handler["Introduction"] = function() {
+      jut.switchToScreen(Logo);
+    }
+    this.gamestate.menu_handler["Game Screen"] = function() {
+      jut.switchToScreen(GameScreen);
+    }
+  },
+
+  handleMouseDown: function(event)
+  {
+    this.mouse_click_event = true;
+    this.mouse_click_x = event.offsetX / event.currentTarget.height;
+    this.mouse_click_y = event.offsetY / event.currentTarget.height;
+    //event.currentTarget.width;
+  },
+  
+  handleMouseMove: function(event)
+  {
+    this.mouse_x = event.offsetX / event.currentTarget.height;
+    this.mouse_y = event.offsetY / event.currentTarget.height;
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  handleTimeStep: function ()
+  {
+
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if(this.gamestate.gameEntities[i].handleMouseMove)
+      {
+        this.gamestate.gameEntities[i].handleMouseMove(this.mouse_x, this.mouse_y);
+      }
+    }
+    
+    if (this.mouse_click_event)
+    {
+      this.mouse_click_event = false;
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if(this.gamestate.gameEntities[i].handleMouseDown)
+        {
+          this.gamestate.gameEntities[i].handleMouseDown(this.mouse_click_x, this.mouse_click_y);
+        }
+      }
+    }
+  
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if(this.gamestate.gameEntities[i].handleTimeStep)
+      {
+        this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
+      }
+    }
+    
+    for (var i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
+    {
+      if(this.gamestate.gameEntities[i].active)
+      {
+        if(!this.gamestate.gameEntities[i].active())
+        {
+          this.gamestate.gameEntities.splice(i,1);
+        }
+      }
+    }
+  },
+  
+  //----------------------------------------------------------------------
+  // from Screen
+  paint: function (canvas, ctx)
+  {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // paint the background
+    ctx.fillStyle = "rgb(0, 0, 0)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    this.gamestate.gameEntities.sort(function(a,b){
+      var a_lvl = 0;
+      var b_lvl = 0;
+      if(a.paintLevel)
+      {
+        a_lvl = a.paintLevel();
+      }
+      if(b.paintLevel)
+      {
+        b_lvl = b.paintLevel();
+      }
+      return a_lvl - b_lvl;
+    });
+    
+    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+    {
+      if (this.gamestate.gameEntities[i].paint)
+      {
+        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+      }
+    }
+  }
+};
+
+//------------------------------------------------------------------------
 var GameScreen = {
   //----------------------------------------------------------------------
   init: function (jut)
@@ -473,7 +629,7 @@ var GameScreen = {
       player_marker : null,
       player_radar : null,
       menu_handler: {},
-      current_message: {active: function () { return false; }},
+      current_message: {cancel: function() {}, active: function () { return false; }},
       bottom_panel : null,
       map : [],
       radar : [],
@@ -489,12 +645,15 @@ var GameScreen = {
     var scan_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     scan_panel.visible = false;
     this.gamestate.gameEntities.push(scan_panel);
+    var hud_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
+    hud_panel.visible = false;
+    this.gamestate.gameEntities.push(hud_panel);
+    this.gamestate.gameEntities.push(createText("no signal", 0, 0, 1/30, hud_panel, "center"));
     var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
+    
     this.gamestate.bottom_panel = bottom_panel;
     this.gamestate.gameEntities.push(bottom_panel);
     createMap(this.gamestate, map_panel, scan_panel);
-    //createMap(this.gamestate.gameEntities, left_panel);
-    //createMap(this.gamestate.gameEntities, bottom_panel);
     this.gamestate.gameEntities.push(createScanLine());
     this.gamestate.gameEntities.push(createDeGauss());
     this.gamestate.gameEntities.push(createLcdLines());
@@ -502,24 +661,61 @@ var GameScreen = {
     var divisions = 2 * buttons + buttons + 1;
     var border = left_panel.height / divisions;
     var button_height = border * 2;
+    
+    var panels = [];
+    panels.push(map_panel, scan_panel, hud_panel);
+    var menu_items = [];
+    
     var map_item = createMenuItems("Map", left_panel, border, left_panel.width - 2 * border,
       border, button_height)
     map_item.selected = true;
     this.gamestate.gameEntities.push(map_item);
+    menu_items.push(map_item);
+    
     var scan_item = createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
       button_height + 2*border, button_height);
     this.gamestate.gameEntities.push(scan_item);
+    menu_items.push(scan_item);
+    
+    var hud_item = createMenuItems("Hud", left_panel, border, left_panel.width - 2 * border,
+      2*button_height + 3*border, button_height);
+    this.gamestate.gameEntities.push(hud_item);
+    menu_items.push(hud_item);
     this.gamestate.menu_handler["Map"] = function() {
-      scan_panel.visible = false;
-      map_panel.visible = true; 
+      for (menu_item in menu_items)
+      {
+        menu_items[menu_item].selected = false;
+      }
+      for (panel in panels)
+      {
+        panels[panel].visible = false;
+      }
       map_item.selected = true;
-      scan_item.selected = false;
+      map_panel.visible = true;
     }
     this.gamestate.menu_handler["Scan"] = function() {
-      scan_panel.visible = true;
-      map_panel.visible = false;
-      map_item.selected = false;
+      for (menu_item in menu_items)
+      {
+        menu_items[menu_item].selected = false;
+      }
+      for (panel in panels)
+      {
+        panels[panel].visible = false;
+      }
       scan_item.selected = true;
+      scan_panel.visible = true;
+    }
+    this.gamestate.menu_handler["Hud"] = function() {
+      for (menu_item in menu_items)
+      {
+        menu_items[menu_item].selected = false;
+      }
+      for (panel in panels)
+      {
+        panels[panel].visible = false;
+      }
+      hud_item.selected = true;
+      hud_panel.visible = true;
     }
   },
 
@@ -616,6 +812,7 @@ var GameScreen = {
   }
 };
 
+
 var GlobalResources =
 {
   audio_components : {},
@@ -636,10 +833,11 @@ var init = function()
   */
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
-  jut.addTitleScreen(GameScreen);
+  jut.addTitleScreen(DemoScreen);
   GameScreen.init(jut);
   Intro.init(jut);
   Logo.init(jut);
+  DemoScreen.init(jut);
   jut.init();
   
 }
