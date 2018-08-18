@@ -205,16 +205,6 @@ const Logo = {
       ctx.lineTo(canvas.width,y);
       ctx.stroke();
     }
-    
-    /*
-    for(var x = 0; x < canvas.width; x+=2*ctx.lineWidth)
-    {
-      ctx.beginPath();
-      ctx.moveTo(x,0);
-      ctx.lineTo(x,canvas.height);
-      ctx.stroke();
-    }
-    // */
   }
 };
 
@@ -637,49 +627,150 @@ var GameScreen = {
     var gamestate = this.gamestate;
     
     var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
-    this.gamestate.gameEntities.push(mainContainer);
+    gamestate.gameEntities.push(mainContainer);
     var left_panel = createPanel(0, 0, 1/4, 2/3, mainContainer);
-    this.gamestate.gameEntities.push(left_panel);
+    gamestate.gameEntities.push(left_panel);
     var map_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     map_panel.visible = true;
-    this.gamestate.gameEntities.push(map_panel);
+    gamestate.gameEntities.push(map_panel);
     var scan_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     scan_panel.visible = false;
-    this.gamestate.gameEntities.push(scan_panel);
+    gamestate.gameEntities.push(scan_panel);
     var hud_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     hud_panel.visible = false;
 
     
     var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
     
-    this.gamestate.bottom_panel = bottom_panel;
-    this.gamestate.gameEntities.push(bottom_panel);
+    gamestate.bottom_panel = bottom_panel;
+    gamestate.gameEntities.push(bottom_panel);
     
-    createMap(this.gamestate, map_panel, scan_panel);
-    this.gamestate.gameEntities.push(hud_panel);
+    createMap(gamestate, map_panel, scan_panel);
+    gamestate.gameEntities.push(hud_panel);
     
     var hud_holder = createHudHolder(hud_panel);
-    var mapSquare = this.gamestate.map[2][1];
+    var mapSquare = gamestate.map[2][1];
     var unit = mapSquare.width / 5;
+    var objectives = [];
     var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    this.gamestate.gameEntities.push(icon);
+    gamestate.gameEntities.push(icon);
+    objectives.push(icon);
     hud_holder.huds.push(createRepairHud(2,1,hud_panel,icon));
-    mapSquare = this.gamestate.map[3][2];
+    mapSquare = gamestate.map[3][2];
     unit = mapSquare.width / 5;
     icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    this.gamestate.gameEntities.push(icon);
+    gamestate.gameEntities.push(icon);
+    objectives.push(icon);
     hud_holder.huds.push(createRepairHud(3,2,hud_panel,icon));
-    mapSquare = this.gamestate.map[1][2];
+    mapSquare = gamestate.map[1][2];
     unit = mapSquare.width / 5;
     icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    this.gamestate.gameEntities.push(icon);
+    gamestate.gameEntities.push(icon);
+    objectives.push(icon);
     hud_holder.huds.push(createRepairHud(1,2,hud_panel,icon));
-    this.gamestate.gameEntities.push(hud_holder);
+    gamestate.gameEntities.push(hud_holder);
 
+    gamestate.gameEntities.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in objectives)
+        {
+          if (objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 2;
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "That's fixed, two more to go.");
+      }
+    ));
+    
+    gamestate.gameEntities.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in objectives)
+        {
+          if (objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 1;
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Get me to the last generator and I can get out of here.");
+      }
+    ));
+    
+    gamestate.gameEntities.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in objectives)
+        {
+          if (objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 0;
+      },
+      function ()
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "That's the last generator. You should have enough power to open the door.");
+        var mapSquare = gamestate.map[0][0];
+        var scanSquare = gamestate.map[0][0];
+        var unit = mapSquare.width / 5;
+        var objectives = [];
+        var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(0,0,hud_panel,icon));
+        var monster_icon = createMonsterIcon(scanSquare, scan_panel);
+        var monster = createMonster(mapSquare, monster_icon);
+        gamestate.gameEntities.push(monster_icon);
+        gamestate.gameEntities.push(monster);
+        gamestate.monsters.push(monster);
+        gamestate.gameEntities.push(createConditionalEvent(
+          function () {
+            var count = 0;
+            for (objective in objectives)
+            {
+              if (objectives[objective].active())
+              {
+                count++;
+              }
+            };
+            return count === 0;
+          },
+          function () 
+          {
+            gamestate.player_marker.cancel();
+            for (monster in gamestate.monsters)
+            {
+              gamestate.monsters[monster].cancel();
+            }
+            gamestate.player.importantDialogue(gamestate, "Alice", "I've made it!");
+            var message = gamestate.current_message;
+            gamestate.gameEntities.push(createConditionalEvent(
+              function () {
+                return !message.active();
+              },
+              function () {
+                gamestate.gameEntities.push(createDeathVeil());
+              }
+            ));
+          }
+        ));
+      }
+    ));
 
-    this.gamestate.gameEntities.push(createScanLine());
-    this.gamestate.gameEntities.push(createDeGauss());
-    this.gamestate.gameEntities.push(createLcdLines());
+    gamestate.gameEntities.push(createScanLine());
+    gamestate.gameEntities.push(createDeGauss());
+    gamestate.gameEntities.push(createLcdLines());
     var buttons = 6;
     var divisions = 2 * buttons + buttons + 1;
     var border = left_panel.height / divisions;
@@ -692,19 +783,19 @@ var GameScreen = {
     var map_item = createMenuItems("Map", left_panel, border, left_panel.width - 2 * border,
       border, button_height)
     map_item.selected = true;
-    this.gamestate.gameEntities.push(map_item);
+    gamestate.gameEntities.push(map_item);
     menu_items.push(map_item);
     
     var scan_item = createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
       button_height + 2*border, button_height);
-    this.gamestate.gameEntities.push(scan_item);
+    gamestate.gameEntities.push(scan_item);
     menu_items.push(scan_item);
     
     var hud_item = createMenuItems("Hud", left_panel, border, left_panel.width - 2 * border,
       2*button_height + 3*border, button_height);
-    this.gamestate.gameEntities.push(hud_item);
+    gamestate.gameEntities.push(hud_item);
     menu_items.push(hud_item);
-    this.gamestate.menu_handler["Map"] = function() {
+    gamestate.menu_handler["Map"] = function() {
       for (menu_item in menu_items)
       {
         menu_items[menu_item].selected = false;
@@ -716,7 +807,7 @@ var GameScreen = {
       map_item.selected = true;
       map_panel.visible = true;
     }
-    this.gamestate.menu_handler["Scan"] = function() {
+    gamestate.menu_handler["Scan"] = function() {
       for (menu_item in menu_items)
       {
         menu_items[menu_item].selected = false;
@@ -728,7 +819,7 @@ var GameScreen = {
       scan_item.selected = true;
       scan_panel.visible = true;
     }
-    this.gamestate.menu_handler["Hud"] = function() {
+    gamestate.menu_handler["Hud"] = function() {
       for (menu_item in menu_items)
       {
         menu_items[menu_item].selected = false;
@@ -740,7 +831,7 @@ var GameScreen = {
       hud_item.selected = true;
       hud_panel.visible = true;
     }
-    this.gamestate.gameEntities.push(createTimer(1, function() {
+    gamestate.gameEntities.push(createTimer(1, function() {
       gamestate.player.importantDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
     }));
   },

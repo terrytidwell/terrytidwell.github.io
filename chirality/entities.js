@@ -422,6 +422,16 @@ function createMonster(location, icon)
     current_location : location,
     icon : icon,
     waypoint : null,
+    alive : true,
+    active : function()
+    {
+      return this.alive;
+    },
+    cancel : function()
+    {
+      this.alive = false;
+      this.icon.cancel();
+    },
     handleTimeStep : function(gamestate)
     {
       var old_state = this.state;
@@ -510,6 +520,15 @@ function createPlayerIcon(location, parent) {
     percentage: 0,
     location: location,
     parent: parent,
+    alive : true,
+    active : function()
+    {
+      return this.alive;
+    },
+    cancel : function()
+    {
+      this.alive = false;
+    },
     handleTimeStep : function(gamestate)
     {
       this.percentage += 3;
@@ -585,6 +604,15 @@ function createMonsterIcon(location, parent) {
   return {
     location: location,
     parent: parent,
+    alive : true,
+    active : function()
+    {
+      return this.alive;
+    },
+    cancel : function()
+    {
+      this.alive = false;
+    },
     handleTimeStep : function(gamestate)
     {
     },
@@ -839,7 +867,7 @@ function createRepairHud(game_x,game_y,parent,icon)
       {
         if (this.percent_completed < this.total_percent)
         {
-          this.percent_completed = Math.max(0, this.percent_completed - 1);
+          //this.percent_completed = Math.max(0, this.percent_completed - 1);
         }
       }
       if (this.percent_completed >= this.total_percent)
