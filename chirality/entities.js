@@ -176,8 +176,18 @@ function createPlayer(location) {
     waypoint_signal : null,
     current_waypoint : null,
     current_location : location,
+    healthy : function()
+    {
+      return this.state !== this.DYING_STATE &&
+        this.state !== this.DEATH_STATE &&
+        this.state !== this.GAME_OVER_STATE;
+    },
     suggestDialogue : function (gamestate, name, line)
     {
+      if (!this.healthy())
+      {
+        return;
+      }
       if (gamestate.current_message.active())
       {
         return false;
@@ -185,6 +195,20 @@ function createPlayer(location) {
       gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, name, line);
       gamestate.gameEntities.push(gamestate.current_message);
       return true;
+    },
+    importantDialogue : function (gamestate, name, line)
+    {
+      if (!this.healthy())
+      {
+        return;
+      }
+      this.alertDialogue(gamestate, name, line);
+    },
+    alertDialogue : function (gamestate, name, line)
+    {
+      gamestate.current_message.cancel();
+      gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, name, line);
+      gamestate.gameEntities.push(gamestate.current_message);
     },
     setWaypoint : function(location)
     {
@@ -245,7 +269,7 @@ function createPlayer(location) {
           }
           if (this.state_timer % 30 == 0)
           {
-            gamestate.current_message.cancel();
+            
             var string = Util.randomItem([
               ["Alice","OH GOD!"],
               ["Alice","AHHHHHH!"],
@@ -256,8 +280,7 @@ function createPlayer(location) {
               ["Medical Alert","Spinal fracture detected."],
               ["Medical Alert","Severe laceration detected."],
             ]);
-            gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, string[0], string[1]);
-            gamestate.gameEntities.push(gamestate.current_message);
+            this.alertDialogue(gamestate, string[0], string[1]);
           }
           break;
         case this.WAITING_STATE:
@@ -358,22 +381,18 @@ function createPlayer(location) {
           break;
         case this.DEATH_STATE:
           this.state_timer = 25;
-          gamestate.current_message.cancel();
           var string = Util.randomItem([
             ["Medical Alert","Cardiac arrest detected."],
           ]);
-          gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, string[0], string[1]);
-          gamestate.gameEntities.push(gamestate.current_message);
+          this.alertDialogue(gamestate, string[0], string[1]);
           break;
         case this.DYING_STATE:
           this.state_timer = 150+29;
-          gamestate.current_message.cancel();
           var string = Util.randomItem([
             ["Alice","What the hell is that?!"],
             ["Alice","Oh no!"]
           ]);
-          gamestate.current_message = createIncomingMessage(gamestate.bottom_panel, string[0], string[1]);
-          gamestate.gameEntities.push(gamestate.current_message);
+          this.alertDialogue(gamestate, string[0], string[1]);
           break;
         case this.MOVING_STATE:
           if (this.current_location.game_x == this.waypoint.game_x &&
@@ -726,7 +745,7 @@ function createDeathVeil()
     {
       if(this.percent < 100)
       {
-        this.percent++;
+        this.percent+=5;
       }
       else
       {

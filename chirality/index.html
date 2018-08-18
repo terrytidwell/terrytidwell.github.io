@@ -741,7 +741,7 @@ var GameScreen = {
       hud_panel.visible = true;
     }
     this.gamestate.gameEntities.push(createTimer(1, function() {
-      gamestate.player.suggestDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
+      gamestate.player.importantDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
     }));
   },
 
