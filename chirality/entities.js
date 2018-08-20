@@ -513,7 +513,48 @@ function createMonster(location, icon)
       }
     }
   };
-}
+};
+
+function createFloatey(x,radius)
+{
+  return {
+    x : x,
+    radius : radius,
+    y : Math.random(),
+    
+    theta : Math.random() * 2 * Math.PI,
+    handleTimeStep : function(gamestate)
+    {
+      this.y -= this.radius/60;
+      if (this.y < -this.radius)
+      {
+        this.y = 1+this.radius;
+      }
+      
+      this.theta += Math.PI * this.radius;
+      this.x += Math.cos(this.theta) * this.radius / 30;
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      var radius = Math.round(this.radius * canvas.height);
+      
+      var playerCenterX = Math.round(-canvas.width * 2 + (this.x) * canvas.height);
+      var playerCenterY = Math.round(this.y * canvas.height);
+      ctx.beginPath();
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.fillStyle = "rgb(0,0,0)"
+      ctx.shadowColor = "rgb(0,"+Math.round(1/this.radius)+",0)";
+      ctx.shadowBlur = Math.round(radius);
+      ctx.beginPath();
+      ctx.arc(playerCenterX, playerCenterY, radius, 0, 2 * Math.PI);
+      ctx.fill();
+    },
+    paintLevel : function()
+    {
+      return radius;
+    }
+  };
+};
 
 function createPlayerIcon(location, parent) {
   return {

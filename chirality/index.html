@@ -468,9 +468,9 @@ var DemoScreen = {
     this.gamestate.gameEntities.push(text);
     var menuContainer = createContainer(1/4 * g_aspect_ratio, 1/2, 1/2 * g_aspect_ratio, 2/8);
     var demoContainer = createContainer(3/4 * g_aspect_ratio, 15/16, 1/4 * g_aspect_ratio, 1/16);
-    this.gamestate.gameEntities.push(createText("demo v0.0", demoContainer.width, demoContainer.height/2, demoContainer.height, demoContainer, "right"));
+    this.gamestate.gameEntities.push(createText("demo v0.0 ", demoContainer.width, demoContainer.height/2, demoContainer.height, demoContainer, "right"));
     var demoContainer2 = createContainer(0, 15/16, 1/4 * g_aspect_ratio, 1/16);
-    this.gamestate.gameEntities.push(createText("VelociGames", 0, demoContainer2.height/2, demoContainer2.height, demoContainer2, "left"));
+    this.gamestate.gameEntities.push(createText(" VelociGames", 0, demoContainer2.height/2, demoContainer2.height, demoContainer2, "left"));
 
     this.gamestate.gameEntities.push(menuContainer);
     this.gamestate.gameEntities.push(createScanLine());
