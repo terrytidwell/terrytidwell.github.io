@@ -986,6 +986,11 @@ function createText(text, x, y, height, parent, align)
     text : text,
     align : align,
     alive : true,
+    color : "rgb(0,192,0)",
+    cancel : function ()
+    {
+      this.alive = false;
+    },
     active : function ()
     { 
       return this.alive;
@@ -1003,8 +1008,8 @@ function createText(text, x, y, height, parent, align)
       ctx.textAlign = this.align;
       ctx.textBaseline = "middle";
       ctx.shadowOffsetX = canvas.width * 2;
-      ctx.shadowColor = "rgb(0,192,0)";
-      var text_size = Math.round(this.height * INVERSE_PHI * canvas.height);
+      ctx.shadowColor = this.color
+      var text_size = Math.round(this.height * canvas.height);
       ctx.font = text_size + "px " + g_font;
         
       var text = this.text;
@@ -1018,6 +1023,175 @@ function createText(text, x, y, height, parent, align)
     paintLevel : function ()
     {
       return 1;
+    }
+  };
+};
+
+function createTerminal(x,y,width,height,parent)
+{
+  return {
+    x : x,
+    y : y,
+    width : width,
+    height : height,
+    parent : parent,
+    current_line : 0,
+    lines : [],
+    addBlankLine : function ()
+    {
+      this.current_line++;
+    },
+    clear : function()
+    {
+      for ( line in this.lines)
+      {
+        this.lines[line].cancel();
+        
+      }
+      this.lines = [];
+      this.current_line = 0;
+    },
+    addTypingText : function(text)
+    {
+      var line = createTypingText(
+        text,
+        1/30 * 1.5,
+        1/30 * (this.current_line + 1) + 1/30 * 1.5,
+        1/30,
+        this.parent,
+        "left");
+      line.blur();
+      line.text_element.color = "rgb(0,128,0)";
+      this.lines.push(line);
+      this.current_line++;
+    },
+    addText : function (text)
+    {
+      var line = createText(
+        text,
+        1/30 * 1.5,
+        1/30 * (this.current_line + 1) + 1/30 * 1.5,
+        1/30,
+        this.parent,
+        "left");
+      line.color = "rgb(0,128,0)";
+      line.blur = function () {};
+      line.focus = function () {};
+      line.completed = function () { return true; };
+      line.handleTimeStep = function () {};
+      this.lines.push(line);
+      this.current_line++;
+    },
+    completed : function ()
+    {
+      return this.lines[this.lines.length - 1].completed();
+    },
+    handleTimeStep : function ()
+    {
+      var focus_set = false;
+      for (let line = 0; line < this.lines.length; line++)
+      {
+        if (!focus_set &&
+          !this.lines[line].completed())
+        {
+          this.lines[line].focus();
+          focus_set = true;
+        }
+        else if (!focus_set && 
+          line === this.lines.length - 1)
+        {
+          this.lines[line].focus();
+          focus_set = true;
+        }
+        else
+        {
+          this.lines[line].blur();
+        }
+
+        this.lines[line].handleTimeStep();
+      }
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      for ( line in this.lines)
+      {
+        this.lines[line].paint(gamestate, layout, canvas, ctx);
+      }
+    },
+    paintLevel : function ()
+    {
+      return 1;
+    }
+  };
+};
+
+function createTypingText(text, x, y, height, parent, align)
+{
+  return {
+    x: x,
+    y : y,
+    height : height,
+    parent : parent,
+    text : text,
+    rendered_text : "",
+    align : align,
+    alive : true,
+    has_focus : false,
+    cursor_timer : 0,
+    text_element : createText("", x, y, height, parent, align),
+    type_timer : 1,
+    focus : function ()
+    {
+      this.has_focus = true;
+    },
+    blur : function ()
+    {
+      this.has_focus = false;
+    },
+    cancel : function ()
+    {
+      this.alive = false;
+    },
+    active : function ()
+    { 
+      return this.alive;
+    },
+    completed : function ()
+    {
+      return this.rendered_text.length === this.text.length;
+    },
+    handleTimeStep : function ()
+    {
+      if (!this.has_focus)
+      {
+        this.text_element.text = this.rendered_text;
+        return;
+      }
+      
+      if (this.type_timer > 0)
+      {
+        this.type_timer--;
+      }
+      
+      if (this.type_timer === 0)
+      {
+        if (this.rendered_text.length < this.text.length)
+        {
+          this.rendered_text += this.text.charAt(this.rendered_text.length);
+        }
+        this.type_timer = 1;
+      }
+      
+      this.cursor_timer++
+      this.text_element.text = this.rendered_text + ((Math.floor(this.cursor_timer / 10) % 2) == 0 && this.has_focus ? "_" : " ");
+    },
+    paint : function (gamestate, layout, canvas, ctx)
+    {
+      this.text_element.paint(gamestate, layout, canvas, ctx);
+    },
+    paintLevel : function ()
+    {
+      this.text_element.paintLevel();
     }
   };
 };
