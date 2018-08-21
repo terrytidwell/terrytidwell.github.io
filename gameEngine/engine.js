@@ -135,7 +135,7 @@ var createJutGameEngine = function(new_canvas) {
 //private:
   var canvas = new_canvas;
   var current_screen = resourceTracker;
-  var ctx = new_canvas.getContext("2d");;
+  var ctx = new_canvas.getContext("2d");
   var FPS = 25;
   var MILLIS_PER_SECOND = 1000;
   var screens = [];

@@ -218,31 +218,31 @@ var Intro = {
   {
     this.gamestate = 
     {
-      gameEntities : []
+      gameEntities : [],
+      game_events : createScriptedEvent()
     };
     var bg_container = createContainer(0,0,g_aspect_ratio,1);
     this.gamestate.gameEntities.push(bg_container);
     var console = createTerminal(0,0,g_aspect_ratio, 1, bg_container);
     console.addTypingText("");
     this.gamestate.gameEntities.push(console);
-    
-    this.game_events = [];
+    var game_events = this.gamestate.game_events;
     var intro_screen = this;
-    this.game_events.push(createTimer(40, function() {
+    game_events.push(createTimer(40, function() {
       console.clear();
       console.addTypingText("rift activity detected");
     }));
-    this.game_events.push(createConditionalEvent(function () { return console.completed(); }, 
+    game_events.push(createConditionalEvent(function () { return console.completed(); }, 
       function () {}));
-    this.game_events.push(createTimer(80, function () { 
+    game_events.push(createTimer(80, function () { 
       console.clear();
       console.addTypingText("");
     }));
-    this.game_events.push(createTimer(40, function () {
+    game_events.push(createTimer(40, function () {
       console.clear();
       console.addTypingText("starting primary systems");
     }));
-    this.game_events.push(createTimer(40, function () { 
+    game_events.push(createTimer(40, function () { 
       console.addBlankLine("");
       console.addBlankLine("");
       console.addTypingText("power generators online"); 
@@ -251,9 +251,9 @@ var Intro = {
       console.addTypingText("enviromental monitoring online");
       console.addTypingText("speech recoginition interface online");
     }));
-    this.game_events.push(createConditionalEvent(function () { return console.completed(); }, 
+    game_events.push(createConditionalEvent(function () { return console.completed(); }, 
       function () {}));
-    this.game_events.push(createTimer(80, function () { 
+    game_events.push(createTimer(80, function () { 
       var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
       intro_screen.gamestate.gameEntities.push(mainContainer);
       intro_screen.gamestate.bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
@@ -262,7 +262,7 @@ var Intro = {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "incoming message...", "")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
-    this.game_events.push(createConditionalEvent(function () {
+    game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
       console.clear();
@@ -270,7 +270,7 @@ var Intro = {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm ... stepping through the ... now... Preparing for ...")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
-    this.game_events.push(createConditionalEvent(function () {
+    game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
       console.clear();
@@ -278,31 +278,31 @@ var Intro = {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "... about ... to cross ... barrier ...")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
-    this.game_events.push(createConditionalEvent(function () {
+    game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {}));
-    this.game_events.push(createTimer(25, function () {
+    game_events.push(createTimer(25, function () {
       console.clear();
       console.addTypingText("");
     }));
-    this.game_events.push(createTimer(25, function () {
+    game_events.push(createTimer(25, function () {
       console.clear();
       console.addTypingText("rift breached");
     }));
-    this.game_events.push(createTimerLoop(15, function () {
+    game_events.push(createTimerLoop(15, function () {
       intro_screen.gamestate.degauss.bounce = 10;
     }));
-    this.game_events.push(createConditionalEvent(function () {
+    game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm through! This is Alice, I'm trying to uplink to you now.")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
-    this.game_events.push(createTimer(50, function () {
+    game_events.push(createTimer(50, function () {
       console.clear();
       console.addTypingText("remote uplink detected");
     }));
-    this.game_events.push(createConditionalEvent(function () {
+    game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "I'm connected! Computer are you there?")
@@ -310,28 +310,20 @@ var Intro = {
     }));
     
     //GAME TIME!
-    this.game_events.push(createTimer(50, function () {
+    game_events.push(createTimer(50, function () {
       intro_screen.jut.switchToScreen(GameScreen);
     }));
     
     
-    this.gamestate.gameEntities.push(this.game_events[0]);
+    game_events.start(this.gamestate);
+    this.gamestate.gameEntities.push(game_events);
     this.gamestate.degauss = createDeGauss();
     this.gamestate.gameEntities.push(this.gamestate.degauss);
     this.gamestate.gameEntities.push(createLcdLines());
     this.gamestate.gameEntities.push(createScanLine());
   },
   handleTimeStep: function ()
-  {
-    if(this.game_events.length !== 0 && !this.game_events[0].active())
-    {
-      this.game_events.shift();
-      if(this.game_events.length !== 0)
-      {
-        this.gamestate.gameEntities.push(this.game_events[0]);
-      }
-    }
-    
+  {    
     for (var i = 0; i < this.gamestate.gameEntities.length; i++)
     {
       if(this.gamestate.gameEntities[i].handleTimeStep)
@@ -377,7 +369,7 @@ var Intro = {
     {
       if (this.gamestate.gameEntities[i].paint)
       {
-        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+        this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
       }
     }
   }
@@ -395,8 +387,6 @@ var DemoScreen = {
   // from Screen
   reset: function ()
   {
-    //stores information about graphical layout
-    this.layout = null;
     this.mouse_click_event = false;
     this.mouse_click_x = 0;
     this.mouse_click_y = 0;
@@ -532,7 +522,7 @@ var DemoScreen = {
     {
       if (this.gamestate.gameEntities[i].paint)
       {
-        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+        this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
       }
     }
   }
@@ -550,8 +540,6 @@ var GameScreen = {
   // from Screen
   reset: function ()
   {
-    //stores information about graphical layout
-    this.layout = null;
     this.mouse_click_event = false;
     this.mouse_click_x = 0;
     this.mouse_click_y = 0;
@@ -873,7 +861,7 @@ var GameScreen = {
     {
       if (this.gamestate.gameEntities[i].paint)
       {
-        this.gamestate.gameEntities[i].paint(this.gamestate,this.layout,canvas,ctx);
+        this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
       }
     }
   }

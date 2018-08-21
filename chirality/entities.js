@@ -8,7 +8,7 @@ function createContainer(x,y,width,height) {
     {
       return true;
     },
-    paint : function (gamestate, layout, canvas, context)
+    paint : function (gamestate, canvas, context)
     {
     },
     paintLevel : function()
@@ -25,7 +25,7 @@ function createPanel(x, y, width, height, parent) {
     width: width * parent.width,
     height: height * parent.height,
     visible: true,
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if (!this.visible)
       {
@@ -64,7 +64,7 @@ function createScanSquare(x, y, width, height, parent, game_x, game_y) {
     parent : parent,
     width: width,
     height: height,
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!parent.visible)
       {
@@ -136,7 +136,7 @@ function createMapSquare(x,y,width,height,parent, game_x, game_y) {
         gamestate.player.setWaypoint(this);
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!parent.visible)
       {
@@ -534,7 +534,7 @@ function createFloatey(x,radius)
       this.theta += Math.PI * this.radius;
       this.x += Math.cos(this.theta) * this.radius / 30;
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       var radius = Math.round(this.radius * canvas.height);
       
@@ -582,7 +582,7 @@ function createPlayerIcon(location, parent) {
     {
       this.location = location;
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!this.parent.visible)
       {
@@ -661,7 +661,7 @@ function createMonsterIcon(location, parent) {
     {
       this.location = location;
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!this.parent.visible)
       {
@@ -735,7 +735,7 @@ function createScanLine() {
         this.y = 0;
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
       ctx.strokeStyle = "rgba(0,0,0,.25)";
@@ -763,7 +763,7 @@ function createDeGauss()
         this.bounce = 5;
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if (this.bounce <= 0)
       {
@@ -787,7 +787,7 @@ function createDeGauss()
 function createLcdLines()
 {
   return {
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       ctx.lineWidth = Math.max(1, Math.round(canvas.height/400));
       ctx.strokeStyle = "rgba(0,0,0,.25)";
@@ -810,7 +810,7 @@ function createDeathVeil()
 {
   return {
     percent : 0,
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(this.percent < 100)
       {
@@ -884,6 +884,35 @@ function createMap(gamestate, map_panel, scan_panel)
   }
 };
 
+function createScriptedEvent()
+{
+  return {
+    script : [],
+    push : function(event)
+    {
+      this.script.push(event);
+    },
+    handleTimeStep : function (gamestate)
+    {
+      if (this.script.length !== 0 && !this.script[0].active())
+      {
+        this.script.shift();
+        if (this.script.length !== 0)
+        {
+          gamestate.gameEntities.push(this.script[0]);
+        }
+      }
+    },
+    start : function(gamestate)
+    {
+      if (this.script.length > 0)
+      {
+        gamestate.gameEntities.push(this.script[0]);
+      }
+    }
+  };
+};
+
 function createRepairHud(game_x,game_y,parent,icon)
 {
   return {
@@ -894,7 +923,7 @@ function createRepairHud(game_x,game_y,parent,icon)
     percent_completed : 0,
     total_percent : 600,
     icon : icon,
-    text : createText("-", parent.width/2, parent.height/2, 1/30, parent, "center"),
+    text : createText("-", parent.width/2, parent.height/2, 1/30 * INVERSE_PHI, parent, "center"),
     handleTimeStep : function(gamestate)
     {
       if (this.selected && parent.visible)
@@ -916,10 +945,10 @@ function createRepairHud(game_x,game_y,parent,icon)
         this.icon.alive = false;
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       this.text.text = "repaired " + Math.round(this.percent_completed / this.total_percent * 100) + "%";
-      this.text.paint(gamestate, layout, canvas, ctx);
+      this.text.paint(gamestate,  canvas, ctx);
     },
   };
 };
@@ -950,7 +979,7 @@ function createHudHolder(parent)
         this.huds[hud].handleTimeStep();
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!parent.visible)
       {
@@ -961,12 +990,12 @@ function createHudHolder(parent)
       {
         for (object in this.default_objects)
         {
-          this.default_objects[object].paint(gamestate, layout, canvas, ctx);
+          this.default_objects[object].paint(gamestate,  canvas, ctx);
         }
       }
       else
       {
-        this.selected_hud.paint(gamestate, layout, canvas, ctx);
+        this.selected_hud.paint(gamestate,  canvas, ctx);
       }
     },
     paintLevel : function ()
@@ -995,7 +1024,7 @@ function createText(text, x, y, height, parent, align)
     { 
       return this.alive;
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!parent.visible)
       {
@@ -1111,11 +1140,11 @@ function createTerminal(x,y,width,height,parent)
         this.lines[line].handleTimeStep();
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       for ( line in this.lines)
       {
-        this.lines[line].paint(gamestate, layout, canvas, ctx);
+        this.lines[line].paint(gamestate,  canvas, ctx);
       }
     },
     paintLevel : function ()
@@ -1185,9 +1214,9 @@ function createTypingText(text, x, y, height, parent, align)
       this.cursor_timer++
       this.text_element.text = this.rendered_text + ((Math.floor(this.cursor_timer / 10) % 2) == 0 && this.has_focus ? "_" : " ");
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
-      this.text_element.paint(gamestate, layout, canvas, ctx);
+      this.text_element.paint(gamestate,  canvas, ctx);
     },
     paintLevel : function ()
     {
@@ -1242,7 +1271,7 @@ function createMenuItems(name, parent, x, width, y, height)
         gamestate.menu_handler[this.name]();
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       if(!parent.visible)
       {
@@ -1415,7 +1444,7 @@ function createIncomingMessage(panel, sender, message)
         this.outro_timer--
       }
     },
-    paint : function (gamestate, layout, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
