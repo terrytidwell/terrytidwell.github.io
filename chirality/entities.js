@@ -165,12 +165,13 @@ function createMapSquare(x,y,width,height,parent, game_x, game_y) {
 
 function createPlayer(location) {
   return {
+    INITIAL_STATE : -1,
     WAITING_STATE : 0,
     MOVING_STATE : 1,
     DYING_STATE : 2,
     DEATH_STATE : 3,
     GAME_OVER_STATE : 4,
-    state : 0,
+    state : -1,
     state_timer : 0,
     waypoint_signal_waiting : false,
     waypoint_signal : null,
@@ -863,23 +864,6 @@ function createMap(gamestate, map_panel, scan_panel)
       var scanSquare = createScanSquare(box_bound_x, box_bound_y, unit*5, unit*5, scan_panel, x, y);
       gamestate.gameEntities.push(scanSquare);
       gamestate.radar[x].push(mapSquare);
-      if (x === 0 && y === 0)
-      {
-        gamestate.player_marker = createPlayerIcon(mapSquare, map_panel);
-        gamestate.player_radar = createMonsterIcon(scanSquare, scan_panel);
-        gamestate.player = createPlayer(mapSquare);
-        gamestate.gameEntities.push(gamestate.player_marker);
-        gamestate.gameEntities.push(gamestate.player);
-        gamestate.gameEntities.push(gamestate.player_radar);
-      }
-      if (x === 3 && y === 3 || x === 0 && y === 3)
-      {
-        var monster_icon = createMonsterIcon(scanSquare, scan_panel);
-        var monster = createMonster(mapSquare, monster_icon);
-        gamestate.gameEntities.push(monster_icon);
-        gamestate.gameEntities.push(monster);
-        gamestate.monsters.push(monster);
-      }
     }
   }
 };
@@ -958,7 +942,7 @@ function createHudHolder(parent)
   return {
     parent : parent,
     default_objects : [
-      createText("no signal", parent.width/2, parent.height/2, 1/30, parent, "center")
+      createText("no signal", parent.width/2, parent.height/2, 1/30 * INVERSE_PHI, parent, "center")
     ],
     huds : [],
     hud_indicator : [],

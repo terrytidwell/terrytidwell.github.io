@@ -221,6 +221,8 @@ var Intro = {
       gameEntities : [],
       game_events : createScriptedEvent()
     };
+    var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150);
+    this.gamestate.gameEntities.push(mainContainer);
     var bg_container = createContainer(0,0,g_aspect_ratio,1);
     this.gamestate.gameEntities.push(bg_container);
     var console = createTerminal(0,0,g_aspect_ratio, 1, bg_container);
@@ -228,6 +230,7 @@ var Intro = {
     this.gamestate.gameEntities.push(console);
     var game_events = this.gamestate.game_events;
     var intro_screen = this;
+    
     game_events.push(createTimer(40, function() {
       console.clear();
       console.addTypingText("rift activity detected");
@@ -242,15 +245,30 @@ var Intro = {
       console.clear();
       console.addTypingText("starting primary systems");
     }));
+    game_events.push(createConditionalEvent(function () { return console.completed(); }, 
+      function () {}));
+    game_events.push(createTimer(80, function () { 
+      console.clear();
+      console.addTypingText("");
+    }));
+    game_events.push(createTimer(40, function () {
+      console.clear();
+      console.addTypingText("WARNING: multiple system failures detected");
+    }));
+    game_events.push(createConditionalEvent(function () { return console.completed(); }, 
+      function () {}));
     game_events.push(createTimer(40, function () { 
       console.addBlankLine("");
       console.addBlankLine("");
-      console.addTypingText("power generators online"); 
-      console.addTypingText("cognitive engine online");
-      console.addTypingText("system interface online");
-      console.addTypingText("enviromental monitoring online");
-      console.addTypingText("speech recoginition interface online");
+      console.addTypingText("main power generators           OFFLINE"); 
+      console.addTypingText("emergency power supply           online"); 
+      console.addTypingText("cognitive engine                 online");
+      console.addTypingText("speech recoginition interface    online");
+      console.addTypingText("language synthesis              OFFLINE");
+      console.addTypingText("remote uplink                    online");
+      console.addTypingText("environment monitor             OFFLINE");
     }));
+    
     game_events.push(createConditionalEvent(function () { return console.completed(); }, 
       function () {}));
     game_events.push(createTimer(80, function () { 
@@ -262,6 +280,7 @@ var Intro = {
       intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "incoming message...", "")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
+
     game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
@@ -295,7 +314,7 @@ var Intro = {
     game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
-      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm through! This is Alice, I'm trying to uplink to you now.")
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Unknown Sender", "I'm through! Computer, this is Alice, I'm trying to uplink to you now.")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
     game_events.push(createTimer(50, function () {
@@ -305,15 +324,108 @@ var Intro = {
     game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
-      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "I'm connected! Computer are you there?")
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "I'm connected! Computer, are you there?")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Computer!? Are you there?")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+      console.clear();
+      console.addTypingText("");
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Computer, if you can here me, I'm about to run a remote diagnostic on you.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+      console.clear();
+      console.addTypingText("");
+    }));
+    game_events.push(createTimer(50, function () {
+      console.clear();
+      console.addTypingText("remote diagnostic initiated");
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "What happened to you?!")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+      console.clear();
+      console.addTypingText("");
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Thank God, your primary cognitive functions are intact.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "That's a good start, I wasn't looking forward to freezing to death out here in the dark.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Alright, I've got to get your main power restored, otherwise we're never going to be able to open the rift back home.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "My suit is showing a broken power relay a little north of here. I might be able to fix it I can get there.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "OK, I know the remote probes showed this place was dark, but it is pitch black out here. I'm going to patch you into my suit's navigation. Hold on.")
+      intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      console.clear();
+      console.addTypingText("remote transfer protocol intiated");
+    }));
+    game_events.push(createTimer(75, function () {
+      console.clear();
+      intro_screen.gamestate.degauss.bounce = 10;
+      
+      var left_panel = createPanel(0, 0, 1/4, 2/3, mainContainer);
+      intro_screen.gamestate.gameEntities.push(left_panel);
+      var map_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
+      map_panel.visible = true;
+      intro_screen.gamestate.gameEntities.push(map_panel);
+      var buttons = 6;
+      var divisions = 2 * buttons + buttons + 1;
+      var border = left_panel.height / divisions;
+      var button_height = border * 2;
+
+      var map_item = createMenuItems("Map", left_panel, border, left_panel.width - 2 * border,
+      border, button_height)
+      map_item.selected = true;
+      intro_screen.gamestate.gameEntities.push(map_item);
+    }));
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Let me load up the map of the local area. Give me a second.")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
     }));
     
     //GAME TIME!
+    game_events.push(createConditionalEvent(function () {
+      return !intro_screen.gamestate.current_message.active();
+    }, function () {
+    }));
     game_events.push(createTimer(50, function () {
       intro_screen.jut.switchToScreen(GameScreen);
     }));
-    
     
     game_events.start(this.gamestate);
     this.gamestate.gameEntities.push(game_events);
@@ -553,17 +665,20 @@ var GameScreen = {
       gameEntities: [],
       player: null,
       player_marker : null,
+      script : createScriptedEvent(),
       player_radar : null,
       menu_handler: {},
       current_message: {cancel: function() {}, active: function () { return false; }},
       bottom_panel : null,
       map : [],
       radar : [],
-      monsters : []
+      monsters : [],
+      objectives : []
     };
     var gamestate = this.gamestate;
+    var script = gamestate.script;
     
-    var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150)
+    var mainContainer = createContainer(1/150, 1/150, g_aspect_ratio - 2/150, 1 - 2/150);
     gamestate.gameEntities.push(mainContainer);
     var left_panel = createPanel(0, 0, 1/4, 2/3, mainContainer);
     gamestate.gameEntities.push(left_panel);
@@ -575,7 +690,6 @@ var GameScreen = {
     gamestate.gameEntities.push(scan_panel);
     var hud_panel = createPanel(1/4, 0, 3/4, 2/3, mainContainer);
     hud_panel.visible = false;
-
     
     var bottom_panel = createPanel(0, 2/3, 1, 1/3, mainContainer);
     
@@ -586,124 +700,7 @@ var GameScreen = {
     gamestate.gameEntities.push(hud_panel);
     
     var hud_holder = createHudHolder(hud_panel);
-    var mapSquare = gamestate.map[2][1];
-    var unit = mapSquare.width / 5;
-    var objectives = [];
-    var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    gamestate.gameEntities.push(icon);
-    objectives.push(icon);
-    hud_holder.huds.push(createRepairHud(2,1,hud_panel,icon));
-    mapSquare = gamestate.map[3][2];
-    unit = mapSquare.width / 5;
-    icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    gamestate.gameEntities.push(icon);
-    objectives.push(icon);
-    hud_holder.huds.push(createRepairHud(3,2,hud_panel,icon));
-    mapSquare = gamestate.map[1][2];
-    unit = mapSquare.width / 5;
-    icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-    gamestate.gameEntities.push(icon);
-    objectives.push(icon);
-    hud_holder.huds.push(createRepairHud(1,2,hud_panel,icon));
     gamestate.gameEntities.push(hud_holder);
-
-    gamestate.gameEntities.push(createConditionalEvent(
-      function () {
-        var count = 0;
-        for (objective in objectives)
-        {
-          if (objectives[objective].active())
-          {
-            count++;
-          }
-        };
-        return count === 2;
-      },
-      function () 
-      {
-        gamestate.player.importantDialogue(gamestate, "Alice", "That's fixed, two more to go.");
-      }
-    ));
-    
-    gamestate.gameEntities.push(createConditionalEvent(
-      function () {
-        var count = 0;
-        for (objective in objectives)
-        {
-          if (objectives[objective].active())
-          {
-            count++;
-          }
-        };
-        return count === 1;
-      },
-      function () 
-      {
-        gamestate.player.importantDialogue(gamestate, "Alice", "Get me to the last generator and I can get out of here.");
-      }
-    ));
-    
-    gamestate.gameEntities.push(createConditionalEvent(
-      function () {
-        var count = 0;
-        for (objective in objectives)
-        {
-          if (objectives[objective].active())
-          {
-            count++;
-          }
-        };
-        return count === 0;
-      },
-      function ()
-      {
-        gamestate.player.importantDialogue(gamestate, "Alice", "That's the last generator. You should have enough power to open the door.");
-        var mapSquare = gamestate.map[0][0];
-        var scanSquare = gamestate.map[0][0];
-        var unit = mapSquare.width / 5;
-        var objectives = [];
-        var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2, map_panel, "center");
-        gamestate.gameEntities.push(icon);
-        objectives.push(icon);
-        hud_holder.huds.push(createRepairHud(0,0,hud_panel,icon));
-        var monster_icon = createMonsterIcon(scanSquare, scan_panel);
-        var monster = createMonster(mapSquare, monster_icon);
-        gamestate.gameEntities.push(monster_icon);
-        gamestate.gameEntities.push(monster);
-        gamestate.monsters.push(monster);
-        gamestate.gameEntities.push(createConditionalEvent(
-          function () {
-            var count = 0;
-            for (objective in objectives)
-            {
-              if (objectives[objective].active())
-              {
-                count++;
-              }
-            };
-            return count === 0;
-          },
-          function () 
-          {
-            gamestate.player_marker.cancel();
-            for (monster in gamestate.monsters)
-            {
-              gamestate.monsters[monster].cancel();
-            }
-            gamestate.player.importantDialogue(gamestate, "Alice", "I've made it!");
-            var message = gamestate.current_message;
-            gamestate.gameEntities.push(createConditionalEvent(
-              function () {
-                return !message.active();
-              },
-              function () {
-                gamestate.gameEntities.push(createDeathVeil());
-              }
-            ));
-          }
-        ));
-      }
-    ));
 
     gamestate.gameEntities.push(createScanLine());
     gamestate.gameEntities.push(createDeGauss());
@@ -723,15 +720,301 @@ var GameScreen = {
     gamestate.gameEntities.push(map_item);
     menu_items.push(map_item);
     
-    var scan_item = createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
-      button_height + 2*border, button_height);
-    gamestate.gameEntities.push(scan_item);
-    menu_items.push(scan_item);
-    
     var hud_item = createMenuItems("Hud", left_panel, border, left_panel.width - 2 * border,
       2*button_height + 3*border, button_height);
-    gamestate.gameEntities.push(hud_item);
-    menu_items.push(hud_item);
+      menu_items.push(hud_item);
+    
+    var scan_item = createMenuItems("Scan", left_panel, border, left_panel.width - 2 * border,
+      button_height + 2*border, button_height);
+    menu_items.push(scan_item);
+    
+    var mapSquare = gamestate.map[1][3];
+    var scanSquare = gamestate.map[1][3];
+    gamestate.player_marker = createPlayerIcon(mapSquare, map_panel);
+    gamestate.player_radar = createMonsterIcon(scanSquare, scan_panel);
+    gamestate.player = createPlayer(mapSquare);
+    
+    gamestate.player.importantDialogue(gamestate, "Alice", "Good, looks like the rift opened up right where we wanted it to. It looks like we're in the main courtyard.");
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Let me turn on my location beacon so you can see me.");
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.gameEntities.push(gamestate.player_marker);
+        gamestate.gameEntities.push(gamestate.player_radar);
+        gamestate.player.importantDialogue(gamestate, "Alice", "There.");
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Let me mark the location where my suit shows the power signal.");
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        var mapSquare = gamestate.map[0][0];
+        var scanSquare = gamestate.map[0][0];
+        var unit = mapSquare.width / 5;
+        var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2*INVERSE_PHI, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        gamestate.objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(0,0,hud_panel,icon));
+        gamestate.player.importantDialogue(gamestate, "Alice", "Perfect.");
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Now you should be able to navigate me up there.");
+        gamestate.player.state = gamestate.player.WAITING_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return gamestate.player.current_location === gamestate.map[0][0];
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Ok, I see the broken power conduit. My God, what happened here, the whole things seems torn open.");
+        gamestate.player.state = gamestate.player.INITIAL_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return gamestate.player.current_location === gamestate.map[0][0];
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "This looks like it's the entrance to your central power systems. We'll need to restore auxilary power and fix this conduit to get in.");
+        gamestate.player.state = gamestate.player.INITIAL_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Alright, so I've got no idea how to fix this.");
+        gamestate.player.state = gamestate.player.WAITING_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "But, with your help I bet we could repair this. I'm going to patch you into my head's up display. You should be able to guide me through the repairs that way.");
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Let's do this, then.");
+        gamestate.player.state = gamestate.player.WAITING_STATE;
+        gamestate.gameEntities.push(hud_item);
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in gamestate.objectives)
+        {
+          if (gamestate.objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 0;
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "There should be some auxilary generators out here that we can use to get the facility door open. Let me look them up.");
+        gamestate.player.state = gamestate.player.INITIAL_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
+    
+        gamestate.objectives = [];
+        var mapSquare = gamestate.map[2][1];
+        var unit = mapSquare.width / 5;
+        var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2*INVERSE_PHI, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        gamestate.objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(2,1,hud_panel,icon));
+        mapSquare = gamestate.map[3][2];
+        unit = mapSquare.width / 5;
+        icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2*INVERSE_PHI, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        gamestate.objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(3,2,hud_panel,icon));
+        mapSquare = gamestate.map[1][2];
+        unit = mapSquare.width / 5;
+        icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2*INVERSE_PHI, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        gamestate.objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(1,2,hud_panel,icon));
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        return !gamestate.current_message.active();
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "By the way, good news, repairing the power conduit seems to have restored your motion scanners.");
+    
+        gamestate.gameEntities.push(scan_item);
+        gamestate.player.state = gamestate.player.INITIAL_STATE;
+        var mapSquare = gamestate.map[0][3];
+        var monster_icon = createMonsterIcon(scanSquare, scan_panel);
+        var monster = createMonster(mapSquare, monster_icon);
+        gamestate.gameEntities.push(monster_icon);
+        gamestate.gameEntities.push(monster);
+        gamestate.monsters.push(monster);
+        mapSquare = gamestate.map[3][3];
+        monster_icon = createMonsterIcon(scanSquare, scan_panel);
+        monster = createMonster(mapSquare, monster_icon);
+        gamestate.gameEntities.push(monster_icon);
+        gamestate.gameEntities.push(monster);
+        gamestate.monsters.push(monster);
+        gamestate.player.state = gamestate.player.WAITING_STATE;
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in gamestate.objectives)
+        {
+          if (gamestate.objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 2;
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "That's fixed, two more to go.");
+      }
+    ));
+    
+    script.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in gamestate.objectives)
+        {
+          if (gamestate.objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 1;
+      },
+      function () 
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "Get me to the last generator and I can get out of here.");
+      }
+    ));
+    
+    script.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in gamestate.objectives)
+        {
+          if (gamestate.objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 0;
+      },
+      function ()
+      {
+        gamestate.player.importantDialogue(gamestate, "Alice", "That's the last generator. You should have enough power to open the door.");
+        var mapSquare = gamestate.map[0][0];
+        var scanSquare = gamestate.map[0][0];
+        var unit = mapSquare.width / 5;
+        gamestate.objectives = [];
+        var icon = createText("!", mapSquare.x + 4*unit, mapSquare.y + unit, unit*2*INVERSE_PHI, map_panel, "center");
+        gamestate.gameEntities.push(icon);
+        gamestate.objectives.push(icon);
+        hud_holder.huds.push(createRepairHud(0,0,hud_panel,icon));
+        var monster_icon = createMonsterIcon(scanSquare, scan_panel);
+        var monster = createMonster(mapSquare, monster_icon);
+        gamestate.gameEntities.push(monster_icon);
+        gamestate.gameEntities.push(monster);
+        gamestate.monsters.push(monster);
+      }
+    ));
+    script.push(createConditionalEvent(
+      function () {
+        var count = 0;
+        for (objective in gamestate.objectives)
+        {
+          if (gamestate.objectives[objective].active())
+          {
+            count++;
+          }
+        };
+        return count === 0;
+      },
+      function () 
+      {
+        gamestate.player_marker.cancel();
+        gamestate.player_radar.cancel();
+        for (monster in gamestate.monsters)
+        {
+          gamestate.monsters[monster].cancel();
+        }
+        gamestate.player.importantDialogue(gamestate, "Alice", "I've made it!");
+        var message = gamestate.current_message;
+        gamestate.gameEntities.push(createConditionalEvent(
+          function () {
+            return !message.active();
+          },
+          function () {
+            gamestate.gameEntities.push(createDeathVeil());
+          }
+        ));
+      }
+    ));
+    
+    gamestate.gameEntities.push(gamestate.player);
+    gamestate.gameEntities.push(script);
+    script.start(gamestate);
+        
     gamestate.menu_handler["Map"] = function() {
       for (menu_item in menu_items)
       {
@@ -743,7 +1026,7 @@ var GameScreen = {
       }
       map_item.selected = true;
       map_panel.visible = true;
-    }
+    };
     gamestate.menu_handler["Scan"] = function() {
       for (menu_item in menu_items)
       {
@@ -755,7 +1038,7 @@ var GameScreen = {
       }
       scan_item.selected = true;
       scan_panel.visible = true;
-    }
+    };
     gamestate.menu_handler["Hud"] = function() {
       for (menu_item in menu_items)
       {
@@ -767,10 +1050,8 @@ var GameScreen = {
       }
       hud_item.selected = true;
       hud_panel.visible = true;
-    }
-    gamestate.gameEntities.push(createTimer(1, function() {
-      gamestate.player.importantDialogue(gamestate, "Alice", "I've marked the broken generators on the map. We need to fix them before you run out of power.");
-    }));
+    };
+
   },
 
   handleMouseDown: function(event)
