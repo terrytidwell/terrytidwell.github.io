@@ -60,11 +60,21 @@ var COLOR = {
   }
 };
 /*
+pastel
 .style-0 path { fill: #FF9900; }
 .style-1 path { fill: #424242; }
 .style-2 path { fill: #E9E9E9; }
 .style-3 path { fill: #BCBCBC; }
 .style-4 path { fill: #3299BB; }
+*/
+
+/*
+50'
+#6F491A
+#BCE7B1
+#0CB6AB
+#0189A1
+#FEFFB1
 */
 
 var SHAPE = {
@@ -348,21 +358,73 @@ function createShape(shape, color, fill, cardinality, x, y, size)
     y : y,
     size : size,
     alive : true,
+    rotation : 0,
+    intensity : 0, //.3,
+    offset : 0,
+    dy : 0,
     active : function()
     {
-      return alive;
+      return this.alive;
     },
     cancel : function ()
     {
-      alive = false;
+      this.alive = false;
+    },
+    handleTimeStep(gamestate)
+    {
+      this.rotation-=.25;
+      if (this.offset > 0)
+      {
+        this.dy += 1/128;
+        this.offset-=this.dy;
+        if (this.offset <= 0)
+        {
+          this.offset = 0;
+          this.intensity = .2;
+          this.rotation = 0;
+        }
+      }
+      
+      var current_rotation = 0;
+      if (this.intensity > 0)
+      {
+        this.intensity*=.90;
+      }
+      if (this.intensity < 0.005)
+      {
+        this.intensity = 0;
+      }
     },
     paint : function(gamestate, canvas, ctx)
     {
       var x = this.x * canvas.height;
-      var y = this.y * canvas.height;
+      var y = (this.y - this.offset) * canvas.height;
       var size = this.size * canvas.height;
       
+      ctx.save();
+      var current_rotation = 0;
+      if (this.intensity !== 0)
+      {
+        current_rotation = this.intensity*Math.sin(this.rotation);
+      }
+      if(current_rotation < 0)
+      {
+        ctx.translate(x, y + size);
+        ctx.rotate(current_rotation);
+        x = 0;
+        y = -size;
+      }
+      else
+      {
+        ctx.translate(x + size, y + size);
+        ctx.rotate(current_rotation);
+        x = -size;
+        y = -size;
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x,y,size,size);
       paintCard(this.shape, this.color, this.fill, this.cardinality, x, y, size, ctx);
+      ctx.restore();
     }
   };
 };
@@ -374,12 +436,36 @@ function createBackground()
     paint : function(gamestate, canvas, ctx)
     {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#FFFFFF";
+      ctx.fillStyle = "#CBDBE0";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     },
     paintLevel : function ()
     {
       return PAINT_LEVEL.BG;
+    }
+  };
+};
+
+function createTimer(timeout, event)
+{
+  return {
+    timeout : timeout,
+    event : event,
+    active : function()
+    {
+      return this.timeout > 0;
+    },
+    handleTimeStep : function()
+    {
+      if (this.timeout > 0)
+      {
+        this.timeout--;
+      }
+      
+      if (this.timeout === 0)
+      {
+        this.event()
+      }
     }
   };
 };
