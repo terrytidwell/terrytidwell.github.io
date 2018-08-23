@@ -38,7 +38,10 @@ const Util = {
 
 //------------------------------------------------------------------------
 var PAINT_LEVEL = {
-  BG : -1
+  BG : -1,
+  FG : 1,
+  HUD_BG : 2,
+  HUD : 3
 };
 
 var COLOR = {
@@ -134,6 +137,39 @@ function changeProperty(property)
   return (property + 1 + Math.floor(Math.random() * 2)) % 3;
 }
 
+function compareElements(a, b, c)
+{
+  if (a == c)
+  {
+    if (a != b)
+    {
+      return false;
+    }
+  }
+  else
+  {
+    if (a + b + c != 3)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+function detectSet3Cards(card1, card2, card3)
+{
+  return compareElements(card1.cardinality, card2.cardinality, card3.cardinality) &&
+    compareElements(card1.shape, card2.shape, card3.shape) &&
+    compareElements(card1.color, card2.color, card3.color) &&
+    compareElements(card1.fill, card2.fill, card3.fill);
+}
+
+function detectSet(cards)
+{
+  return detectSet3Cards(cards[0], cards[1], cards[2]);
+}
+
+//-----------------------------------------------------------------
 function createCompletingShape(shape1, shape2, x, y, size)
 {
   return createShape(
@@ -425,6 +461,57 @@ function createShape(shape, color, fill, cardinality, x, y, size)
       ctx.fillRect(x,y,size,size);
       paintCard(this.shape, this.color, this.fill, this.cardinality, x, y, size, ctx);
       ctx.restore();
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
+{
+  return {
+    x : x,
+    y : y,
+    size : size,
+    graphic : graphic,
+    highlighted : false,
+    handleMouseDown : function(x, y)
+    {
+      if (this.x <= x && x <= this.x + this.size &&
+        this.y <= y && y <= this.y + this.size)
+      {
+        this.highlighted = true;
+        onclick();
+      }
+    },
+    paint : function (gamestate, canvas, ctx)
+    {
+      var x = this.x * canvas.height;
+      var y = this.y * canvas.height;
+      var size = this.size * canvas.height;
+      ctx.lineWidth = size/26;
+      ctx.globalAlpha=.5;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(x,y,size + ctx.lineWidth,size + ctx.lineWidth);
+      ctx.globalAlpha=1;
+      ctx.fillStyle = this.highlighted ? highlight : bgcolor;
+      ctx.fillRect(x,y,size,size);
+      
+      ctx.strokeStyle = "#ffffff";
+      ctx.drawImage(this.graphic, x, y, size, size);
+      ctx.globalAlpha=.5;
+      ctx.beginPath();
+      ctx.moveTo(x + size - ctx.lineWidth, y + ctx.lineWidth);
+      ctx.lineTo(x + ctx.lineWidth, y + ctx.lineWidth);
+      ctx.lineTo(x + ctx.lineWidth, y + size - ctx.lineWidth);
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.HUD;
     }
   };
 };
@@ -433,7 +520,7 @@ function createShape(shape, color, fill, cardinality, x, y, size)
 function createBackground()
 {
   return {
-    paint : function(gamestate, canvas, ctx)
+    paint : function (gamestate, canvas, ctx)
     {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = "#CBDBE0";
