@@ -492,6 +492,89 @@ function paintShape (shape, rgb, fill, x, y, size, ctx)
   }
 };
 
+function createPanel()
+{
+  function drawScrew(center_x,center_y,radius,inner_radius,ctx)
+  {
+    ctx.fillStyle = "#505050";
+    ctx.beginPath();
+    ctx.arc(center_x,center_y,radius,0,2*Math.PI);
+    ctx.fill();
+    
+
+    
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(center_x, center_y, inner_radius,Math.PI,3/2*Math.PI);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(center_x+ctx.lineWidth/2,center_y + radius);
+    ctx.lineTo(center_x+ctx.lineWidth/2,center_y - radius);
+    ctx.stroke();
+    
+    ctx.strokeStyle = "#000000";
+    ctx.beginPath();
+    ctx.arc(center_x,center_y, radius,0,2*Math.PI);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(center_x,center_y + radius);
+    ctx.lineTo(center_x,center_y - radius);
+    ctx.stroke();
+  };
+  
+  return {
+    paint : function(gamestate, canvas, ctx)
+    {
+      ctx.fillStyle = "#424242"
+      ctx.fillRect(0,3/4*canvas.height,canvas.width,canvas.height);
+      /*var gradient = ctx.createLinearGradient(0,3/4*canvas.height,0,(3/4+1/64)*canvas.height);
+      gradient.addColorStop(0,"rgb(0,0,0)");
+      gradient.addColorStop(1,"#424242");
+      ctx.fillStyle = gradient;
+      */
+      ctx.lineWidth = 1/256 * canvas.height;
+      ctx.fillStyle = "#424242";
+      ctx.fillRect(0,3/4*canvas.height,canvas.width,canvas.height);
+      ctx.strokeStyle = "#000000";
+      ctx.strokeRect(0+ctx.lineWidth/2,3/4*canvas.height,canvas.width-ctx.lineWidth,canvas.height);
+      ctx.strokeStyle = "#606060";
+      ctx.beginPath();
+      ctx.moveTo(ctx.lineWidth*1.5,canvas.height);
+      ctx.lineTo(ctx.lineWidth*1.5,canvas.height*3/4+ctx.lineWidth)
+      ctx.lineTo(canvas.width - ctx.lineWidth,canvas.height*3/4+ctx.lineWidth)
+      ctx.stroke();
+      
+      /*
+      ctx.strokeStyle = "#000000";
+      ctx.beginPath();
+      ctx.moveTo(ctx.lineWidth*4.5,canvas.height);
+      ctx.lineTo(ctx.lineWidth*4.5,canvas.height*3/4+ctx.lineWidth*4)
+      ctx.lineTo(canvas.width - ctx.lineWidth*4.5,canvas.height*3/4+ctx.lineWidth*4)
+      ctx.lineTo(canvas.width - ctx.lineWidth*4.5,canvas.height)
+      ctx.stroke();
+      */
+      
+      ctx.lineWidth = 1/64 * canvas.height / 13;
+      var radius = 1/64 * canvas.height;
+      var center_x = radius * 2;
+      var center_y = 3/4*canvas.height + radius*2;
+      var inner_radius = 1/72 * canvas.height;
+      
+      drawScrew(center_x,center_y,radius,inner_radius,ctx);
+      
+      center_x = canvas.width - radius * 2;
+      
+      drawScrew(center_x,center_y,radius,inner_radius,ctx);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.HUD_BG;
+    }
+  };
+};
+
 function createWordButton(word, x, y, height, onclick)
 {
   return  {
@@ -507,7 +590,7 @@ function createWordButton(word, x, y, height, onclick)
     {
       if (this.x - this.last_width / 2 <= x &&
         x <= this.x + this.last_width / 2 &&
-        this.y - this.height <= y &&
+        this.y - this.height / 2 <= y &&
         y <= this.y + this.height / 2)
       {
         if (!this.highlighted)
@@ -539,7 +622,7 @@ function createWordButton(word, x, y, height, onclick)
       ctx.font = Math.round(height) + "px " + g_font;
       
       this.last_width = ctx.measureText(word).width / canvas.height;
-      ctx.fillStyle = this.highlighted ? COLOR.properties.getRgb(this.highlight) : "#FFFFF";
+      ctx.fillStyle = this.highlighted ? COLOR.properties.getRgb(this.highlight) : "#FFFFFF";
       
       ctx.fillText(this.word, Math.round(x), Math.round(y));
     },

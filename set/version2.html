@@ -37,6 +37,14 @@ var IntroScreen = createScreen(
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
       gamestate.jut.switchToScreen(GameScreen);
     }));
+    /*
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    */
   }
 );
 
@@ -55,6 +63,7 @@ var GameScreen = createScreen(
     };
     var gamestate = this.gamestate;
     gamestate.gameEntities.push(createBackground());
+    //gamestate.gameEntities.push(createPanel());
     var position = Util.shuffle([
       g_aspect_ratio/2 - 1/3 - 1/6 - 1/32,
       g_aspect_ratio/2 + 1/6 + 1/32,
