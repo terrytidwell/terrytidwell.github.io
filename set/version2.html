@@ -48,6 +48,47 @@ var IntroScreen = createScreen(
   }
 );
 
+var GameScreen2 = createScreen(
+  function ()
+  {
+    this.gamestate =
+    {
+      jut : this.jut,
+      gameEntities : [],
+      shapes : []
+    };
+    var gamestate = this.gamestate;
+    
+    gamestate.gameEntities.push(createBackground());
+    for (var x = -1.5; x <= 1.5; x+=1)
+    {
+      for (var y = -1; y <= 1 ; y+=1)
+      {
+        var size = 1/4*15/16;
+        var shape = createShape(
+        randomProperty(),
+        randomProperty(),
+        randomProperty(),
+        randomProperty(),
+        g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32),
+        1/2 + 1/4 * y - 1/8 + (size * 1/32),
+        size);
+        gamestate.gameEntities.push(shape);
+        gamestate.shapes.push(shape);
+      }
+    }
+    /*
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    */
+  }
+);
+
+
 //------------------------------------------------------------------------
 var GameScreen = createScreen(
   function ()
