@@ -46,6 +46,7 @@ var GameScreen = {
       gameEntities : [],
       shape_slots : [],
       falling_shape : { cancel : function(){} },
+      game_timer : null,
     };
     var gamestate = this.gamestate;
     
@@ -95,75 +96,117 @@ var GameScreen = {
     ]);
     gamestate.gameEntities.push(shape3);
     gamestate.shape_slots.push(shape3);
+    var next_shape = function () 
+    {
+      var isSet = detectSet(gamestate.shape_slots);
+      if ((!isSet || !accept.highlighted) && 
+       (isSet || !reject.highlighted))
+      {
+        score.update(0);
+      }
+      else
+      {
+        score.increment();
+      }
+      var shape = Util.shuffle(gamestate.shape_slots).shift();
+      shape.offset = 1;
+      shape.y -= -1;
+      gamestate.falling_shape.cancel();
+      gamestate.falling_shape = shape;
+      var new_shapes = 
+        Util.shuffle([
+          createDistinctShape(
+            gamestate.shape_slots[0],
+            gamestate.shape_slots[1],
+            shape.x,
+            1/2 - 1/6,
+            1/3),
+          createEvilRandomShape(
+            gamestate.shape_slots[0],
+            gamestate.shape_slots[1],
+            shape.x,
+            1/2 - 1/6,
+            1/3),
+          createCompletingShape(
+            gamestate.shape_slots[0],
+            gamestate.shape_slots[1],
+            shape.x,
+            1/2 - 1/6,
+            1/3),
+          createCompletingShape(
+            gamestate.shape_slots[0],
+            gamestate.shape_slots[1],
+            shape.x,
+            1/2 - 1/6,
+            1/3),
+        ]);
+      var new_shape = new_shapes.shift();
+      while (new_shape.shape === shape.shape &&
+        new_shape.color === shape.color &&
+        new_shape.cardinality === shape.cardinality &&
+        new_shape.fill === shape.fill)
+      {
+        new_shape = new_shapes.shift();
+      }
+      new_shape.offset = 1;
+      gamestate.gameEntities.push(new_shape);
+      gamestate.shape_slots.push(new_shape);
+      accept.highlighted = false;
+      reject.highlighted = false;
+    };
+    
+    /*
+    var game_timer = createTimer(
+      15, 
+      function() {
+        next_shape();
+        this.timeout = 75;
+      }
+    );
+    */
+    
     var accept = createButton(GlobalResources.graphic_components.accept,"#008000", "#00ff00", 
       function() {
         reject.highlighted = false;
+        if (!gamestate.game_timer)
+        {
+          /*
+          gamestate.game_timer = game_timer;
+          */
+          gamestate.game_timer = 
+            createTimer(
+              15, 
+              function() {
+                next_shape();
+                gamestate.game_timer = null;
+              }
+            );
+          gamestate.gameEntities.push(gamestate.game_timer);
+        }
       },1/32, 7/8-1/32, 1/8);
     gamestate.gameEntities.push(accept);
     var reject = createButton(GlobalResources.graphic_components.reject,"#800000", "#ff0000",
       function () {
         accept.highlighted = false;
+        if (!gamestate.game_timer)
+        {
+          /*
+          gamestate.game_timer = game_timer;
+          */
+          gamestate.game_timer = 
+            createTimer(
+              15, 
+              function() {
+                next_shape();
+                gamestate.game_timer = null;
+              }
+            );
+          gamestate.gameEntities.push(gamestate.game_timer);
+        }
       },2/32+1/8, 7/8-1/32, 1/8);
     gamestate.gameEntities.push(reject);
-    gamestate.gameEntities.push(createTimer(
-      150, 
-      function() {
-        var isSet = detectSet(gamestate.shape_slots);
-        if ((!isSet || !accept.highlighted) && 
-         (isSet || !reject.highlighted))
-        {
-          alert("oops");
-        }
-        var shape = Util.shuffle(gamestate.shape_slots).shift();
-        shape.offset = 1;
-        shape.y -= -1;
-        gamestate.falling_shape.cancel();
-        //console.log("Current entities: "+gamestate.gameEntities.length);
-        gamestate.falling_shape = shape;
-        var new_shapes = 
-          Util.shuffle([
-            createDistinctShape(
-              gamestate.shape_slots[0],
-              gamestate.shape_slots[1],
-              shape.x,
-              1/2 - 1/6,
-              1/3),
-            createEvilRandomShape(
-              gamestate.shape_slots[0],
-              gamestate.shape_slots[1],
-              shape.x,
-              1/2 - 1/6,
-              1/3),
-            createCompletingShape(
-              gamestate.shape_slots[0],
-              gamestate.shape_slots[1],
-              shape.x,
-              1/2 - 1/6,
-              1/3),
-            createCompletingShape(
-              gamestate.shape_slots[0],
-              gamestate.shape_slots[1],
-              shape.x,
-              1/2 - 1/6,
-              1/3),
-          ]);
-        var new_shape = new_shapes.shift();
-        while (new_shape.shape === shape.shape &&
-          new_shape.color === shape.color &&
-          new_shape.cardinality === shape.cardinality &&
-          new_shape.fill === shape.fill)
-        {
-          new_shape = new_shapes.shift();
-        }
-        new_shape.offset = 1;
-        gamestate.gameEntities.push(new_shape);
-        gamestate.shape_slots.push(new_shape);
-        //console.log("Is this a set? " + detectSet(gamestate.shape_slots));
-        accept.highlighted = false;
-        reject.highlighted = false;
-        this.timeout = 75;
-      }
-    ));
+    var score = createScore(g_aspect_ratio - 1/32, 7/8 + 1/16 - 1/64, 1/8);
+    gamestate.gameEntities.push(score);
   },
 
   handleMouseDown: function(event)
@@ -264,9 +307,6 @@ var init = function()
   
   /*
   GlobalResources.audio_components.m_bg = jut.loadAudio("Assets/Sound/CrunkKnight.mp3");
-  GlobalResources.audio_components.m_move = jut.loadAudio("Assets/Sound/Bounce-SoundBible.com-12678623.mp3");
-  GlobalResources.graphic_components.m_pieces = jut.loadImage("Assets/Graphics/Chess_pieces.png");
-  GlobalResources.graphic_components.m_gold = jut.loadImage("Assets/Graphics/coin_gold.png");
   */
   GlobalResources.graphic_components.reject = jut.loadImage("baseline_thumb_down_white_48dp.png");
   GlobalResources.graphic_components.accept = jut.loadImage("baseline_thumb_up_white_48dp.png");

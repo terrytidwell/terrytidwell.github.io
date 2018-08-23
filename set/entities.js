@@ -418,6 +418,7 @@ function createShape(shape, color, fill, cardinality, x, y, size)
           this.offset = 0;
           this.intensity = .2;
           this.rotation = 0;
+          this.dy = 0;
         }
       }
       
@@ -492,10 +493,19 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
       var y = this.y * canvas.height;
       var size = this.size * canvas.height;
       ctx.lineWidth = size/26;
-      ctx.globalAlpha=.5;
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(x,y,size + ctx.lineWidth,size + ctx.lineWidth);
-      ctx.globalAlpha=1;
+      
+      if (this.highlighted)
+      {
+        //x += ctx.lineWidth;
+        y += 2*ctx.lineWidth;
+      }
+      else
+      {
+        ctx.globalAlpha=.5;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(x, y + 2*ctx.lineWidth, size, size);
+        ctx.globalAlpha=1;  
+      }
       ctx.fillStyle = this.highlighted ? highlight : bgcolor;
       ctx.fillRect(x,y,size,size);
       
@@ -508,6 +518,62 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
       ctx.lineTo(x + ctx.lineWidth, y + size - ctx.lineWidth);
       ctx.stroke();
       ctx.globalAlpha=1;
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.HUD;
+    }
+  };
+};
+
+function createScore(x, y, height)
+{
+  return {
+    value : 0,
+    x : x,
+    y : y,
+    height : height,
+    timer : 0,
+    max_timer : 3,
+    direction : 0,
+    handleTimeStep : function(gamestate)
+    {
+      if (this.timer <= this.max_timer && this.timer >= 0)
+      {
+        this.timer+=this.direction;
+        if (this.timer >= this.max_timer)
+        {
+          this.timer = this.max_timer;
+          this.direction = -2;
+        }
+        if (this.timer <= 0)
+        {
+          this.timer = 0;
+          this.direction = 0;
+        }
+      }
+    },
+    increment()
+    {
+      this.value++;
+      this.direction = 1;
+    },
+    update(new_value)
+    {
+      this.value = new_value;
+      this.direction = 1;
+    },
+    paint : function (gamestate, canvas, ctx)
+    {
+      var growth = 1 + ((this.timer / this.max_timer) * .5);
+      var height = Math.round(growth * this.height * canvas.height);
+      var x = Math.round(this.x * canvas.height);
+      var y = Math.round(this.y * canvas.height);
+      ctx.font = height + "px " + g_font;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#000000";
+      ctx.fillText(this.value, x, y);
     },
     paintLevel : function()
     {

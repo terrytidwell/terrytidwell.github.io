@@ -683,7 +683,7 @@ function createMonsterIcon(location, parent) {
       
       ctx.shadowOffsetX = canvas.width * 2;
       ctx.fillStyle = "rgb(0,0,0)";
-      ctx.shadowColor = "rgb(0,255,0";
+      ctx.shadowColor = "rgb(0,255,0)";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       
