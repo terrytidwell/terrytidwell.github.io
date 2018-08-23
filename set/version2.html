@@ -20,26 +20,30 @@ var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
 
-//------------------------------------------------------------------------
-var GameScreen = {
-  //----------------------------------------------------------------------
-  init: function (jut)
+var IntroScreen = createScreen(
+  function ()
   {
-    this.jut = jut;
-  },
-
-  //----------------------------------------------------------------------
-  // from Screen
-  reset: function ()
-  {
-    this.mouse_click_event = false;
-    this.mouse_click_x = 0;
-    this.mouse_click_y = 0;
-    this.mouse_x = 0;
-    this.mouse_y = 0;
-    this.player_x = 0;
-    this.player_y = 0;
+    this.gamestate =
+    {
+      jut : this.jut,
+      gameEntities : [],
+    };
+    var gamestate = this.gamestate;
     
+    gamestate.gameEntities.push(createBackground());
+    gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+  }
+);
+
+//------------------------------------------------------------------------
+var GameScreen = createScreen(
+  function ()
+  {
     this.gamestate =
     {
       jut : this.jut,
@@ -47,9 +51,9 @@ var GameScreen = {
       shape_slots : [],
       falling_shape : { cancel : function(){} },
       game_timer : null,
+      started_music : false,
     };
     var gamestate = this.gamestate;
-    
     gamestate.gameEntities.push(createBackground());
     var position = Util.shuffle([
       g_aspect_ratio/2 - 1/3 - 1/6 - 1/32,
@@ -103,6 +107,15 @@ var GameScreen = {
        (isSet || !reject.highlighted))
       {
         score.update(0);
+        //GlobalResources.audio_components.reject.setVolume(20);
+        //GlobalResources.audio_components.reject.play();
+        gamestate.gameEntities.push(createTimer(
+          20,
+          function ()
+          {
+            //GlobalResources.audio_components.reject.stop();
+          }
+        ));
       }
       else
       {
@@ -168,6 +181,11 @@ var GameScreen = {
     var accept = createButton(GlobalResources.graphic_components.accept,"#008000", "#00ff00", 
       function() {
         reject.highlighted = false;
+        if (!gamestate.started_music)
+        {
+          //GlobalResources.audio_components.bg.play();
+          gamestate.started_music = true;
+        }
         if (!gamestate.game_timer)
         {
           /*
@@ -188,6 +206,11 @@ var GameScreen = {
     var reject = createButton(GlobalResources.graphic_components.reject,"#800000", "#ff0000",
       function () {
         accept.highlighted = false;
+        if (!gamestate.started_music)
+        {
+          //GlobalResources.audio_components.bg.play();
+          gamestate.started_music = true;
+        }
         if (!gamestate.game_timer)
         {
           /*
@@ -207,94 +230,13 @@ var GameScreen = {
     gamestate.gameEntities.push(reject);
     var score = createScore(g_aspect_ratio - 1/32, 7/8 + 1/16 - 1/64, 1/8);
     gamestate.gameEntities.push(score);
-  },
-
-  handleMouseDown: function(event)
-  {
-    this.mouse_click_event = true;
-    this.mouse_click_x = event.offsetX / event.currentTarget.height;
-    this.mouse_click_y = event.offsetY / event.currentTarget.height;
-  },
-  
-  handleMouseMove: function(event)
-  {
-    this.mouse_x = event.offsetX / event.currentTarget.height;
-    this.mouse_y = event.offsetY / event.currentTarget.height;
-  },
-  
-  //----------------------------------------------------------------------
-  // from Screen
-  handleTimeStep: function ()
-  {
-
-    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
-    {
-      if(this.gamestate.gameEntities[i].handleMouseMove)
-      {
-        this.gamestate.gameEntities[i].handleMouseMove(this.mouse_x, this.mouse_y);
-      }
-    }
     
-    if (this.mouse_click_event)
-    {
-      this.mouse_click_event = false;
-      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
-      {
-        if(this.gamestate.gameEntities[i].handleMouseDown)
-        {
-          this.gamestate.gameEntities[i].handleMouseDown(this.mouse_click_x, this.mouse_click_y);
-        }
-      }
-    }
-  
-    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
-    {
-      if(this.gamestate.gameEntities[i].handleTimeStep)
-      {
-        this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
-      }
-    }
-    
-    for (var i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
-    {
-      if(this.gamestate.gameEntities[i].active)
-      {
-        if(!this.gamestate.gameEntities[i].active())
-        {
-          this.gamestate.gameEntities.splice(i,1);
-        }
-      }
-    }
-  },
-  
-  //----------------------------------------------------------------------
-  // from Screen
-  paint: function (canvas, ctx)
-  {
-    this.gamestate.gameEntities.sort(function(a,b){
-      var a_lvl = 0;
-      var b_lvl = 0;
-      if(a.paintLevel)
-      {
-        a_lvl = a.paintLevel();
-      }
-      if(b.paintLevel)
-      {
-        b_lvl = b.paintLevel();
-      }
-      return a_lvl - b_lvl;
-    });
-    
-    for (var i = 0; i < this.gamestate.gameEntities.length; i++)
-    {
-      if (this.gamestate.gameEntities[i].paint)
-      {
-        this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
-      }
-    }
+    GlobalResources.audio_components.bg.setVolume(50);
+    GlobalResources.audio_components.bg.loop();
+    GlobalResources.audio_components.bg.play();
   }
-};
-
+);
+  
 var GlobalResources =
 {
   audio_components : {},
@@ -306,14 +248,19 @@ var init = function()
   var jut = createJutGameEngine(document.getElementById("canvas"));
   
   /*
-  GlobalResources.audio_components.m_bg = jut.loadAudio("Assets/Sound/CrunkKnight.mp3");
+  GlobalResources.audio_components.reject = jut.loadAudio("assets/Banana Peel Slip Zip-SoundBible.com-803276918.mp3");
+  GlobalResources.audio_components.bg = jut.loadAudio("assets/The Cannery.mp3");
+  GlobalResources.audio_components.bg = jut.loadAudio("assets/Gaslamp Funworks.mp3");
+  GlobalResources.audio_components.bg = jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3");
   */
-  GlobalResources.graphic_components.reject = jut.loadImage("baseline_thumb_down_white_48dp.png");
-  GlobalResources.graphic_components.accept = jut.loadImage("baseline_thumb_up_white_48dp.png");
+  GlobalResources.audio_components.bg = jut.loadAudio("assets/The Cannery.mp3");
+  GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
+  GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
-  jut.addTitleScreen(GameScreen);
+  jut.addTitleScreen(IntroScreen);
   GameScreen.init(jut);
+  IntroScreen.init(jut);
   jut.init();
   
 }

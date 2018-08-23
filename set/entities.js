@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------
 const Util = {
-  
+
   forEach: function (obj, fn)
   {
     var key;
@@ -34,6 +34,117 @@ const Util = {
     }
     return arr;
   }
+};
+
+//------------------------------------------------------------------------
+function createScreen(custom_reset)
+{
+  return {
+    custom_reset : custom_reset,
+    init: function (jut)
+    {
+      this.jut = jut;
+    },
+
+    reset: function ()
+    {
+      this.mouse_click_event = false;
+      this.mouse_click_x = 0;
+      this.mouse_click_y = 0;
+      this.mouse_x = 0;
+      this.mouse_y = 0;
+      this.player_x = 0;
+      this.player_y = 0;
+      this.gamestate =
+      {
+        jut : this.jut,
+        gameEntities : []
+      };
+
+      this.custom_reset();
+    },
+
+    handleMouseDown: function(event)
+    {
+      this.mouse_click_event = true;
+      this.mouse_click_x = event.offsetX / event.currentTarget.height;
+      this.mouse_click_y = event.offsetY / event.currentTarget.height;
+    },
+
+    handleMouseMove: function(event)
+    {
+      this.mouse_x = event.offsetX / event.currentTarget.height;
+      this.mouse_y = event.offsetY / event.currentTarget.height;
+    },
+
+    handleTimeStep: function()
+    {
+
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if(this.gamestate.gameEntities[i].handleMouseMove)
+        {
+          this.gamestate.gameEntities[i].handleMouseMove(this.mouse_x, this.mouse_y);
+        }
+      }
+
+      if (this.mouse_click_event)
+      {
+        this.mouse_click_event = false;
+        for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+        {
+          if(this.gamestate.gameEntities[i].handleMouseDown)
+          {
+            this.gamestate.gameEntities[i].handleMouseDown(this.mouse_click_x, this.mouse_click_y);
+          }
+        }
+      }
+
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if(this.gamestate.gameEntities[i].handleTimeStep)
+        {
+          this.gamestate.gameEntities[i].handleTimeStep(this.gamestate);
+        }
+      }
+
+      for (var i = this.gamestate.gameEntities.length - 1; i >= 0; i--)
+      {
+        if(this.gamestate.gameEntities[i].active)
+        {
+          if(!this.gamestate.gameEntities[i].active())
+          {
+            this.gamestate.gameEntities.splice(i,1);
+          }
+        }
+      }
+    },
+
+    paint: function (canvas, ctx)
+    {
+      this.gamestate.gameEntities.sort(function(a,b){
+        var a_lvl = 0;
+        var b_lvl = 0;
+        if(a.paintLevel)
+        {
+          a_lvl = a.paintLevel();
+        }
+        if(b.paintLevel)
+        {
+          b_lvl = b.paintLevel();
+        }
+        return a_lvl - b_lvl;
+      });
+
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if (this.gamestate.gameEntities[i].paint)
+        {
+          this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
+        }
+      }
+    }
+  };
 };
 
 //------------------------------------------------------------------------
@@ -169,7 +280,6 @@ function detectSet(cards)
   return detectSet3Cards(cards[0], cards[1], cards[2]);
 }
 
-//-----------------------------------------------------------------
 function createCompletingShape(shape1, shape2, x, y, size)
 {
   return createShape(
@@ -191,13 +301,13 @@ function createDifferentShape(shape, x, y, size)
     shape.fill,
     shape.cardinality
   ];
-  
+
   var index_to_modify = Math.floor(Math.random() * properties.length);
   for (let i = 0; i < properties.length; i++)
   {
     if (i === index_to_modify)
     {
-      properties[i] = changeProperty(properties[i]);  
+      properties[i] = changeProperty(properties[i]);
     }
     else
     {
@@ -223,13 +333,13 @@ function createDistinctShape(shape1, shape2, x, y, size)
     createDistinctProperty(shape1.fill, shape2.fill),
     createDistinctProperty(shape1.cardinality, shape2.cardinality),
   ];
-  
+
   var index_to_modify = Math.floor(Math.random() * properties.length);
   for (let i = 0; i < properties.length; i++)
   {
     if (i === index_to_modify)
     {
-      //do nothing  
+      //do nothing
     }
     else
     {
@@ -268,123 +378,215 @@ function createEvilRandomShape(shape1, shape2, x, y, size)
   );
 };
 
-
-function createShape(shape, color, fill, cardinality, x, y, size)
+function paintCard(shape, color, fill, cardinality, x, y, size, ctx)
 {
-  var paintCard = function(shape, color, fill, cardinality, x, y, size, ctx)
+  var rgb = COLOR.properties.getRgb(color);
+  if (cardinality === CARDINALITY.ONE)
   {
-    var rgb = COLOR.properties.getRgb(color);
-    if (cardinality === CARDINALITY.ONE)
-    {
-      paintShape(shape, rgb, fill, x, y, size, ctx);
-    }
-    else if (cardinality === CARDINALITY.TWO)
-    {
-      var small_size = size / 2;
-      paintShape(shape, rgb, fill, x, y + size / 2 - small_size / 2, small_size, ctx);
-      paintShape(shape, rgb, fill, x + small_size, y + size / 2 - small_size / 2, small_size, ctx);
-    }
-    else if (cardinality === CARDINALITY.THREE)
-    {
-      var small_size = size / 2;
-      paintShape(shape, rgb, fill, x + size / 2 - small_size / 2, y, small_size, ctx);
-      paintShape(shape, rgb, fill, x, y + size - small_size, small_size, ctx);
-      paintShape(shape, rgb, fill, x + small_size, y + size - small_size, small_size, ctx);
-    }
+    paintShape(shape, rgb, fill, x, y, size, ctx);
   }
-
-  var paintShape = function(shape, rgb, fill, x, y, size, ctx)
+  else if (cardinality === CARDINALITY.TWO)
   {
-    ctx.strokeStyle = rgb;
-    ctx.fillStyle = '#ffffff';
+    var small_size = size / 2;
+    paintShape(shape, rgb, fill, x, y + size / 2 - small_size / 2, small_size, ctx);
+    paintShape(shape, rgb, fill, x + small_size, y + size / 2 - small_size / 2, small_size, ctx);
+  }
+  else if (cardinality === CARDINALITY.THREE)
+  {
+    var small_size = size / 2;
+    paintShape(shape, rgb, fill, x + size / 2 - small_size / 2, y, small_size, ctx);
+    paintShape(shape, rgb, fill, x, y + size - small_size, small_size, ctx);
+    paintShape(shape, rgb, fill, x + small_size, y + size - small_size, small_size, ctx);
+  }
+};
+
+function paintShape (shape, rgb, fill, x, y, size, ctx)
+{
+  ctx.strokeStyle = rgb;
+  ctx.fillStyle = '#ffffff';
+  if (fill === FILL.FULL)
+  {
+    ctx.fillStyle = rgb;
+  }
+  ctx.lineWidth = Math.round(size / 13);
+  ctx.lineCap = "round";
+  x += ctx.lineWidth;
+  y += ctx.lineWidth;
+  size -= ctx.lineWidth * 2;
+
+  if (shape == SHAPE.TRIANGLE)
+  {
     if (fill === FILL.FULL)
     {
-      ctx.fillStyle = rgb;
-    }
-    ctx.lineWidth = Math.round(size / 13);
-    ctx.lineCap = "round";
-    x += ctx.lineWidth;
-    y += ctx.lineWidth;
-    size -= ctx.lineWidth * 2;
-
-    if (shape == SHAPE.TRIANGLE)
-    {
-      if (fill === FILL.FULL)
-      {
-        ctx.beginPath();
-        ctx.moveTo(Math.round(x), Math.round(y + size));
-        ctx.lineTo(Math.round(x + size / 2), Math.round(y + ctx.lineWidth/2));
-        ctx.lineTo(Math.round(x + size), Math.round(y + size));
-        ctx.closePath();
-        ctx.fill();
-      }
       ctx.beginPath();
       ctx.moveTo(Math.round(x), Math.round(y + size));
       ctx.lineTo(Math.round(x + size / 2), Math.round(y + ctx.lineWidth/2));
       ctx.lineTo(Math.round(x + size), Math.round(y + size));
       ctx.closePath();
-      ctx.stroke();
-      if (fill === FILL.STRIPED)
-      {
-        for (var line_count = 1; line_count < 6; line_count++)
-        {
-          var fraction = Math.abs(line_count - 3);
-          ctx.beginPath();
-          ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y + fraction * size / 3 + ctx.lineWidth/2));
-          ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size));
-          ctx.stroke();
-        }
-      }
+      ctx.fill();
     }
-
-    else if (shape === SHAPE.CIRCLE)
+    ctx.beginPath();
+    ctx.moveTo(Math.round(x), Math.round(y + size));
+    ctx.lineTo(Math.round(x + size / 2), Math.round(y + ctx.lineWidth/2));
+    ctx.lineTo(Math.round(x + size), Math.round(y + size));
+    ctx.closePath();
+    ctx.stroke();
+    if (fill === FILL.STRIPED)
     {
-      if (fill === FILL.FULL)
+      for (var line_count = 1; line_count < 6; line_count++)
       {
+        var fraction = Math.abs(line_count - 3);
         ctx.beginPath();
-        ctx.moveTo(Math.round(x + size), Math.round(y + size / 2));
-        ctx.arc(Math.round(x + size / 2), Math.round(y + size / 2), size / 2, 0, 2 * Math.PI, false);
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.moveTo(Math.round(x + size), Math.round(y + size / 2));
-      ctx.arc(Math.round(x + size / 2), Math.round(y + size / 2), size / 2, 0, 2 * Math.PI, false);
-      ctx.stroke();
-      if (fill === FILL.STRIPED)
-      {
-        for (var line_count = 1; line_count < 6; line_count++)
-        {
-          var distance = size * Math.abs(line_count - 3) / 6;
-          var half_height = Math.sqrt(size * size / 4 - distance * distance);
-          var offset = size / 2 - half_height;
-          ctx.beginPath();
-          ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y + offset));
-          ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size - offset));
-          ctx.stroke();
-        }
-      }
-    }
-
-    else if (shape === SHAPE.SQUARE)
-    {
-      if (fill === FILL.FULL)
-      {
-        ctx.fillRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
-      }
-      ctx.strokeRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
-      if (fill === FILL.STRIPED)
-      {
-        for (var line_count = 1; line_count < 6; line_count++)
-        {
-          ctx.beginPath();
-          ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y));
-          ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size));
-          ctx.stroke();
-        }
+        ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y + fraction * size / 3 + ctx.lineWidth/2));
+        ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size));
+        ctx.stroke();
       }
     }
   }
-  
+
+  else if (shape === SHAPE.CIRCLE)
+  {
+    if (fill === FILL.FULL)
+    {
+      ctx.beginPath();
+      ctx.moveTo(Math.round(x + size), Math.round(y + size / 2));
+      ctx.arc(Math.round(x + size / 2), Math.round(y + size / 2), size / 2, 0, 2 * Math.PI, false);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(Math.round(x + size), Math.round(y + size / 2));
+    ctx.arc(Math.round(x + size / 2), Math.round(y + size / 2), size / 2, 0, 2 * Math.PI, false);
+    ctx.stroke();
+    if (fill === FILL.STRIPED)
+    {
+      for (var line_count = 1; line_count < 6; line_count++)
+      {
+        var distance = size * Math.abs(line_count - 3) / 6;
+        var half_height = Math.sqrt(size * size / 4 - distance * distance);
+        var offset = size / 2 - half_height;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y + offset));
+        ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size - offset));
+        ctx.stroke();
+      }
+    }
+  }
+
+  else if (shape === SHAPE.SQUARE)
+  {
+    if (fill === FILL.FULL)
+    {
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
+    }
+    ctx.strokeRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
+    if (fill === FILL.STRIPED)
+    {
+      for (var line_count = 1; line_count < 6; line_count++)
+      {
+        ctx.beginPath();
+        ctx.moveTo(Math.round(x + line_count * size / 6), Math.round(y));
+        ctx.lineTo(Math.round(x + line_count * size / 6), Math.round(y + size));
+        ctx.stroke();
+      }
+    }
+  }
+};
+
+function createWordButton(word, x, y, height, onclick)
+{
+  return  {
+    x : x,
+    y : y,
+    word : word,
+    height : height,
+    onclick : onclick,
+    last_width : 0,
+    highlighted : false,
+    highlight : randomProperty(),
+    handleMouseMove : function (x,y)
+    {
+      if (this.x - this.last_width / 2 <= x &&
+        x <= this.x + this.last_width / 2 &&
+        this.y - this.height <= y &&
+        y <= this.y + this.height / 2)
+      {
+        if (!this.highlighted)
+        {
+          this.highlighted = true;
+          this.highlight = randomProperty();
+        }
+      }
+      else
+      {
+        this.highlighted = false;
+      }
+    },
+    handleMouseDown : function (x,y)
+    {
+      this.handleMouseMove (x, y);
+      if (this.highlighted)
+      {
+        this.onclick();
+      }
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      var x = this.x * canvas.height;
+      var y = this.y * canvas.height;
+      var height = this.height * canvas.height;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = Math.round(height) + "px " + g_font;
+      
+      this.last_width = ctx.measureText(word).width / canvas.height;
+      ctx.fillStyle = this.highlighted ? COLOR.properties.getRgb(this.highlight) : "#FFFFF";
+      
+      ctx.fillText(this.word, Math.round(x), Math.round(y));
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+function createLetterShape(letter, shape, color, x, y, size)
+{
+  return  {
+    x : x,
+    y : y,
+    letter : letter,
+    shape : shape,
+    color : color,
+    fill : FILL.FULL,
+    cardinality : CARDINALITY.ONE,
+    size : size,
+    paint : function(gamestate, canvas, ctx)
+    {
+      var x = this.x * canvas.height;
+      var y = this.y * canvas.height;
+      var size = this.size * canvas.height;
+
+      paintCard(this.shape, this.color, this.fill, this.cardinality, x, y, size, ctx);
+      ctx.lineWidth = size/13;
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = Math.round(size) + "px " + g_font;
+      ctx.fillStyle = "rgb(255, 255, 255)";
+      
+      ctx.strokeText(this.letter, Math.round(x + size/2), Math.round(y + size/2 + ctx.lineWidth));
+      ctx.fillText(this.letter, Math.round(x + size/2), Math.round(y + size/2 + ctx.lineWidth));
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+function createShape(shape, color, fill, cardinality, x, y, size)
+{
   return {
     shape : shape,
     color : color,
@@ -421,7 +623,7 @@ function createShape(shape, color, fill, cardinality, x, y, size)
           this.dy = 0;
         }
       }
-      
+
       var current_rotation = 0;
       if (this.intensity > 0)
       {
@@ -437,7 +639,7 @@ function createShape(shape, color, fill, cardinality, x, y, size)
       var x = this.x * canvas.height;
       var y = (this.y - this.offset) * canvas.height;
       var size = this.size * canvas.height;
-      
+
       ctx.save();
       var current_rotation = 0;
       if (this.intensity !== 0)
@@ -493,7 +695,7 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
       var y = this.y * canvas.height;
       var size = this.size * canvas.height;
       ctx.lineWidth = size/26;
-      
+
       if (this.highlighted)
       {
         //x += ctx.lineWidth;
@@ -504,11 +706,11 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
         ctx.globalAlpha=.5;
         ctx.fillStyle = "#000000";
         ctx.fillRect(x, y + 2*ctx.lineWidth, size, size);
-        ctx.globalAlpha=1;  
+        ctx.globalAlpha=1;
       }
       ctx.fillStyle = this.highlighted ? highlight : bgcolor;
       ctx.fillRect(x,y,size,size);
-      
+
       ctx.strokeStyle = "#ffffff";
       ctx.drawImage(this.graphic, x, y, size, size);
       ctx.globalAlpha=.5;
@@ -614,7 +816,7 @@ function createTimer(timeout, event)
       {
         this.timeout--;
       }
-      
+
       if (this.timeout === 0)
       {
         this.event()
