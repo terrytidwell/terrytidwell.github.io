@@ -492,6 +492,98 @@ function paintShape (shape, rgb, fill, x, y, size, ctx)
   }
 };
 
+function createGauge()
+{
+  return {
+    actual_fill : 1,
+    display_fill : 0,
+    increment : function ()
+    {
+      this.actual_fill += .1;
+      if (this.actual_fill > 1)
+      {
+        this.actual_fill = 1;
+      }
+      if (this.actual_fill < 0)
+      {
+        this.actual_fill = 0;
+      }
+    },
+    decrement : function ()
+    {
+      this.actual_fill -= .2;
+      if (this.actual_fill > 1)
+      {
+        this.actual_fill = 1;
+      }
+      if (this.actual_fill < 0)
+      {
+        this.actual_fill = 0;
+      }
+    },
+    handleTimeStep : function (gamestate)
+    {
+      this.actual_fill -= .001;
+      if (this.actual_fill > 1)
+      {
+        this.actual_fill = 1;
+      }
+      if (this.actual_fill < 0)
+      {
+        this.actual_fill = 0;
+      }
+      var diff = this.actual_fill - this.display_fill
+      this.display_fill += .05 * diff;
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      var outer_radius = 1/4*canvas.height;
+      var inner_radius = 1/8*canvas.height;
+      var middle_radius = (outer_radius + inner_radius) / 2;
+      var small_radius = 1/32*canvas.height;
+      var center_x = canvas.width/2;
+      var center_y = canvas.height;
+      var color = (this.display_fill >= .33 && this.display_fill <= .67) ? "#FFFF00" : "#808000";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, 4/3*Math.PI, 5/3*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 5/3*Math.PI, 4/3*Math.PI, true);
+      ctx.fill();
+      
+      color = (this.display_fill >= 0 && this.display_fill < .33) ? "#FF0000" : "#800000";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, Math.PI, 4/3*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 4/3*Math.PI, Math.PI, true);
+      ctx.fill();
+      
+      color = (this.display_fill > .67 && this.display_fill <= 1) ? "#00FF00" : "#008000";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, 5/3 * Math.PI, 2*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 2*Math.PI, 5/3 * Math.PI, true);
+      ctx.fill();
+      
+      color = "#000000";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, small_radius, 0, 2*Math.PI);
+      ctx.fill();
+      
+      var display_angle =  this.display_fill * Math.PI + Math.PI;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, small_radius, display_angle - display_angle * .1, display_angle + display_angle * .1);
+      ctx.arc(center_x, center_y, middle_radius, display_angle + display_angle * .001, display_angle - display_angle * .001, true);
+      ctx.fill();
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.HUD;
+    }
+  };
+}
+
 function createPanel()
 {
   function drawScrew(center_x,center_y,radius,inner_radius,ctx)
