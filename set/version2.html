@@ -260,8 +260,6 @@ var GameScreen = createScreen(
       new_shape.offset = 1;
       gamestate.gameEntities.push(new_shape);
       gamestate.shape_slots.push(new_shape);
-      accept.highlighted = false;
-      reject.highlighted = false;
     };
     
     /*
@@ -296,11 +294,13 @@ var GameScreen = createScreen(
           /*
           gamestate.game_timer = game_timer;
           */
+          next_shape();
           gamestate.game_timer = 
             createTimer(
               15, 
               function() {
-                next_shape();
+                accept.highlighted = false;
+                reject.highlighted = false;
                 gamestate.game_timer = null;
               }
             );
@@ -332,11 +332,13 @@ var GameScreen = createScreen(
           /*
           gamestate.game_timer = game_timer;
           */
+          next_shape();
           gamestate.game_timer = 
             createTimer(
               15, 
               function() {
-                next_shape();
+                accept.highlighted = false;
+                reject.highlighted = false;
                 gamestate.game_timer = null;
               }
             );
