@@ -47,12 +47,21 @@ var OptionsScreen = createScreen(
     gamestate.gameEntities.push(createWordButton("MUSIC: " + GlobalResources.audio_components.bg[g_gamestate.song].name,
       g_aspect_ratio/2, 2/3 + 2/16, 1/16, 
       function () { 
+        GlobalResources.audio_components.bg[g_gamestate.song].song.stop();
         g_gamestate.song = (++g_gamestate.song % GlobalResources.audio_components.bg.length);
+        GlobalResources.audio_components.bg[g_gamestate.song].song.setVolume(50);
+        GlobalResources.audio_components.bg[g_gamestate.song].song.loop();
+        GlobalResources.audio_components.bg[g_gamestate.song].song.play();
         this.word = "MUSIC: " + GlobalResources.audio_components.bg[g_gamestate.song].name;
       }));
     gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 3/16, 1/16, function () { 
+      GlobalResources.audio_components.bg[g_gamestate.song].song.stop();
       gamestate.jut.switchToScreen(IntroScreen);
     }));
+    
+    GlobalResources.audio_components.bg[g_gamestate.song].song.setVolume(50);
+    GlobalResources.audio_components.bg[g_gamestate.song].song.loop();
+    GlobalResources.audio_components.bg[g_gamestate.song].song.play();
     /*
     gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
       gamestate.jut.switchToScreen(GameScreen);
@@ -392,7 +401,8 @@ var init = function()
   GlobalResources.audio_components.bg.push({name: "The Cannery", song:jut.loadAudio("assets/The Cannery.mp3")});
   GlobalResources.audio_components.bg.push({name: "Gaslamp Funworks", song:jut.loadAudio("assets/Gaslamp Funworks.mp3")});
   GlobalResources.audio_components.bg.push({name: "Monkeys Spinning Monkeys", song:jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3")});
-  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {} }});
+  GlobalResources.audio_components.bg.push({name: "The Builder", song:jut.loadAudio("assets/The Builder.mp3")});
+  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {}, stop: function() {}}});
   GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
   GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   
