@@ -274,6 +274,15 @@ var GameScreen = createScreen(
     );
     */
     
+    var x = 1/32;
+    var y = 7/8-1/32;
+    var size = 1/8;
+    if (g_gamestate.mobile)
+    {
+      y = 3/4 - 1/32;
+      size = 1/4;
+    }
+    
     var accept = createButton(GlobalResources.graphic_components.accept,"#008000", "#00ff00", 
       function() {
         reject.highlighted = false;
@@ -297,7 +306,18 @@ var GameScreen = createScreen(
             );
           gamestate.gameEntities.push(gamestate.game_timer);
         }
-      },1/32, 7/8-1/32, 1/8);
+      }, x, y, size);
+     
+    x = 2/32+1/8;
+    y = 7/8-1/32;
+    size = 1/8;
+    if (g_gamestate.mobile)
+    {
+      x = g_aspect_ratio - 1/4 - 1/32;
+      y = 3/4 - 1/32;
+      size = 1/4;
+    }     
+    
     gamestate.gameEntities.push(accept);
     var reject = createButton(GlobalResources.graphic_components.reject,"#800000", "#ff0000",
       function () {
@@ -322,14 +342,24 @@ var GameScreen = createScreen(
             );
           gamestate.gameEntities.push(gamestate.game_timer);
         }
-      },2/32+1/8, 7/8-1/32, 1/8);
+      }, x, y, size);
     gamestate.gameEntities.push(reject);
-    var score = createScore(g_aspect_ratio - 1/32, 7/8 + 1/16 - 1/64, 1/8);
+    
+    x = g_aspect_ratio - 1/32;
+    y = 7/8 + 1/16 - 1/64;
+    size = 1/8;
+    if (g_gamestate.mobile)
+    {
+      y = 1/8 + 1/16 - 1/64;
+      size = 1/4;
+    }
+    
+    var score = createScore(x, y, size);
     gamestate.gameEntities.push(score);
     
-    GlobalResources.audio_components.bg.setVolume(50);
-    GlobalResources.audio_components.bg.loop();
-    GlobalResources.audio_components.bg.play();
+    GlobalResources.audio_components.bg[0].setVolume(50);
+    GlobalResources.audio_components.bg[0].loop();
+    GlobalResources.audio_components.bg[0].play();
   }
 );
   
@@ -349,7 +379,12 @@ var init = function()
   GlobalResources.audio_components.bg = jut.loadAudio("assets/Gaslamp Funworks.mp3");
   GlobalResources.audio_components.bg = jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3");
   */
-  GlobalResources.audio_components.bg = jut.loadAudio("assets/The Cannery.mp3");
+  
+  GlobalResources.audio_components.bg = [];
+  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/The Cannery.mp3"));
+  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/Gaslamp Funworks.mp3"));
+  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3"));
+  GlobalResources.audio_components.bg.push({ setVolume : function () {}, loop : function () {}, play : function() {} });
   GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
   GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   
