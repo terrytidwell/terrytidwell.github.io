@@ -19,6 +19,49 @@ var g_font = "Lucida Console";
 var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
+var g_gamestate = {
+  sound : true,
+  mobile : false
+};
+
+
+
+var OptionsScreen = createScreen(
+  function ()
+  {
+    this.gamestate =
+    {
+      jut : this.jut,
+      gameEntities : [],
+    };
+    var gamestate = this.gamestate;
+    
+    gamestate.gameEntities.push(createBackground());
+    gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 - 1/6, 1/3));
+    gamestate.gameEntities.push(createWordButton("PHONE MODE: " + (g_gamestate.mobile ? "ON" : "OFF"), g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
+      g_gamestate.mobile = !g_gamestate.mobile;
+      this.word = "PHONE MODE: " + (g_gamestate.mobile ? "ON" : "OFF");
+    }));
+    gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(IntroScreen);
+    }));
+    /*
+    gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    /*
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen);
+    }));
+    */
+  }
+);
+
 
 var IntroScreen = createScreen(
   function ()
@@ -36,6 +79,9 @@ var IntroScreen = createScreen(
     gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 - 1/6, 1/3));
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
       gamestate.jut.switchToScreen(GameScreen);
+    }));
+    gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(OptionsScreen);
     }));
     /*
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
@@ -311,6 +357,7 @@ var init = function()
   jut.addTitleScreen(IntroScreen);
   GameScreen.init(jut);
   IntroScreen.init(jut);
+  OptionsScreen.init(jut);
   jut.init();
   
 }
