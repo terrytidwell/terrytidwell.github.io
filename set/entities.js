@@ -554,12 +554,26 @@ function createGauge(callback)
     paint : function(gamestate, canvas, ctx)
     {
       var outer_radius = 1/4*canvas.height;
+      ctx.lineWidth = outer_radius/26;
       var inner_radius = 1/8*canvas.height;
       var middle_radius = (outer_radius + inner_radius) / 2;
       var small_radius = 1/32*canvas.height;
       var center_x = canvas.width/2;
       var center_y = canvas.height;
-      var color = (this.display_fill >= .33 && this.display_fill <= .67) ? "#FFFF00" : "#808000";
+      
+      var color = "#808080";
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, Math.PI, 2*Math.PI);
+      ctx.fill();
+      
+      color = "#404040";
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius - ctx.lineWidth, Math.PI, 2*Math.PI);
+      ctx.stroke();
+      
+      color = (this.display_fill >= .33 && this.display_fill <= .67) ? "#FFFF00" : "#808000";
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(center_x, center_y, inner_radius, 4/3*Math.PI, 5/3*Math.PI);
@@ -579,9 +593,44 @@ function createGauge(callback)
       ctx.arc(center_x, center_y, inner_radius, 5/3 * Math.PI, 2*Math.PI);
       ctx.arc(center_x, center_y, outer_radius, 2*Math.PI, 5/3 * Math.PI, true);
       ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,.5)";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, outer_radius - ctx.lineWidth, Math.PI, 2*Math.PI);
+      ctx.stroke();
+      
+      ctx.strokeStyle = "rgba(0,0,0,.5)";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius + ctx.lineWidth, Math.PI, 2*Math.PI);
+      ctx.stroke();
+      
+      ctx.strokeStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, 4/3*Math.PI, 5/3*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 5/3*Math.PI, 4/3*Math.PI, true);
+      ctx.closePath();
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, Math.PI, 4/3*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 4/3*Math.PI, Math.PI, true);
+      ctx.closePath();
+      ctx.stroke();
+      
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, inner_radius, 5/3 * Math.PI, 2*Math.PI);
+      ctx.arc(center_x, center_y, outer_radius, 2*Math.PI, 5/3 * Math.PI, true);
+      ctx.closePath();
+      ctx.stroke();
       
       color = "#000000";
       ctx.fillStyle = color;
+      ctx.font = Math.round(ctx.lineWidth*4) + "px " + g_font;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("kS/hr",center_x, center_y - inner_radius/2);
+      
       ctx.beginPath();
       ctx.arc(center_x, center_y, small_radius, 0, 2*Math.PI);
       ctx.fill();
