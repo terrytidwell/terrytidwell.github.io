@@ -492,11 +492,13 @@ function paintShape (shape, rgb, fill, x, y, size, ctx)
   }
 };
 
-function createGauge()
+function createGauge(callback)
 {
   return {
-    actual_fill : 1,
+    actual_fill : 5/6,
     display_fill : 0,
+    started : false,
+    called_callback : false,
     increment : function ()
     {
       this.actual_fill += .1;
@@ -523,17 +525,31 @@ function createGauge()
     },
     handleTimeStep : function (gamestate)
     {
-      this.actual_fill -= .001;
+      if (this.started)
+      {
+        //.004 is hard
+        this.actual_fill -= 0;
+      }
       if (this.actual_fill > 1)
       {
         this.actual_fill = 1;
       }
-      if (this.actual_fill < 0)
+      if (this.actual_fill <= 0)
       {
         this.actual_fill = 0;
+        if (this.display_fill <= .10)
+        {
+          if(!this.called_callback)
+          {
+            this.called_callback = true;
+            callback();
+          }
+        }
       }
       var diff = this.actual_fill - this.display_fill
       this.display_fill += .05 * diff;
+      
+      
     },
     paint : function(gamestate, canvas, ctx)
     {

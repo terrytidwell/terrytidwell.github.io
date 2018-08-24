@@ -161,11 +161,21 @@ var GameScreen = createScreen(
       shape_slots : [],
       falling_shape : { cancel : function(){} },
       game_timer : null,
-      started_music : false,
+      started_gauge : false,
+      death : false,
     };
     var gamestate = this.gamestate;
     gamestate.gameEntities.push(createBackground());
-    var gauge = createGauge();
+    var gauge = createGauge(function () {
+      gamestate.death = true;
+      accept.highlighted = false;
+      reject.highlighted = false;
+      GlobalResources.audio_components.bg[g_gamestate.song].song.fadeOut(5000, function()
+      {
+        GlobalResources.audio_components.bg[g_gamestate.song].song.stop();
+        gamestate.jut.switchToScreen(IntroScreen);
+      });
+    });
     gamestate.gameEntities.push(gauge);
     var position = Util.shuffle([
       g_aspect_ratio/2 - 1/3 - 1/6 - 1/32,
@@ -299,11 +309,16 @@ var GameScreen = createScreen(
     
     var accept = createButton(GlobalResources.graphic_components.accept,"#008000", "#00ff00", 
       function() {
+        if (gamestate.death) { 
+          accept.highlighted = false;
+          reject.highlighted = false;
+          return;
+        }
         reject.highlighted = false;
-        if (!gamestate.started_music)
+        if (!gamestate.started_gauge)
         {
-          //GlobalResources.audio_components.bg.play();
-          gamestate.started_music = true;
+          gauge.started = true;
+          gamestate.started_gauge = true;
         }
         if (!gamestate.game_timer)
         {
@@ -337,11 +352,17 @@ var GameScreen = createScreen(
     gamestate.gameEntities.push(accept);
     var reject = createButton(GlobalResources.graphic_components.reject,"#800000", "#ff0000",
       function () {
+        if (gamestate.death) { 
+          accept.highlighted = false;
+          reject.highlighted = false;
+          return;
+        }
+        if (gamestate.death) { return ; }
         accept.highlighted = false;
-        if (!gamestate.started_music)
+        if (!gamestate.started_gauge)
         {
-          //GlobalResources.audio_components.bg.play();
-          gamestate.started_music = true;
+          gauge.started = true;
+          gamestate.started_gauge = true;
         }
         if (!gamestate.game_timer)
         {
