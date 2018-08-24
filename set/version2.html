@@ -20,7 +20,7 @@ var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
 var g_gamestate = {
-  sound : true,
+  song : 0,
   mobile : false
 };
 
@@ -40,11 +40,17 @@ var OptionsScreen = createScreen(
     gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 - 1/6, 1/3));
     gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
     gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 - 1/6, 1/3));
-    gamestate.gameEntities.push(createWordButton("PHONE MODE: " + (g_gamestate.mobile ? "ON" : "OFF"), g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
+    gamestate.gameEntities.push(createWordButton("PHONE MODE: " + (g_gamestate.mobile ? "On" : "Off"), g_aspect_ratio/2, 2/3 + 1/16, 1/16, function () { 
       g_gamestate.mobile = !g_gamestate.mobile;
-      this.word = "PHONE MODE: " + (g_gamestate.mobile ? "ON" : "OFF");
+      this.word = "PHONE MODE: " + (g_gamestate.mobile ? "On" : "Off");
     }));
-    gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+    gamestate.gameEntities.push(createWordButton("MUSIC: " + GlobalResources.audio_components.bg[g_gamestate.song].name,
+      g_aspect_ratio/2, 2/3 + 2/16, 1/16, 
+      function () { 
+        g_gamestate.song = (++g_gamestate.song % GlobalResources.audio_components.bg.length);
+        this.word = "MUSIC: " + GlobalResources.audio_components.bg[g_gamestate.song].name;
+      }));
+    gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 3/16, 1/16, function () { 
       gamestate.jut.switchToScreen(IntroScreen);
     }));
     /*
@@ -359,9 +365,9 @@ var GameScreen = createScreen(
     var score = createScore(x, y, size);
     gamestate.gameEntities.push(score);
     
-    GlobalResources.audio_components.bg[0].setVolume(50);
-    GlobalResources.audio_components.bg[0].loop();
-    GlobalResources.audio_components.bg[0].play();
+    GlobalResources.audio_components.bg[g_gamestate.song].song.setVolume(50);
+    GlobalResources.audio_components.bg[g_gamestate.song].song.loop();
+    GlobalResources.audio_components.bg[g_gamestate.song].song.play();
   }
 );
   
@@ -383,10 +389,10 @@ var init = function()
   */
   
   GlobalResources.audio_components.bg = [];
-  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/The Cannery.mp3"));
-  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/Gaslamp Funworks.mp3"));
-  GlobalResources.audio_components.bg.push(jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3"));
-  GlobalResources.audio_components.bg.push({ setVolume : function () {}, loop : function () {}, play : function() {} });
+  GlobalResources.audio_components.bg.push({name: "The Cannery", song:jut.loadAudio("assets/The Cannery.mp3")});
+  GlobalResources.audio_components.bg.push({name: "Gaslamp Funworks", song:jut.loadAudio("assets/Gaslamp Funworks.mp3")});
+  GlobalResources.audio_components.bg.push({name: "Monkeys Spinning Monkeys", song:jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3")});
+  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {} }});
   GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
   GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   
