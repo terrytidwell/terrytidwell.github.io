@@ -150,9 +150,12 @@ function createScreen(custom_reset)
 //------------------------------------------------------------------------
 var PAINT_LEVEL = {
   BG : -1,
+  EFFECT : 0,
   FG : 1,
   HUD_BG : 2,
-  HUD : 3
+  HUD : 3,
+  AFTER_EFFECT : 4,
+  OVERLAY : 5
 };
 
 var COLOR = {
@@ -408,6 +411,7 @@ function paintShape (shape, rgb, fill, x, y, size, ctx)
   {
     ctx.fillStyle = rgb;
   }
+  ctx.shadowColor = ctx.strokeStyle;
   ctx.lineWidth = Math.round(size / 13);
   ctx.lineCap = "round";
   x += ctx.lineWidth;
@@ -744,6 +748,107 @@ function createPanel()
   };
 };
 
+function createBlurEffect()
+{
+  return {
+    blur : 30,
+    focus : 0,
+    focus_max : 25,
+    direction : 1,
+    handleTimeStep : function(gamestate)
+    {
+      this.focus += this.direction;
+      
+      if (this.focus < 0)
+      {
+        this.focus = 0;
+        this.direction = 1;
+      }
+      else if (this.focus > this.focus_max)
+      {
+        this.focus = this.focus_max;
+        this.direction = -1;
+      }
+      this.blur = 20 * (1 - this.focus / this.focus_max);
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      ctx.shadowBlur=Math.round(this.blur);
+      ctx.shadowOffsetX = canvas.width * 2;
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.EFFECT;
+    }
+  };
+};
+
+function createCountDown()
+{
+  return {
+    timer : 0,
+    period : 25,
+    countdown : 4,
+    active : function ()
+    {
+      return this.countdown > 0;
+    },
+    handleTimeStep : function (gamestate)
+    {
+      this.timer++;
+      if (this.timer > this.period)
+      {
+        this.timer = 0;
+        this.countdown--;
+      }
+    },
+    paint : function (gamestate, canvas, ctx)
+    {
+      ctx.lineWidth = Math.round(canvas.height / 90);
+      ctx.strokeStyle = "rgb(0, 0, 0)";
+      ctx.fillStyle = "rgb(128, 128, 128)";
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height / 2);
+      ctx.lineTo(canvas.width / 2, -canvas.height / 2);
+      var percent_covered = 1.5 + 2 * this.timer / this.period;
+      ctx.arc(canvas.width / 2, canvas.height / 2, canvas.height, 1.5*Math.PI, percent_covered*Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height / 2);
+      ctx.lineTo(canvas.width / 2, -canvas.height / 2);
+      var percent_covered = 1.5 + 2 * this.timer / this.period;
+      ctx.arc(canvas.width / 2, canvas.height / 2, canvas.height, 1.5*Math.PI, percent_covered*Math.PI);
+      ctx.closePath();
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(0,canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, Math.round(160/450*canvas.height), 0, 2*Math.PI);
+      ctx.arc(canvas.width / 2, canvas.height / 2, Math.round(200/450*canvas.height), 0, 2*Math.PI);
+      ctx.stroke();
+      
+      ctx.font=Math.round(6/9 * canvas.height) + "px Arial";
+      ctx.fillStyle = "rgb(0, 0, 0)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(this.countdown, canvas.width / 2, canvas.height / 2);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
 function createWordButton(word, x, y, height, onclick)
 {
   return  {
@@ -913,6 +1018,7 @@ function createShape(shape, color, fill, cardinality, x, y, size)
         y = -size;
       }
       ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = ctx.fillStyle;
       ctx.fillRect(x,y,size,size);
       paintCard(this.shape, this.color, this.fill, this.cardinality, x, y, size, ctx);
       ctx.restore();
@@ -1040,15 +1146,103 @@ function createScore(x, y, height)
 function createBackground()
 {
   return {
+    fillStyle : "#CBDBE0",
     paint : function (gamestate, canvas, ctx)
     {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#CBDBE0";
+      ctx.fillStyle = this.fillStyle;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     },
     paintLevel : function ()
     {
       return PAINT_LEVEL.BG;
+    }
+  };
+};
+
+//---------------------------------------------------------------------
+function createCancelRumble()
+{
+  return {
+    paint : function (gamestate, canvas, ctx)
+    {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.AFTER_EFFECT;
+    }
+  };
+};
+
+function createRumble()
+{
+  return {
+    paint : function (gamestate, canvas, ctx)
+    {
+      var jiggle_x = Math.random() * 1/450 * canvas.height;
+      var jiggle_y = Math.random() * 1/450 * canvas.height;
+      ctx.setTransform(1, 0, 0, 1, jiggle_x, jiggle_y);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.EFFECT;
+    }
+  };
+}
+
+//---------------------------------------------------------------------
+function createFlickerEffect()
+{
+  return {
+    normalFillStyle : "rgba(0,0,0,.25)",
+    dimFillStyle : "rgba(0,0,0,.35)",
+    scratches : [
+      {x_top: 0, x_stray: 0, age : 170, period : 170, active: 100},
+      {x_top: 0, x_stray: 0, age : 150, period : 150, active: 190},
+    ],
+    paint : function (gamestate, canvas, ctx)
+    {
+      ctx.fillStyle = Math.random() < .15 ? this.dimFillStyle : this.normalFillStyle;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.shadowOffsetX = canvas.width * 2;
+      ctx.shadowColor = "#000000"
+      ctx.shadowBlur = Math.round(canvas.height / 16);
+      for (var specks = 0; specks < 2; specks++)
+      {
+        ctx.beginPath();
+        ctx.arc(Math.round(Math.random()*canvas.width - 2*canvas.width),
+          Math.round(Math.random()*canvas.height),
+          Math.round(4/450 * canvas.height),0,2*Math.PI);
+        ctx.fill();
+      }
+      ctx.lineWidth = Math.round(1/450 * canvas.height);
+      ctx.shadowColor = "rgba(196, 196, 196, .25)";
+      ctx.shadowBlur = Math.round(2);
+      for(var j = 0; j < this.scratches.length; j++)
+      {
+        this.scratches[j].age++;
+        if(this.scratches[j].age >= this.scratches[j].period)
+        {
+          this.scratches[j].age = 0;
+          this.scratches[j].x_top = Math.random() * canvas.width;
+          this.scratches[j].x_stray = Math.random() * canvas.width/8 - canvas.width/16;
+        }
+        if(this.scratches[j].age < this.scratches[j].active && this.scratches[j].age % 10 != 0)
+        {
+          ctx.beginPath();
+          ctx.moveTo(this.scratches[j].x_top - 2*canvas.width,0);
+          ctx.lineTo(this.scratches[j].x_top+this.scratches[j].x_stray - 2*canvas.width ,canvas.height);
+          var jitter = 7/450 * canvas.height;
+          this.scratches[j].x_top += Math.random() * jitter - jitter/2;
+          this.scratches[j].x_stray += Math.random() * jitter - jitter/2;
+          ctx.stroke();
+        }
+      }
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.OVERLAY;
     }
   };
 };

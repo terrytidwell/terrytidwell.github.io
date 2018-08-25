@@ -120,24 +120,39 @@ var GameScreen2 = createScreen(
     };
     var gamestate = this.gamestate;
     
-    gamestate.gameEntities.push(createBackground());
-    for (var x = -1.5; x <= 1.5; x+=1)
-    {
-      for (var y = -1; y <= 1 ; y+=1)
-      {
-        var size = 1/4*15/16;
-        var shape = createShape(
-        randomProperty(),
-        randomProperty(),
-        randomProperty(),
-        randomProperty(),
-        g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32),
-        1/2 + 1/4 * y - 1/8 + (size * 1/32),
-        size);
-        gamestate.gameEntities.push(shape);
-        gamestate.shapes.push(shape);
+    gamestate.gameEntities.push(createRumble());
+    gamestate.gameEntities.push(createCancelRumble());
+    gamestate.gameEntities.push(createFlickerEffect());
+    
+    gamestate.gameEntities.push(createFlickerEffect());
+    var bg = createBackground();
+    bg.fillStyle = "#ffffff";
+    gamestate.gameEntities.push(bg);
+    gamestate.gameEntities.push(createTimer( 105,
+      function () {
+        gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 -  1/6, 1/3));
+        gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
+        gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 -  1/6, 1/3));
+        return;
+        for (var x = -1.5; x <= 1.5; x+=1)
+        {
+          for (var y = -1; y <= 1 ; y+=1)
+          {
+            var size = 1/4*15/16;
+            var shape = createShape(
+            randomProperty(),
+            randomProperty(),
+            randomProperty(),
+            randomProperty(),
+            g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32),
+            1/2 + 1/4 * y - 1/8 + (size * 1/32),
+            size);
+            gamestate.gameEntities.push(shape);
+            gamestate.shapes.push(shape);
+          }
+        }
       }
-    }
+    ));
     /*
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
       gamestate.jut.switchToScreen(GameScreen);
@@ -164,7 +179,9 @@ var GameScreen = createScreen(
       started_gauge : false,
       death : false,
     };
+    
     var gamestate = this.gamestate;
+    
     gamestate.gameEntities.push(createBackground());
     var gauge = createGauge(function () {
       gamestate.death = true;
@@ -420,11 +437,13 @@ var init = function()
   */
   
   GlobalResources.audio_components.bg = [];
+
+  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {}, stop: function() {}}});
   GlobalResources.audio_components.bg.push({name: "The Cannery", song:jut.loadAudio("assets/The Cannery.mp3")});
   GlobalResources.audio_components.bg.push({name: "Gaslamp Funworks", song:jut.loadAudio("assets/Gaslamp Funworks.mp3")});
   GlobalResources.audio_components.bg.push({name: "Monkeys Spinning Monkeys", song:jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3")});
   GlobalResources.audio_components.bg.push({name: "The Builder", song:jut.loadAudio("assets/The Builder.mp3")});
-  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {}, stop: function() {}}});
+  
   GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
   GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   
