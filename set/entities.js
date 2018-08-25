@@ -528,7 +528,7 @@ function createGauge(callback)
       if (this.started)
       {
         //.004 is hard
-        this.actual_fill -= 0;
+        this.actual_fill -= .001;
       }
       if (this.actual_fill > 1)
       {
@@ -626,7 +626,7 @@ function createGauge(callback)
       
       color = "#000000";
       ctx.fillStyle = color;
-      ctx.font = Math.round(ctx.lineWidth*4) + "px " + g_font;
+      ctx.font = Math.round(ctx.lineWidth*3) + "px " + g_font;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("kS/hr",center_x, center_y - inner_radius/2);
@@ -641,6 +641,18 @@ function createGauge(callback)
       ctx.arc(center_x, center_y, small_radius, display_angle - display_angle * .1, display_angle + display_angle * .1);
       ctx.arc(center_x, center_y, middle_radius, display_angle + display_angle * .001, display_angle - display_angle * .001, true);
       ctx.fill();
+      
+      //for (var tick = .33/5; tick < .99; tick += .33/5)
+      //{
+        /*
+        var tick = this.actual_fill;
+        var angle = tick * Math.PI + Math.PI;
+        ctx.beginPath();
+        ctx.arc(center_x, center_y, middle_radius, angle - angle * .001, angle + angle * .001);
+        ctx.arc(center_x, center_y, outer_radius, angle + angle * .001, angle - angle * .001, true);
+        ctx.fill();
+        */
+      //}
     },
     paintLevel : function ()
     {
