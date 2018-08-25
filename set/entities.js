@@ -783,6 +783,127 @@ function createBlurEffect()
   };
 };
 
+function createLogo2()
+{
+  return {
+    paint : function (gamestate, canvas, ctx)
+    {
+      var center_x = canvas.width/2;
+      var center_y = canvas.height/2;
+      var height = canvas.height * 3/4;
+      var width = 3/5 * height;
+      var x = center_x - width/2;
+      var y = center_y - height/2;
+      
+      ctx.lineWidth = Math.round(width / 13);
+      ctx.strokeStyle = "rgb(0, 0, 0, .25)";
+      ctx.fillStyle = "rgba(0, 0, 0, .25)";
+      var start_angle = Math.atan(3/5);
+      ctx.fillStyle = COLOR.properties.getRgb(COLOR.BLUE);
+      ctx.beginPath();
+      ctx.arc(x + 6/9 * width, y + 3/9 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), .5 * Math.PI + start_angle, 1.5 * Math.PI + start_angle);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.fillStyle = COLOR.properties.getRgb(COLOR.RED);
+      ctx.beginPath();
+      ctx.arc(x + 3/9 * width, y + 6/9 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), 1.5 * Math.PI + start_angle, 2.5 * Math.PI + start_angle);
+      ctx.closePath();
+      ctx.fill();
+      
+      return;
+      
+      ctx.strokeStyle = "rgb(0, 0, 0, .25)";
+      ctx.fillStyle = "rgba(0, 0, 0, .25)";
+      ctx.fillRect(x, y, width, height);
+      ctx.lineWidth = Math.round(width / 26);
+      ctx.beginPath();
+      ctx.moveTo(x, y + height);
+      ctx.lineTo(x + width, y);
+      ctx.stroke();
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+function createLogo()
+{
+  return {
+    angle : 0,
+    timer : 0,
+    handleTimeStep : function ()
+    {
+      this.timer++;
+      if (Math.floor((this.timer % 36)/18) === 0)
+      {
+        this.angle += 2 * Math.PI * 1/24/9;
+      }
+    },
+    paint : function (gamestate, canvas, ctx)
+    {
+      var center_x = canvas.width/2;
+      var center_y = canvas.height/2;
+      var size = canvas.height;
+      var radius = size/2;
+      var inner_radius = radius * 14/16;
+      var next_radius = radius * 12/16;
+      var x = center_x - size/2;
+      var y = center_y - size/2;
+      
+      ctx.lineWidth = Math.round(size / 13);
+      ctx.strokeStyle = "rgb(0, 0, 0)";
+      ctx.fillStyle = "rgb(0, 0, 0)";
+      ctx.beginPath();
+      var num_teeth = 24;
+      for(var teeth = 0; teeth < num_teeth; teeth++)
+      {
+        var start_arc = (teeth + .5) / num_teeth * 2 * Math.PI + this.angle;
+        var end_arc = (teeth + 1.5) / num_teeth * 2 * Math.PI + this.angle;
+        if (teeth % 2 == 0)
+        {
+          start_arc += (2 * Math.PI * .25 / num_teeth);
+          end_arc -= (2 * Math.PI * .25 / num_teeth);
+        }
+        ctx.arc(center_x, center_y, (teeth % 2 == 0) ? radius : inner_radius, start_arc, end_arc);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, next_radius, 0, 2*Math.PI);
+      ctx.fill();
+      
+      ctx.fillStyle = "rgb(0, 0, 0)";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, radius * 11/16, 0, 2*Math.PI);
+      ctx.fill();
+      
+      /*
+      ctx.fillStyle = "rgb(255, 255, 255)";
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, radius * 9/16, 0, 2*Math.PI);
+      ctx.fill();
+      */
+      
+      ctx.font=Math.round(6/9 *  radius * 11/16) + "px Arial";
+      ctx.fillStyle = "rgb(255, 255, 255)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("S.E.T.", canvas.width / 2, canvas.height / 2);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+
+
 function createCountDown()
 {
   return {

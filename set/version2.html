@@ -93,7 +93,7 @@ var IntroScreen = createScreen(
     gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
     gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 - 1/6, 1/3));
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
+      gamestate.jut.switchToScreen(GameScreen2);
     }));
     gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
       gamestate.jut.switchToScreen(OptionsScreen);
@@ -124,12 +124,16 @@ var GameScreen2 = createScreen(
     gamestate.gameEntities.push(createCancelRumble());
     gamestate.gameEntities.push(createFlickerEffect());
     
-    gamestate.gameEntities.push(createFlickerEffect());
+    gamestate.gameEntities.push(createCountDown());
+    
+    //gamestate.gameEntities.push(createFlickerEffect());
     var bg = createBackground();
     bg.fillStyle = "#ffffff";
     gamestate.gameEntities.push(bg);
     gamestate.gameEntities.push(createTimer( 105,
       function () {
+        gamestate.gameEntities.push(Math.random() < .5 ? createLogo() : createLogo2());
+        return;
         gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 -  1/6, 1/3));
         gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
         gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 -  1/6, 1/3));
