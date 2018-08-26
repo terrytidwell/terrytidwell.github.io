@@ -496,6 +496,62 @@ function paintShape (shape, rgb, fill, x, y, size, ctx)
   }
 };
 
+function createVelociGamesLogo()
+{
+  return {
+    timer : 1,
+    y_offset : -1,
+    dy : 0,
+    handleTimeStep : function(gamestate)
+    {
+      this.active_timer--;
+      this.dy += 1/128;
+      this.y_offset+=this.dy;
+      if (this.y_offset >= 0)
+      {
+        this.y_offset = 0;
+        this.timer+=1;
+      }
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      var size = canvas.height / 6;
+      ctx.font = Math.round(canvas.height/6) + "px " + g_font;
+      var textWidth = ctx.measureText("VelociGames").width
+      var dtext = textWidth - ctx.measureText("elociGames").width;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#000000";
+      //ctx.fillText("VelociGames", canvas.width/2, canvas.height/2);
+      ctx.fillText("elociGames", canvas.width/2 + dtext/2, canvas.height/2);
+      var correction = size/2 - dtext/2;
+      var x = canvas.width/2 - textWidth/2 - correction;
+      var y = canvas.height/2 - size/2 + size + this.y_offset * canvas.height;
+      var pivot_x = x + size/2;
+      var pivot_y = canvas.height/2 - size/2 + size + this.y_offset * canvas.height;
+      var theta = Math.PI - Math.PI/32;
+      if (this.timer > 1 && this.timer < 75)
+      {
+        theta += (1/this.timer * Math.cos(this.timer) * Math.PI/16);
+        
+      }
+      ctx.save();
+      ctx.translate(pivot_x,pivot_y);
+      ctx.rotate(theta);
+      paintShape(SHAPE.TRIANGLE, COLOR.properties.getRgb(COLOR.RED), FILL.FULL, x-pivot_x, y-pivot_y, size, ctx);
+      ctx.restore();
+      ctx.fillStyle = "#CBDBE0";
+      ctx.beginPath();
+      ctx.arc(pivot_x,  canvas.height/2 - size/2 + size, size/5, 0, 2*Math.PI);
+      ctx.fill();
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
 function createGauge(callback)
 {
   return {
@@ -801,13 +857,13 @@ function createLogo2()
       var start_angle = Math.atan(3/5);
       ctx.fillStyle = COLOR.properties.getRgb(COLOR.BLUE);
       ctx.beginPath();
-      ctx.arc(x + 6/9 * width, y + 3/9 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), .5 * Math.PI + start_angle, 1.5 * Math.PI + start_angle);
+      ctx.arc(x + 12/18 * width, y + 6/18 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), .5 * Math.PI + start_angle, 1.5 * Math.PI + start_angle);
       ctx.closePath();
       ctx.fill();
       
       ctx.fillStyle = COLOR.properties.getRgb(COLOR.RED);
       ctx.beginPath();
-      ctx.arc(x + 3/9 * width, y + 6/9 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), 1.5 * Math.PI + start_angle, 2.5 * Math.PI + start_angle);
+      ctx.arc(x + 6/18 * width, y + 12/18 * height, Math.sqrt(1/3 * width * 1/3 * width + 1/3 * height * 1/3 * height), 1.5 * Math.PI + start_angle, 2.5 * Math.PI + start_angle);
       ctx.closePath();
       ctx.fill();
       
@@ -862,10 +918,10 @@ function createLogo()
       {
         var start_arc = (teeth + .5) / num_teeth * 2 * Math.PI + this.angle;
         var end_arc = (teeth + 1.5) / num_teeth * 2 * Math.PI + this.angle;
-        if (teeth % 2 == 0)
+        if (teeth % 2 < 3)// === 0)
         {
-          start_arc += (2 * Math.PI * .25 / num_teeth);
-          end_arc -= (2 * Math.PI * .25 / num_teeth);
+          start_arc += (2 * Math.PI * .15 / num_teeth);
+          end_arc -= (2 * Math.PI * .15 / num_teeth);
         }
         ctx.arc(center_x, center_y, (teeth % 2 == 0) ? radius : inner_radius, start_arc, end_arc);
       }
