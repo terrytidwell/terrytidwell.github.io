@@ -1582,8 +1582,8 @@ function createRumble()
 function createFlickerEffect()
 {
   return {
-    normalFillStyle : "rgba(0,0,0,.25)",
-    dimFillStyle : "rgba(0,0,0,.35)",
+    normalFillStyle : "rgba(0,0,0,.30)",
+    dimFillStyle : "rgba(0,0,0,.40)",
     scratches : [
       {x_top: 0, x_stray: 0, age : 170, period : 170, active: 100},
       {x_top: 0, x_stray: 0, age : 150, period : 150, active: 190},
@@ -1591,10 +1591,9 @@ function createFlickerEffect()
     paint : function (gamestate, canvas, ctx)
     {
       ctx.fillStyle = Math.random() < .15 ? this.dimFillStyle : this.normalFillStyle;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.shadowOffsetX = canvas.width * 2;
       ctx.shadowColor = "#000000"
-      ctx.shadowBlur = Math.round(canvas.height / 16);
+      ctx.shadowBlur = Math.round(30);
       for (var specks = 0; specks < 2; specks++)
       {
         ctx.beginPath();
@@ -1604,7 +1603,7 @@ function createFlickerEffect()
         ctx.fill();
       }
       ctx.lineWidth = Math.round(1/450 * canvas.height);
-      ctx.shadowColor = "rgba(196, 196, 196, .25)";
+      ctx.shadowColor = "rgba(196, 196, 196, .40)";
       ctx.shadowBlur = Math.round(2);
       for(var j = 0; j < this.scratches.length; j++)
       {
@@ -1626,6 +1625,7 @@ function createFlickerEffect()
           ctx.stroke();
         }
       }
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     },
     paintLevel : function ()
     {
