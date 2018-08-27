@@ -244,12 +244,12 @@ function createDistinctProperty(property1, property2)
     return changeProperty(property1);
   }
   return otherProperty(property1, property2);;
-}
+};
 
 function changeProperty(property)
 {
   return (property + 1 + Math.floor(Math.random() * 2)) % 3;
-}
+};
 
 function compareElements(a, b, c)
 {
@@ -268,7 +268,7 @@ function compareElements(a, b, c)
     }
   }
   return true;
-}
+};
 
 function detectSet3Cards(card1, card2, card3)
 {
@@ -276,12 +276,141 @@ function detectSet3Cards(card1, card2, card3)
     compareElements(card1.shape, card2.shape, card3.shape) &&
     compareElements(card1.color, card2.color, card3.color) &&
     compareElements(card1.fill, card2.fill, card3.fill);
-}
+};
 
 function detectSet(cards)
 {
   return detectSet3Cards(cards[0], cards[1], cards[2]);
+};
+
+function sortCards(cards)
+{
+  cards.sort(function(a,b){
+    var value = 
+      (a.cardinality * 27 + a.fill*9 + a.shape*3 + a.color) -
+      (b.cardinality * 27 + b.fill*9 + b.shape*3 + b.color);
+      
+    return value;
+  });
 }
+
+function createTileSet(set_size, desired_sets)
+{
+  var return_set = [];
+  var allShapes = [];
+  for(var all = 0; all < 81; all++)
+  {
+    var current = all;
+    var prop1 = Math.floor(current / 27);
+    current -= prop1 * 27;
+    var prop2 = Math.floor(current / 9);
+    current -= prop2 * 9;
+    var prop3 = Math.floor(current / 3);
+    current -= prop3 * 3;
+    allShapes.push({
+      color: prop1,
+      fill: prop2,
+      cardinality: prop3,
+      shape: current}
+    );
+    
+  }
+  Util.shuffle(allShapes);
+  
+  for (let i = 0; i < set_size; i++)
+  {
+    return_set.push(allShapes.shift());
+  }
+  var i = [0, 1, 2];
+  var sets = [];
+  while(sets.length !== desired_sets)
+  {
+    var matched = [
+      false, false, false, false,
+      false, false, false, false,
+      false, false, false, false
+    ];
+    var unmatched = 12;
+    sets = [];
+    for(i[0] = 0; i[0] <  return_set.length - 2; i[0]++)
+    {
+      for(i[1] = i[0] + 1; i[1] <  return_set.length - 1; i[1]++)
+      {
+        for(i[2] = i[1] + 1; i[2] <  return_set.length; i[2]++)
+        {
+          if (
+            detectSet3Cards(
+              return_set[i[0]],
+              return_set[i[1]],
+              return_set[i[2]]
+            )
+          )
+          {
+            sets.push([i[0],i[1],i[2]]);
+            for(iter in i)
+            {
+              if (!matched[i[iter]])
+              {
+                matched[i[iter]] = true;
+                unmatched--;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    var shapes_indices = [
+        0, 1, 2, 3,
+        4, 5, 6, 7,
+        8, 9, 10, 11
+      ];
+    if (sets.length < desired_sets)
+    {
+      var swapped = false;
+      while (!swapped)
+      {
+        Util.shuffle(shapes_indices);
+        var shape1 = return_set[shapes_indices[0]];
+        var shape2 = return_set[shapes_indices[1]];
+        var shape3 = return_set[shapes_indices[2]];
+        
+        var prop1 = completeSet(shape1.cardinality, shape2.cardinality);
+        var prop2 = completeSet(shape1.color, shape2.color);
+        var prop3 = completeSet(shape1.fill, shape2.fill);
+        var prop4 = completeSet(shape1.shape, shape2.shape);
+        //make sure it's ok to put it in
+        for (var all = 0; all < allShapes.length; all++)
+        {
+          if (allShapes[all].cardinality === prop1 &&
+            allShapes[all].color === prop2 &&
+            allShapes[all].fill === prop3 &&
+            allShapes[all].shape === prop4)
+          {
+            swapped = true;
+            return_set.push(allShapes[all]);
+            allShapes.splice(all,1);
+            return_set.splice(shapes_indices[2],1);
+            allShapes.push(shape3);
+            break;
+          }
+        }
+      }
+    }
+    else if (sets.length > desired_sets)
+    {
+      var set_index = Math.floor(sets.length * Math.random());
+      var set_member = Math.floor(3 * Math.random());
+      var index_to_remove = sets[set_index][set_member];
+      return_set.push(allShapes.shift());
+      allShapes.push(return_set[index_to_remove]);
+      return_set.splice(index_to_remove,1);
+    }
+  }
+  console.log("current sets" + sets);
+  
+  return return_set;
+};
 
 function createCompletingShape(shape1, shape2, x, y, size)
 {
@@ -1317,6 +1446,32 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
     }
   };
 };
+
+function createText(text, x, y, height, align)
+{
+  return {
+    text : text,
+    x : x,
+    y : y,
+    height : height,
+    align : align,
+    paint : function (gamestate, canvas, ctx)
+    {
+      var height = Math.round(this.height * canvas.height);
+      var x = Math.round(this.x * canvas.height);
+      var y = Math.round(this.y * canvas.height);
+      ctx.font = height + "px " + g_font;
+      ctx.textAlign = this.align;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#000000";
+      ctx.fillText(this.text, x, y);
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.HUD;
+    }
+  };
+}
 
 function createScore(x, y, height)
 {

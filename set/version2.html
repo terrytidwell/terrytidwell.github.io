@@ -85,7 +85,10 @@ var IntroScreen = createScreen(
     gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
       gamestate.jut.switchToScreen(GameScreen);
     }));
-    gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+    gamestate.gameEntities.push(createWordButton("ZEN", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
+      gamestate.jut.switchToScreen(GameScreen2);
+    }));
+    gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
       gamestate.jut.switchToScreen(OptionsScreen);
     }));
   }
@@ -170,100 +173,146 @@ var GameScreen2 = createScreen (
     var bg = createBackground();
     gamestate.gameEntities.push(bg);
     gamestate.shapes = [];
+    gamestate.current_selection = [];
+    gamestate.found_sets = [];
     
-    var size = 1/4*15/16;
-    var allShapes = [];
-    for(var all = 0; all < 81; all++)
-    {
-      var current = all;
-      var prop1 = Math.floor(current / 27);
-      current -= prop1 * 27;
-      var prop2 = Math.floor(current / 9);
-      current -= prop2 * 9;
-      var prop3 = Math.floor(current / 3);
-      current -= prop3 * 3;
-      allShapes.push(createShapeButton(
-        prop1,
-        prop2,
-        prop3,
-        current,
-        0,
-        0,
-        size,
-        null
-      ));
-      
-    }
-    Util.shuffle(allShapes);
+    //BEGIN GENERATION
+    var created_set = createTileSet(12,6);
+    //END GENERATION
     
-    for (var x = -1.5; x <= 1.5; x+=1)
+    x = g_aspect_ratio - 1/32 - 1/8;
+    y = 7/8 + 1/16 - 1/64;
+    size = 1/8;
+    var score = createScore(x, y, size);
+    gamestate.gameEntities.push(score);
+    gamestate.gameEntities.push(createText("/6", x, y, size, "left"));
+    
+    var grid_size = 1/4;
+    var item_ratio = 15/16;
+    var grid_y_offset = 1/2 - (grid_size * 1.5);
+    var grid_x_offset = 0;
+    
+    var border_size = (grid_size - grid_size * item_ratio)/2;
+    var index = 0;
+    for (var y = 0; y < 3; y++)
     {
-      for (var y = -1; y <= 1 ; y+=1)
+      for (var x = 0; x < 4 ; x++, index++)
       {
-        gamestate.shapes.push(allShapes.shift());
-      }
-    }
-    var i = [0, 1, 2];
-    var sets = [];
-    while(sets.length != 6)
-    {
-      var matched = [
-        false, false, false, false,
-        false, false, false, false,
-        false, false, false, false
-      ];
-      var unmatched = 12;
-      sets = [];
-      for(; i[0] <  gamestate.shapes.length - 2; i[0]++)
-      {
-        for(i[1] = i[0] + 1; i[1] <  gamestate.shapes.length - 1; i[1]++)
-        {
-          for(i[2] = i[1] + 1; i[2] <  gamestate.shapes.length; i[2]++)
-          {
-            if (
-              detectSet3Cards(
-                gamestate.shapes[i[0]],
-                gamestate.shapes[i[1]],
-                gamestate.shapes[i[2]]
-              )
-            )
+        //function createShapeButton(shape, color, fill, cardinality, x, y, size, callback)
+        var shape = createShapeButton(
+          created_set[index].shape,
+          created_set[index].color,
+          created_set[index].fill,
+          created_set[index].cardinality,
+          grid_x_offset + grid_size * x + border_size,
+          grid_y_offset + grid_size * y + border_size,
+          grid_size * item_ratio,
+          function() {
+            if (this.selected)
             {
-              sets.push([i[0],i[1],i[2]]);
-              for(iter in i)
+              if(gamestate.current_selection.length < 3)
               {
-                if (!matched[i[iter]])
+                gamestate.current_selection.push(this);
+                if (gamestate.current_selection.length == 3)
                 {
-                  matched[i[iter]] = true;
-                  unmatched--;
+                  if (detectSet(gamestate.current_selection))
+                  {
+                    sortCards(gamestate.current_selection);
+                    var duplicate = false;
+                    for (found_set in gamestate.found_sets)
+                    {
+                      duplicate = duplicate ||
+                        (
+                          gamestate.found_sets[found_set][0].cardinality ===
+                            gamestate.current_selection[0].cardinality &&
+                          gamestate.found_sets[found_set][0].shape ===
+                            gamestate.current_selection[0].shape &&
+                          gamestate.found_sets[found_set][0].color ===
+                            gamestate.current_selection[0].color &&
+                          gamestate.found_sets[found_set][0].fill ===
+                            gamestate.current_selection[0].fill &&
+                          gamestate.found_sets[found_set][1].cardinality ===
+                            gamestate.current_selection[1].cardinality &&
+                          gamestate.found_sets[found_set][1].shape ===
+                            gamestate.current_selection[1].shape &&
+                          gamestate.found_sets[found_set][1].color ===
+                            gamestate.current_selection[1].color &&
+                          gamestate.found_sets[found_set][1].fill ===
+                            gamestate.current_selection[1].fill &&
+                          gamestate.found_sets[found_set][2].cardinality ===
+                            gamestate.current_selection[2].cardinality &&
+                          gamestate.found_sets[found_set][2].shape ===
+                            gamestate.current_selection[2].shape &&
+                          gamestate.found_sets[found_set][2].color ===
+                            gamestate.current_selection[2].color &&
+                          gamestate.found_sets[found_set][2].fill ===
+                            gamestate.current_selection[2].fill
+                        );
+                    }
+                    if (!duplicate)
+                    {
+                      for (let i = 0; i < gamestate.current_selection.length; i++)
+                      {
+                        var grid_size = (g_aspect_ratio - 1) / 3;
+                        var item_ratio = 15/16;
+                        var grid_y_offset = 1/2 - (grid_size * 3);
+                        var grid_x_offset = 1;
+                        
+                        var border_size = (grid_size - grid_size * item_ratio)/2;
+                        var x = i;
+                        var y = gamestate.found_sets.length;
+                        gamestate.gameEntities.push(createShape(
+                          gamestate.current_selection[i].shape,
+                          gamestate.current_selection[i].color,
+                          gamestate.current_selection[i].fill,
+                          gamestate.current_selection[i].cardinality,
+                          grid_x_offset + grid_size * x + border_size,
+                          grid_y_offset + grid_size * y + border_size,
+                          grid_size * item_ratio
+                        ));
+                      }
+                      
+                      gamestate.found_sets.push(gamestate.current_selection);
+                      score.increment();
+                      if (score.value === 6)
+                      {
+                        gamestate.gameEntities.push(createTimer(25,function() { GameScreen2.reset(); }));
+                      }
+                      gamestate.current_selection = [];
+                      for (shape in gamestate.shapes)
+                      {
+                        gamestate.shapes[shape].selected = false;
+                      }
+                    }
+                  }
+                  else
+                  {
+                    //alert("Nay!");
+                  }
+                }
+              }
+              else
+              {
+                this.selected = false;
+              }
+            }
+            if (!this.selected)
+            {
+              for(selection in gamestate.current_selection)
+              {
+                if (gamestate.current_selection[selection].cardinality === this.cardinality &&
+                  gamestate.current_selection[selection].color === this.color &&
+                  gamestate.current_selection[selection].fill === this.fill &&
+                  gamestate.current_selection[selection].shape === this.shape)
+                {
+                  gamestate.current_selection.splice(selection, 1);
                 }
               }
             }
           }
-        }
-      }
-      
-      if (sets.length < 6)
-      {
-        var selected = Math.floor(Math.random() * unmatched);
-      }
-      else if (sets.length > 6)
-      {
-        alert("Unhandled");
-      }
-      sets = [[],[],[],[],[],[]];
-    }
-    var index = 0;
-    for (var x = -1.5; x <= 1.5; x+=1)
-    {
-      for (var y = -1; y <= 1 ; y+=1)
-      {
-        gamestate.shapes[index].x =
-          g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32);
-        gamestate.shapes[index].y =
-          1/2 + 1/4 * y - 1/8 + (size * 1/32);
-        gamestate.shapes[index].callback = function() {};
-        gamestate.gameEntities.push(gamestate.shapes[index]);
-        index++;
+        );
+        gamestate.gameEntities.push(shape);
+        gamestate.shapes.push(shape);
       }
     }
   }
@@ -539,7 +588,7 @@ var init = function()
   
   GlobalResources.audio_components.bg = [];
 
-  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {}, stop: function() {}}});
+  GlobalResources.audio_components.bg.push({name: "None", song:{ setVolume : function () {}, loop : function () {}, play : function() {}, stop: function() {}, fadeOut: function() {} }});
   GlobalResources.audio_components.bg.push({name: "The Cannery", song:jut.loadAudio("assets/The Cannery.mp3")});
   GlobalResources.audio_components.bg.push({name: "Gaslamp Funworks", song:jut.loadAudio("assets/Gaslamp Funworks.mp3")});
   GlobalResources.audio_components.bg.push({name: "Monkeys Spinning Monkeys", song:jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3")});
