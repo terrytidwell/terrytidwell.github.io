@@ -163,6 +163,111 @@ var Gallery = createScreen(
   }
 );
 
+var GameScreen2 = createScreen (
+  function ()
+  {
+    var gamestate = this.gamestate;
+    var bg = createBackground();
+    gamestate.gameEntities.push(bg);
+    gamestate.shapes = [];
+    
+    var size = 1/4*15/16;
+    var allShapes = [];
+    for(var all = 0; all < 81; all++)
+    {
+      var current = all;
+      var prop1 = Math.floor(current / 27);
+      current -= prop1 * 27;
+      var prop2 = Math.floor(current / 9);
+      current -= prop2 * 9;
+      var prop3 = Math.floor(current / 3);
+      current -= prop3 * 3;
+      allShapes.push(createShapeButton(
+        prop1,
+        prop2,
+        prop3,
+        current,
+        0,
+        0,
+        size,
+        null
+      ));
+      
+    }
+    Util.shuffle(allShapes);
+    
+    for (var x = -1.5; x <= 1.5; x+=1)
+    {
+      for (var y = -1; y <= 1 ; y+=1)
+      {
+        gamestate.shapes.push(allShapes.shift());
+      }
+    }
+    var i = [0, 1, 2];
+    var sets = [];
+    while(sets.length != 6)
+    {
+      var matched = [
+        false, false, false, false,
+        false, false, false, false,
+        false, false, false, false
+      ];
+      var unmatched = 12;
+      sets = [];
+      for(; i[0] <  gamestate.shapes.length - 2; i[0]++)
+      {
+        for(i[1] = i[0] + 1; i[1] <  gamestate.shapes.length - 1; i[1]++)
+        {
+          for(i[2] = i[1] + 1; i[2] <  gamestate.shapes.length; i[2]++)
+          {
+            if (
+              detectSet3Cards(
+                gamestate.shapes[i[0]],
+                gamestate.shapes[i[1]],
+                gamestate.shapes[i[2]]
+              )
+            )
+            {
+              sets.push([i[0],i[1],i[2]]);
+              for(iter in i)
+              {
+                if (!matched[i[iter]])
+                {
+                  matched[i[iter]] = true;
+                  unmatched--;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      if (sets.length < 6)
+      {
+        var selected = Math.floor(Math.random() * unmatched);
+      }
+      else if (sets.length > 6)
+      {
+        alert("Unhandled");
+      }
+      sets = [[],[],[],[],[],[]];
+    }
+    var index = 0;
+    for (var x = -1.5; x <= 1.5; x+=1)
+    {
+      for (var y = -1; y <= 1 ; y+=1)
+      {
+        gamestate.shapes[index].x =
+          g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32);
+        gamestate.shapes[index].y =
+          1/2 + 1/4 * y - 1/8 + (size * 1/32);
+        gamestate.shapes[index].callback = function() {};
+        gamestate.gameEntities.push(gamestate.shapes[index]);
+        index++;
+      }
+    }
+  }
+);
 
 //------------------------------------------------------------------------
 var GameScreen = createScreen(
@@ -446,6 +551,8 @@ var init = function()
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(IntroScreen);
   GameScreen.init(jut);
+  GameScreen2.init(jut);
+  Gallery.init(jut);
   IntroScreen.init(jut);
   OptionsScreen.init(jut);
   jut.init();

@@ -1119,6 +1119,61 @@ function createLetterShape(letter, shape, color, x, y, size)
   };
 };
 
+function createShapeButton(shape, color, fill, cardinality, x, y, size, callback)
+{
+  return {
+    shape : shape,
+    color : color,
+    fill : fill,
+    cardinality : cardinality,
+    x : x,
+    y : y,
+    size : size,
+    alive : true,
+    selected : false,
+    callback : callback,
+    active : function()
+    {
+      return this.alive;
+    },
+    cancel : function ()
+    {
+      this.alive = false;
+    },
+    handleMouseDown(x,y)
+    {
+      if (x >= this.x && x <= this.x + this.size &&
+        y >= this.y && y <= this.y + this.size
+      )
+      {
+        this.selected = !this.selected;
+        this.callback();
+      }
+    },
+    handleTimeStep(gamestate)
+    {
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      var x = this.x * canvas.height;
+      var y = (this.y) * canvas.height;
+      var size = this.size * canvas.height;
+
+      if(this.selected)
+      {
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fillRect(x,y,size,size);
+      }
+      paintCard(this.shape, this.color, this.fill, this.cardinality, x, y, size, ctx);
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
 function createShape(shape, color, fill, cardinality, x, y, size)
 {
   return {
