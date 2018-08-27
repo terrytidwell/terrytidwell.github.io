@@ -1424,6 +1424,51 @@ function createFlickerEffect()
   };
 };
 
+function createSlideShow()
+{
+  return {
+    slides : [],
+    current_slide : 0,
+    handleMouseDown : function ()
+    {
+      ++this.current_slide;
+      if (this.current_slide >= this.slides.length)
+      {
+        this.current_slide = 0;
+      }
+      if (this.current_slide < this.slides.length)
+      {
+        this.slides[this.current_slide].reset();
+      }
+    },
+    reset : function ()
+    {
+      for (slide in this.slides)
+      {
+        this.slides[slide].reset();
+      }
+    },
+    handleTimeStep : function (gamestate)
+    {
+      if (this.current_slide < this.slides.length)
+      {
+        this.slides[this.current_slide].handleTimeStep();
+      }
+    },
+    paint : function(gamestate, canvas, ctx)
+    {
+      if (this.current_slide < this.slides.length)
+      {
+        this.slides[this.current_slide].paint(canvas, ctx);
+      }
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
 function createTimer(timeout, event)
 {
   return {

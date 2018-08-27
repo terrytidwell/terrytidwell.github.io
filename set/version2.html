@@ -52,7 +52,11 @@ var OptionsScreen = createScreen(
         GlobalResources.audio_components.bg[g_gamestate.song].song.play();
         this.word = "MUSIC: " + GlobalResources.audio_components.bg[g_gamestate.song].name;
       }));
-    gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 3/16, 1/16, function () { 
+    gamestate.gameEntities.push(createWordButton("GALLERY", g_aspect_ratio/2, 2/3 + 3/16, 1/16, function () { 
+      gamestate.jut.switchToScreen(Gallery);
+    }));
+    
+    gamestate.gameEntities.push(createWordButton("BACK", g_aspect_ratio/2, 2/3 + 4/16, 1/16, function () { 
       GlobalResources.audio_components.bg[g_gamestate.song].song.stop();
       gamestate.jut.switchToScreen(IntroScreen);
     }));
@@ -60,18 +64,6 @@ var OptionsScreen = createScreen(
     GlobalResources.audio_components.bg[g_gamestate.song].song.setVolume(50);
     GlobalResources.audio_components.bg[g_gamestate.song].song.loop();
     GlobalResources.audio_components.bg[g_gamestate.song].song.play();
-    /*
-    gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 1/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    /*
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    */
   }
 );
 
@@ -96,79 +88,78 @@ var IntroScreen = createScreen(
     gamestate.gameEntities.push(createWordButton("OPTIONS", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
       gamestate.jut.switchToScreen(OptionsScreen);
     }));
-    /*
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    */
   }
 );
 
-var GameScreen2 = createScreen(
+var Gallery = createScreen(
   function ()
   {
-    this.gamestate =
-    {
-      jut : this.jut,
-      gameEntities : [],
-      shapes : []
-    };
     var gamestate = this.gamestate;
     
-    var bg = createBackground();
-    //bg.fillStyle = "#ffffff";
-    gamestate.gameEntities.push(bg);
+    var slideshow = createSlideShow();
+    gamestate.gameEntities.push(slideshow);
     
-    gamestate.gameEntities.push(createVelociGamesLogo());
+    slideshow.slides.push(createScreen(function(){
+      var bg = createBackground();
+      //bg.fillStyle = "#ffffff";
+      gamestate.gameEntities.push(bg);
+      this.gamestate.gameEntities.push(createVelociGamesLogo());
+    }));
+  
+    slideshow.slides.push(createScreen(function(){
+      var bg = createBackground();
+      bg.fillStyle = "#ffffff";
+      gamestate.gameEntities.push(bg);
+
+      this.gamestate.gameEntities.push(createRumble());
+      this.gamestate.gameEntities.push(createCancelRumble());
+      this.gamestate.gameEntities.push(createFlickerEffect());
     
-    return;
+      this.gamestate.gameEntities.push(createCountDown());
+    }));
     
-    gamestate.gameEntities.push(createRumble());
-    gamestate.gameEntities.push(createCancelRumble());
-    gamestate.gameEntities.push(createFlickerEffect());
+    slideshow.slides.push(createScreen(function(){
+      var bg = createBackground();
+      bg.fillStyle = "#ffffff";
+      gamestate.gameEntities.push(bg);
+      this.gamestate.gameEntities.push(createRumble());
+      this.gamestate.gameEntities.push(createCancelRumble());
+      this.gamestate.gameEntities.push(createFlickerEffect());
+      this.gamestate.gameEntities.push(createLogo());
+    }));
     
-    gamestate.gameEntities.push(createCountDown());
+    slideshow.slides.push(createScreen(function(){
+      var bg = createBackground();
+      gamestate.gameEntities.push(bg);
+      this.gamestate.gameEntities.push(createLogo2());
+    }));
     
-    //gamestate.gameEntities.push(createFlickerEffect());
-    
-    gamestate.gameEntities.push(createTimer( 105,
-      function () {
-        gamestate.gameEntities.push(Math.random() < 0.5 ? createLogo() : createLogo2());
-        return;
-        gamestate.gameEntities.push(createLetterShape("S", SHAPE.TRIANGLE, COLOR.RED, g_aspect_ratio/2 - 3/6 + 0/32, 1/2 -  1/6, 1/3));
-        gamestate.gameEntities.push(createLetterShape("E", SHAPE.SQUARE, COLOR.BLUE, g_aspect_ratio/2 - 1/6, 1/2 - 1/6, 1/3));
-        gamestate.gameEntities.push(createLetterShape("T", SHAPE.CIRCLE, COLOR.GREEN, g_aspect_ratio/2 + 1/6 - 0/32, 1/2 -  1/6, 1/3));
-        return;
-        for (var x = -1.5; x <= 1.5; x+=1)
+    slideshow.slides.push(createScreen(function(){
+      var bg = createBackground();
+      this.gamestate.gameEntities.push(bg);
+      this.gamestate.shapes = [];
+      for (var x = -1.5; x <= 1.5; x+=1)
+      {
+        for (var y = -1; y <= 1 ; y+=1)
         {
-          for (var y = -1; y <= 1 ; y+=1)
-          {
-            var size = 1/4*15/16;
-            var shape = createShape(
-            randomProperty(),
-            randomProperty(),
-            randomProperty(),
-            randomProperty(),
-            g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32),
-            1/2 + 1/4 * y - 1/8 + (size * 1/32),
-            size);
-            gamestate.gameEntities.push(shape);
-            gamestate.shapes.push(shape);
-          }
+          var size = 1/4*15/16;
+          var shape = createShape(
+          randomProperty(),
+          randomProperty(),
+          randomProperty(),
+          randomProperty(),
+          g_aspect_ratio/2 + 1/4 * x - 1/8 + (size * 1/32),
+          1/2 + 1/4 * y - 1/8 + (size * 1/32),
+          size);
+          this.gamestate.gameEntities.push(shape);
+          this.gamestate.shapes.push(shape);
         }
       }
-    ));
-    /*
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 2/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
     }));
-    gamestate.gameEntities.push(createWordButton("PLAY", g_aspect_ratio/2, 2/3 + 3/12, 1/12, function () { 
-      gamestate.jut.switchToScreen(GameScreen);
-    }));
-    */
+    
+    slideshow.reset();
+    
+    return;
   }
 );
 
@@ -439,9 +430,6 @@ var init = function()
   
   /*
   GlobalResources.audio_components.reject = jut.loadAudio("assets/Banana Peel Slip Zip-SoundBible.com-803276918.mp3");
-  GlobalResources.audio_components.bg = jut.loadAudio("assets/The Cannery.mp3");
-  GlobalResources.audio_components.bg = jut.loadAudio("assets/Gaslamp Funworks.mp3");
-  GlobalResources.audio_components.bg = jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3");
   */
   
   GlobalResources.audio_components.bg = [];
