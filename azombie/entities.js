@@ -1473,7 +1473,7 @@ function createText(text, x, y, height, align)
       ctx.font = height + "px " + g_font;
       ctx.textAlign = this.align;
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "#000000";
+      ctx.fillStyle = "#ffffff";
       ctx.fillText(this.text, x, y);
     },
     paintLevel : function()
@@ -1543,11 +1543,13 @@ function createScore(x, y, height)
 function createBackground()
 {
   return {
-    fillStyle : "#CBDBE0",
     paint : function (gamestate, canvas, ctx)
     {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = this.fillStyle;
+      var gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+      gradient.addColorStop(0, "rgb(39,171,255)");
+      gradient.addColorStop(1, "rgb(225,6,192)");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     },
     paintLevel : function ()
