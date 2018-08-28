@@ -20,17 +20,38 @@ var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
 var g_gamestate = {
-  song : 0,
-  mobile : false
+  current_puzzle_index : 0
 };
+
+g_puzzles = [
+  ["fall","spring","matress"],
+  ["boat","motor","oil"],
+];
 
 var IntroScreen = createScreen(
   function ()
   {
     var gamestate = this.gamestate;
-    gamestate.current_selected_word = "spring";
+    gamestate.current_selected_word = g_puzzles[g_gamestate.current_puzzle_index][1];
+    var puzzle_blank = "";
+    for (let i = 0; i < gamestate.current_selected_word.length; i++)
+    {
+      puzzle_blank +=".";
+    }
+    var puzzle_string = g_puzzles[g_gamestate.current_puzzle_index][0]+"/"+puzzle_blank+"/"+g_puzzles[g_gamestate.current_puzzle_index][2];
+    var solve_string = g_puzzles[g_gamestate.current_puzzle_index][0]+"/"+gamestate.current_selected_word+"/"+g_puzzles[g_gamestate.current_puzzle_index][2];
     gamestate.gameEntities.push(createBackground());
-    var puzzle_text = createText("fall/....../matress", g_aspect_ratio/2, 1/3, 1/10 * 10/16);
+    for (var x = 0; x < 5; x++)
+    {
+      gamestate.gameEntities.push(createIcon(
+        GlobalResources.graphic_components.full_star,
+        g_aspect_ratio/2 + 1/10 * (x-2.5) + 1/10 * 6/16 * 1/2,
+        1/3 - 2/10  + 1/10 * 6/16 * 1/2, 1/10 * 10/16
+      ));
+    }
+    gamestate.clock = createClock(g_aspect_ratio/2, 1/3 - 2/10, 1/10 * 10/16, "center");
+    gamestate.gameEntities.push(gamestate.clock);
+    var puzzle_text = createText(puzzle_string, g_aspect_ratio/2, 1/3, 1/10 * 10/16, "center");
     gamestate.gameEntities.push(puzzle_text);
     var current_typed_word = createText("", g_aspect_ratio/2, 2/3-1.5/10, 1/10 * 10/16)
     gamestate.gameEntities.push(current_typed_word);
@@ -40,7 +61,7 @@ var IntroScreen = createScreen(
       function(){
         current_typed_word.text = "";
       },
-      g_aspect_ratio/2 + 1/4 + 1/32,
+      g_aspect_ratio/2 + 1/4 + 1/64,
       2/3-2/10,
       1/10
     ));
@@ -52,10 +73,22 @@ var IntroScreen = createScreen(
       }
       if (current_typed_word.text === gamestate.current_selected_word)
       {
-        puzzle_text.text = "fall/spring/matress";
+        puzzle_text.text = solve_string;
         current_typed_word.text = "";
+        gamestate.current_selected_word = "";
+        gamestate.clock.stopped = true;
+        gamestate.gameEntities.push(createTimer(25,
+          function() {
+            g_gamestate.current_puzzle_index++;
+            if (g_gamestate.current_puzzle_index >= g_puzzles.length)
+            {
+              g_gamestate.current_puzzle_index=0;
+            }
+            IntroScreen.reset();
+          }
+        ));
       }
-    }
+    };
     
     var grid_size = 1/10;
     var item_ratio = 15/16;
@@ -154,6 +187,9 @@ var init = function()
   */
   
   GlobalResources.graphic_components.close = jut.loadImage("assets/baseline_close_white_48dp.png");
+  GlobalResources.graphic_components.full_star = jut.loadImage("assets/outline_star_black_48dp.png");
+  GlobalResources.graphic_components.no_star = jut.loadImage("assets/outline_star_border_black_48dp.png");
+  GlobalResources.graphic_components.half_star = jut.loadImage("assets/outline_star_half_black_48dp.png");
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   IntroScreen.init(jut);

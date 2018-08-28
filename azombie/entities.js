@@ -1483,6 +1483,64 @@ function createText(text, x, y, height, align)
       return PAINT_LEVEL.HUD;
     }
   };
+};
+
+function createIcon(graphic,x,y,size)
+{
+  return {
+    graphic : graphic,
+    x : x,
+    y : y,
+    size : size,
+    paint : function (gamestate, canvas, ctx)
+    {
+      var size = Math.round(this.size * canvas.height);
+      var x = Math.round(this.x * canvas.height);
+      var y = Math.round(this.y * canvas.height);
+      ctx.globalAlpha = .25;
+      ctx.drawImage(this.graphic, x, y, size, size);
+      ctx.globalAlpha = 1;
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.FG;
+    }
+  };
+};
+
+function createClock(x, y, height, align)
+{
+  return {
+    child_text : createText("0:00",x,y,height,align),
+    current_time : 0,
+    x : x,
+    y : y,
+    height : height,
+    align : align,
+    stopped : false,
+    handleTimeStep : function(gamestate)
+    {
+      if (this.stopped)
+      {
+        return;
+      }
+      this.current_time++;
+      var current_seconds = Math.floor(this.current_time/25);
+      var current_minutes = Math.floor(current_seconds/60);
+      current_seconds = current_seconds - current_minutes * 60;
+      
+      this.child_text.text = current_minutes + ":" + 
+        (current_seconds < 10 ? "0" + current_seconds : current_seconds);
+    },
+    paint : function (gamestate, canvas, ctx)
+    {
+      this.child_text.paint(gamestate, canvas, ctx);
+    },
+    paintLevel : function()
+    {
+      return PAINT_LEVEL.HUD;
+    }
+  };
 }
 
 function createScore(x, y, height)
