@@ -28,8 +28,11 @@ var IntroScreen = createScreen(
   function ()
   {
     var gamestate = this.gamestate;
+    gamestate.current_selected_word = "spring";
     gamestate.gameEntities.push(createBackground());
-    var current_typed_word = createText("", g_aspect_ratio/2, 2/3-1.5/10, 1/10 * 15/16)
+    var puzzle_text = createText("fall/....../matress", g_aspect_ratio/2, 1/3, 1/10 * 10/16);
+    gamestate.gameEntities.push(puzzle_text);
+    var current_typed_word = createText("", g_aspect_ratio/2, 2/3-1.5/10, 1/10 * 10/16)
     gamestate.gameEntities.push(current_typed_word);
     gamestate.gameEntities.push(createBox(g_aspect_ratio/2 - 1/4, 2/3-2/10, 1/2, 1/10));
     gamestate.gameEntities.push(createButton(
@@ -43,9 +46,14 @@ var IntroScreen = createScreen(
     ));
     var row = ['Q','W','E','R','T','Y','U','I','O','P'];
     var letter_press = function() {
-      if (current_typed_word.text.length < 5)
+      if (current_typed_word.text.length < gamestate.current_selected_word.length)
       {
         current_typed_word.text += this.word.toLowerCase();
+      }
+      if (current_typed_word.text === gamestate.current_selected_word)
+      {
+        puzzle_text.text = "fall/spring/matress";
+        current_typed_word.text = "";
       }
     }
     
