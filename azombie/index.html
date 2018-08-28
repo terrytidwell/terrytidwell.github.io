@@ -16,7 +16,7 @@
 //
 
 var g_font = "Lucida Console";
-var g_aspect_ratio = 2/3;
+var g_aspect_ratio = 4/3;
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
 var g_gamestate = {
@@ -29,28 +29,92 @@ var IntroScreen = createScreen(
   {
     var gamestate = this.gamestate;
     gamestate.gameEntities.push(createBackground());
-    gamestate.gameEntities.push(createText("2:3", g_aspect_ratio/2, 1/2, 1/4, "center"));
-    gamestate.gameEntities.push(createScreenClick(function ()
+    var current_typed_word = createText("", g_aspect_ratio/2, 2/3-1.5/10, 1/10 * 15/16)
+    gamestate.gameEntities.push(current_typed_word);
+    gamestate.gameEntities.push(createBox(g_aspect_ratio/2 - 1/4, 2/3-2/10, 1/2, 1/10));
+    gamestate.gameEntities.push(createButton(
+      GlobalResources.graphic_components.close,
+      function(){
+        current_typed_word.text = "";
+      },
+      g_aspect_ratio/2 + 1/4 + 1/32,
+      2/3-2/10,
+      1/10
+    ));
+    var row = ['Q','W','E','R','T','Y','U','I','O','P'];
+    var letter_press = function() {
+      if (current_typed_word.text.length < 5)
+      {
+        current_typed_word.text += this.word.toLowerCase();
+      }
+    }
+    
+    var grid_size = 1/10;
+    var item_ratio = 15/16;
+    var grid_y_offset = 2/3;
+    var grid_x_offset = g_aspect_ratio/2 - 4.5 * grid_size;
+    
+    
+    
+    var border_size = (grid_size - grid_size * item_ratio)/2;
+    var index = 0;
+    for (var y = 0; y < 1; y++)
     {
-      g_aspect_ratio = 4/3;
-      gamestate.jut.setMaintainAspectRatioMode(g_aspect_ratio);
-      gamestate.jut.switchToScreen(OtherScreen);
-    }));
-  }
-);
-
-var OtherScreen = createScreen(
-  function ()
-  {
-    var gamestate = this.gamestate;
-    gamestate.gameEntities.push(createBackground());
-    gamestate.gameEntities.push(createText("4:3", g_aspect_ratio/2, 1/2, 1/4, "center"));
-    gamestate.gameEntities.push(createScreenClick(function ()
+      for (var x = 0; x < 10 ; x++, index++)
+      {
+        gamestate.gameEntities.push(createWordButton(
+          row[x],
+          grid_x_offset + grid_size * x + border_size,
+          grid_y_offset + grid_size * y + border_size,
+          grid_size * item_ratio,
+          letter_press
+        ));
+      }
+    }
+    
+    var row = ['A','S','D','F','G','H','J','K','L'];
+    var grid_size = 1/10;
+    var item_ratio = 15/16;
+    var grid_y_offset = 2/3 + 1/10;
+    var grid_x_offset = g_aspect_ratio/2 - 4 * grid_size;
+    
+    var border_size = (grid_size - grid_size * item_ratio)/2;
+    var index = 0;
+    for (var y = 0; y < 1; y++)
     {
-      g_aspect_ratio = 2/3;
-      gamestate.jut.setMaintainAspectRatioMode(g_aspect_ratio);
-      gamestate.jut.switchToScreen(IntroScreen);
-    }));
+      for (var x = 0; x < 9 ; x++, index++)
+      {
+        gamestate.gameEntities.push(createWordButton(
+          row[x],
+          grid_x_offset + grid_size * x + border_size,
+          grid_y_offset + grid_size * y + border_size,
+          grid_size * item_ratio,
+          letter_press
+        ));
+      }
+    }
+    
+    var row = ['Z','X','C','V','B','N','M'];
+    var grid_size = 1/10;
+    var item_ratio = 15/16;
+    var grid_y_offset = 2/3 + 2/10;
+    var grid_x_offset = g_aspect_ratio/2 - 3 * grid_size;
+    
+    var border_size = (grid_size - grid_size * item_ratio)/2;
+    var index = 0;
+    for (var y = 0; y < 1; y++)
+    {
+      for (var x = 0; x < 7 ; x++, index++)
+      {
+        gamestate.gameEntities.push(createWordButton(
+          row[x],
+          grid_x_offset + grid_size * x + border_size,
+          grid_y_offset + grid_size * y + border_size,
+          grid_size * item_ratio,
+          letter_press
+        ));
+      }
+    }
   }
 );
   
@@ -77,13 +141,14 @@ var init = function()
   GlobalResources.audio_components.bg.push({name: "Monkeys Spinning Monkeys", song:jut.loadAudio("assets/Monkeys Spinning Monkeys.mp3")});
   GlobalResources.audio_components.bg.push({name: "The Builder", song:jut.loadAudio("assets/The Builder.mp3")});
   
-  GlobalResources.graphic_components.reject = jut.loadImage("assets/baseline_thumb_down_white_48dp.png");
+  
   GlobalResources.graphic_components.accept = jut.loadImage("assets/baseline_thumb_up_white_48dp.png");
   */
   
+  GlobalResources.graphic_components.close = jut.loadImage("assets/baseline_close_white_48dp.png");
+  
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   IntroScreen.init(jut);
-  OtherScreen.init(jut);
   jut.addTitleScreen(IntroScreen);
   jut.init();
 }

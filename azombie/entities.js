@@ -1087,7 +1087,28 @@ function createLogo()
   };
 };
 
-
+function createBox(x,y,width,height)
+{
+  return {
+    x: x,
+    y: y,
+    width : width,
+    height : height,
+    paint : function (gamestate, canvas, ctx)
+    {
+      var x = this.x * canvas.height;
+      var y = this.y * canvas.height;
+      var width = this.width * canvas.height;
+      var height = this.height * canvas.height;
+      ctx.fillStyle = "rgba(0,0,0,.25)";
+      ctx.fillRect(x,y,width,height);
+    },
+    paintLevel : function ()
+    {
+      return PAINT_LEVEL.BG;
+    }
+  }
+}
 
 function createCountDown()
 {
@@ -1165,7 +1186,6 @@ function createWordButton(word, x, y, height, onclick)
     onclick : onclick,
     last_width : 0,
     highlighted : false,
-    highlight : randomProperty(),
     handleMouseMove : function (x,y)
     {
       if (this.x - this.last_width / 2 <= x &&
@@ -1176,7 +1196,6 @@ function createWordButton(word, x, y, height, onclick)
         if (!this.highlighted)
         {
           this.highlighted = true;
-          this.highlight = randomProperty();
         }
       }
       else
@@ -1201,9 +1220,15 @@ function createWordButton(word, x, y, height, onclick)
       ctx.textBaseline = "middle";
       ctx.font = Math.round(height) + "px " + g_font;
       
-      this.last_width = ctx.measureText(word).width / canvas.height;
-      ctx.fillStyle = this.highlighted ? COLOR.properties.getRgb(this.highlight) : "#FFFFFF";
+      var width_on_screen = ctx.measureText(this.word).width;
+      this.last_width = width_on_screen / canvas.height;
       
+      if(this.highlighted)
+      {
+        ctx.fillStyle = "rgba(0,0,0,.25)";
+        ctx.fillRect(Math.round(x - height/2), Math.round(y - height/2), height, height);
+      }
+      ctx.fillStyle = "rgb(0,0,0)";
       ctx.fillText(this.word, Math.round(x), Math.round(y));
     },
     paintLevel : function()
@@ -1401,20 +1426,18 @@ function createScreenClick(callback)
   };
 };
 
-function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
+function createButton(graphic, onclick, x, y, size)
 {
   return {
     x : x,
     y : y,
     size : size,
     graphic : graphic,
-    highlighted : false,
     handleMouseDown : function(x, y)
     {
       if (this.x <= x && x <= this.x + this.size &&
         this.y <= y && y <= this.y + this.size)
       {
-        this.highlighted = true;
         onclick();
       }
     },
@@ -1423,32 +1446,11 @@ function createButton(graphic, bgcolor, highlight, onclick, x, y, size)
       var x = this.x * canvas.height;
       var y = this.y * canvas.height;
       var size = this.size * canvas.height;
-      ctx.lineWidth = size/26;
-
-      if (this.highlighted)
-      {
-        //x += ctx.lineWidth;
-        y += 2*ctx.lineWidth;
-      }
-      else
-      {
-        ctx.globalAlpha=.5;
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(x, y + 2*ctx.lineWidth, size, size);
-        ctx.globalAlpha=1;
-      }
-      ctx.fillStyle = this.highlighted ? highlight : bgcolor;
+    
+      ctx.fillStyle = "rgba(0,0,0,.25)";
       ctx.fillRect(x,y,size,size);
 
-      ctx.strokeStyle = "#ffffff";
-      ctx.drawImage(this.graphic, x, y, size, size);
-      ctx.globalAlpha=.5;
-      ctx.beginPath();
-      ctx.moveTo(x + size - ctx.lineWidth, y + ctx.lineWidth);
-      ctx.lineTo(x + ctx.lineWidth, y + ctx.lineWidth);
-      ctx.lineTo(x + ctx.lineWidth, y + size - ctx.lineWidth);
-      ctx.stroke();
-      ctx.globalAlpha=1;
+      ctx.drawImage(this.graphic, x + size/4, y + size/4, size/2, size/2);
     },
     paintLevel : function()
     {
