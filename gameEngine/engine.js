@@ -44,17 +44,20 @@ var createJutGameEngine = function(new_canvas) {
   var setFullScreenMode = function()
   {
     resize = resizeToFullScreen;
+    resize();
   }
   
   var setMaintainAspectRatioMode = function(new_aspect_ratio)
   {
     widthToHeightRatio = new_aspect_ratio;
     resize = resizeAndMaintainAspectRatio;
+    resize();
   }
   
   var setStaticCanvasMode = function()
   {
-    resize = resizeNoOp;    
+    resize = resizeNoOp;
+    resize();
   }
   
   var init = function()
