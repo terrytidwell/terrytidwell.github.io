@@ -1438,8 +1438,9 @@ var ResourceTracker = {
     {
       if (m_ready)
       {
+        m_ready = false;
         g_mainloop.loop();
-        g_mainloop.play();
+        g_mainloop.play().fadeIn(10000);
         switchToScreen(MenuScreen);
       }
     },
