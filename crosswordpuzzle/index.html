@@ -18,6 +18,7 @@ var g_ctx;
 var g_current_screen;
 var g_level;
 var g_completed;
+var g_mainloop;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -347,6 +348,7 @@ var LetterBox = function(x,y,size,letter)
 
 var VictoryCelebration = function()
 {
+  g_leveldone.play();
   this.letters = [];
   this.velocity = [0,0,0,0,0,0,0,0,0,0];
   this.bounces = [0,0,0,0,0,0,0,0,0,0];
@@ -1410,6 +1412,7 @@ var ResourceTracker = {
     m_added: 1, // I track myself loading
     m_loaded: 0,
     m_layout: null,
+    m_ready : false,
 
     //----------------------------------------------------------------------
     // from Screen
@@ -1426,7 +1429,14 @@ var ResourceTracker = {
     //----------------------------------------------------------------------
     // from Screen
     handleMouseDown: function ()
-    {},
+    {
+      if (m_ready)
+      {
+        g_mainloop.loop();
+        g_mainloop.play();
+        switchToScreen(MenuScreen);
+      }
+    },
 
     //----------------------------------------------------------------------
     // from Screen
@@ -1498,7 +1508,7 @@ var ResourceTracker = {
     //----------------------------------------------------------------------
     onAllLoaded: function ()
     {
-        switchToScreen(GameScreen);
+      m_ready = true;
     }
 };
 
@@ -1557,6 +1567,10 @@ function init()
         g_current_screen.handleKeyUp(event);
     }, false);
 
+    
+    g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
+    g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
+    g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
     // can't do this until you've set up canvas_width and canvas_height
     //ResourceTracker init must be called after all requests to
     //loadImage/loadAudio
@@ -1565,7 +1579,7 @@ function init()
     TutorialScreen.init();
     MenuScreen.init();
 
-    switchToScreen(MenuScreen);
+    switchToScreen(ResourceTracker);
 
     // start processing events
     setTimeout(eventLoop, 40);
