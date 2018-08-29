@@ -867,8 +867,11 @@ var TutorialScreen = {
     var width = (offset + 2 * radius);
     var height = 8/35 * GRID_SIZE * g_canvas.height;
     ctx.fillStyle = "gray";
-    ctx.fillRect(centerX - width/2, centerY + border, width, height);
-    this.drawWedge(ctx, "gray", centerX, centerY + border + height, radius + border, 0, Math.PI);
+    ctx.beginPath();
+    //this.drawWedge(ctx, "gray", centerX, centerY + border + height, radius + border, 0, Math.PI);
+    ctx.arc(centerX, centerY + border + height, radius + border, 0, Math.PI);
+    ctx.closePath();
+    ctx.fill();
   },
 
   drawWedge: function(ctx, color, centerX, centerY, radius, startAngle, endAngle)
