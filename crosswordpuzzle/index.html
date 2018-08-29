@@ -18,9 +18,6 @@ var g_ctx;
 var g_current_screen;
 var g_level;
 var g_completed;
-var g_leveldone;
-var g_click;
-var g_mainloop;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -350,7 +347,6 @@ var LetterBox = function(x,y,size,letter)
 
 var VictoryCelebration = function()
 {
-  g_leveldone.play();
   this.letters = [];
   this.velocity = [0,0,0,0,0,0,0,0,0,0];
   this.bounces = [0,0,0,0,0,0,0,0,0,0];
@@ -1289,15 +1285,11 @@ var GameScreen = {
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = [ this.draggable_list[i] ];
-              g_click.stop();
-              g_click.play();
             }
             else if(event.button == 2)
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = this.findAdjacentTileSets(i);
-              g_click.stop();
-              g_click.play();
             }
             return true;
           }
@@ -1354,8 +1346,6 @@ var GameScreen = {
         {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(35);
-          g_click.stop();
-          g_click.play();
         }
         this.checkForSolved();
         this.findOffscreenAdjacentTileSets();
@@ -1444,8 +1434,6 @@ var ResourceTracker = {
       if (m_ready)
       {
         m_ready = false;
-        g_mainloop.loop();
-        g_mainloop.play().setVolume(0).fadeTo(50,10000);
         switchToScreen(MenuScreen);
       }
     },
@@ -1588,10 +1576,6 @@ function init()
         g_current_screen.handleKeyUp(event);
     }, false);
 
-    
-    g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
-    g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
-    g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
     // can't do this until you've set up canvas_width and canvas_height
     //ResourceTracker init must be called after all requests to
     //loadImage/loadAudio
