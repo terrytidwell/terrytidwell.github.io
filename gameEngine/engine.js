@@ -147,7 +147,6 @@ var createJutGameEngine = function(new_canvas) {
   var screens = [];
   var widthToHeightRatio = 16/9;
   var resize = resizeNoOp;
-
   
   var resizeNoOp = function ()
   {
@@ -206,7 +205,7 @@ var createJutGameEngine = function(new_canvas) {
 
     handleTimeStep: function ()
     {
-      if (this.m_loaded == this.m_added)
+      if (this.m_loaded === this.m_added)
       {
         this.onAllLoaded();
       }
@@ -239,15 +238,14 @@ var createJutGameEngine = function(new_canvas) {
     onload: function (event)
     {
       ++this.m_loaded;
-      if (this.m_loaded == this.m_added)
-      {
-        this.onAllLoaded();
-      }
     },
 
     onAllLoaded: function ()
     {
-      switchToScreen(screens[0]);
+      if(screens.length !== 0)
+      {
+        switchToScreen(screens[0]);
+      }
     }
   };
   
