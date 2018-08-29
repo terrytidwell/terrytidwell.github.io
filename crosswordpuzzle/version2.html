@@ -617,54 +617,54 @@ var TutorialScreen = {
     this.mouse_instructions.push([2,5]);
     this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","","What could that mean?","","click to continue..."]]);
     this.mouse_instructions.push([3,["You can drag tiles together with left click","","click to continue..."]]);
-    this.mouse_instructions.push([0, 6*GRID_SIZE + 15, 5*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 6*GRID_SIZE + GRID_SIZE/2, 5*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0, 15*GRID_SIZE + 15, 10*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 15*GRID_SIZE + GRID_SIZE/2, 10*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0, 13*GRID_SIZE + 15, 8*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 13*GRID_SIZE + GRID_SIZE/2, 8*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([3,["You can drag connected groups with right click","","click to continue..."]]);
     /*
     */
-    this.mouse_instructions.push([0, 17*GRID_SIZE + 15, 10*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 17*GRID_SIZE + GRID_SIZE/2, 10*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([1,MouseButtonEnum.RIGHT]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0, 13*GRID_SIZE + 15, 7*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 13*GRID_SIZE + GRID_SIZE/2, 7*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0, 11*GRID_SIZE + 15, 9*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 11*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off","","click to continue..."]]);
-    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - GRID_SIZE*2]);
+    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - GRID_SIZE*4]);
+    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*4]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - GRID_SIZE*2]);
+    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0,g_canvas.width / 2,g_canvas.height - GRID_SIZE*4]);
+    this.mouse_instructions.push([0,4/3 / 2, 1 - GRID_SIZE*4]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([3,["Reassemble all the words to complete the puzzle!","","click to continue..."]]);
-    this.mouse_instructions.push([0, 5*GRID_SIZE + 15, 11*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 5*GRID_SIZE + GRID_SIZE/2, 11*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0, 13*GRID_SIZE + 15, 9*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 13*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0, 18*GRID_SIZE + 15, 6*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 18*GRID_SIZE + GRID_SIZE/2, 6*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0, 9*GRID_SIZE + 15, 9*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 9*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0, 6*GRID_SIZE + 15, 6*GRID_SIZE + 15]);
+    this.mouse_instructions.push([0, 6*GRID_SIZE + GRID_SIZE/2, 6*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,50]);
     this.mouse_x = 4/3/ 2;
     this.mouse_y = 1/ 2;
@@ -725,11 +725,11 @@ var TutorialScreen = {
     var current_instruction_done = true;
     if (current_instruction[0] == 0)
     {
-      var dy = this.mouse_y - current_instruction[2]*GRID_SIZE;
-      var dx = this.mouse_x - current_instruction[1]*GRID_SIZE;
+      var dy = this.mouse_y - current_instruction[2];
+      var dx = this.mouse_x - current_instruction[1];
       if (Math.abs(dy) < this.mouseSpeed)
       {
-        this.mouse_y = current_instruction[2]*GRID_SIZE;
+        this.mouse_y = current_instruction[2];
       }
       else if(dy < 0)
       {
@@ -744,7 +744,7 @@ var TutorialScreen = {
       
       if (Math.abs(dx) < this.mouseSpeed)
       {
-        this.mouse_x = current_instruction[1]*GRID_SIZE;
+        this.mouse_x = current_instruction[1];
       }
       else if(dx < 0)
       {
@@ -756,7 +756,9 @@ var TutorialScreen = {
         this.mouse_x -= this.mouseSpeed;
         current_instruction_done = false;
       }
-      this.gameScreen.handleMouseMove({offsetX: this.mouse_x, offsetY: this.mouse_y});
+      this.gameScreen.handleMouseMove(
+        {offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        currentTarget : {height : canvas.height}});
     }
     
     if (current_instruction[0] == 1)
@@ -766,22 +768,26 @@ var TutorialScreen = {
       if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.RIGHT) &&
         (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.BOTH))
       {
-        this.gameScreen.handleMouseDown({button: 0, offsetX: this.mouse_x, offsetY: this.mouse_y});
+        this.gameScreen.handleMouseDown({button: 0, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.LEFT) &&
         (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.BOTH))
       {
-        this.gameScreen.handleMouseDown({button: 2, offsetX: this.mouse_x, offsetY: this.mouse_y});
+        this.gameScreen.handleMouseDown({button: 2, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.RIGHT) &&
         (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.NONE))
       {
-        this.gameScreen.handleMouseUp({button: 2, offsetX: this.mouse_x, offsetY: this.mouse_y});
+        this.gameScreen.handleMouseUp({button: 2, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.LEFT) &&
         (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.NONE))
       {
-        this.gameScreen.handleMouseUp({button: 0, offsetX: this.mouse_x, offsetY: this.mouse_y});
+        this.gameScreen.handleMouseUp({button: 0, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        currentTarget : {height : canvas.height}});
       }
     }
     
@@ -1450,6 +1456,11 @@ var ResourceTracker = {
     reset: function ()
     {},
 
+    //----------------------------------------------------------------------
+    // from Screen
+    handleMouseMove: function ()
+    {},
+    
     //----------------------------------------------------------------------
     // from Screen
     handleMouseDown: function ()
