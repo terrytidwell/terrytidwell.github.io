@@ -1287,11 +1287,15 @@ var GameScreen = {
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = [ this.draggable_list[i] ];
+              g_click.stop();
+              g_click.play();
             }
             else if(event.button == 2)
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = this.findAdjacentTileSets(i);
+              g_click.stop();
+              g_click.play();
             }
             return true;
           }
@@ -1349,6 +1353,8 @@ var GameScreen = {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(35);
         }
+        g_click.stop();
+        g_click.play();
         this.checkForSolved();
         this.findOffscreenAdjacentTileSets();
       }
@@ -1470,14 +1476,14 @@ var ResourceTracker = {
         g_ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         // paint the background
-        g_ctx.fillStyle = "rgb(0, 0, 0)";
+        g_ctx.fillStyle = "#f0f0f0";
         g_ctx.fillRect(
             0, 0,
             g_canvas.width,
             g_canvas.height);
 
         g_ctx.font="Bold 80px Arial";
-        g_ctx.fillStyle = "rgb(128, 128, 128)";
+        g_ctx.fillStyle = "rgb(0, 0, 0)";
         g_ctx.textAlign = "center";
         g_ctx.textBaseline = "middle";
         g_ctx.fillText(
@@ -1485,6 +1491,15 @@ var ResourceTracker = {
             g_canvas.width / 2,
             g_canvas.height / 2
         );
+        if (100 === Math.floor(100 * this.m_loaded / this.m_added))
+        {
+          g_ctx.font="20px Arial";
+          g_ctx.fillText(
+              "click to continue",
+              g_canvas.width / 2,
+              g_canvas.height / 2 + 40
+          );
+        }
     },
 
 
