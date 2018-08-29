@@ -13,9 +13,6 @@
 //##########################################################################
 // The game
 
-var g_canvas;
-var g_ctx;
-var g_current_screen;
 var g_level;
 var g_completed;
 var g_leveldone;
@@ -121,14 +118,14 @@ var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
     this.textLabel.push(new TextLabel(text[i], x + this.offset + this.width/2, (y + this.size * i + this.offset + this.inner_size / 2), color, HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, this.font_size));
   }
   
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
     //var width = this.textLabel.text_size;
-    var x = Math.round(this.x * g_canvas.height);
-    var y = Math.round(this.y * g_canvas.height);
-    var offset = Math.round(this.offset * g_canvas.height);
-    var inner_width = Math.round(this.inner_width * g_canvas.height);
-    var inner_height = Math.round(this.inner_height * g_canvas.height);
+    var x = Math.round(this.x * canvas.height);
+    var y = Math.round(this.y * canvas.height);
+    var offset = Math.round(this.offset * canvas.height);
+    var inner_width = Math.round(this.inner_width * canvas.height);
+    var inner_height = Math.round(this.inner_height * canvas.height);
     ctx.lineJoin ="round";
     ctx.lineWidth = Math.round(this.size / (10*PHI));
     ctx.fillStyle = "#f0f0f0";
@@ -138,7 +135,7 @@ var TextLabelWithBoundingBox = function(text, x, y, width, color, size)
     ctx.strokeRect(x + offset, y + offset, inner_width, inner_height);
     for (var i = 0; i < this.textLabel.length; i++)
     {
-      this.textLabel[i].paint(ctx);
+      this.textLabel[i].paint(canvas, ctx);
     }
   };
   
@@ -192,18 +189,18 @@ var Grid = function()
     return false;
   };
 
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
     ctx.fillStyle = MOVEABLE_COLOR;
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    size = Math.round(this.size * g_canvas.height)
-    this.font_height = Math.round(INVERSE_PHI * this.inner_size * g_canvas.height);
+    size = Math.round(this.size * canvas.height)
+    this.font_height = Math.round(INVERSE_PHI * this.inner_size * canvas.height);
     ctx.font = this.font_height + "px Verdana";
     var text = "GRID: " + (this.visible ? "ON" : "OFF");
     this.font_width = ctx.measureText(text).width;
-    this.font_center_x = Math.round(g_canvas.width / 2);
-    this.font_center_y = g_canvas.height - size * 2;
+    this.font_center_x = Math.round(canvas.width / 2);
+    this.font_center_y = canvas.height - size * 2;
     ctx.fillText(text, this.font_center_x, this.font_center_y)
 
     if (!this.visible)
@@ -213,9 +210,9 @@ var Grid = function()
     for(var i = this.squares.length - 1; i>=0; i--)
     {
       ctx.fillStyle = STATIC_COLOR;
-      var offset = g_canvas.height * this.offset;
+      var offset = canvas.height * this.offset;
       ctx.fillRect(this.squares[i][0] * size + offset,
-      this.squares[i][1] * size + offset, size - g_canvas.height*GRID_SIZE/7, size - g_canvas.height*GRID_SIZE/7);
+      this.squares[i][1] * size + offset, size - canvas.height*GRID_SIZE/7, size - canvas.height*GRID_SIZE/7);
 
     }
   };
@@ -248,12 +245,12 @@ var LetterBoxCollection = function()
     return false;
   };
 
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
     for(var i = this.letterBoxList.length - 1; i>=0; i--)
     {
       this.letterBoxList[i].color = this.color
-      this.letterBoxList[i].paint(ctx);
+      this.letterBoxList[i].paint(canvas, ctx);
     }
   };
 
@@ -321,14 +318,14 @@ var LetterBox = function(x,y,size,letter)
     return hit;
   };
 
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
     ctx.lineJoin ="round";
-    var size = Math.round(this.size*g_canvas.height);
-    var offset = Math.round(this.offset*g_canvas.height);
-    var x = Math.round(this.x*g_canvas.height);
-    var y = Math.round(this.y*g_canvas.height);
-    var inner_size = Math.round(this.inner_size*g_canvas.height);
+    var size = Math.round(this.size*canvas.height);
+    var offset = Math.round(this.offset*canvas.height);
+    var x = Math.round(this.x*canvas.height);
+    var y = Math.round(this.y*canvas.height);
+    var inner_size = Math.round(this.inner_size*canvas.height);
     ctx.lineWidth = Math.round(size / (10*PHI));
     if(this.opaque)
     {
@@ -346,18 +343,19 @@ var LetterBox = function(x,y,size,letter)
 
   this.transpose = function(deltaX, deltaY)
   {
-    this.x += deltaX/g_canvas.height;
-    this.y += deltaY/g_canvas.height;
+    this.x += deltaX;
+    this.y += deltaY;
   }
 };
 
-var VictoryCelebration = function()
+var VictoryCelebration = function(jut)
 {
   g_leveldone.play();
+  this.jut = jut;
   this.letters = [];
   this.velocity = [0,0,0,0,0,0,0,0,0,0];
   this.bounces = [0,0,0,0,0,0,0,0,0,0];
-  this.acceleration = 1;
+  this.acceleration = 1/600;
   this.breakpoint = [1/2 - GRID_SIZE*2, 1/2];
   this.menu_button = null;
   this.next_button = null;
@@ -421,7 +419,7 @@ var VictoryCelebration = function()
   {
     if(this.menu_button && this.menu_button.handleMouseDown(event))
     {
-      switchToScreen(MenuScreen);
+      this.jut.switchToScreen(MenuScreen);
       return;
     }
     if(this.next_button && this.next_button.handleMouseDown(event))
@@ -432,27 +430,27 @@ var VictoryCelebration = function()
         g_level--;
         return;
       }
-      switchToScreen(GameScreen);
+      this.jut.switchToScreen(GameScreen);
       return;
     }
   }
 
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
     ctx.fillStyle = "rgba(240, 240, 240, " + this.bg + ")";
-    ctx.fillRect(0, 0, g_canvas.width, g_canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     for(var i = 0; i < this.letters.length; ++i)
     {
       this.letters[i].opaque = true;
-      this.letters[i].paint(ctx);
+      this.letters[i].paint(canvas, ctx);
     }
     if (this.menu_button)
     {
-      this.menu_button.paint(ctx);
+      this.menu_button.paint(canvas, ctx);
     }
     if (this.next_button)
     {
-      this.next_button.paint(ctx);
+      this.next_button.paint(canvas, ctx);
     }
   };
 
@@ -551,13 +549,13 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
     return true;
   },
   
-  this.paint = function(ctx)
+  this.paint = function(canvas, ctx)
   {
-    var size = this.size * g_canvas.height;
-    var x = this.x * g_canvas.height;
-    var y = this.y * g_canvas.height;
+    var size = this.size * canvas.height;
+    var x = this.x * canvas.height;
+    var y = this.y * canvas.height;
     ctx.font = Math.round(size) + "px Verdana";
-    this.text_size = ctx.measureText(this.text).width / g_canvas.height;
+    this.text_size = ctx.measureText(this.text).width / canvas.height;
     ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
     ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
     ctx.fillStyle = this.color;
@@ -595,7 +593,8 @@ var MouseButtonEnum = {
 };
     
 var TutorialScreen = {
-  init: function () {
+  init: function (jut) {
+    this.jut = jut;
     this.reset();
   },
   reset: function () {
@@ -688,11 +687,11 @@ var TutorialScreen = {
     if (!this.gameScreen.solved && this.gameScreen.backTextSize &&
       this.gameScreen.textHeight)
     {
-      if(event.offsetY > g_canvas.height - this.gameScreen.textHeight)
+      if(event.offsetY > event.currentTarget.height - this.gameScreen.textHeight)
       {
         if(event.offsetX < this.gameScreen.backTextSize)
         {
-          switchToScreen(MenuScreen);
+          this.jut.switchToScreen(MenuScreen);
           return true;
         }
       }
@@ -715,6 +714,11 @@ var TutorialScreen = {
   handleKeyDown: function (event) {},
   handleKeyUp: function (event) {},
   handleTimeStep: function () {
+    if (!this.canvas)
+    {
+      return;
+    }
+    var canvas = this.canvas;
     if (this.mouse_instructions.length === 0)
     {
       this.gameScreen.handleTimeStep();
@@ -757,7 +761,7 @@ var TutorialScreen = {
         current_instruction_done = false;
       }
       this.gameScreen.handleMouseMove(
-        {offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        {offsetX: this.mouse_x * canvas.height, offsetY: this.mouse_y * canvas.height,
         currentTarget : {height : canvas.height}});
     }
     
@@ -768,25 +772,25 @@ var TutorialScreen = {
       if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.RIGHT) &&
         (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.BOTH))
       {
-        this.gameScreen.handleMouseDown({button: 0, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        this.gameScreen.handleMouseDown({button: 0, offsetX: this.mouse_x * canvas.height, offsetY: this.mouse_y * canvas.height,
         currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.NONE || old_buttons === MouseButtonEnum.LEFT) &&
         (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.BOTH))
       {
-        this.gameScreen.handleMouseDown({button: 2, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        this.gameScreen.handleMouseDown({button: 2, offsetX: this.mouse_x * canvas.height, offsetY: this.mouse_y * canvas.height,
         currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.RIGHT) &&
         (this.mouse_buttons === MouseButtonEnum.LEFT || this.mouse_buttons === MouseButtonEnum.NONE))
       {
-        this.gameScreen.handleMouseUp({button: 2, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        this.gameScreen.handleMouseUp({button: 2, offsetX: this.mouse_x * canvas.height, offsetY: this.mouse_y * canvas.height,
         currentTarget : {height : canvas.height}});
       }
       if ((old_buttons === MouseButtonEnum.BOTH || old_buttons === MouseButtonEnum.LEFT) &&
         (this.mouse_buttons === MouseButtonEnum.RIGHT || this.mouse_buttons === MouseButtonEnum.NONE))
       {
-        this.gameScreen.handleMouseUp({button: 0, offsetX: this.mouse_x * g_canvas.height, offsetY: this.mouse_y * g_canvas.height,
+        this.gameScreen.handleMouseUp({button: 0, offsetX: this.mouse_x * canvas.height, offsetY: this.mouse_y * canvas.height,
         currentTarget : {height : canvas.height}});
       }
     }
@@ -829,28 +833,29 @@ var TutorialScreen = {
     }
   },
   
-  paint: function () {
-    this.gameScreen.paint();
+  paint: function (canvas, ctx) {
+    this.canvas = canvas;
+    this.gameScreen.paint(canvas, ctx);
     if (this.mouse_instructions.length > 0)
     {
-      this.drawMouse(g_ctx, this.mouse_x, this.mouse_y, this.mouse_buttons);
+      this.drawMouse(canvas, ctx, this.mouse_x, this.mouse_y, this.mouse_buttons);
     }
     if (this.text)
     {
-      g_ctx.fillStyle = "rgba(240, 240, 240, .75)";
-      g_ctx.fillRect(
+      ctx.fillStyle = "rgba(240, 240, 240, .75)";
+      ctx.fillRect(
         0, 0,
-        g_canvas.width,
-        g_canvas.height);
-      this.text.paint(g_ctx);
+        canvas.width,
+        canvas.height);
+      this.text.paint(canvas, ctx);
     }
   },
 
-  drawMouse: function (ctx,centerX, centerY, mouseButton) {
-    var offset = 2/35 * GRID_SIZE * g_canvas.height;
-    var radius = 12/35 * GRID_SIZE * g_canvas.height;
-    centerX = centerX * g_canvas.height;
-    centerY = centerY * g_canvas.height;
+  drawMouse: function (canvas, ctx,centerX, centerY, mouseButton) {
+    var offset = 2/35 * GRID_SIZE * canvas.height;
+    var radius = 12/35 * GRID_SIZE * canvas.height;
+    centerX = centerX * canvas.height;
+    centerY = centerY * canvas.height;
     var border = offset/2;
     var left_color = "grey";
     var right_color = "grey";
@@ -865,7 +870,7 @@ var TutorialScreen = {
     this.drawWedge(ctx, right_color, centerX + border, centerY - border, radius, 3 * Math.PI / 2, 0);
     this.drawWedge(ctx, left_color, centerX - border, centerY - border, radius, Math.PI, 3 * Math.PI / 2);
     var width = (offset + 2 * radius);
-    var height = 8/35 * GRID_SIZE * g_canvas.height;
+    var height = 8/35 * GRID_SIZE * canvas.height;
     ctx.fillStyle = "gray";
     ctx.beginPath();
     ctx.moveTo(centerX - width/2 + width, centerY + border);
@@ -890,7 +895,8 @@ var TutorialScreen = {
 
 //##########################################################################
 var MenuScreen = {
-  init: function () {
+  init: function (jut) {
+    this.jut = jut;
     this.current_page = 0;
     this.reset();
   },
@@ -937,10 +943,10 @@ var MenuScreen = {
         g_level = i + this.current_page * this.levels_per_page;
         if (g_level === 0)
         {
-          switchToScreen(TutorialScreen);
+          this.jut.switchToScreen(TutorialScreen);
           return;
         }
-        switchToScreen(GameScreen);
+        this.jut.switchToScreen(GameScreen);
         return;
       }
     }
@@ -997,30 +1003,30 @@ var MenuScreen = {
   handleTimeStep: function () {    
   },
   
-  paint: function () {
-    g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+  paint: function (canvas, ctx) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    g_ctx.fillStyle = "#f0f0f0";
-    g_ctx.fillRect(
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(
         0, 0,
-        g_canvas.width,
-        g_canvas.height);
+        canvas.width,
+        canvas.height);
     for (var i = 0; i < this.level_labels.length; i++)
     {
-      this.level_labels[i].paint(g_ctx);
+      this.level_labels[i].paint(canvas, ctx);
     }
     for (var i = 0; i < this.static_labels.length; i++)
     {
-      this.static_labels[i].paint(g_ctx);
+      this.static_labels[i].paint(canvas, ctx);
     }
-    this.page_display.paint(g_ctx);
+    this.page_display.paint(canvas, ctx);
     if (this.current_page > 0)
     {
-      this.page_left.paint(g_ctx);
+      this.page_left.paint(canvas, ctx);
     }
     if(this.current_page < this.pages - 1)
     {
-      this.page_right.paint(g_ctx);
+      this.page_right.paint(canvas, ctx);
     }
   }
 };
@@ -1028,7 +1034,8 @@ var MenuScreen = {
 //##########################################################################
 var GameScreen = {
 
-    init: function () {
+    init: function (jut) {
+      this.jut = jut;
       this.reset();
     },
 
@@ -1038,8 +1045,8 @@ var GameScreen = {
       var defaultY = 0;
       if ( x === 0 && y === 0)
       {
-        defaultX = Math.round(Math.random()*(g_canvas.width - GRID_SIZE*4)) + GRID_SIZE*2;
-        defaultY = Math.round(Math.random()*(g_canvas.height - GRID_SIZE*4)) + GRID_SIZE*2;
+        defaultX = Math.round(Math.random()*(4/3 - GRID_SIZE*4)) + GRID_SIZE*2;
+        defaultY = Math.round(Math.random()*(1 - GRID_SIZE*4)) + GRID_SIZE*2;
       }
       for (var i = 0; i < letters.length; i++)
       {
@@ -1147,19 +1154,19 @@ var GameScreen = {
       {
         while(tileSet.letterBoxList[j].x < 0)
         {
-          tileSet.transpose(GRID_SIZE * g_canvas.height,0);
+          tileSet.transpose(GRID_SIZE,0);
         }
         while(tileSet.letterBoxList[j].y < 0)
         {
-          tileSet.transpose(0, GRID_SIZE * g_canvas.height);
+          tileSet.transpose(0, GRID_SIZE);
         }
         while(tileSet.letterBoxList[j].x > 4/3)
         {
-          tileSet.transpose(-GRID_SIZE * g_canvas.height, 0);
+          tileSet.transpose(-GRID_SIZE, 0);
         }
         while(tileSet.letterBoxList[j].y > 1)
         {
-          tileSet.transpose(0, -GRID_SIZE * g_canvas.height);
+          tileSet.transpose(0, -GRID_SIZE);
         }
       }
     },
@@ -1251,13 +1258,13 @@ var GameScreen = {
       this.populateLevel(g_level);
 
       /*
-      for (var i = 0; i < g_canvas.width; i += GRID_SIZE)
+      for (var i = 0; i < canvas.width; i += GRID_SIZE)
       {
         var box = new LetterBox(i, 0, GRID_SIZE, "0123456789".charAt((i / GRID_SIZE) % 10));
         box.color = STATIC_COLOR;
         this.paint_list.push(box);
       }
-      for (var i = GRID_SIZE; i < g_canvas.height; i += GRID_SIZE)
+      for (var i = GRID_SIZE; i < canvas.height; i += GRID_SIZE)
       {
         var box = new LetterBox(0, i, GRID_SIZE, "0123456789".charAt((i / GRID_SIZE) % 10));
         box.color = STATIC_COLOR;
@@ -1294,7 +1301,7 @@ var GameScreen = {
       this.solved = true;
       this.draggable_list = [];
       this.clickable_list = [];
-      var victory = new VictoryCelebration();
+      var victory = new VictoryCelebration(this.jut);
       this.paint_list.unshift(victory);
       this.timestep_list.unshift(victory);
       this.clickable_list.push(victory);
@@ -1349,11 +1356,11 @@ var GameScreen = {
       if (!this.solved && this.backTextSize &&
         this.textHeight)
       {
-        if(event.offsetY > g_canvas.height - this.textHeight)
+        if(event.offsetY > event.currentTarget.height - this.textHeight)
         {
           if(event.offsetX < this.backTextSize)
           {
-            switchToScreen(MenuScreen);
+            this.jut.switchToScreen(MenuScreen);
             return true;
           }
         }
@@ -1365,13 +1372,14 @@ var GameScreen = {
       var old_x = this.mouse_pos[0];
       var old_y = this.mouse_pos[1];
       var i = 0;
-      this.mouse_pos[0] = event.offsetX;
-      this.mouse_pos[1] = event.offsetY;
+      this.mouse_pos[0] = event.offsetX/event.currentTarget.height;
+      this.mouse_pos[1] = event.offsetY/event.currentTarget.height;
       if (this.dragged_item_collection)
       {
         for(i = 0; i < this.dragged_item_collection.length; i++)
         {
-          this.dragged_item_collection[i].transpose(this.mouse_pos[0] - old_x, this.mouse_pos[1] - old_y);
+          this.dragged_item_collection[i].transpose((this.mouse_pos[0] - old_x),
+            (this.mouse_pos[1] - old_y));
         }
       }
     },
@@ -1407,25 +1415,25 @@ var GameScreen = {
         }
       }
     },
-    paint: function () {
-      g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+    paint: function (canvas, ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-      g_ctx.fillStyle = "#f0f0f0";
-      g_ctx.fillRect(
+      ctx.fillStyle = "#f0f0f0";
+      ctx.fillRect(
           0, 0,
-          g_canvas.width,
-          g_canvas.height);
-      g_ctx.fillStyle = this.name_color;
-      g_ctx.textBaseline="middle";
-      g_ctx.textAlign="center";
-      this.textHeight = Math.round(INVERSE_PHI * (GRID_SIZE - GRID_SIZE/7) * g_canvas.height);
-      g_ctx.font = this.textHeight + "px Verdana";
-      g_ctx.fillText(this.name,Math.round(g_canvas.width/2),Math.round(GRID_SIZE*2*g_canvas.height));
-      g_ctx.textBaseline = "bottom";
-      g_ctx.textAlign = "left"
-      g_ctx.fillStyle = "black";
-      this.backTextSize = g_ctx.measureText("<< MENU").width;
-      g_ctx.fillText("<< MENU", 0, g_canvas.height);
+          canvas.width,
+          canvas.height);
+      ctx.fillStyle = this.name_color;
+      ctx.textBaseline="middle";
+      ctx.textAlign="center";
+      this.textHeight = Math.round(INVERSE_PHI * (GRID_SIZE - GRID_SIZE/7) * canvas.height);
+      ctx.font = this.textHeight + "px Verdana";
+      ctx.fillText(this.name,Math.round(canvas.width/2),Math.round(GRID_SIZE*2*canvas.height));
+      ctx.textBaseline = "bottom";
+      ctx.textAlign = "left"
+      ctx.fillStyle = "black";
+      this.backTextSize = ctx.measureText("<< MENU").width;
+      ctx.fillText("<< MENU", 0, canvas.height);
 
       for (var i = this.paint_list.length - 1; i>=0; i--)
       {
@@ -1435,7 +1443,7 @@ var GameScreen = {
         }
         else
         {
-          this.paint_list[i].paint(g_ctx);
+          this.paint_list[i].paint(canvas, ctx);
         }
       }
     },
@@ -1455,8 +1463,9 @@ var ResourceTracker = {
     
     //----------------------------------------------------------------------
     // from Screen
-    init: function ()
+    init: function (jut)
     {
+        this.jut = jut;
         this.onload(null); //and here I'm loaded
     },
 
@@ -1479,7 +1488,7 @@ var ResourceTracker = {
         m_ready = false;
         g_mainloop.loop();
         g_mainloop.play().setVolume(0).fadeTo(50,10000);
-        switchToScreen(MenuScreen);
+        this.jut.switchToScreen(MenuScreen);
       }
     },
 
@@ -1510,33 +1519,33 @@ var ResourceTracker = {
 
     //----------------------------------------------------------------------
     // from Screen
-    paint: function ()
+    paint: function (canvas, ctx)
     {
-        g_ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         // paint the background
-        g_ctx.fillStyle = "#f0f0f0";
-        g_ctx.fillRect(
+        ctx.fillStyle = "#f0f0f0";
+        ctx.fillRect(
             0, 0,
-            g_canvas.width,
-            g_canvas.height);
+            canvas.width,
+            canvas.height);
 
-        g_ctx.font="Bold 80px Arial";
-        g_ctx.fillStyle = "rgb(0, 0, 0)";
-        g_ctx.textAlign = "center";
-        g_ctx.textBaseline = "middle";
-        g_ctx.fillText(
+        ctx.font="Bold 80px Arial";
+        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
             Math.floor(100 * this.m_loaded / this.m_added) + "%",
-            g_canvas.width / 2,
-            g_canvas.height / 2
+            canvas.width / 2,
+            canvas.height / 2
         );
         if (100 === Math.floor(100 * this.m_loaded / this.m_added))
         {
-          g_ctx.font="20px Arial";
-          g_ctx.fillText(
+          ctx.font="20px Arial";
+          ctx.fillText(
               "click to continue",
-              g_canvas.width / 2,
-              g_canvas.height / 2 + 40
+              canvas.width / 2,
+              canvas.height / 2 + 40
           );
         }
     },
@@ -1580,119 +1589,30 @@ var GraphicComponents = {
 //--------------------------------------------------------------------------
 function init()
 {
-    //Canvas stuff
-    g_canvas = document.getElementById("canvas");
-    //g_canvas.style.cursor = 'none';
-    g_ctx = g_canvas.getContext("2d");
-    g_ctx.textAlign="start";
-    g_ctx.textBaseline="middle";
-    g_level = 0;
-    g_completed = [];
-    for (var i = 0; i < g_puzzles.length; i++)
-    {
-      g_completed.push(false);
-    }
+  g_level = 0;
+  g_completed = [];
+  for (var i = 0; i < g_puzzles.length; i++)
+  {
+    g_completed.push(false);
+  }
 
-    g_canvas.addEventListener("mousedown", function (event) {
-        g_current_screen.handleMouseDown(event);
-    }, false);
+  var jut = createJutGameEngine(document.getElementById("canvas"));
 
-    g_canvas.addEventListener("mouseup", function (event) {
-        g_current_screen.handleMouseUp(event);
-    }, false);
-
-    g_canvas.addEventListener("mouseleave", function (event) {
-        g_current_screen.handleMouseUp(event);
-    }, false);
-
-    g_canvas.addEventListener("mouseout", function (event) {
-        g_current_screen.handleMouseUp(event);
-    }, false);
-
-    g_canvas.addEventListener("mousemove", function (event) {
-        g_current_screen.handleMouseMove(event);
-    }, false);
-
-    document.addEventListener("keydown", function (event) {
-        g_current_screen.handleKeyDown(event);
-    }, false);
-
-    document.addEventListener("keyup", function (event) {
-        g_current_screen.handleKeyUp(event);
-    }, false);
-
-    g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
-    g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
-    g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
-    // can't do this until you've set up canvas_width and canvas_height
-    //ResourceTracker init must be called after all requests to
-    //loadImage/loadAudio
-    ResourceTracker.init();
-    GameScreen.init();
-    TutorialScreen.init();
-    MenuScreen.init();
-
-    switchToScreen(ResourceTracker);
+  g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
+  g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
+  g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
+  // can't do this until you've set up canvas_width and canvas_height
+  //ResourceTracker init must be called after all requests to
+  //loadImage/loadAudio
+  ResourceTracker.init(jut);
+  GameScreen.init(jut);
+  TutorialScreen.init(jut);
+  MenuScreen.init(jut);
+  
+  jut.setMaintainAspectRatioMode(4/3);
+  jut.addTitleScreen(ResourceTracker);
+  jut.init();
     
-    var resize = function ()
-    {
-      var widthToHeightRatio = 4/3;
-      var currentWidthToHeightRatio = window.innerWidth/window.innerHeight;
-      if(currentWidthToHeightRatio < widthToHeightRatio)
-      {
-        g_canvas.width = window.innerWidth;
-        g_canvas.height = window.innerWidth / widthToHeightRatio;
-        g_canvas.style.left = "0px";
-        g_canvas.style.top = Math.floor((window.innerHeight - g_canvas.height)/2) + "px";
-      }
-      else
-      {
-        g_canvas.width = window.innerHeight * widthToHeightRatio;
-        g_canvas.height = window.innerHeight;
-        g_canvas.style.left = Math.floor((window.innerWidth - g_canvas.width)/2) + "px";
-        g_canvas.style.top = "0px"; 
-      }
-      
-      if (g_current_screen)
-      {
-        g_ctx.save();
-        g_current_screen.paint(g_ctx);
-        g_ctx.restore();
-      }
-      
-    };
-    window.addEventListener('resize', resize, false);
-    window.addEventListener('orientationchange', resize, false);
-    resize();
-
-    // start processing events
-    setTimeout(eventLoop, 40);
-}
-
-//--------------------------------------------------------------------------
-function switchToScreen(screen)
-{
-    screen.reset();
-    g_current_screen = screen;
-}
-
-//--------------------------------------------------------------------------
-function eventLoop()
-{
-    var start_time = Date.now();
-
-    g_current_screen.handleTimeStep();
-    g_current_screen.paint(g_ctx);
-
-    var end_time = Date.now();
-    var comp_time = end_time - start_time;
-    if (comp_time > 40 || comp_time < 0) {
-        setTimeout(eventLoop, 0);
-    }
-    else
-    {
-        setTimeout(eventLoop, 40 - comp_time);
-    }
 }
 
 // launch the game once the document is fully loaded
