@@ -3,7 +3,10 @@ var createJutGameEngine = function(new_canvas) {
 //public:
   var switchToScreen = function(screen)
   {
-    screen.reset();
+    if(screen.reset)
+    {
+      screen.reset();
+    }
     current_screen = screen;
   };
 
