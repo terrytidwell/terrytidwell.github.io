@@ -1440,7 +1440,7 @@ var ResourceTracker = {
       {
         m_ready = false;
         g_mainloop.loop();
-        g_mainloop.play().fadeIn(10000);
+        g_mainloop.play().setVolume(0).fadeTo(50,10000);
         switchToScreen(MenuScreen);
       }
     },
