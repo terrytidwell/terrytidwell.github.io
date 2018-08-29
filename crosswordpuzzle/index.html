@@ -18,6 +18,8 @@ var g_ctx;
 var g_current_screen;
 var g_level;
 var g_completed;
+var g_leveldone;
+var g_click;
 var g_mainloop;
 
 var PHI = 1.61803398875;
@@ -1352,9 +1354,9 @@ var GameScreen = {
         {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(35);
+          g_click.stop();
+          g_click.play();
         }
-        g_click.stop();
-        g_click.play();
         this.checkForSolved();
         this.findOffscreenAdjacentTileSets();
       }

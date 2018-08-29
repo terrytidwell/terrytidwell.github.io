@@ -18,6 +18,9 @@ var g_ctx;
 var g_current_screen;
 var g_level;
 var g_completed;
+var g_leveldone;
+var g_click;
+var g_mainloop;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -157,8 +160,8 @@ var Grid = function()
 {
   this.visible = false;
   this.size = GRID_SIZE;
-  this.inner_size = Math.round(6 * this.size/7);
-  this.offset = Math.round((this.size - this.inner_size) / 2);
+  this.inner_size = 6 * this.size/7;
+  this.offset = (this.size - this.inner_size) / 2;
   this.squares = [];
   this.font_width = null;
   this.font_height = null;
@@ -195,7 +198,7 @@ var Grid = function()
     ctx.textBaseline="middle";
     ctx.textAlign="center";
     size = Math.round(this.size * g_canvas.height)
-    this.font_height = Math.round(INVERSE_PHI * (size - GRID_SIZE/7));
+    this.font_height = Math.round(INVERSE_PHI * this.inner_size * g_canvas.height);
     ctx.font = this.font_height + "px Verdana";
     var text = "GRID: " + (this.visible ? "ON" : "OFF");
     this.font_width = ctx.measureText(text).width;
@@ -350,6 +353,7 @@ var LetterBox = function(x,y,size,letter)
 
 var VictoryCelebration = function()
 {
+  g_leveldone.play();
   this.letters = [];
   this.velocity = [0,0,0,0,0,0,0,0,0,0];
   this.bounces = [0,0,0,0,0,0,0,0,0,0];
@@ -1301,11 +1305,15 @@ var GameScreen = {
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = [ this.draggable_list[i] ];
+              g_click.stop();
+              g_click.play();
             }
             else if(event.button == 2)
             {
               this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = this.findAdjacentTileSets(i);
+              g_click.stop();
+              g_click.play();
             }
             return true;
           }
@@ -1362,6 +1370,8 @@ var GameScreen = {
         {
           this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(GRID_SIZE);
+          g_click.stop();
+          g_click.play();
         }
         this.checkForSolved();
         this.findOffscreenAdjacentTileSets();
@@ -1426,6 +1436,7 @@ var ResourceTracker = {
     m_added: 1, // I track myself loading
     m_loaded: 0,
     m_layout: null,
+    m_ready : false,
 
     //----------------------------------------------------------------------
     // from Screen
@@ -1442,7 +1453,15 @@ var ResourceTracker = {
     //----------------------------------------------------------------------
     // from Screen
     handleMouseDown: function ()
-    {},
+    {
+      if (m_ready)
+      {
+        m_ready = false;
+        g_mainloop.loop();
+        g_mainloop.play().setVolume(0).fadeTo(50,10000);
+        switchToScreen(MenuScreen);
+      }
+    },
 
     //----------------------------------------------------------------------
     // from Screen
@@ -1476,14 +1495,14 @@ var ResourceTracker = {
         g_ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         // paint the background
-        g_ctx.fillStyle = "rgb(0, 0, 0)";
+        g_ctx.fillStyle = "#f0f0f0";
         g_ctx.fillRect(
             0, 0,
             g_canvas.width,
             g_canvas.height);
 
         g_ctx.font="Bold 80px Arial";
-        g_ctx.fillStyle = "rgb(128, 128, 128)";
+        g_ctx.fillStyle = "rgb(0, 0, 0)";
         g_ctx.textAlign = "center";
         g_ctx.textBaseline = "middle";
         g_ctx.fillText(
@@ -1491,6 +1510,15 @@ var ResourceTracker = {
             g_canvas.width / 2,
             g_canvas.height / 2
         );
+        if (100 === Math.floor(100 * this.m_loaded / this.m_added))
+        {
+          g_ctx.font="20px Arial";
+          g_ctx.fillText(
+              "click to continue",
+              g_canvas.width / 2,
+              g_canvas.height / 2 + 40
+          );
+        }
     },
 
 
@@ -1514,7 +1542,7 @@ var ResourceTracker = {
     //----------------------------------------------------------------------
     onAllLoaded: function ()
     {
-        switchToScreen(MenuScreen);
+      m_ready = true;
     }
 };
 
@@ -1573,6 +1601,9 @@ function init()
         g_current_screen.handleKeyUp(event);
     }, false);
 
+    g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
+    g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
+    g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
     // can't do this until you've set up canvas_width and canvas_height
     //ResourceTracker init must be called after all requests to
     //loadImage/loadAudio
@@ -1601,8 +1632,6 @@ function init()
         g_canvas.style.left = Math.floor((window.innerWidth - g_canvas.width)/2) + "px";
         g_canvas.style.top = "0px"; 
       }
-      
-      GRID_SIZE = /*g_canvas.height * */ 35/600;
       
       if (g_current_screen)
       {
