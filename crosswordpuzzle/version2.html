@@ -17,6 +17,10 @@ var g_completed;
 var g_leveldone;
 var g_click;
 var g_mainloop;
+var g_muted = false;
+var g_settings;
+var g_muted_icon;
+var g_unmuted_icon;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -193,26 +197,26 @@ var Grid = function()
     ctx.fillStyle = MOVEABLE_COLOR;
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    size = Math.round(this.size * canvas.height)
+    size = this.size * canvas.height;
     this.font_height = Math.round(INVERSE_PHI * this.inner_size * canvas.height);
     ctx.font = this.font_height + "px Verdana";
     var text = "GRID: " + (this.visible ? "ON" : "OFF");
     this.font_width = ctx.measureText(text).width;
     this.font_center_x = Math.round(canvas.width / 2);
-    this.font_center_y = canvas.height - size * 2;
+    this.font_center_y = Math.round(canvas.height - size * 2);
     ctx.fillText(text, this.font_center_x, this.font_center_y)
 
     if (!this.visible)
     {
       return;
     }
+    ctx.fillStyle = STATIC_COLOR;
+    var offset = (canvas.height * this.offset);
+    var inner_size = (this.inner_size * canvas.height);
     for(var i = this.squares.length - 1; i>=0; i--)
     {
-      ctx.fillStyle = STATIC_COLOR;
-      var offset = canvas.height * this.offset;
-      ctx.fillRect(this.squares[i][0] * size + offset,
-      this.squares[i][1] * size + offset, size - canvas.height*GRID_SIZE/7, size - canvas.height*GRID_SIZE/7);
-
+      ctx.fillRect(Math.round(this.squares[i][0] * size + offset),
+      Math.round(this.squares[i][1] * size  + offset), Math.round(inner_size), Math.round(inner_size));
     }
   };
 }
@@ -346,6 +350,28 @@ var LetterBox = function(x,y,size,letter)
     this.y += deltaY;
   }
 };
+
+var IconButton = function(icon,x,y,size)
+{
+  this.icon = icon;
+  this.x = x;
+  this.y = y;
+  this.size = size;
+  this.handleMouseDown = function(event)
+  {
+    var mouse_x = event.offsetX/event.currentTarget.height;
+    var mouse_y = event.offsetY/event.currentTarget.height;
+    return this.x <= mouse_x && mouse_x <= this.x + this.size &&
+      this.y <= mouse_y && mouse_y <= this.y + this.size;
+  };
+  this.paint = function (cavnas, ctx)
+  {
+    var x = Math.round(this.x * canvas.height);
+    var y = Math.round(this.y * canvas.height);
+    var size = Math.round(this.size * canvas.height);
+    ctx.drawImage(this.icon,x,y,size,size);
+  };
+}
 
 var VictoryCelebration = function(jut)
 {
@@ -911,6 +937,7 @@ var MenuScreen = {
         "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
     this.page_left = new TextLabel("<<", 0, height, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
     this.page_right = new TextLabel(">>", width, height, "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
+    this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   },
   loadLevelLabels: function () {
     this.level_labels = [];
@@ -959,6 +986,19 @@ var MenuScreen = {
       {
         this.current_page++;
         this.loadLevelLabels();
+      }
+    }
+    if(this.sound_button.handleMouseDown(event))
+    {
+      g_muted = !g_muted;
+      this.sound_button.icon = g_muted ? g_muted_icon : g_unmuted_icon;
+      if (g_muted)
+      {
+        g_mainloop.stop();
+      }
+      else
+      {
+        g_mainloop.setVolume(50).loop().play();
       }
     }
     
@@ -1020,6 +1060,7 @@ var MenuScreen = {
     {
       this.page_right.paint(canvas, ctx);
     }
+    this.sound_button.paint(canvas, ctx);
   }
 };
 
@@ -1552,6 +1593,9 @@ function init()
   g_mainloop = Util.loadAudio("assets/mainloop.wav", ResourceTracker);
   g_click = Util.loadAudio("assets/click.wav", ResourceTracker);
   g_leveldone = Util.loadAudio("assets/leveldone.wav", ResourceTracker);
+  g_settings = Util.loadImage("assets/round_settings_black_48dp.png", ResourceTracker);
+  g_muted_icon = Util.loadImage("assets/baseline_volume_off_black_48dp.png", ResourceTracker);
+  g_unmuted_icon = Util.loadImage("assets/baseline_volume_up_black_48dp.png", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio
