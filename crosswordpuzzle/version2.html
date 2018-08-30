@@ -21,6 +21,7 @@ var g_muted = false;
 var g_settings;
 var g_muted_icon;
 var g_unmuted_icon;
+var g_aspect_ratio = 4/3;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -385,7 +386,7 @@ var VictoryCelebration = function(jut)
   this.menu_button = null;
   this.next_button = null;
   this.bg = 0.0;
-  var x = 4/3/2;
+  var x = g_aspect_ratio/2;
   var y = -GRID_SIZE*4;
   y -= GRID_SIZE*2;
   x -= GRID_SIZE*2 * 2.5;
@@ -416,10 +417,10 @@ var VictoryCelebration = function(jut)
       this.bg += 0.02;
       if(this.bg >= .75)
       {
-        this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], 4/3/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
+        this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_aspect_ratio/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
         if(g_level < g_puzzles.length - 1)
         {
-          this.next_button = new TextLabelWithBoundingBox(["NEXT >>"], 4/3/2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
+          this.next_button = new TextLabelWithBoundingBox(["NEXT >>"], g_aspect_ratio/2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
         }
       }
     }
@@ -661,17 +662,17 @@ var TutorialScreen = {
     this.mouse_instructions.push([0, 11*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off","","click to continue..."]]);
-    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*2]);
+    this.mouse_instructions.push([0,g_aspect_ratio / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*4]);
+    this.mouse_instructions.push([0,g_aspect_ratio / 2,1 - GRID_SIZE*4]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([0,4/3 / 2,1 - GRID_SIZE*2]);
+    this.mouse_instructions.push([0,g_aspect_ratio / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
-    this.mouse_instructions.push([0,4/3 / 2, 1 - GRID_SIZE*4]);
+    this.mouse_instructions.push([0,g_aspect_ratio / 2, 1 - GRID_SIZE*4]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([3,["Reassemble all the words to complete the puzzle!","","click to continue..."]]);
     this.mouse_instructions.push([0, 5*GRID_SIZE + GRID_SIZE/2, 11*GRID_SIZE + GRID_SIZE/2]);
@@ -690,7 +691,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0, 6*GRID_SIZE + GRID_SIZE/2, 6*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,50]);
-    this.mouse_x = 4/3/ 2;
+    this.mouse_x = g_aspect_ratio/ 2;
     this.mouse_y = 1/ 2;
     this.mouse_buttons = MouseButtonEnum.NONE;
 
@@ -829,7 +830,7 @@ var TutorialScreen = {
     {
       if (this.text === null)
       {
-        this.text = new TextLabelWithBoundingBox(current_instruction[1], 4/3/2 - GRID_SIZE*10, 1/2 - current_instruction[1].length/2 * GRID_SIZE, GRID_SIZE*20, "black", GRID_SIZE);
+        this.text = new TextLabelWithBoundingBox(current_instruction[1], g_aspect_ratio/2 - GRID_SIZE*10, 1/2 - current_instruction[1].length/2 * GRID_SIZE, GRID_SIZE*20, "black", GRID_SIZE);
       }
       current_instruction_done = false;
     }
@@ -930,7 +931,7 @@ var MenuScreen = {
       this.pages++;
     }
     this.loadLevelLabels();
-    var width = 4/3;
+    var width = g_aspect_ratio;
     var height = 1;
     var y = height/2;
     this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
@@ -942,7 +943,7 @@ var MenuScreen = {
   loadLevelLabels: function () {
     this.level_labels = [];
     var y = 1/2;
-    var width = 4/3;
+    var width = g_aspect_ratio;
     var offset = this.current_page * this.levels_per_page;
     for (var i = 0; i + offset < g_puzzles.length && i < this.levels_per_page; i++)
     {
@@ -1078,7 +1079,7 @@ var GameScreen = {
       var defaultY = 0;
       if ( x === 0 && y === 0)
       {
-        defaultX = Math.round(Math.random()*(4/3 - GRID_SIZE*4)) + GRID_SIZE*2;
+        defaultX = Math.round(Math.random()*(g_aspect_ratio - GRID_SIZE*4)) + GRID_SIZE*2;
         defaultY = Math.round(Math.random()*(1 - GRID_SIZE*4)) + GRID_SIZE*2;
       }
       for (var i = 0; i < letters.length; i++)
@@ -1170,7 +1171,7 @@ var GameScreen = {
     {
       for(var j = 0; j < tileSet.letterBoxList.length; j++)
       {
-        if (tileSet.letterBoxList[j].x < 4/3 && 
+        if (tileSet.letterBoxList[j].x < g_aspect_ratio && 
           tileSet.letterBoxList[j].y < 1 &&
           tileSet.letterBoxList[j].x > 0 &&
           tileSet.letterBoxList[j].y > 0)
@@ -1193,7 +1194,7 @@ var GameScreen = {
         {
           tileSet.transpose(0, GRID_SIZE);
         }
-        while(tileSet.letterBoxList[j].x > 4/3)
+        while(tileSet.letterBoxList[j].x > g_aspect_ratio)
         {
           tileSet.transpose(-GRID_SIZE, 0);
         }
@@ -1604,7 +1605,7 @@ function init()
   TutorialScreen.init(jut);
   MenuScreen.init(jut);
   
-  jut.setMaintainAspectRatioMode(4/3);
+  jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(ResourceTracker);
   jut.init();
     
