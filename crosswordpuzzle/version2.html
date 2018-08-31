@@ -295,14 +295,14 @@ var LetterBox = function(x,y,size,letter)
   this.x = x;
   this.y = y;
   this.size = size;
-  this.inner_size = (6 * this.size/7) * (Math.random() * (.25) + .825);
+  this.inner_size = (6 * this.size/7) * (Math.random() * (.25) + .925);
   this.offset = ((this.size - this.inner_size) / 2);
   this.letter = letter;
   this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
   this.alive = true;
   this.opaque = true;
-  this.font = Util.randomItem(["Verdana", "Arial", "Times New Roman", "Impact Header", "Comic Sans MS"]);
-  this.fillStyle = Util.randomItem(["rgb(165,151,218)", "rgb(242,228,63)", "rgb(74,198,210)"]);
+  this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Comic Sans MS"]);
+  this.fillStyle = Util.randomItem(["rgb(165,151,218)", "rgb(242,63,228)", "rgb(74,198,210)"]);
 
   this.handleTimeStep = function()
   {
@@ -344,12 +344,12 @@ var LetterBox = function(x,y,size,letter)
 
 
     }
-    //ctx.strokeStyle = this.color;
+    ctx.strokeStyle = "#000000";
     ctx.fillStyle = this.color;
-    //ctx.strokeRect(x + offset, y + offset, inner_size, inner_size);
+    ctx.strokeRect(x + offset, y + offset, inner_size, inner_size);
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    ctx.font = Math.round(INVERSE_PHI * inner_size) + "px " + this.font;
+    ctx.font = Math.round(.95 * inner_size) + "px " + this.font;
     ctx.fillText(this.letter,Math.round(x+size/2),Math.round(y+size/2));
   };
 
