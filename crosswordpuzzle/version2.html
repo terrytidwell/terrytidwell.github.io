@@ -226,7 +226,7 @@ var LetterBoxCollection = function()
 {
   this.letterBoxList = [];
   this.alive = true;
-  this.color = MOVEABLE_COLOR;
+  this.color = "#ffffff";
 
   this.handleTimeStep = function()
   {
@@ -253,7 +253,8 @@ var LetterBoxCollection = function()
   {
     for(var i = this.letterBoxList.length - 1; i>=0; i--)
     {
-      this.letterBoxList[i].color = this.color
+      this.letterBoxList[i].color = this.color;
+      this.letterBoxList[i].opaque = true;
       this.letterBoxList[i].paint(canvas, ctx);
     }
   };
@@ -294,12 +295,14 @@ var LetterBox = function(x,y,size,letter)
   this.x = x;
   this.y = y;
   this.size = size;
-  this.inner_size = (6 * this.size/7);
+  this.inner_size = (6 * this.size/7) * (Math.random() * (.25) + .825);
   this.offset = ((this.size - this.inner_size) / 2);
   this.letter = letter;
   this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
   this.alive = true;
-  this.opaque = false;
+  this.opaque = true;
+  this.font = Util.randomItem(["Verdana", "Arial", "Times New Roman", "Impact Header", "Comic Sans MS"]);
+  this.fillStyle = Util.randomItem(["rgb(165,151,218)", "rgb(242,228,63)", "rgb(74,198,210)"]);
 
   this.handleTimeStep = function()
   {
@@ -329,19 +332,24 @@ var LetterBox = function(x,y,size,letter)
     var offset = Math.round(this.offset*canvas.height);
     var x = Math.round(this.x*canvas.height);
     var y = Math.round(this.y*canvas.height);
+    var shadow_offset = Math.round(3/600 * canvas.height);
     var inner_size = Math.round(this.inner_size*canvas.height);
     ctx.lineWidth = Math.round(size / (10*PHI));
     if(this.opaque)
     {
-      ctx.fillStyle = "#f0f0f0";
+      ctx.fillStyle = "rgba(0,0,0,.5)";
+      ctx.fillRect(x + offset + shadow_offset, y + offset + shadow_offset, inner_size, inner_size);
+      ctx.fillStyle = this.fillStyle; 
       ctx.fillRect(x + offset, y + offset, inner_size, inner_size);
+
+
     }
-    ctx.strokeStyle = this.color;
+    //ctx.strokeStyle = this.color;
     ctx.fillStyle = this.color;
-    ctx.strokeRect(x + offset, y + offset, inner_size, inner_size);
+    //ctx.strokeRect(x + offset, y + offset, inner_size, inner_size);
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    ctx.font = Math.round(INVERSE_PHI * inner_size) + "px Verdana";
+    ctx.font = Math.round(INVERSE_PHI * inner_size) + "px " + this.font;
     ctx.fillText(this.letter,Math.round(x+size/2),Math.round(y+size/2));
   };
 
@@ -1356,14 +1364,14 @@ var GameScreen = {
           {
             if(event.button == 0)
             {
-              this.draggable_list[i].color = MOVE_COLOR;
+              //this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = [ this.draggable_list[i] ];
               g_click.stop();
               g_click.play();
             }
             else if(event.button == 2)
             {
-              this.draggable_list[i].color = MOVE_COLOR;
+              //this.draggable_list[i].color = MOVE_COLOR;
               this.dragged_item_collection = this.findAdjacentTileSets(i);
               g_click.stop();
               g_click.play();
@@ -1422,7 +1430,7 @@ var GameScreen = {
       {
         for(i = 0; i < this.dragged_item_collection.length; i++)
         {
-          this.dragged_item_collection[i].color = MOVEABLE_COLOR;
+          //this.dragged_item_collection[i].color = MOVEABLE_COLOR;
           this.dragged_item_collection[i].snap(GRID_SIZE);
           g_click.stop();
           g_click.play();
