@@ -340,7 +340,7 @@ var LetterBox = function(x,y,size,letter)
     {
       ctx.fillStyle = "rgba(0,0,0,.5)";
       ctx.fillRect(x + offset + shadow_offset, y + offset + shadow_offset, inner_size, inner_size);
-      ctx.fillStyle = this.fillStyle; 
+      ctx.fillStyle = this.fillStyle;
       ctx.fillRect(x + offset, y + offset, inner_size, inner_size);
 
 
@@ -406,7 +406,7 @@ var VictoryCelebration = function(jut)
   y += 20/600;
   this.letters.push(new LetterBox(x,y,GRID_SIZE*2,"T"));
   this.letters.push(new LetterBox(x,y+GRID_SIZE*2,GRID_SIZE*2,"L"));
-  x += GRID_SIZE*2;  
+  x += GRID_SIZE*2;
   y -= 60/600;
   this.letters.push(new LetterBox(x,y,GRID_SIZE*2,"A"));
   this.letters.push(new LetterBox(x,y+GRID_SIZE*2,GRID_SIZE*2,"E"));
@@ -444,7 +444,7 @@ var VictoryCelebration = function(jut)
         {
           this.letters[i].y = this.breakpoint[i % 2];
           this.bounces[i]++;
-          this.velocity[i] = -0.5 * this.velocity[i];  
+          this.velocity[i] = -0.5 * this.velocity[i];
         }
       }
     }
@@ -529,7 +529,7 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
   this.color = color;
   this.text = text;
   
-  this.handleMouseDown = function (event) 
+  this.handleMouseDown = function (event)
   {
     var event_x = event.offsetX / event.currentTarget.height;
     var event_y = event.offsetY / event.currentTarget.height;
@@ -623,7 +623,7 @@ var MouseButtonEnum = {
   RIGHT: 2,
   BOTH: 3,
   properties: {
-    random: function() { return Math.floor(Math.random() * 4); } 
+    random: function() { return Math.floor(Math.random() * 4); }
   }
 };
     
@@ -856,7 +856,7 @@ var TutorialScreen = {
       }
     }
     
-    if (current_instruction_done) 
+    if (current_instruction_done)
     {
       this.mouse_instructions.splice(0,1);
       this.idle_timer = 0;
@@ -1042,7 +1042,7 @@ var MenuScreen = {
       this.page_right.color = "gray";
     }
   },
-  handleTimeStep: function () {    
+  handleTimeStep: function () {
   },
   
   paint: function (canvas, ctx) {
@@ -1167,7 +1167,7 @@ var GameScreen = {
       {
         for(var k = 0; k < tileSet2.letterBoxList.length; k++)
         {
-          var distance = Math.abs(tileSet1.letterBoxList[j].x - tileSet2.letterBoxList[k].x) + 
+          var distance = Math.abs(tileSet1.letterBoxList[j].x - tileSet2.letterBoxList[k].x) +
             Math.abs(tileSet1.letterBoxList[j].y - tileSet2.letterBoxList[k].y);
           if (GRID_SIZE*.95 < distance && distance < GRID_SIZE*1.05)
           {
@@ -1182,7 +1182,7 @@ var GameScreen = {
     {
       for(var j = 0; j < tileSet.letterBoxList.length; j++)
       {
-        if (tileSet.letterBoxList[j].x < g_aspect_ratio && 
+        if (tileSet.letterBoxList[j].x < g_aspect_ratio &&
           tileSet.letterBoxList[j].y < 1 &&
           tileSet.letterBoxList[j].x > 0 &&
           tileSet.letterBoxList[j].y > 0)
@@ -1519,7 +1519,7 @@ function() {
     0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
   
   var mustache = createImage(g_stache,
-    0,0,900,496,(g_aspect_ratio-imageWidth)/2,imageWidth/imageAspectRatio/7,imageWidth,imageWidth/imageAspectRatio);
+    0,0,900*1.6,496*1.6,(g_aspect_ratio-imageWidth)/.907,imageWidth/imageAspectRatio/2.06,imageWidth,imageWidth/imageAspectRatio);
   mustache.waggle = 1/300;
   gamestate.gameEntities.push(mustache);
   var text = createText("Hello lil' Detectives!",g_aspect_ratio/2, imageWidth/imageAspectRatio*1, imageWidth/imageAspectRatio/10);
@@ -1652,7 +1652,7 @@ function init()
   g_settings = Util.loadImage("assets/round_settings_black_48dp.png", ResourceTracker);
   g_muted_icon = Util.loadImage("assets/baseline_volume_off_black_48dp.png", ResourceTracker);
   g_unmuted_icon = Util.loadImage("assets/baseline_volume_up_black_48dp.png", ResourceTracker);
-  g_poirot = Util.loadImage("assets/poirot bg.jpg", ResourceTracker);
+  g_poirot = Util.loadImage("assets/poirot bg.png", ResourceTracker);
   g_stache = Util.loadImage("assets/stache.png", ResourceTracker);
   g_bg = Util.loadImage("assets/papelIGuess.jpeg", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
@@ -1676,4 +1676,3 @@ window.addEventListener("load", init);
 </script>
 </body>
 </html>
-
