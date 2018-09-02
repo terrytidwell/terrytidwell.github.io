@@ -212,7 +212,7 @@ var Grid = function()
     {
       return;
     }
-    ctx.fillStyle = STATIC_COLOR;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; //STATIC_COLOR;
     var offset = (canvas.height * this.offset);
     var inner_size = (this.inner_size * canvas.height);
     for(var i = this.squares.length - 1; i>=0; i--)
@@ -1047,12 +1047,14 @@ var MenuScreen = {
   
   paint: function (canvas, ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-
+/*
     ctx.fillStyle = "#f0f0f0";
     ctx.fillRect(
         0, 0,
         canvas.width,
         canvas.height);
+        */
+    ctx.drawImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio*canvas.height,1*canvas.height);
     for (var i = 0; i < this.level_labels.length; i++)
     {
       this.level_labels[i].paint(canvas, ctx);
@@ -1462,6 +1464,24 @@ var GameScreen = {
           0, 0,
           canvas.width,
           canvas.height);
+      ctx.drawImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio*canvas.height,1*canvas.height);
+      ctx.lineWidth = 1;
+      for(let x = GRID_SIZE*canvas.height; x < canvas.width; x+= GRID_SIZE*canvas.height)
+      {
+        ctx.strokeStyle = "rgba(0,128,0,.5)";
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for(let y = GRID_SIZE*canvas.height; y < canvas.width; y+= GRID_SIZE*canvas.height)
+      {
+        ctx.strokeStyle = "rgba(0,128,0,.5)";
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
       ctx.fillStyle = this.name_color;
       ctx.textBaseline="middle";
       ctx.textAlign="center";
@@ -1493,7 +1513,8 @@ function() {
   var gamestate = this.gamestate;
   var imageAspectRatio = 900/496;
   var imageWidth = 3/4*g_aspect_ratio;
-  gamestate.gameEntities.push(createBackground());
+  
+  gamestate.gameEntities.push(createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1));
   gamestate.gameEntities.push(createImage(g_poirot,
     0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
   
@@ -1534,7 +1555,7 @@ var ResourceTracker = {
       m_ready = false;
       g_mainloop.loop();
       g_mainloop.play().setVolume(0).fadeTo(50,10000);
-      this.jut.switchToScreen(IntroScreen);
+      this.jut.switchToScreen(MenuScreen);
     }
   },
 
@@ -1633,6 +1654,7 @@ function init()
   g_unmuted_icon = Util.loadImage("assets/baseline_volume_up_black_48dp.png", ResourceTracker);
   g_poirot = Util.loadImage("assets/poirot bg.jpg", ResourceTracker);
   g_stache = Util.loadImage("assets/stache.png", ResourceTracker);
+  g_bg = Util.loadImage("assets/papelIGuess.jpeg", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio
