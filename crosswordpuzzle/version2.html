@@ -1491,15 +1491,17 @@ var GameScreen = {
 var IntroScreen = createScreen(
 function() {
   var gamestate = this.gamestate;
-  var imageAspectRatio = 900/248;
+  var imageAspectRatio = 900/496;
   var imageWidth = 3/4*g_aspect_ratio;
+  gamestate.gameEntities.push(createBackground());
   gamestate.gameEntities.push(createImage(g_poirot,
-    0,0,900,248,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
-  var mustache = createImage(g_poirot,
-    0,248,900,248,(g_aspect_ratio-imageWidth)/2,imageWidth/imageAspectRatio,imageWidth,imageWidth/imageAspectRatio);
+    0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
+  
+  var mustache = createImage(g_stache,
+    0,0,900,496,(g_aspect_ratio-imageWidth)/2,imageWidth/imageAspectRatio/7,imageWidth,imageWidth/imageAspectRatio);
   mustache.waggle = 1/300;
   gamestate.gameEntities.push(mustache);
-  var text = createText("Hello lil' Detectives!",g_aspect_ratio/2, imageWidth/imageAspectRatio*2.5, imageWidth/imageAspectRatio/5);
+  var text = createText("Hello lil' Detectives!",g_aspect_ratio/2, imageWidth/imageAspectRatio*1, imageWidth/imageAspectRatio/10);
   text.text_done = function () {
     mustache.waggle = 0;
   };
@@ -1508,7 +1510,7 @@ function() {
   }
   
   gamestate.gameEntities.push(text);
-  gamestate.gameEntities.push(createBackground());
+  
 });
 
 //##########################################################################
@@ -1629,7 +1631,8 @@ function init()
   g_settings = Util.loadImage("assets/round_settings_black_48dp.png", ResourceTracker);
   g_muted_icon = Util.loadImage("assets/baseline_volume_off_black_48dp.png", ResourceTracker);
   g_unmuted_icon = Util.loadImage("assets/baseline_volume_up_black_48dp.png", ResourceTracker);
-  g_poirot = Util.loadImage("assets/poirot.jpg", ResourceTracker);
+  g_poirot = Util.loadImage("assets/poirot bg.jpg", ResourceTracker);
+  g_stache = Util.loadImage("assets/stache.png", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio

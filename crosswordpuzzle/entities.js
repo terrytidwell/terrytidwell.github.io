@@ -186,7 +186,7 @@ function createText(text, x, y, height)
       var height = canvas.height * this.height;
       var x = this.x * canvas.height;
       var y = this.y * canvas.height;
-      ctx.font = Math.round(height) + "px Oswald Regular";
+      ctx.font = Math.round(height) + "px American Typewriter";
       ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
