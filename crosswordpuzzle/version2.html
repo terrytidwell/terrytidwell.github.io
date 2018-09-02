@@ -8,6 +8,7 @@
 <script src="../gameEngine/buzz.min.js" type="text/javascript"></script>
 <script src="../gameEngine/engine.js" type="text/javascript"></script>
 <script src="puzzles.js" type="text/javascript"></script>
+<script src="entities.js" type="text/javascript"></script>
 <script>
 //##########################################################################
 // The game
@@ -1487,6 +1488,29 @@ var GameScreen = {
     },
 };
 
+var IntroScreen = createScreen(
+function() {
+  var gamestate = this.gamestate;
+  var imageAspectRatio = 900/248;
+  var imageWidth = 3/4*g_aspect_ratio;
+  gamestate.gameEntities.push(createImage(g_poirot,
+    0,0,900,248,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
+  var mustache = createImage(g_poirot,
+    0,248,900,248,(g_aspect_ratio-imageWidth)/2,imageWidth/imageAspectRatio,imageWidth,imageWidth/imageAspectRatio);
+  mustache.waggle = 1/300;
+  gamestate.gameEntities.push(mustache);
+  var text = createText("Hello lil' Detectives!",g_aspect_ratio/2, imageWidth/imageAspectRatio*2.5, imageWidth/imageAspectRatio/5);
+  text.text_done = function () {
+    mustache.waggle = 0;
+  };
+  text.text_restarted = function () {
+    mustache.waggle = 1/300;
+  }
+  
+  gamestate.gameEntities.push(text);
+  gamestate.gameEntities.push(createBackground());
+});
+
 //##########################################################################
 
 //--------------------------------------------------------------------------
@@ -1605,6 +1629,7 @@ function init()
   g_settings = Util.loadImage("assets/round_settings_black_48dp.png", ResourceTracker);
   g_muted_icon = Util.loadImage("assets/baseline_volume_off_black_48dp.png", ResourceTracker);
   g_unmuted_icon = Util.loadImage("assets/baseline_volume_up_black_48dp.png", ResourceTracker);
+  g_poirot = Util.loadImage("assets/poirot.jpg", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio
@@ -1612,9 +1637,10 @@ function init()
   GameScreen.init(jut);
   TutorialScreen.init(jut);
   MenuScreen.init(jut);
+  IntroScreen.init(jut);
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
-  jut.addTitleScreen(ResourceTracker);
+  jut.addTitleScreen(IntroScreen);
   jut.init();
     
 }
