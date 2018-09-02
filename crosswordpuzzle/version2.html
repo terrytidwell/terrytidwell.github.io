@@ -1532,7 +1532,7 @@ var ResourceTracker = {
       m_ready = false;
       g_mainloop.loop();
       g_mainloop.play().setVolume(0).fadeTo(50,10000);
-      this.jut.switchToScreen(MenuScreen);
+      this.jut.switchToScreen(IntroScreen);
     }
   },
 
@@ -1640,7 +1640,7 @@ function init()
   IntroScreen.init(jut);
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
-  jut.addTitleScreen(IntroScreen);
+  jut.addTitleScreen(ResourceTracker);
   jut.init();
     
 }
