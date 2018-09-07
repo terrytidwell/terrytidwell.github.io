@@ -353,6 +353,11 @@ var LetterBox = function(x,y,size,letter)
     ctx.font = Math.round(.95 * inner_size) + "px " + this.font;
     ctx.fillText(this.letter,Math.round(x+size/2),Math.round(y+size/2));
   };
+  
+  this.paintLevel = function()
+  {
+    return 1;
+  };
 
   this.transpose = function(deltaX, deltaY)
   {
@@ -866,7 +871,7 @@ var TutorialScreen = {
   
   paint: function (canvas, ctx) {
     this.canvas = canvas;
-    this.gameScreen.paint(canvas, ctx);
+    this.gameScreen.paint( canvas, ctx);
     if (this.mouse_instructions.length > 0)
     {
       this.drawMouse(canvas, ctx, this.mouse_x, this.mouse_y, this.mouse_buttons);
@@ -878,7 +883,7 @@ var TutorialScreen = {
         0, 0,
         canvas.width,
         canvas.height);
-      this.text.paint(canvas, ctx);
+      this.text.paint( canvas, ctx);
     }
   },
 
@@ -1045,7 +1050,7 @@ var MenuScreen = {
   handleTimeStep: function () {
   },
   
-  paint: function (canvas, ctx) {
+  paint: function (gamestate, canvas, ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 /*
     ctx.fillStyle = "#f0f0f0";
@@ -1057,22 +1062,22 @@ var MenuScreen = {
     ctx.drawImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio*canvas.height,1*canvas.height);
     for (var i = 0; i < this.level_labels.length; i++)
     {
-      this.level_labels[i].paint(canvas, ctx);
+      this.level_labels[i].paint( canvas, ctx);
     }
     for (var i = 0; i < this.static_labels.length; i++)
     {
-      this.static_labels[i].paint(canvas, ctx);
+      this.static_labels[i].paint( canvas, ctx);
     }
-    this.page_display.paint(canvas, ctx);
+    this.page_display.paint( canvas, ctx);
     if (this.current_page > 0)
     {
-      this.page_left.paint(canvas, ctx);
+      this.page_left.paint( canvas, ctx);
     }
     if(this.current_page < this.pages - 1)
     {
-      this.page_right.paint(canvas, ctx);
+      this.page_right.paint( canvas, ctx);
     }
-    this.sound_button.paint(canvas, ctx);
+    this.sound_button.paint( canvas, ctx);
   }
 };
 
@@ -1486,35 +1491,47 @@ var GameScreen = {
         }
         else
         {
-          this.paint_list[i].paint(canvas, ctx);
+          this.paint_list[i].paint( canvas, ctx);
         }
       }
-    },
+    }
 };
 
 var IntroScreen = createScreen(
 function() {
   var gamestate = this.gamestate;
-  var imageAspectRatio = 900/496;
-  var imageWidth = 3/4*g_aspect_ratio;
+
   
-  gamestate.gameEntities.push(createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1));
-  gamestate.gameEntities.push(createImage(g_poirot,
-    0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio))
+  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1)
+  bg.paint_level = PAINT_LEVEL.BG;
+  gamestate.gameEntities.push(bg);
   
-  var mustache = createImage(g_stache,
-    0,0,900*1.6,496*1.6,(g_aspect_ratio-imageWidth)/.907,imageWidth/imageAspectRatio/2.06,imageWidth,imageWidth/imageAspectRatio);
-  mustache.waggle = 1/300;
-  gamestate.gameEntities.push(mustache);
-  var text = createText("Hello lil' Detectives!",g_aspect_ratio/2, imageWidth/imageAspectRatio*1, imageWidth/imageAspectRatio/10);
-  text.text_done = function () {
-    mustache.waggle = 0;
-  };
-  text.text_restarted = function () {
-    mustache.waggle = 1/300;
+  
+  //face
+  var detective = createDetective();
+  gamestate.gameEntities.push(detective);
+  
+  return;
+  
+  letter = ["DETECTIVE,", "I HAVE CRAFTED A MOST", "AMUSING GAME FOR US", "TO PLAY TOGETHER", "", "SINCERELY" ,"YOUR NEMESIS," ,"            DR X WORD"];
+  for (let y = 0; y < letter.length; y++)
+  {
+    for (let x = 0; x < letter[y].length; x++)
+    {
+      if (letter[y].charAt(x) !== ' ')
+      {
+        gamestate.gameEntities.push(new LetterBox((x+1)*GRID_SIZE,(y+.5)*2*GRID_SIZE,GRID_SIZE,letter[y].charAt(x)));
+      }
+    }
   }
+  /*
+  var fill = createFill();
+  fill.fillStyle = "rgba(255,255,255,.5)";
+  fill.paint_level = PAINT_LEVEL.HUD_BG;
+  gamestate.gameEntities.push(fill);
+  */
   
-  gamestate.gameEntities.push(text);
+
   
 });
 
@@ -1539,7 +1556,7 @@ var ResourceTracker = {
       m_ready = false;
       g_mainloop.loop();
       g_mainloop.play().setVolume(0).fadeTo(50,10000);
-      this.jut.switchToScreen(MenuScreen);
+      this.jut.switchToScreen(IntroScreen);
     }
   },
 

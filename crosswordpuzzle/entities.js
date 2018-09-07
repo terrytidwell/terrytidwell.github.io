@@ -10,11 +10,8 @@ function createScreen(custom_reset)
 
     reset: function ()
     {
-      this.mouse_click_event = false;
-      this.mouse_click_x = 0;
-      this.mouse_click_y = 0;
-      this.mouse_x = 0;
-      this.mouse_y = 0;
+      this.mouse_click_event = null;
+      this.mouse_move_event = null;
       this.player_x = 0;
       this.player_y = 0;
       this.gamestate =
@@ -28,40 +25,29 @@ function createScreen(custom_reset)
 
     handleMouseDown: function(event)
     {
-      this.mouse_click_event = true;
-      this.mouse_click_x = event.offsetX / event.currentTarget.height;
-      this.mouse_click_y = event.offsetY / event.currentTarget.height;
+      for (var i = 0; i < this.gamestate.gameEntities.length; i++)
+      {
+        if(this.gamestate.gameEntities[i].handleMouseDown)
+        {
+          this.gamestate.gameEntities[i].handleMouseDown(event);
+        }
+      }
     },
 
     handleMouseMove: function(event)
     {
-      this.mouse_x = event.offsetX / event.currentTarget.height;
-      this.mouse_y = event.offsetY / event.currentTarget.height;
-    },
-
-    handleTimeStep: function()
-    {
-
       for (var i = 0; i < this.gamestate.gameEntities.length; i++)
       {
         if(this.gamestate.gameEntities[i].handleMouseMove)
         {
-          this.gamestate.gameEntities[i].handleMouseMove(this.mouse_x, this.mouse_y);
+          this.gamestate.gameEntities[i].handleMouseMove(event);
         }
       }
 
-      if (this.mouse_click_event)
-      {
-        this.mouse_click_event = false;
-        for (var i = 0; i < this.gamestate.gameEntities.length; i++)
-        {
-          if(this.gamestate.gameEntities[i].handleMouseDown)
-          {
-            this.gamestate.gameEntities[i].handleMouseDown(this.mouse_click_x, this.mouse_click_y);
-          }
-        }
-      }
+    },
 
+    handleTimeStep: function()
+    {
       for (var i = 0; i < this.gamestate.gameEntities.length; i++)
       {
         if(this.gamestate.gameEntities[i].handleTimeStep)
@@ -102,7 +88,7 @@ function createScreen(custom_reset)
       {
         if (this.gamestate.gameEntities[i].paint)
         {
-          this.gamestate.gameEntities[i].paint(this.gamestate,canvas,ctx);
+          this.gamestate.gameEntities[i].paint(canvas,ctx);
         }
       }
     }
@@ -133,19 +119,95 @@ function createImage(image, sx, sy, swidth, sheight, x, y, width, height)
     y: y,
     width: width,
     height: height,
-    waggle: 0,
-    theta: 0,
-    paint: function (gamestate, canvas, ctx)
+    paint_level : PAINT_LEVEL.HUD,
+    paint: function (canvas, ctx)
     {
       var x = this.x * canvas.height;
-      var y = (this.y + Math.sin(this.theta++) * this.waggle) * canvas.height;
+      var y = this.y * canvas.height;
       var width = this.width * canvas.height;
       var height = this.height * canvas.height;
       ctx.drawImage(this.image,
         this.sx, this.sy, this.swidth, this.sheight,
         x, y, width, height);
+    },
+    paintLevel: function ()
+    {
+      return this.paint_level;
     }
   };
+};
+
+//---------------------------------------------------------------------
+function createDetective()
+{
+  var imageAspectRatio = 900/496;
+  var imageWidth = 3/4*g_aspect_ratio;
+  var face = createImage(g_poirot,
+    0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio);
+  var mustache = createImage(g_stache,
+    0,0,900*1.6,496*1.6,(g_aspect_ratio-imageWidth)/.907,imageWidth/imageAspectRatio/2.06,imageWidth,imageWidth/imageAspectRatio);
+  var text = createText("Hello detective!",g_aspect_ratio/2, imageWidth/imageAspectRatio*1, imageWidth/imageAspectRatio/10);
+  text.text_done = function () {
+    detective.toggleTalk(false);
+  };
+  var detective = {
+    waggle: 0,
+    theta: 0,
+    face : face,
+    mustache : mustache,
+    paint_level : PAINT_LEVEL.HUD,
+    theta : 0,
+    waggle : 1/300,
+    handleTimeStep : function (gamestate)
+    {
+      this.theta++;
+      text.handleTimeStep(gamestate);
+    },
+    toggleTalk : function (talk)
+    {
+      if (talk)
+      {
+        this.waggle = 1/300;
+      }
+      else
+      {
+        this.waggle = 0;
+      }
+    },
+    paint: function (canvas, ctx)
+    {
+      ctx.globalAlpha = .25;
+      var x = mustache.x;
+      var y = mustache.y;
+      mustache.x += 2/600;
+      mustache.y += 2/600 + Math.sin(this.theta) * this.waggle;
+      mustache.paint(canvas, ctx);
+      mustache.x = x;
+      mustache.y = y;
+      
+      x = face.x;
+      y = face.y;
+      face.x += 2/600;
+      face.y += 2/600;
+      face.paint(canvas, ctx);
+      face.x = x;
+      face.y = y;
+      ctx.globalAlpha = 1;
+      
+      y = mustache.y;
+      mustache.y += Math.sin(this.theta) * this.waggle;
+      mustache.paint(canvas, ctx);
+      mustache.y = y;
+      
+      face.paint(canvas, ctx);
+      text.paint(canvas, ctx);
+    },
+    paintLevel: function ()
+    {
+      return this.paint_level;
+    }
+  };
+  return detective;
 };
 
 //---------------------------------------------------------------------
@@ -157,9 +219,7 @@ function createText(text, x, y, height)
     x: x,
     y: y,
     height: height,
-    counter : 50,
     text_done : function (){},
-    text_restarted : function (){},
     handleTimeStep()
     {
       if (this.display.length < this.text.length)
@@ -170,18 +230,8 @@ function createText(text, x, y, height)
           this.text_done();
         }
       }
-      else
-      {
-        this.counter--;
-        if (this.counter === 0)
-        {
-          this.counter = 50;
-          this.display = "";
-          this.text_restarted();
-        }
-      }
     },
-    paint: function (gamestate, canvas, ctx)
+    paint: function (canvas, ctx)
     {
       var height = canvas.height * this.height;
       var x = this.x * canvas.height;
@@ -191,16 +241,38 @@ function createText(text, x, y, height)
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(this.display, x, y);
+    },
+    paintLevel: function()
+    {
+      return PAINT_LEVEL.HUD;
     }
   };
 };
+
+function createFill()
+{
+  return {
+    fillStyle : "#ffffff",
+    paint_level : PAINT_LEVEL.BG,
+    paint : function (canvas, ctx)
+    {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = this.fillStyle;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    },
+    paintLevel : function ()
+    {
+      return this.paint_level;
+    }
+  };
+}
 
 //---------------------------------------------------------------------
 function createBackground()
 {
   return {
     fillStyle : "#ffffff",
-    paint : function (gamestate, canvas, ctx)
+    paint : function (canvas, ctx)
     {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = this.fillStyle;
