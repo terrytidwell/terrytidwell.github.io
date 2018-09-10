@@ -23,6 +23,7 @@ var g_settings;
 var g_muted_icon;
 var g_unmuted_icon;
 var g_aspect_ratio = 805/595;
+var levelcounts = 0;
 
 var PHI = 1.61803398875;
 var INVERSE_PHI = 0.61803398875;
@@ -304,7 +305,7 @@ var LetterBox = function(x,y,size,letter)
   this.opaque = true;
   this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Lucida Bright", "Georgia"]);
   this.fillStyle = Util.randomItem(["#d65955", "#90bbed", "#8ca84a", "#A597DA"]);
-  this.rotation = Math.random() / 1000;
+  this.rotation = Math.random() / 10000;
   
 
   this.handleTimeStep = function()
@@ -426,6 +427,8 @@ var VictoryCelebration = function(jut)
   y += 20/600;
   this.letters.push(new LetterBox(x,y,GRID_SIZE*2,"E"));
   this.letters.push(new LetterBox(x,y+GRID_SIZE*2,GRID_SIZE*2,"R"));
+  
+  levelcounts += 1;
 
   this.handleTimeStep = function()
   {
@@ -970,9 +973,8 @@ var MenuScreen = {
     for (var i = 0; i + offset < g_puzzles.length && i < this.levels_per_page; i++)
     {
       var level_name = g_puzzles[i + offset].name;
-      if (g_completed[i + offset])
-      {
-        level_name += " \u2713"
+      if ((i + offset)>levelcounts) {
+        level_name = "??????"
       }
       this.level_labels.push(new TextLabel(level_name, width/2, ((i - 3) * 26/35 * GRID_SIZE + y),
         "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
@@ -983,16 +985,18 @@ var MenuScreen = {
   handleMouseDown: function (event) {
     for (var i = 0; i < this.level_labels.length; i++)
     {
-      if(this.level_labels[i].handleMouseDown(event))
-      {
-        g_level = i + this.current_page * this.levels_per_page;
-        if (g_level === 0)
-        {
-          this.jut.switchToScreen(TutorialScreen);
-          return;
-        }
-        this.jut.switchToScreen(GameScreen);
-        return;
+        if((i + this.current_page * this.levels_per_page)<= levelcounts) {
+          if(this.level_labels[i].handleMouseDown(event))
+          {
+            g_level = i + this.current_page * this.levels_per_page;
+            if (g_level === 0)
+            {
+              this.jut.switchToScreen(TutorialScreen);
+              return;
+            }
+            this.jut.switchToScreen(GameScreen);
+            return;
+          }
       }
     }
     if(this.page_left.handleMouseDown(event))
