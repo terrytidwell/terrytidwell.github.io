@@ -138,30 +138,192 @@ function createImage(image, sx, sy, swidth, sheight, x, y, width, height)
 };
 
 //---------------------------------------------------------------------
-function createDetective()
+function createScriptedEvent()
+{
+  return {
+    script : [],
+    push : function(event)
+    {
+      this.script.push(event);
+    },
+    handleTimeStep : function (gamestate)
+    {
+      if (this.script.length !== 0 && !this.script[0].active())
+      {
+        this.script.shift();
+        if (this.script.length !== 0)
+        {
+          gamestate.gameEntities.push(this.script[0]);
+        }
+      }
+    },
+    start : function(gamestate)
+    {
+      if (this.script.length > 0)
+      {
+        gamestate.gameEntities.push(this);
+        gamestate.gameEntities.push(this.script[0]);
+      }
+    }
+  };
+};
+
+//---------------------------------------------------------------------
+function createInstantEvent(callback)
+{
+  return {
+    needs_to_run : true,
+    active : function()
+    {
+      return !this.needs_to_run;
+    },
+    handleTimeStep : function(gamestate)
+    {
+      this.needs_to_run = false;
+      callback(gamestate);
+    }
+  };
+};
+
+//---------------------------------------------------------------------
+function createLetter(letter)
+{
+  var newLetter = {
+    fade_in : true,
+    fade_out : false,
+    paint_level : PAINT_LEVEL.HUD,
+    fade_counter : 1,
+    fade_counter_max : 10,
+    letters : [],
+    active : function ()
+    {
+      return this.fade_counter > 0;
+    },
+    handleMouseDown : function(event)
+    {
+      if (!this.fade_in)
+      {
+        this.fade_out = true;
+        return true;
+      }
+    },
+        handleTimeStep : function (gamestate)
+    {
+      if (this.fade_in)
+      {
+        this.fade_counter++;
+        this.fade_in = this.fade_counter < this.fade_counter_max;
+        return;
+      }
+      if (this.fade_out)
+      {
+        if (this.fade_counter > 0)
+        {
+          this.fade_counter--;
+        }
+      }
+    },
+    paint: function (canvas, ctx)
+    {
+      var fade = this.fade_counter / this.fade_counter_max;
+      ctx.globalAlpha = fade;
+      
+      for (let i = 0; i < this.letters.length; i++)
+      {
+        this.letters[i].paint(canvas, ctx);
+      }
+      
+      ctx.globalAlpha = 1;
+    },
+    paintLevel: function ()
+    {
+      return this.paint_level;
+    }
+  };
+  for (let y = 0; y < letter.length; y++)
+  {
+    for (let x = 0; x < letter[y].length; x++)
+    {
+      if (letter[y].charAt(x) !== ' ')
+      {
+        newLetter.letters.push(new LetterBox((x+1)*GRID_SIZE,(y+.5)*2*GRID_SIZE,GRID_SIZE,letter[y].charAt(x)));
+      }
+    }
+  }
+  return newLetter;
+};
+
+//---------------------------------------------------------------------
+function createDetective(script)
 {
   var imageAspectRatio = 900/496;
   var imageWidth = 3/4*g_aspect_ratio;
+  var y_offset = 1/6;
   var face = createImage(g_poirot,
-    0,0,900,496,(g_aspect_ratio-imageWidth)/2,0,imageWidth,imageWidth/imageAspectRatio);
+    0,0,900,496,(g_aspect_ratio-imageWidth)/2,0+y_offset,imageWidth,imageWidth/imageAspectRatio);
   var mustache = createImage(g_stache,
-    0,0,900*1.6,496*1.6,(g_aspect_ratio-imageWidth)/.907,imageWidth/imageAspectRatio/2.06,imageWidth,imageWidth/imageAspectRatio);
-  var text = createText("Hello detective!",g_aspect_ratio/2, imageWidth/imageAspectRatio*1, imageWidth/imageAspectRatio/10);
-  text.text_done = function () {
-    detective.toggleTalk(false);
-  };
+    0,0,900*1.6,496*1.6,(g_aspect_ratio-imageWidth)/.907,imageWidth/imageAspectRatio/2.06+y_offset,imageWidth,imageWidth/imageAspectRatio);
   var detective = {
     waggle: 0,
     theta: 0,
     face : face,
     mustache : mustache,
     paint_level : PAINT_LEVEL.HUD,
+    script : script,
+    text : null,
     theta : 0,
     waggle : 1/300,
+    fade_in : true,
+    fade_counter : 1,
+    fade_counter_max : 10,
+    waiting_for_next_text : false,
+    active : function ()
+    {
+      return this.fade_counter > 0;
+    },
+    queueDiag : function ()
+    {
+      this.toggleTalk(true);
+      this.text = createText(this.script.shift(), g_aspect_ratio/2, imageWidth/imageAspectRatio*1+y_offset, imageWidth/ imageAspectRatio/10);
+      this.text.text_done = function ()
+      {
+        detective.toggleTalk(false);
+        detective.waiting_for_next_text = true;
+      }
+    },
+    handleMouseDown : function(event)
+    {
+      if (this.waiting_for_next_text)
+      {
+        this.text = null;
+        this.waiting_for_next_text = false;
+        return true;
+      }
+    },
     handleTimeStep : function (gamestate)
     {
+      if (this.fade_in)
+      {
+        this.fade_counter++;
+        this.fade_in = this.fade_counter < this.fade_counter_max;
+        return;
+      }
       this.theta++;
-      text.handleTimeStep(gamestate);
+      if (this.text === null && this.script.length !== 0)
+      {
+        this.queueDiag();
+      }
+      if (this.text !== null)
+      {
+        this.text.handleTimeStep(gamestate);
+      }
+      else
+      {
+        if (this.fade_counter > 0)
+        {
+          this.fade_counter--;
+        }
+      }
     },
     toggleTalk : function (talk)
     {
@@ -176,7 +338,8 @@ function createDetective()
     },
     paint: function (canvas, ctx)
     {
-      ctx.globalAlpha = .25;
+      var fade = this.fade_counter / this.fade_counter_max;
+      ctx.globalAlpha = fade * .25;
       var x = mustache.x;
       var y = mustache.y;
       mustache.x += 2/600;
@@ -192,7 +355,7 @@ function createDetective()
       face.paint(canvas, ctx);
       face.x = x;
       face.y = y;
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = fade;
       
       y = mustache.y;
       mustache.y += Math.sin(this.theta) * this.waggle;
@@ -200,7 +363,11 @@ function createDetective()
       mustache.y = y;
       
       face.paint(canvas, ctx);
-      text.paint(canvas, ctx);
+      if (this.text !== null)
+      {
+        this.text.paint(canvas, ctx);
+      }
+      ctx.globalAlpha = 1;
     },
     paintLevel: function ()
     {

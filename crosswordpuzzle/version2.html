@@ -639,9 +639,7 @@ var TutorialScreen = {
   },
   reset: function () {
     this.mouse_instructions = []
-    this.mouse_instructions.push([3,["Welcome to Crossword Puzzles!","","click to continue..."]]);
-    this.mouse_instructions.push([3,["Reassemble the pieces into a crossword puzzle","in order to solve each level","","click to continue..."]]);
-    this.mouse_instructions.push([3,["Each word in the completed puzzle is","related to that puzzle's title","","click to continue..."]]);
+    this.mouse_instructions.push([3,["Welcome to Crossword Puzzles!","Reassemble the pieces into a crossword puzzle","in order to solve each level","Each word in the completed puzzle is","related to that puzzle's title"]]);
     this.mouse_instructions.push([4]);
     this.mouse_instructions.push([2,5]);
     this.mouse_instructions.push([4])
@@ -654,8 +652,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([2,5]);
     this.mouse_instructions.push([4])
     this.mouse_instructions.push([2,5]);
-    this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","","What could that mean?","","click to continue..."]]);
-    this.mouse_instructions.push([3,["You can drag tiles together with left click","","click to continue..."]]);
+    this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","What could that mean?","You can drag tiles together with left click"]]);
     this.mouse_instructions.push([0, 6*GRID_SIZE + GRID_SIZE/2, 5*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
@@ -664,7 +661,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0, 13*GRID_SIZE + GRID_SIZE/2, 8*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([3,["You can drag connected groups with right click","","click to continue..."]]);
+    this.mouse_instructions.push([3,["You can drag connected groups with right click"]]);
     /*
     */
     this.mouse_instructions.push([0, 17*GRID_SIZE + GRID_SIZE/2, 10*GRID_SIZE + GRID_SIZE/2]);
@@ -675,7 +672,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0, 11*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off","","click to continue..."]]);
+    this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off"]]);
     this.mouse_instructions.push([0,g_aspect_ratio / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
@@ -688,7 +685,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0,g_aspect_ratio / 2, 1 - GRID_SIZE*4]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([3,["Reassemble all the words to complete the puzzle!","","click to continue..."]]);
+    this.mouse_instructions.push([3,["Reassemble all the words to complete the puzzle!"]]);
     this.mouse_instructions.push([0, 5*GRID_SIZE + GRID_SIZE/2, 11*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
@@ -714,7 +711,7 @@ var TutorialScreen = {
     this.gameScreen = GameScreen;
     this.gameScreen.reset();
     this.gameScreen.name = "THE NAME OF THE GAME";
-    this.text = null;
+    this.detective = null;
     /*var temp_level = g_level;
     g_level = g_puzzles.length;
     this.gameScreen.reset();
@@ -744,9 +741,8 @@ var TutorialScreen = {
     var current_instruction = this.mouse_instructions[0];
     if (current_instruction[0] === 3)
     {
-      this.mouse_instructions.splice(0,1);
       this.idle_timer = 0;
-      this.text = null;
+      this.detective.handleMouseDown(event);
     }
   },
   handleTimeStep: function () {
@@ -763,7 +759,7 @@ var TutorialScreen = {
     
     var current_instruction = this.mouse_instructions[0];
     var current_instruction_done = true;
-    if (current_instruction[0] == 0)
+    if (current_instruction[0] === 0)
     {
       var dy = this.mouse_y - current_instruction[2];
       var dx = this.mouse_x - current_instruction[1];
@@ -801,7 +797,7 @@ var TutorialScreen = {
         currentTarget : {height : canvas.height}});
     }
     
-    if (current_instruction[0] == 1)
+    if (current_instruction[0] === 1)
     {
       var old_buttons = this.mouse_buttons;
       this.mouse_buttons = current_instruction[1];
@@ -831,7 +827,7 @@ var TutorialScreen = {
       }
     }
     
-    if (current_instruction[0] == 2)
+    if (current_instruction[0] === 2)
     {
       this.idle_timer++;
       if (this.idle_timer < current_instruction[1])
@@ -842,11 +838,15 @@ var TutorialScreen = {
     
     if (current_instruction[0] === 3)
     {
-      if (this.text === null)
+      if (this.detective === null)
       {
-        this.text = new TextLabelWithBoundingBox(current_instruction[1], g_aspect_ratio/2 - GRID_SIZE*10, 1/2 - current_instruction[1].length/2 * GRID_SIZE, GRID_SIZE*20, "black", GRID_SIZE);
+        this.detective = createDetective(current_instruction[1]);
+        /*
+        new TextLabelWithBoundingBox(current_instruction[1], g_aspect_ratio/2 - GRID_SIZE*10, 1/2 - current_instruction[1].length/2 * GRID_SIZE, GRID_SIZE*20, "black", GRID_SIZE);
+        */
       }
-      current_instruction_done = false;
+      this.detective.handleTimeStep();
+      current_instruction_done = !this.detective.active();
     }
     
     if (current_instruction[0] === 4)
@@ -865,7 +865,7 @@ var TutorialScreen = {
     {
       this.mouse_instructions.splice(0,1);
       this.idle_timer = 0;
-      this.text = null;
+      this.detective = null;
     }
   },
   
@@ -876,14 +876,19 @@ var TutorialScreen = {
     {
       this.drawMouse(canvas, ctx, this.mouse_x, this.mouse_y, this.mouse_buttons);
     }
-    if (this.text)
+    if (this.detective)
     {
+    /*
       ctx.fillStyle = "rgba(240, 240, 240, .75)";
       ctx.fillRect(
         0, 0,
         canvas.width,
         canvas.height);
-      this.text.paint( canvas, ctx);
+        */
+      ctx.globalAlpha=.95;
+      ctx.drawImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio*canvas.height,1*canvas.height);
+      ctx.globalAlpha=1;
+      this.detective.paint(canvas, ctx);
     }
   },
 
@@ -1050,7 +1055,7 @@ var MenuScreen = {
   handleTimeStep: function () {
   },
   
-  paint: function (gamestate, canvas, ctx) {
+  paint: function (canvas, ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 /*
     ctx.fillStyle = "#f0f0f0";
@@ -1508,31 +1513,18 @@ function() {
   
   
   //face
-  var detective = createDetective();
-  gamestate.gameEntities.push(detective);
+  var script = createScriptedEvent();
+  var detective = createDetective(["Hello Detective!", "I need your help!"]);
+  script.push(detective);
+  var letter = createLetter(["DETECTIVE,", "I HAVE CRAFTED A MOST", "AMUSING GAME FOR US", "TO PLAY TOGETHER", "", "SINCERELY" ,"YOUR NEMESIS," ,"            DR X WORD"]);
+  script.push(letter);
   
-  return;
-  
-  letter = ["DETECTIVE,", "I HAVE CRAFTED A MOST", "AMUSING GAME FOR US", "TO PLAY TOGETHER", "", "SINCERELY" ,"YOUR NEMESIS," ,"            DR X WORD"];
-  for (let y = 0; y < letter.length; y++)
-  {
-    for (let x = 0; x < letter[y].length; x++)
-    {
-      if (letter[y].charAt(x) !== ' ')
-      {
-        gamestate.gameEntities.push(new LetterBox((x+1)*GRID_SIZE,(y+.5)*2*GRID_SIZE,GRID_SIZE,letter[y].charAt(x)));
-      }
-    }
+  script.push(createInstantEvent(function(gamestate){
+    gamestate.jut.switchToScreen(MenuScreen);
   }
-  /*
-  var fill = createFill();
-  fill.fillStyle = "rgba(255,255,255,.5)";
-  fill.paint_level = PAINT_LEVEL.HUD_BG;
-  gamestate.gameEntities.push(fill);
-  */
+  ));
   
-
-  
+  script.start(gamestate);
 });
 
 //##########################################################################
