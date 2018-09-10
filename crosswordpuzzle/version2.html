@@ -304,7 +304,7 @@ var LetterBox = function(x,y,size,letter)
   this.opaque = true;
   this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Lucida Bright", "Georgia"]);
   this.fillStyle = Util.randomItem(["#d65955", "#90bbed", "#8ca84a", "#A597DA"]);
-  this.rotation = Math.random() * .0001;
+  this.rotation = Math.random() / 1000;
   
 
   this.handleTimeStep = function()
@@ -314,7 +314,7 @@ var LetterBox = function(x,y,size,letter)
   this.checkPulse = function()
   {
     return this.alive;
-  }
+  };
 
   this.handleMouseDown = function(event)
   {
