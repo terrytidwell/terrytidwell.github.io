@@ -259,6 +259,7 @@ function createDetective(script)
   var imageAspectRatio = 900/496;
   var imageWidth = 3/4*g_aspect_ratio;
   var y_offset = 1/6;
+  var play = new IconButton(g_play, g_aspect_ratio - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 1 - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   var face = createImage(g_poirot,
     0,0,900,496,(g_aspect_ratio-imageWidth)/2,0+y_offset,imageWidth,imageWidth/imageAspectRatio);
   var mustache = createImage(g_stache,
@@ -366,6 +367,13 @@ function createDetective(script)
       if (this.text !== null)
       {
         this.text.paint(canvas, ctx);
+      }
+      if (this.waiting_for_next_text)
+      {
+        var x = play.x;
+        play.x -= Math.sin(this.theta/4) * 1/300;
+        play.paint(canvas, ctx);
+        play.x = x;
       }
       ctx.globalAlpha = 1;
     },
