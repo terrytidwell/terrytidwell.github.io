@@ -169,6 +169,22 @@ function createScriptedEvent()
 };
 
 //---------------------------------------------------------------------
+function createPaintedObject(object, paint_level)
+{
+  return {
+    paint : function(canvas, ctx)
+    {
+      object.paint(canvas, ctx);
+    },
+    paintLevel : function()
+    {
+      return paint_level;
+    }
+  };
+};
+
+
+//---------------------------------------------------------------------
 function createInstantEvent(callback)
 {
   return {
@@ -251,6 +267,103 @@ function createLetter(letter)
     }
   }
   return newLetter;
+};
+
+//---------------------------------------------------------------------
+function createConfig()
+{
+  var image_aspect_ratio = 600/783;
+  var title = new TextLabel("Options", g_aspect_ratio/2 + 4/30, 4/38, "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  title.font = "American Typewriter";
+  var first_text = new TextLabel("Background Music: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3-3/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  first_text.font = "American Typewriter";
+  var second_text = new TextLabel("Sound Effects: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+0/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  second_text.font = "American Typewriter";
+  var third_text = new TextLabel("Grid: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+3/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  third_text.font = "American Typewriter";
+  var fourth_text = new TextLabel("Back", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+6/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  fourth_text.font = "American Typewriter";
+  var fifth_text = new TextLabel("Menu", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+9/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
+  fifth_text.font = "American Typewriter";
+  var config_bg = createImage(g_config_bg,0,0,600,783,(g_aspect_ratio - image_aspect_ratio)/2,0,image_aspect_ratio,1);
+  return {
+    y_offset : 1,
+    handleTimeStep()
+    {
+      if (this.y_offset > .01)
+      {
+        this.y_offset *= .70;
+      }
+      else
+      {
+        this.y_offset = 0;
+      }
+    },
+    handleMouseMove: function (event)
+    {
+      if (first_text.handleMouseDown(event))
+      {
+        first_text.color = "black";
+      }
+      else
+      {
+        first_text.color = "gray";
+      }
+      if (second_text.handleMouseDown(event))
+      {
+        second_text.color = "black";
+      }
+      else
+      {
+        second_text.color = "gray";
+      }
+      if (third_text.handleMouseDown(event))
+      {
+        third_text.color = "black";
+      }
+      else
+      {
+        third_text.color = "gray";
+      }
+      if (fourth_text.handleMouseDown(event))
+      {
+        fourth_text.color = "black";
+      }
+      else
+      {
+        fourth_text.color = "gray";
+      }
+      if (fifth_text.handleMouseDown(event))
+      {
+        fifth_text.color = "black";
+      }
+      else
+      {
+        fifth_text.color = "gray";
+      }
+    },
+    paint_with_offset: function(object, canvas, ctx)
+    {
+      var y = object.y;
+      object.y += this.y_offset;
+      object.paint(canvas, ctx);
+      object.y = y;
+    },
+    paint: function (canvas, ctx)
+    {
+      this.paint_with_offset(config_bg, canvas, ctx);
+      this.paint_with_offset(title, canvas, ctx);
+      this.paint_with_offset(first_text, canvas, ctx);
+      this.paint_with_offset(second_text, canvas, ctx);
+      this.paint_with_offset(third_text, canvas, ctx);
+      this.paint_with_offset(fourth_text, canvas, ctx);
+      this.paint_with_offset(fifth_text, canvas, ctx);
+    },
+    paintLevel: function()
+    {
+      return PAINT_LEVEL.HUD;
+    }
+  };
 };
 
 //---------------------------------------------------------------------

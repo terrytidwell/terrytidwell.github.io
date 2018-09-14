@@ -539,6 +539,7 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
   this.text_size = 0;
   this.color = color;
   this.text = text;
+  this.font = "Verdana";
   
   this.handleMouseDown = function (event)
   {
@@ -600,7 +601,7 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
     var size = this.size * canvas.height;
     var x = this.x * canvas.height;
     var y = this.y * canvas.height;
-    ctx.font = Math.round(size) + "px Verdana";
+    ctx.font = Math.round(size) + "px "+this.font;
     this.text_size = ctx.measureText(this.text).width / canvas.height;
     ctx.textAlign = HorizontalLabelAlignEnum.properties[this.alignment].textAlign;
     ctx.textBaseline = VerticalLabelBaselineEnum.properties[this.baseline].textBaseline;
@@ -959,8 +960,19 @@ var MenuScreen = {
     var width = g_aspect_ratio;
     var height = 1;
     var y = height/2;
-    this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
-        "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
+    var center_x = width/2;
+    var text = "LEVEL SELECT";
+    for (let x = 0; x < text.length; x++)
+    {
+      if (text.charAt(x) === ' ')
+      {
+        continue;
+      }
+      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*GRID_SIZE, y + 26/35 * GRID_SIZE * -6, GRID_SIZE ,text.charAt(x)));
+    }
+    
+    /*this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
+        "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));*/
     this.page_left = new TextLabel("<<", 0, height, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
     this.page_right = new TextLabel(">>", width, height, "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
     this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
@@ -1509,12 +1521,23 @@ var GameScreen = {
     }
 };
 
+var ConfigScreen = createScreen(
+function () {
+  var gamestate = this.gamestate;
+  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1);
+  bg.paint_level = PAINT_LEVEL.BG;
+  this.otherScreen = GameScreen
+  gamestate.gameEntities.push(bg);
+  gamestate.gameEntities.push(createConfig());
+}
+);
+
 var IntroScreen = createScreen(
 function() {
   var gamestate = this.gamestate;
 
   
-  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1)
+  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1);
   bg.paint_level = PAINT_LEVEL.BG;
   gamestate.gameEntities.push(bg);
   
@@ -1656,6 +1679,7 @@ function init()
   g_stache = Util.loadImage("assets/stache.png", ResourceTracker);
   g_bg = Util.loadImage("assets/papelIGuess.jpeg", ResourceTracker);
   g_play = Util.loadImage("assets/round_play_arrow_black_48dp.png", ResourceTracker);
+  g_config_bg = Util.loadImage("assets/crumpled_looseleaf_paper_by_cliffski.jpg", ResourceTracker);
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio
@@ -1664,6 +1688,7 @@ function init()
   TutorialScreen.init(jut);
   MenuScreen.init(jut);
   IntroScreen.init(jut);
+  ConfigScreen.init(jut);
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(ResourceTracker);

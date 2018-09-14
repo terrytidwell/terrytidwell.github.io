@@ -9,6 +9,11 @@ var createJutGameEngine = function(new_canvas) {
     }
     current_screen = screen;
   };
+  
+  var restoreScreen = function(screen)
+  {
+    current_screen = screen;
+  };
 
   var loadImage = function (url)
   {
@@ -272,6 +277,7 @@ var createJutGameEngine = function(new_canvas) {
   return {
     init : init,
     switchToScreen : switchToScreen,
+    restoreScreen : restoreScreen,
     loadAudio : loadAudio,
     loadImage : loadImage,
     addTitleScreen : addTitleScreen,
