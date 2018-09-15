@@ -297,15 +297,18 @@ var LetterBox = function(x,y,size,letter)
   this.x = x;
   this.y = y;
   this.size = size;
-  this.inner_size = (6 * this.size/7) * (Math.random() * (.25) + .925);
+  this.inner_size = (6 * this.size/7) * (.5 * (.25) + .925);
   this.offset = ((this.size - this.inner_size) / 2);
   this.letter = letter;
   this.color = MOVEABLE_COLOR; //overwritten by LetterBoxCollection
   this.alive = true;
   this.opaque = true;
   this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Lucida Bright", "Georgia"]);
-  this.fillStyle = Util.randomItem(["#d65955", "#90bbed", "#8ca84a", "#A597DA"]);
-  this.rotation = Math.random() / 10000;
+  this.fillStyle = Util.randomItem(["#DF6E5D", "#517496", "#FCB040", "#A597DA", "#E3C32E", "#9aa59e"]);
+  this.ranforpeices = (this.inner_size * 90 * Math.random()) - (this.inner_size * 45) ;
+  console.log(this.ranforpeices);
+  
+ 
   
 
   this.handleTimeStep = function()
@@ -341,21 +344,20 @@ var LetterBox = function(x,y,size,letter)
     ctx.lineWidth = Math.round(size / (10*PHI));
     if(this.opaque)
     {
-      ctx.fillStyle = "rgba(0,0,0,.5)";
-      ctx.fillRect(x + offset + shadow_offset, y + offset + shadow_offset, inner_size, inner_size);
       ctx.fillStyle = this.fillStyle;
-      ctx.fillRect(x + offset, y + offset, inner_size, inner_size);
-
-
+      ctx.beginPath();
+      ctx.moveTo(x + offset + this.ranforpeices, y + offset + this.ranforpeices);
+      ctx.lineTo(x + offset + this.ranforpeices, y + offset + inner_size, + this.ranforpeices);
+      ctx.lineTo(x + offset + inner_size + this.ranforpeices, y + offset + inner_size + this.ranforpeices);
+      ctx.lineTo(x + offset + inner_size + this.ranforpeices, y + offset + this.ranforpeices);
+      ctx.fill();
     }
     ctx.strokeStyle = "#000000";
-    ctx.fillStyle = "rgba(0,0,0,.9)";
-    ctx.strokeRect(x + offset, y + offset, inner_size, inner_size);
+    ctx.fillStyle = "rgba(11, 11, 11, .9)";
     ctx.textBaseline="middle";
     ctx.textAlign="center";
     ctx.font = Math.round(.95 * inner_size) + "px " + this.font;
     ctx.fillText(this.letter,Math.round(x+size/2),Math.round(y+size/2));
-    ctx.rotate(this.rotation);
   };
   
   this.paintLevel = function()
@@ -539,7 +541,7 @@ var TextLabel = function(text, x, y, color, alignment, baseline, size)
   this.text_size = 0;
   this.color = color;
   this.text = text;
-  this.font = "Verdana";
+  this.font = "American typewriter";
   
   this.handleMouseDown = function (event)
   {
@@ -968,13 +970,13 @@ var MenuScreen = {
       {
         continue;
       }
-      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*GRID_SIZE, y + 26/35 * GRID_SIZE * -6, GRID_SIZE ,text.charAt(x)));
+      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*GRID_SIZE, y + 26/35 * GRID_SIZE * -6, GRID_SIZE,text.charAt(x)));
     }
     
     /*this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
         "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));*/
-    this.page_left = new TextLabel("<<", 0, height, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
-    this.page_right = new TextLabel(">>", width, height, "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
+    this.page_left = new TextLabel("<<", width/2.33, (y + 27.3/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
+    this.page_right = new TextLabel(">>", width/1.755, (y + 27.3/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
     this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   },
   loadLevelLabels: function () {
@@ -986,12 +988,12 @@ var MenuScreen = {
     {
       var level_name = g_puzzles[i + offset].name;
       if ((i + offset)>levelcounts) {
-        level_name = "??????"
+        level_name = "????????"
       }
-      this.level_labels.push(new TextLabel(level_name, width/2, ((i - 3) * 26/35 * GRID_SIZE + y),
-        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
+      this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 3) * 26/35 * GRID_SIZE + y),
+        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE) * 1.5));
     }
-    this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, width/2, (y + 26/35 * GRID_SIZE * 5),
+    this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, width/2, (y + 26/35 * GRID_SIZE * 7),
       "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE));
   },
   handleMouseDown: function (event) {
