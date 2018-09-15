@@ -952,7 +952,7 @@ var MenuScreen = {
   },
   reset: function () {
     this.static_labels = [];
-    this.levels_per_page = 7;
+    this.levels_per_page = 5;
     this.pages = Math.floor(g_puzzles.length / this.levels_per_page);
     if (g_puzzles.length % this.levels_per_page !== 0)
     {
@@ -970,13 +970,13 @@ var MenuScreen = {
       {
         continue;
       }
-      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*GRID_SIZE, y + 26/35 * GRID_SIZE * -6, GRID_SIZE,text.charAt(x)));
+      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*1.5*GRID_SIZE, y + 26/35 * GRID_SIZE * -8, 1.5*GRID_SIZE,text.charAt(x)));
     }
     
     /*this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
         "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));*/
-    this.page_left = new TextLabel("<<", width/2.33, (y + 27.3/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
-    this.page_right = new TextLabel(">>", width/1.755, (y + 27.3/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.BOTTOM, (INVERSE_PHI * 26/35 * GRID_SIZE));
+    this.page_left = new TextLabel("<<", width/2.7, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
+    this.page_right = new TextLabel(">>", width/1.60, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
     this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   },
   loadLevelLabels: function () {
@@ -991,10 +991,10 @@ var MenuScreen = {
         level_name = "????????"
       }
       this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 3) * 26/35 * GRID_SIZE + y),
-        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE) * 1.5));
+        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
     }
     this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, width/2, (y + 26/35 * GRID_SIZE * 7),
-      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE));
+      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 1.5*GRID_SIZE));
   },
   handleMouseDown: function (event) {
     for (var i = 0; i < this.level_labels.length; i++)
