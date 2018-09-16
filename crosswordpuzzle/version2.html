@@ -439,7 +439,9 @@ var VictoryCelebration = function(jut)
       this.bg += 0.02;
       if(this.bg >= .75)
       {
-        this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_aspect_ratio/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
+        if (levelcounts != 1) {
+            this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_aspect_ratio/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
+        }
         if(g_level < g_puzzles.length - 1)
         {
           this.next_button = new TextLabelWithBoundingBox(["NEXT >>"], g_aspect_ratio/2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
@@ -472,14 +474,19 @@ var VictoryCelebration = function(jut)
     }
     if(this.next_button && this.next_button.handleMouseDown(event))
     {
-      g_level++;
-      if(g_level > g_puzzles.length)
-      {
-        g_level--;
-        return;
+      if (levelcounts != 1) {
+          g_level++;
+          if(g_level > g_puzzles.length)
+          {
+            g_level--;
+            return;
+          }
+          this.jut.switchToScreen(GameScreen);
+          return;
       }
-      this.jut.switchToScreen(GameScreen);
-      return;
+      else {
+          this.jut.switchToScreen(IntermissionCut1Screen);
+      }
     }
   }
 
@@ -1559,6 +1566,31 @@ function() {
   script.start(gamestate);
 });
 
+var IntermissionCut1Screen = createScreen(
+function() {
+  var gamestate = this.gamestate;
+
+  
+  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1);
+  bg.paint_level = PAINT_LEVEL.BG;
+  gamestate.gameEntities.push(bg);
+  
+  
+  //face
+  var script = createScriptedEvent();
+  var detective = createDetective(["Intermission 1!", "Intermission1!"]);
+  script.push(detective);
+  var letter = createLetter(["LETTER,", "NUMBER 2", "SINCERELY" ,"YOUR NEMESIS," ,"            DR X WORD"]);
+  script.push(letter);
+  
+  script.push(createInstantEvent(function(gamestate){
+    gamestate.jut.switchToScreen(MenuScreen);
+  }
+  ));
+  
+  script.start(gamestate);
+});
+
 //##########################################################################
 
 //--------------------------------------------------------------------------
@@ -1691,6 +1723,7 @@ function init()
   MenuScreen.init(jut);
   IntroScreen.init(jut);
   ConfigScreen.init(jut);
+  IntermissionCut1Screen.init(jut);
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
   jut.addTitleScreen(ResourceTracker);
