@@ -970,7 +970,7 @@ var MenuScreen = {
       {
         continue;
       }
-      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*1.5*GRID_SIZE, y + 26/35 * GRID_SIZE * -8, 1.5*GRID_SIZE,text.charAt(x)));
+      this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*1.5*GRID_SIZE, y + 24/35 * GRID_SIZE * -8, 1.5*GRID_SIZE,text.charAt(x)));
     }
     
     /*this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
@@ -990,11 +990,11 @@ var MenuScreen = {
       if ((i + offset)>levelcounts) {
         level_name = "????????"
       }
-      this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 3) * 26/35 * GRID_SIZE + y),
-        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));
+      this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 2.2) * 31/35 * GRID_SIZE + y ),
+        "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 29/35 * GRID_SIZE)));
     }
     this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, width/2, (y + 26/35 * GRID_SIZE * 7),
-      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 1.5*GRID_SIZE));
+      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 27/35 * 1.5*GRID_SIZE));
   },
   handleMouseDown: function (event) {
     for (var i = 0; i < this.level_labels.length; i++)
