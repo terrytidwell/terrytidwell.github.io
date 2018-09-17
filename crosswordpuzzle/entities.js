@@ -270,103 +270,6 @@ function createLetter(letter)
 };
 
 //---------------------------------------------------------------------
-function createConfig()
-{
-  var image_aspect_ratio = 600/783;
-  var title = new TextLabel("Options", g_aspect_ratio/2 + 4/30, 4/38, "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  title.font = "American Typewriter";
-  var first_text = new TextLabel("Background Music: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3-3/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  first_text.font = "American Typewriter";
-  var second_text = new TextLabel("Sound Effects: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+0/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  second_text.font = "American Typewriter";
-  var third_text = new TextLabel("Grid: On", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+3/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  third_text.font = "American Typewriter";
-  var fourth_text = new TextLabel("Back", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+6/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  fourth_text.font = "American Typewriter";
-  var fifth_text = new TextLabel("Menu", (g_aspect_ratio - image_aspect_ratio)/2 + 4/30, 1/3+9/38, "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, 2/38);
-  fifth_text.font = "American Typewriter";
-  var config_bg = createImage(g_config_bg,0,0,600,783,(g_aspect_ratio - image_aspect_ratio)/2,0,image_aspect_ratio,1);
-  return {
-    y_offset : 1,
-    handleTimeStep()
-    {
-      if (this.y_offset > .01)
-      {
-        this.y_offset *= .70;
-      }
-      else
-      {
-        this.y_offset = 0;
-      }
-    },
-    handleMouseMove: function (event)
-    {
-      if (first_text.handleMouseDown(event))
-      {
-        first_text.color = "black";
-      }
-      else
-      {
-        first_text.color = "gray";
-      }
-      if (second_text.handleMouseDown(event))
-      {
-        second_text.color = "black";
-      }
-      else
-      {
-        second_text.color = "gray";
-      }
-      if (third_text.handleMouseDown(event))
-      {
-        third_text.color = "black";
-      }
-      else
-      {
-        third_text.color = "gray";
-      }
-      if (fourth_text.handleMouseDown(event))
-      {
-        fourth_text.color = "black";
-      }
-      else
-      {
-        fourth_text.color = "gray";
-      }
-      if (fifth_text.handleMouseDown(event))
-      {
-        fifth_text.color = "black";
-      }
-      else
-      {
-        fifth_text.color = "gray";
-      }
-    },
-    paint_with_offset: function(object, canvas, ctx)
-    {
-      var y = object.y;
-      object.y += this.y_offset;
-      object.paint(canvas, ctx);
-      object.y = y;
-    },
-    paint: function (canvas, ctx)
-    {
-      this.paint_with_offset(config_bg, canvas, ctx);
-      this.paint_with_offset(title, canvas, ctx);
-      this.paint_with_offset(first_text, canvas, ctx);
-      this.paint_with_offset(second_text, canvas, ctx);
-      this.paint_with_offset(third_text, canvas, ctx);
-      this.paint_with_offset(fourth_text, canvas, ctx);
-      this.paint_with_offset(fifth_text, canvas, ctx);
-    },
-    paintLevel: function()
-    {
-      return PAINT_LEVEL.HUD;
-    }
-  };
-};
-
-//---------------------------------------------------------------------
 function createDetective(script)
 {
   var imageAspectRatio = 900/496;
@@ -407,7 +310,12 @@ function createDetective(script)
     },
     handleMouseDown : function(event)
     {
-      if (this.waiting_for_next_text)
+      if (!this.waiting_for_next_text)
+      {
+        this.text.display = this.text.script;
+        this.text.text_done();
+      }
+      else if (this.waiting_for_next_text)
       {
         this.text = null;
         this.waiting_for_next_text = false;
@@ -503,19 +411,33 @@ function createText(text, x, y, height)
 {
   return {
     text: text,
-    display: "",
+    display: [""],
+    script: null,
     x: x,
     y: y,
     height: height,
     text_done : function (){},
     handleTimeStep()
     {
-      if (this.display.length < this.text.length)
+      if (this.script === null)
       {
-        this.display += this.text.charAt(this.display.length);
-        if (this.display.length === this.text.length)
+        return;
+      }
+      var current = this.display.length - 1;
+      
+      if (this.display[current].length < this.script[current].length)
+      {
+        this.display[current] += this.script[current].charAt(this.display[current].length);
+        if (this.display[current].length === this.script[current].length)
         {
-          this.text_done();
+          if (current < this.script.length - 1)
+          {
+            this.display.push("");
+          }
+          else
+          {
+            this.text_done();
+          }
         }
       }
     },
@@ -526,9 +448,42 @@ function createText(text, x, y, height)
       var y = this.y * canvas.height;
       ctx.font = Math.round(height) + "px American Typewriter";
       ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
+      ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(this.display, x, y);
+      
+      if (this.script === null)
+      {
+        this.script = [""];
+        var words = this.text.split(" ");
+        if (words.length !== 0)
+        {
+          var current_line = words[0];
+          this.script = [words[0]];
+          
+          for (let word = 1; word < words.length; word++)
+          {
+            var candidate_line = current_line + " " + words[word];
+            if (ctx.measureText(candidate_line).width < canvas.width)
+            {
+              this.script[this.script.length - 1] += " " + words[word];
+              current_line = candidate_line;
+            }
+            else
+            {
+              current_line = words[word];
+              this.script.push(current_line);
+            }
+          }
+        }
+      }
+      
+
+      for (let i = 0; i < this.display.length; i++)
+      {
+        var offset = ctx.measureText(this.script[i]).width/2;
+        ctx.fillText(this.display[i], x - offset, y);
+        y+=height * 1.5;
+      }
     },
     paintLevel: function()
     {

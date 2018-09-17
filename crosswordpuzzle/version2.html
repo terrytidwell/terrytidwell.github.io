@@ -8,6 +8,7 @@
 <script src="../gameEngine/buzz.min.js" type="text/javascript"></script>
 <script src="../gameEngine/engine.js" type="text/javascript"></script>
 <script src="puzzles.js" type="text/javascript"></script>
+<script src="chapters.js" type="text/javascript"></script>
 <script src="entities.js" type="text/javascript"></script>
 <script>
 //##########################################################################
@@ -655,7 +656,9 @@ var TutorialScreen = {
   },
   reset: function () {
     this.mouse_instructions = []
-    this.mouse_instructions.push([3,["Welcome to Crossword Puzzles!","Reassemble the pieces into a crossword puzzle","in order to solve each level","Each word in the completed puzzle is","related to that puzzle's title"]]);
+    this.mouse_instructions.push([3,["Dr. X Word's first clue has arrived!"]]);
+    this.mouse_instructions.push([2,50]);
+    this.mouse_instructions.push([3,["Most ingenious!","Do not worry, Detective, if you are perplexed for I think I begin to understand.","In order to solve his clue we must reassemble these pieces into a crossword!","Each word must be related to the puzzle's title"]]);
     this.mouse_instructions.push([4]);
     this.mouse_instructions.push([2,5]);
     this.mouse_instructions.push([4])
@@ -668,7 +671,19 @@ var TutorialScreen = {
     this.mouse_instructions.push([2,5]);
     this.mouse_instructions.push([4])
     this.mouse_instructions.push([2,5]);
-    this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","What could that mean?","You can drag tiles together with left click"]]);
+    this.mouse_instructions.push([4]);
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([4])
+    this.mouse_instructions.push([2,5]);
+    this.mouse_instructions.push([3,["This puzzle's title is","\"THE NAME OF THE GAME\"","Ah, yes! The fog lifts. I can see it clearly now.","You can drag pieces together with left click"]]);
     this.mouse_instructions.push([0, 6*GRID_SIZE + GRID_SIZE/2, 5*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
@@ -677,7 +692,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0, 13*GRID_SIZE + GRID_SIZE/2, 8*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([3,["You can drag connected groups with right click"]]);
+    this.mouse_instructions.push([3,["You can drag connected groups of pieces with right click"]]);
     /*
     */
     this.mouse_instructions.push([0, 17*GRID_SIZE + GRID_SIZE/2, 10*GRID_SIZE + GRID_SIZE/2]);
@@ -688,7 +703,7 @@ var TutorialScreen = {
     this.mouse_instructions.push([1,MouseButtonEnum.NONE]);
     this.mouse_instructions.push([0, 11*GRID_SIZE + GRID_SIZE/2, 9*GRID_SIZE + GRID_SIZE/2]);
     this.mouse_instructions.push([2,20]);
-    this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the","completed puzzle on and off"]]);
+    this.mouse_instructions.push([3,["You can toggle the grid showing the shape of the completed puzzle on and off"]]);
     this.mouse_instructions.push([0,g_aspect_ratio / 2,1 - GRID_SIZE*2]);
     this.mouse_instructions.push([1,MouseButtonEnum.LEFT]);
     this.mouse_instructions.push([2,20]);
@@ -960,11 +975,13 @@ var MenuScreen = {
   reset: function () {
     this.static_labels = [];
     this.levels_per_page = 5;
-    this.pages = Math.floor(g_puzzles.length / this.levels_per_page);
+    this.pages = g_chapters.length; //Math.floor(g_puzzles.length / this.levels_per_page);
+    /*
     if (g_puzzles.length % this.levels_per_page !== 0)
     {
       this.pages++;
     }
+    */
     this.loadLevelLabels();
     var width = g_aspect_ratio;
     var height = 1;
@@ -980,10 +997,8 @@ var MenuScreen = {
       this.static_labels.push(new LetterBox(width/2 + (x - text.length/2)*1.5*GRID_SIZE, y + 24/35 * GRID_SIZE * -8, 1.5*GRID_SIZE,text.charAt(x)));
     }
     
-    /*this.static_labels.push(new TextLabel("LEVEL SELECT", width/2, (y + 26/35 * GRID_SIZE * -5),
-        "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * GRID_SIZE)));*/
-    this.page_left = new TextLabel("<<", width/2.7, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
-    this.page_right = new TextLabel(">>", width/1.60, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
+    this.page_left = new TextLabel("<<", width/2.8, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
+    this.page_right = new TextLabel(">>", width/1.50, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
     this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   },
   loadLevelLabels: function () {
@@ -991,25 +1006,25 @@ var MenuScreen = {
     var y = 1/2;
     var width = g_aspect_ratio;
     var offset = this.current_page * this.levels_per_page;
-    for (var i = 0; i + offset < g_puzzles.length && i < this.levels_per_page; i++)
+    for (var i = 0; i < this.levels_per_page && i < g_chapters[this.current_page].puzzles.length; i++)
     {
-      var level_name = g_puzzles[i + offset].name;
+      var level_name = g_puzzles[g_chapters[this.current_page].puzzles[i]].name;
       if ((i + offset)>levelcounts) {
-        level_name = "????????"
+        //level_name = "????????"
       }
       this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 2.2) * 31/35 * GRID_SIZE + y ),
         "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 29/35 * GRID_SIZE)));
     }
-    this.page_display = new TextLabel("PAGE " + (this.current_page+1) + "/" + this.pages, width/2, (y + 26/35 * GRID_SIZE * 7),
+    this.page_display = new TextLabel("CHAPTER " + (this.current_page+1), width/2, (y + 26/35 * GRID_SIZE * 7),
       "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 27/35 * 1.5*GRID_SIZE));
   },
   handleMouseDown: function (event) {
     for (var i = 0; i < this.level_labels.length; i++)
     {
-        if((i + this.current_page * this.levels_per_page)<= levelcounts) {
+        if(true) {
           if(this.level_labels[i].handleMouseDown(event))
           {
-            g_level = i + this.current_page * this.levels_per_page;
+            g_level = g_chapters[this.current_page].puzzles[i];
             if (g_level === 0)
             {
               this.jut.switchToScreen(TutorialScreen);
@@ -1530,17 +1545,6 @@ var GameScreen = {
     }
 };
 
-var ConfigScreen = createScreen(
-function () {
-  var gamestate = this.gamestate;
-  var bg = createImage(g_bg,0,0,1600,1200,0,0,g_aspect_ratio,1);
-  bg.paint_level = PAINT_LEVEL.BG;
-  this.otherScreen = GameScreen
-  gamestate.gameEntities.push(bg);
-  gamestate.gameEntities.push(createConfig());
-}
-);
-
 var IntroScreen = createScreen(
 function() {
   var gamestate = this.gamestate;
@@ -1553,10 +1557,12 @@ function() {
   
   //face
   var script = createScriptedEvent();
-  var detective = createDetective(["Hello Detective!", "I need your help!"]);
+  var detective = createDetective(["Hello detective!", "Although I am perhaps the world's greatest puzzle detective...", "I need your help.", "I have just recieved a most troubling letter.", "Take a look:"]);
   script.push(detective);
   var letter = createLetter(["DETECTIVE,", "I HAVE CRAFTED A MOST", "AMUSING GAME FOR US", "TO PLAY TOGETHER", "", "SINCERELY" ,"YOUR NEMESIS," ,"            DR X WORD"]);
   script.push(letter);
+  var detective = createDetective(["The fiend, Dr. X Word is back!", "We must unravel his clues before it is too late!"]);
+  script.push(detective);
   
   script.push(createInstantEvent(function(gamestate){
     gamestate.jut.switchToScreen(MenuScreen);
@@ -1635,7 +1641,7 @@ var ResourceTracker = {
       canvas.width,
       canvas.height);
 
-    ctx.font="Bold 80px Arial";
+    ctx.font="Bold " + Math.round(80/600 * canvas.height) + "px Arial";
     ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1646,11 +1652,11 @@ var ResourceTracker = {
     );
     if (100 === Math.floor(100 * this.m_loaded / this.m_added))
     {
-      ctx.font="20px Arial";
+      ctx.font=Math.round(20/600 * canvas.height) + "px Arial";
       ctx.fillText(
         "click to continue",
         canvas.width / 2,
-        canvas.height / 2 + 40
+        canvas.height / 2 + Math.round(40/600 * canvas.height)
       );
     }
   },
@@ -1713,7 +1719,8 @@ function init()
   g_stache = Util.loadImage("assets/stache.png", ResourceTracker);
   g_bg = Util.loadImage("assets/papelIGuess.jpeg", ResourceTracker);
   g_play = Util.loadImage("assets/round_play_arrow_black_48dp.png", ResourceTracker);
-  g_config_bg = Util.loadImage("assets/crumpled_looseleaf_paper_by_cliffski.jpg", ResourceTracker);
+  //g_config_bg = Util.loadImage("assets/crumpled_looseleaf_paper_by_cliffski.jpg", ResourceTracker);
+  
   // can't do this until you've set up canvas_width and canvas_height
   //ResourceTracker init must be called after all requests to
   //loadImage/loadAudio
@@ -1722,7 +1729,6 @@ function init()
   TutorialScreen.init(jut);
   MenuScreen.init(jut);
   IntroScreen.init(jut);
-  ConfigScreen.init(jut);
   IntermissionCut1Screen.init(jut);
   
   jut.setMaintainAspectRatioMode(g_aspect_ratio);
