@@ -306,7 +306,7 @@ var LetterBox = function(x,y,size,letter)
   this.opaque = true;
   this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Lucida Bright", "Georgia"]);
   this.fillStyle = Util.randomItem(["#DF6E5D", "#517496", "#FCB040", "#A597DA", "#E3C32E", "#9aa59e"]);
-  this.ranforpeices = (this.inner_size * 90 * Math.random()) - (this.inner_size * 45) ;
+  this.ranforpeices = (GRID_SIZE * 90 * Math.random()) - (GRID_SIZE * 45) ;
   console.log(this.ranforpeices);
   
  
@@ -431,8 +431,10 @@ var VictoryCelebration = function(jut)
   this.letters.push(new LetterBox(x,y,GRID_SIZE*2,"E"));
   this.letters.push(new LetterBox(x,y+GRID_SIZE*2,GRID_SIZE*2,"R"));
   
-  levelcounts += 1;
-
+  if (g_completed[g_level] == false) {
+      levelcounts += 1;
+      console.log(levelcounts);
+  }
   this.handleTimeStep = function()
   {
     if(this.bg < .75)
@@ -440,7 +442,7 @@ var VictoryCelebration = function(jut)
       this.bg += 0.02;
       if(this.bg >= .75)
       {
-        if (levelcounts != 1) {
+        if (levelcounts != 1 && g_completed[g_level] == false) {
             this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_aspect_ratio/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
         }
         if(g_level < g_puzzles.length - 1)
@@ -998,7 +1000,7 @@ var MenuScreen = {
     }
     
     this.page_left = new TextLabel("<<", width/2.8, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.LEFT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
-    this.page_right = new TextLabel(">>", width/1.50, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
+    this.page_right = new TextLabel(">>", width/1.55, (y + 26/35 * GRID_SIZE * 7), "gray", HorizontalLabelAlignEnum.RIGHT, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 26/35 * 2*GRID_SIZE));
     this.sound_button = new IconButton(g_muted ? g_muted_icon : g_unmuted_icon, width - (INVERSE_PHI * 26/35 * GRID_SIZE * 2), 0, (INVERSE_PHI * 26/35 * GRID_SIZE * 2));
   },
   loadLevelLabels: function () {
