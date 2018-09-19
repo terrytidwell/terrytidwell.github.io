@@ -306,7 +306,7 @@ var LetterBox = function(x,y,size,letter)
   this.opaque = true;
   this.font = Util.randomItem(["Verdana", "Arial Black", "Times New Roman", "Impact Header", "Lucida Bright", "Georgia"]);
   this.fillStyle = Util.randomItem(["#DF6E5D", "#517496", "#FCB040", "#A597DA", "#E3C32E", "#9aa59e"]);
-  this.ranforpeices = (GRID_SIZE * 90 * Math.random()) - (GRID_SIZE * 45) ;
+  this.ranforpeices = (canvas.height * Math.random() / 180) - (canvas.height / 360 ) ;
   console.log(this.ranforpeices);
   
  
