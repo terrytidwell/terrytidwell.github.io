@@ -442,10 +442,10 @@ var VictoryCelebration = function(jut)
       this.bg += 0.02;
       if(this.bg >= .75)
       {
-        if (levelcounts != 1 && g_completed[g_level] == false) {
+        if (true) { //levelcounts != 1 && g_completed[g_level] == false) {
             this.menu_button = new TextLabelWithBoundingBox(["<< MENU"], g_aspect_ratio/2 - 2.5 * GRID_SIZE*2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
         }
-        if(g_level < g_puzzles.length - 1)
+        if(false) //g_level < g_puzzles.length - 1)
         {
           this.next_button = new TextLabelWithBoundingBox(["NEXT >>"], g_aspect_ratio/2, 1/2 + GRID_SIZE*2, GRID_SIZE*2 * 2.5, "black", GRID_SIZE);
         }
@@ -971,7 +971,7 @@ var TutorialScreen = {
 var MenuScreen = {
   init: function (jut) {
     this.jut = jut;
-    this.current_page = 0;
+    this.current_chapter = 0;
     this.reset();
   },
   reset: function () {
@@ -1005,28 +1005,54 @@ var MenuScreen = {
   },
   loadLevelLabels: function () {
     this.level_labels = [];
+    this.level_locked = [];
     var y = 1/2;
     var width = g_aspect_ratio;
-    var offset = this.current_page * this.levels_per_page;
-    for (var i = 0; i < this.levels_per_page && i < g_chapters[this.current_page].puzzles.length; i++)
+    var offset = this.current_chapter * this.levels_per_page;
+    for (var i = 0; i < this.levels_per_page && i < g_chapters[this.current_chapter].puzzles.length; i++)
     {
-      var level_name = g_puzzles[g_chapters[this.current_page].puzzles[i]].name;
-      if ((i + offset)>levelcounts) {
-        //level_name = "????????"
+      var level_name = g_puzzles[g_chapters[this.current_chapter].puzzles[i]].name;
+      if (g_completed[g_chapters[this.current_chapter].puzzles[i]])
+      {
+        level_name += " \u2713";
+      }
+      var unlocked = true;
+      if (g_chapters[this.current_chapter].final_puzzle && i === g_chapters[this.current_chapter].puzzles.length - 1)
+      {
+        for (let j = 0; j < g_chapters[this.current_chapter].puzzles.length - 1; j++)
+        {
+          if (!g_completed[g_chapters[this.current_chapter].puzzles[j]])
+          {
+            unlocked = false;
+          }
+        }
+      }
+      
+      if (!unlocked)
+      {
+        this.level_locked.push(true);
+        level_name = "???????";
+      }
+      else
+      {
+        this.level_locked.push(false);
       }
       this.level_labels.push(new TextLabel(level_name, width/2, ((i*1.4 - 2.2) * 31/35 * GRID_SIZE + y ),
         "gray", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 29/35 * GRID_SIZE)));
+      
     }
-    this.page_display = new TextLabel("CHAPTER " + (this.current_page+1), width/2, (y + 26/35 * GRID_SIZE * 7),
+    this.page_display = new TextLabel("CHAPTER " + (this.current_chapter+1)+":", width/2, (y + 26/35 * GRID_SIZE * 7),
+      "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 27/35 * 1.5*GRID_SIZE));
+    this.page_name_display = new TextLabel(g_chapters[this.current_chapter].name, width/2, (y + 26/35 * GRID_SIZE * 8.5),
       "black", HorizontalLabelAlignEnum.CENTER, VerticalLabelBaselineEnum.MIDDLE, (INVERSE_PHI * 27/35 * 1.5*GRID_SIZE));
   },
   handleMouseDown: function (event) {
     for (var i = 0; i < this.level_labels.length; i++)
     {
-        if(true) {
+        if(!this.level_locked[i]) {
           if(this.level_labels[i].handleMouseDown(event))
           {
-            g_level = g_chapters[this.current_page].puzzles[i];
+            g_level = g_chapters[this.current_chapter].puzzles[i];
             if (g_level === 0)
             {
               this.jut.switchToScreen(TutorialScreen);
@@ -1039,17 +1065,17 @@ var MenuScreen = {
     }
     if(this.page_left.handleMouseDown(event))
     {
-      if(this.current_page > 0)
+      if(this.current_chapter > 0)
       {
-        this.current_page--;
+        this.current_chapter--;
         this.loadLevelLabels();
       }
     }
     if(this.page_right.handleMouseDown(event))
     {
-      if(this.current_page < this.pages - 1)
+      if(this.current_chapter < this.pages - 1)
       {
-        this.current_page++;
+        this.current_chapter++;
         this.loadLevelLabels();
       }
     }
@@ -1119,11 +1145,12 @@ var MenuScreen = {
       this.static_labels[i].paint( canvas, ctx);
     }
     this.page_display.paint( canvas, ctx);
-    if (this.current_page > 0)
+    this.page_name_display.paint( canvas, ctx);
+    if (this.current_chapter > 0)
     {
       this.page_left.paint( canvas, ctx);
     }
-    if(this.current_page < this.pages - 1)
+    if(this.current_chapter < this.pages - 1)
     {
       this.page_right.paint( canvas, ctx);
     }
