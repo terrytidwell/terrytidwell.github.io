@@ -338,7 +338,7 @@ var Intro = {
     game_events.push(createConditionalEvent(function () {
       return !intro_screen.gamestate.current_message.active();
     }, function () {
-      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Computer, if you can here me, I'm about to run a remote diagnostic on you.")
+      intro_screen.gamestate.current_message = createIncomingMessage(intro_screen.gamestate.bottom_panel, "Alice", "Computer, if you can hear me, I'm about to run a remote diagnostic on you.")
       intro_screen.gamestate.gameEntities.push(intro_screen.gamestate.current_message);
       console.clear();
       console.addTypingText("");
