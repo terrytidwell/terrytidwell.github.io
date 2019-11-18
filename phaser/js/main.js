@@ -9,6 +9,8 @@ var config = {
             debug: false
         }
     },
+	autoCenter: Phaser.Scale.CENTER_BOTH,
+	mode: Phaser.Scale.FIT,
     scene: {
         preload: preload,
         create: create,
