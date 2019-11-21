@@ -5,7 +5,7 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            //gravity: { y: 300 },
             debug: false
         }
     },
@@ -26,6 +26,9 @@ var cursors;
 var score = 0;
 var gameOver = false;
 var scoreText;
+var gravity = 0;
+var camera;
+var flip;
 
 var game = new Phaser.Game(config);
 
@@ -56,37 +59,19 @@ function create ()
     platforms.create(750, 220, 'ground');
 
     // The player and its settings
-    player = this.physics.add.sprite(100, 450, 'dude');
+    player = this.physics.add.sprite(100, 450, 'star');
 
     //  Player physics properties. Give the little guy a slight bounce.
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
     //  Our player animations, turning, walking left and walking right.
-    this.anims.create({
-        key: 'left',
-        frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-        frameRate: 10,
-        repeat: -1
-    });
-
-    this.anims.create({
-        key: 'turn',
-        frames: [ { key: 'dude', frame: 4 } ],
-        frameRate: 20
-    });
-
-    this.anims.create({
-        key: 'right',
-        frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-        frameRate: 10,
-        repeat: -1
-    });
 
     //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
 
     //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
+    /*
     stars = this.physics.add.group({
         key: 'star',
         repeat: 11,
@@ -104,16 +89,26 @@ function create ()
 
     //  The score
     scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
+    */
     //  Collide the player and the stars with the platforms
     this.physics.add.collider(player, platforms);
-    this.physics.add.collider(stars, platforms);
-    this.physics.add.collider(bombs, platforms);
+    //this.physics.add.collider(stars, platforms);
+    //this.physics.add.collider(bombs, platforms);
 
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    this.physics.add.overlap(player, stars, collectStar, null, this);
+    //this.physics.add.overlap(player, stars, collectStar, null, this);
 
-    this.physics.add.collider(player, bombs, hitBomb, null, this);
+    //this.physics.add.collider(player, bombs, hitBomb, null, this);
+    camera = this.cameras.main;
+    camera.startFollow(player);
+}
+
+function setGravity(phaser)
+{
+    let x = Math.sin(2 * Math.PI * gravity/64);
+    let y = Math.cos(2 * Math.PI * gravity/64);
+    player.body.setGravity(Math.round(x*300),Math.round(y*300));
+    camera.setRotation(2 * Math.PI * gravity/64);
 }
 
 function update ()
@@ -125,26 +120,49 @@ function update ()
 
     if (cursors.left.isDown)
     {
-        player.setVelocityX(-160);
+        gravity += 1;
+        if (gravity > 63)
+        {
+            gravity = 0;
+        }
+        setGravity(this);
+        //player.setVelocityX(-160);
 
-        player.anims.play('left', true);
+        //player.anims.play('left', true);
     }
     else if (cursors.right.isDown)
     {
-        player.setVelocityX(160);
+        gravity -= 1;
+        if (gravity < 0)
+        {
+            gravity = 63;
+        }
+        setGravity(this);
+        //player.setVelocityX(160);
 
-        player.anims.play('right', true);
+        //player.anims.play('right', true);
     }
     else
     {
-        player.setVelocityX(0);
+        //player.setVelocityX(0);
 
-        player.anims.play('turn');
+        //player.anims.play('turn');
     }
 
-    if (cursors.up.isDown && player.body.touching.down)
+    if (!flip && (cursors.up.isDown || cursors.down.isDown))
     {
-        player.setVelocityY(-330);
+        flip = true;
+        gravity += 32;
+        if (gravity > 63)
+        {
+            gravity -= 64;
+        }
+        setGravity(this);
+        //player.setVelocityY(-330);
+    }
+    else if (!cursors.up.isDown && !cursors.down.isDown)
+    {
+        flip = false;
     }
 }
 
