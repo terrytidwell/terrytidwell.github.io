@@ -61,6 +61,8 @@ function create ()
 
     // The player and its settings
     player = this.physics.add.sprite(100, 450, 'star');
+    bombs = this.physics.add.sprite(700,100,'bomb');
+    bombs.setImmovable(true);
 
     //  Player physics properties. Give the little guy a slight bounce.
     player.setBounce(0.2);
@@ -93,7 +95,7 @@ function create ()
     */
     //  Collide the player and the stars with the platforms
     this.physics.add.collider(player, platforms);
-    //this.physics.add.collider(stars, platforms);
+    this.physics.add.collider(player, bombs, calculateImpact, null, this);
     //this.physics.add.collider(bombs, platforms);
 
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
@@ -102,6 +104,18 @@ function create ()
     //this.physics.add.collider(player, bombs, hitBomb, null, this);
     camera = this.cameras.main;
     camera.startFollow(player);
+}
+
+function calculateImpact(player, bombs)
+{
+    let pv = player.body.velocity;
+    let speed = player.body.speed;
+    alert("speed?"+pv.length()+"=?"+speed);
+    let pp = player.body.center;
+    let bp = bombs.body.center;
+    let dp = pp.subtract(bp);
+    let impact = dp.dot(pv);
+    alert("impact="+impact);
 }
 
 function rotateGravity(amount)
