@@ -29,6 +29,7 @@ var scoreText;
 var gravity = 0;
 var camera;
 var flip;
+const MAX_ROTATION = 128;
 
 var game = new Phaser.Game(config);
 
@@ -103,12 +104,25 @@ function create ()
     camera.startFollow(player);
 }
 
+function rotateGravity(amount)
+{
+    gravity+=amount;
+    while (gravity < 0 || gravity >= MAX_ROTATION) {
+        if (gravity < 0) {
+            gravity += MAX_ROTATION;
+        } else {
+            //gravity >= MAX_GRAVITY
+            gravity -= MAX_ROTATION;
+        }
+    }
+}
+
 function setGravity(phaser)
 {
-    let x = Math.sin(2 * Math.PI * gravity/64);
-    let y = Math.cos(2 * Math.PI * gravity/64);
+    let x = Math.sin(2 * Math.PI * gravity/MAX_ROTATION);
+    let y = Math.cos(2 * Math.PI * gravity/MAX_ROTATION);
     player.body.setGravity(Math.round(x*300),Math.round(y*300));
-    camera.setRotation(2 * Math.PI * gravity/64);
+    camera.setRotation(2 * Math.PI * gravity/MAX_ROTATION);
 }
 
 function update ()
@@ -120,11 +134,7 @@ function update ()
 
     if (cursors.left.isDown)
     {
-        gravity += 1;
-        if (gravity > 63)
-        {
-            gravity = 0;
-        }
+        rotateGravity(-1);
         setGravity(this);
         //player.setVelocityX(-160);
 
@@ -132,11 +142,7 @@ function update ()
     }
     else if (cursors.right.isDown)
     {
-        gravity -= 1;
-        if (gravity < 0)
-        {
-            gravity = 63;
-        }
+        rotateGravity(1);
         setGravity(this);
         //player.setVelocityX(160);
 
@@ -152,10 +158,10 @@ function update ()
     if (!flip && (cursors.up.isDown || cursors.down.isDown))
     {
         flip = true;
-        gravity += 32;
-        if (gravity > 63)
+        gravity += MAX_ROTATION/2;
+        if (gravity >= MAX_ROTATION)
         {
-            gravity -= 64;
+            gravity -= MAX_ROTATION;
         }
         setGravity(this);
         //player.setVelocityY(-330);
