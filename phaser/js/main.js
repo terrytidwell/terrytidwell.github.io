@@ -1,7 +1,7 @@
 var config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 32*30,
+    height: 32*20,
     physics: {
         default: 'arcade',
         arcade: {
@@ -40,19 +40,47 @@ function preload ()
     this.load.image('star', 'assets/star.png');
     this.load.image('bomb', 'assets/bomb.png');
     this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    this.load.spritesheet('blocks', 'assets/stone.png', { frameWidth: 32, frameHeight: 32 });
 }
 
 function create ()
 {
+    /*
+    this.make.graphics().fillStyle(0x555544).fillRect(0, 0, 50, 50)
+        .lineStyle(3, 0x666699).strokeRect(0, 0, 50, 50)
+        .generateTexture('box', 50, 50).destroy()
+    this.make.graphics().fillStyle(0x555544).fillRect(0, 0, 20, 80)
+        .generateTexture('player', 20, 80).destroy()
+
+    this.platforms = this.physics.add.staticGroup()
+    this.platforms.create(200, 200, 'box')
+    this.platforms.create(250, 200, 'box')
+    this.platforms.create(300, 200, 'box')
+    this.platforms.create(350, 200, 'box')
+    */
+
+    platforms = this.physics.add.staticGroup()
+
+    platform = this.add.tileSprite(16,32*10,32,32*20,'blocks',1);
+    platforms.add(platform);
+    platform = this.add.tileSprite(32*30-16,32*10,32,32*20,'blocks',1);
+    platforms.add(platform);
+    platform = this.add.tileSprite(32*15,16,32*28,32,'blocks',1);
+    platforms.add(platform);
+    platform = this.add.tileSprite(32*15,32*20-16,32*28,32,'blocks',1);
+    platforms.add(platform);
     //  A simple background for our game
-    this.add.image(400, 300, 'sky');
+    //this.add.image(400, 300, 'sky');
 
     //  The platforms group contains the ground and the 2 ledges we can jump on
-    platforms = this.physics.add.staticGroup();
+    //platforms = this.physics.add.staticGroup();
+
+    //platforms.setImmovable(true);
+    bombs = this.physics.add.sprite(700,100, 'blocks',5);
 
     //  Here we create the ground.
     //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+    //platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
     //  Now let's create some ledges
     platforms.create(600, 400, 'ground');
@@ -61,7 +89,7 @@ function create ()
 
     // The player and its settings
     player = this.physics.add.sprite(100, 450, 'star');
-    bombs = this.physics.add.sprite(700,100,'bomb');
+    //bombs = this.physics.add.sprite(700,100,'bomb');
     bombs.setImmovable(true);
 
     //  Player physics properties. Give the little guy a slight bounce.
@@ -110,12 +138,16 @@ function calculateImpact(player, bombs)
 {
     let pv = player.body.velocity;
     let speed = player.body.speed;
-    alert("speed?"+pv.length()+"=?"+speed);
+    //alert("speed?"+pv.length()+"=?"+speed);
     let pp = player.body.center;
     let bp = bombs.body.center;
     let dp = pp.subtract(bp);
     let impact = dp.dot(pv);
-    alert("impact="+impact);
+    //alert("impact="+impact);
+    if (speed > 500)
+    {
+        bombs.disableBody(true, true);
+    }
 }
 
 function rotateGravity(amount)
