@@ -21,6 +21,7 @@ var config = {
 var player;
 var stars;
 var bombs;
+var bumpers;
 var platforms;
 var cursors;
 var score = 0;
@@ -29,6 +30,7 @@ var scoreText;
 var gravity = 0;
 var camera;
 var flip;
+var shake;
 const MAX_ROTATION = 128;
 
 var game = new Phaser.Game(config);
@@ -77,6 +79,10 @@ function create ()
 
     //platforms.setImmovable(true);
     bombs = this.physics.add.sprite(700,100, 'blocks',5);
+    bombs.setImmovable(true);
+
+    bumpers = this.physics.add.sprite(700,132, 'blocks',25);
+    bumpers.setImmovable(true);
 
     //  Here we create the ground.
     //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
@@ -90,7 +96,7 @@ function create ()
     // The player and its settings
     player = this.physics.add.sprite(100, 450, 'star');
     //bombs = this.physics.add.sprite(700,100,'bomb');
-    bombs.setImmovable(true);
+
 
     //  Player physics properties. Give the little guy a slight bounce.
     player.setBounce(0.2);
@@ -124,6 +130,7 @@ function create ()
     //  Collide the player and the stars with the platforms
     this.physics.add.collider(player, platforms);
     this.physics.add.collider(player, bombs, calculateImpact, null, this);
+    this.physics.add.collider(player, bumpers, bounce, null, this);
     //this.physics.add.collider(bombs, platforms);
 
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
@@ -171,11 +178,36 @@ function setGravity(phaser)
     camera.setRotation(2 * Math.PI * gravity/MAX_ROTATION);
 }
 
+function bounce(player, bumper)
+{
+    let px = player.body.x;
+    let py = player.body.y;
+    let bx = bumper.body.x;
+    let by = bumper.body.y;
+    let dx = bx - px;
+    let dy = by - py;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    dx = dx / dist * 450;
+    dy = dy / dist * 450;
+    let vx = player.body.velocity.x;
+    let vy = player.body.velocity.y;
+    player.body.setVelocity(vx - dx, vy - dy);
+}
+
 function update ()
 {
     if (gameOver)
     {
         return;
+    }
+
+    if (player.body.speed > 500)
+    {
+        camera.shake(500, 0.003)
+    }
+    else if (player.body.speed < 500)
+    {
+        camera.shake(0, 0)
     }
 
     if (cursors.left.isDown)
