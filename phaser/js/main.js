@@ -20,7 +20,7 @@ var config = {
 
 var player;
 var stars;
-var bombs;
+var breakables;
 var bumpers;
 var platforms;
 var cursors;
@@ -38,100 +38,48 @@ var game = new Phaser.Game(config);
 function preload ()
 {
     this.load.image('sky', 'assets/sky.png');
-    this.load.image('ground', 'assets/platform.png');
     this.load.image('star', 'assets/star.png');
     this.load.image('bomb', 'assets/bomb.png');
-    this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
     this.load.spritesheet('blocks', 'assets/stone.png', { frameWidth: 32, frameHeight: 32 });
+}
+
+//add a ledge of blocks, at x,y block offset and height by width blocks
+function addLedge(scene, group, x,y,width,height)
+{
+    let block_size=32;
+    let ledge_width = width * block_size;
+    let ledge_height = height * block_size;
+    let center_x = x * block_size + ledge_width/2;
+    let center_y = y * block_size + ledge_height/2;
+    let platform = scene.add.tileSprite(center_x, center_y, ledge_width, ledge_height, 'blocks', 1);
+    group.add(platform);
 }
 
 function create ()
 {
-    /*
-    this.make.graphics().fillStyle(0x555544).fillRect(0, 0, 50, 50)
-        .lineStyle(3, 0x666699).strokeRect(0, 0, 50, 50)
-        .generateTexture('box', 50, 50).destroy()
-    this.make.graphics().fillStyle(0x555544).fillRect(0, 0, 20, 80)
-        .generateTexture('player', 20, 80).destroy()
-
-    this.platforms = this.physics.add.staticGroup()
-    this.platforms.create(200, 200, 'box')
-    this.platforms.create(250, 200, 'box')
-    this.platforms.create(300, 200, 'box')
-    this.platforms.create(350, 200, 'box')
-    */
-
     platforms = this.physics.add.staticGroup()
+    addLedge(this, platforms, 0, 0, 1, 20);
+    addLedge(this, platforms, 30, 0, 1, 20);
+    addLedge(this, platforms, 1, 0, 29, 1);
+    addLedge(this, platforms, 1, 19, 29, 1);
 
-    platform = this.add.tileSprite(16,32*10,32,32*20,'blocks',1);
-    platforms.add(platform);
-    platform = this.add.tileSprite(32*30-16,32*10,32,32*20,'blocks',1);
-    platforms.add(platform);
-    platform = this.add.tileSprite(32*15,16,32*28,32,'blocks',1);
-    platforms.add(platform);
-    platform = this.add.tileSprite(32*15,32*20-16,32*28,32,'blocks',1);
-    platforms.add(platform);
-    //  A simple background for our game
-    //this.add.image(400, 300, 'sky');
+    addLedge(this, platforms, 1, 10, 13, 1);
 
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    //platforms = this.physics.add.staticGroup();
+    breakables = this.physics.add.group();
+    breakables.create(700,100, 'blocks',5).setImmovable(true);
 
-    //platforms.setImmovable(true);
-    bombs = this.physics.add.sprite(700,100, 'blocks',5);
-    bombs.setImmovable(true);
+    bumpers = this.physics.add.group();
+    bumpers.create(700,132, 'blocks',25).setImmovable(true);
 
-    bumpers = this.physics.add.sprite(700,132, 'blocks',25);
-    bumpers.setImmovable(true);
-
-    //  Here we create the ground.
-    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    //platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-
-    //  Now let's create some ledges
-    platforms.create(600, 400, 'ground');
-    platforms.create(50, 250, 'ground');
-    platforms.create(750, 220, 'ground');
-
-    // The player and its settings
-    player = this.physics.add.sprite(100, 450, 'star');
-    //bombs = this.physics.add.sprite(700,100,'bomb');
-
-
-    //  Player physics properties. Give the little guy a slight bounce.
+    player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
-    //  Our player animations, turning, walking left and walking right.
-
-    //  Input Events
     cursors = this.input.keyboard.createCursorKeys();
 
-    //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
-    /*
-    stars = this.physics.add.group({
-        key: 'star',
-        repeat: 11,
-        setXY: { x: 12, y: 0, stepX: 70 }
-    });
-
-    stars.children.iterate(function (child) {
-
-        //  Give each star a slightly different bounce
-        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-    });
-
-    bombs = this.physics.add.group();
-
-    //  The score
-    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-    */
-    //  Collide the player and the stars with the platforms
     this.physics.add.collider(player, platforms);
-    this.physics.add.collider(player, bombs, calculateImpact, null, this);
+    this.physics.add.collider(player, breakables, calculateImpact, null, this);
     this.physics.add.collider(player, bumpers, bounce, null, this);
-    //this.physics.add.collider(bombs, platforms);
 
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
     //this.physics.add.overlap(player, stars, collectStar, null, this);
@@ -141,19 +89,19 @@ function create ()
     camera.startFollow(player);
 }
 
-function calculateImpact(player, bombs)
+function calculateImpact(player, breakables)
 {
     let pv = player.body.velocity;
     let speed = player.body.speed;
     //alert("speed?"+pv.length()+"=?"+speed);
     let pp = player.body.center;
-    let bp = bombs.body.center;
+    let bp = breakables.body.center;
     let dp = pp.subtract(bp);
     let impact = dp.dot(pv);
     //alert("impact="+impact);
     if (speed > 500)
     {
-        bombs.disableBody(true, true);
+        breakables.disableBody(true, true);
     }
 }
 
