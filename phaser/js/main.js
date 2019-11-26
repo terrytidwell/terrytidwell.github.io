@@ -55,6 +55,19 @@ function addLedge(scene, group, x,y,width,height)
     group.add(platform);
 }
 
+function addBreakable(x, y)
+{
+    let block_size = 32;
+    breakables.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',5).setImmovable(true);
+}
+
+
+function addBumper(x, y)
+{
+    let block_size = 32;
+    bumpers.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',25).setImmovable(true);
+}
+
 function create ()
 {
     platforms = this.physics.add.staticGroup()
@@ -63,13 +76,28 @@ function create ()
     addLedge(this, platforms, 1, 0, 29, 1);
     addLedge(this, platforms, 1, 19, 29, 1);
 
-    addLedge(this, platforms, 1, 10, 13, 1);
+    addLedge(this, platforms, 1, 10, 8, 1);
+    addLedge(this, platforms, 18, 6, 12, 1);
+    addLedge(this, platforms, 14, 1, 1, 10);
 
     breakables = this.physics.add.group();
-    breakables.create(700,100, 'blocks',5).setImmovable(true);
+    addBreakable(27, 17);
+    addBreakable(26, 17);
+    addBreakable(25, 17);
+    addBreakable(25, 16);
+    addBreakable(27, 16);
+    addBreakable(27, 15);
+    addBreakable(26, 15);
+    addBreakable(25, 15);
 
     bumpers = this.physics.add.group();
-    bumpers.create(700,132, 'blocks',25).setImmovable(true);
+    addBumper(16, 6);
+    addBumper(19, 2);
+    addBumper(22, 6);
+    addBumper(25, 2);
+    addBumper(28, 6);
+
+    //bumpers.create(700,132, 'blocks',25).setImmovable(true);
 
     player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
