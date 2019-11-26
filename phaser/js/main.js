@@ -66,10 +66,10 @@ function create ()
     addLedge(this, platforms, 1, 10, 13, 1);
 
     breakables = this.physics.add.group();
-    breakables.create(700,100, 'blocks',5).setImmovable(true);
+    breakables.create(19 * 32 - 16,3*32 - 16, 'blocks',5).setImmovable(true);
 
     bumpers = this.physics.add.group();
-    bumpers.create(700,132, 'blocks',25).setImmovable(true);
+    bumpers.create(19*32 - 16,4*32-16, 'blocks',25).setImmovable(true);
 
     player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
