@@ -5,7 +5,6 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            //gravity: { y: 300 },
             debug: false
         }
     },
@@ -55,21 +54,67 @@ function addLedge(scene, group, x,y,width,height)
     group.add(platform);
 }
 
+function addBreakable(x, y)
+{
+    let block_size = 32;
+    breakables.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',5).setImmovable(true);
+}
+
+
+function addBumper(x, y)
+{
+    let block_size = 32;
+    bumpers.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',25).setImmovable(true);
+}
+
+function addStar(x, y)
+{
+    let block_size = 32;
+    stars.create(block_size * x - block_size/2,block_size * y - block_size/2, 'star').setImmovable(true);
+}
+
 function create ()
 {
-    platforms = this.physics.add.staticGroup()
+    platforms = this.physics.add.staticGroup();
+    breakables = this.physics.add.group();
+    bumpers = this.physics.add.group();
+    stars = this.physics.add.group();
+
     addLedge(this, platforms, 0, 0, 1, 20);
     addLedge(this, platforms, 30, 0, 1, 20);
     addLedge(this, platforms, 1, 0, 29, 1);
     addLedge(this, platforms, 1, 19, 29, 1);
 
-    addLedge(this, platforms, 1, 10, 13, 1);
+    addLedge(this, platforms, 1, 10, 8, 1);
+    addLedge(this, platforms, 9, 12, 5, 1);
+    addLedge(this, platforms, 18, 6, 12, 1);
+    addLedge(this, platforms, 14, 1, 1, 10);
 
-    breakables = this.physics.add.group();
-    breakables.create(19 * 32 - 16,3*32 - 16, 'blocks',5).setImmovable(true);
+    addBreakable(27, 17);
+    addBreakable(26, 17);
+    addBreakable(25, 17);
+    addBreakable(25, 16);
+    addStar(26, 16);
+    addBreakable(27, 16);
+    addBreakable(27, 15);
+    addBreakable(26, 15);
+    addBreakable(25, 15);
 
-    bumpers = this.physics.add.group();
-    bumpers.create(19*32 - 16,4*32-16, 'blocks',25).setImmovable(true);
+    addBreakable(27, 12);
+    addBreakable(26, 12);
+    addBreakable(25, 12);
+    addBreakable(25, 11);
+    addStar(26, 11);
+    addBreakable(27, 11);
+    addBreakable(27, 10);
+    addBreakable(26, 10);
+    addBreakable(25, 10);
+
+    addBumper(16, 6);
+    addBumper(19, 2);
+    addBumper(22, 6);
+    addBumper(25, 2);
+    addBumper(28, 6);
 
     player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
@@ -80,9 +125,22 @@ function create ()
     this.physics.add.collider(player, platforms);
     this.physics.add.collider(player, breakables, calculateImpact, null, this);
     this.physics.add.collider(player, bumpers, bounce, null, this);
+    
+    for (let x = 2; x < 15; x++) {
+        for (let y = 2; y < 11; y++)
+        {
+            addStar(x,y);
+        }
+    }
+
+    addStar(30, 2 );
+    addStar(30, 3 );
+    addStar(30, 4 );
+    addStar(30, 5 );
+    addStar(30, 6 );
 
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    //this.physics.add.overlap(player, stars, collectStar, null, this);
+    this.physics.add.overlap(player, stars, collectStar, null, this);
 
     //this.physics.add.collider(player, bombs, hitBomb, null, this);
     camera = this.cameras.main;
@@ -201,29 +259,6 @@ function update ()
 function collectStar (player, star)
 {
     star.disableBody(true, true);
-
-    //  Add and update the score
-    score += 10;
-    scoreText.setText('Score: ' + score);
-
-    if (stars.countActive(true) === 0)
-    {
-        //  A new batch of stars to collect
-        stars.children.iterate(function (child) {
-
-            child.enableBody(true, child.x, 0, true, true);
-
-        });
-
-        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-
-        var bomb = bombs.create(x, 16, 'bomb');
-        bomb.setBounce(1);
-        bomb.setCollideWorldBounds(true);
-        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-        bomb.allowGravity = false;
-
-    }
 }
 
 function hitBomb (player, bomb)
