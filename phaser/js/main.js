@@ -118,8 +118,6 @@ function create ()
     addBumper(25, 2);
     addBumper(28, 6);
 
-    //bumpers.create(700,132, 'blocks',25).setImmovable(true);
-
     player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
