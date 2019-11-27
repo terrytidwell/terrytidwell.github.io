@@ -19,6 +19,7 @@ var config = {
 
 var player;
 var stars;
+var bombs;
 var breakables;
 var bumpers;
 var platforms;
@@ -79,6 +80,7 @@ function create ()
     breakables = this.physics.add.group();
     bumpers = this.physics.add.group();
     stars = this.physics.add.group();
+    bombs = this.physics.add.group();
 
     addLedge(this, platforms, 0, 0, 1, 20);
     addLedge(this, platforms, 30, 0, 1, 20);
@@ -122,12 +124,17 @@ function create ()
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
+    bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2).setCollideWorldBounds(true);
+
     cursors = this.input.keyboard.createCursorKeys();
 
     this.physics.add.collider(player, platforms);
+    this.physics.add.collider(bombs, platforms);
+    this.physics.add.collider(bombs, breakables);
+    this.physics.add.collider(bombs, bumpers, bounce, null, this);
     this.physics.add.collider(player, breakables, calculateImpact, null, this);
     this.physics.add.collider(player, bumpers, bounce, null, this);
-    
+
     for (let x = 2; x < 15; x++) {
         for (let y = 2; y < 11; y++)
         {
@@ -141,10 +148,11 @@ function create ()
     addStar(30, 5 );
     addStar(30, 6 );
 
+
     //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
     this.physics.add.overlap(player, stars, collectStar, null, this);
 
-    //this.physics.add.collider(player, bombs, hitBomb, null, this);
+    this.physics.add.collider(player, bombs, hitBomb, null, this);
     camera = this.cameras.main;
     camera.startFollow(player);
 }
@@ -183,6 +191,9 @@ function setGravity(phaser)
     let x = Math.sin(2 * Math.PI * gravity/MAX_ROTATION);
     let y = Math.cos(2 * Math.PI * gravity/MAX_ROTATION);
     player.body.setGravity(Math.round(x*300),Math.round(y*300));
+    bombs.children.each(function(bomb) {
+        bomb.body.setGravity(Math.round(x*300),Math.round(y*300));
+    }, this);
     camera.setRotation(2 * Math.PI * gravity/MAX_ROTATION);
 }
 
