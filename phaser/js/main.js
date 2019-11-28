@@ -95,7 +95,7 @@ function create ()
     addBreakable(27, 17);
     addBreakable(26, 17);
     addBreakable(25, 17);
-    addBreakable(25, 16);
+    //addBreakable(25, 16);
     addStar(26, 16);
     addBreakable(27, 16);
     addBreakable(27, 15);
@@ -107,7 +107,7 @@ function create ()
     addBreakable(25, 12);
     addBreakable(25, 11);
     addStar(26, 11);
-    addBreakable(27, 11);
+    //addBreakable(27, 11);
     addBreakable(27, 10);
     addBreakable(26, 10);
     addBreakable(25, 10);
@@ -122,7 +122,7 @@ function create ()
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
-    bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2).setCollideWorldBounds(true);
+    //bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2).setCollideWorldBounds(true);
 
     cursors = this.input.keyboard.createCursorKeys();
 
