@@ -1,4 +1,4 @@
-var GameScene = new Phaser.Class({
+let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
@@ -19,12 +19,12 @@ var GameScene = new Phaser.Class({
     {
         this.add.image(400, 300, 'bg');
 
-        for (var i = 0; i < 64; i++)
+        for (let i = 0; i < 64; i++)
         {
-            var x = Phaser.Math.Between(0, 800);
-            var y = Phaser.Math.Between(0, 600);
+            let x = Phaser.Math.Between(0, 800);
+            let y = Phaser.Math.Between(0, 600);
 
-            var box = this.add.image(x, y, 'crate');
+            let box = this.add.image(x, y, 'crate');
 
             //  Make them all input enabled
             box.setInteractive();
@@ -45,7 +45,7 @@ var GameScene = new Phaser.Class({
 
 });
 
-var UIScene = new Phaser.Class({
+let UIScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
@@ -61,10 +61,10 @@ var UIScene = new Phaser.Class({
     create: function ()
     {
         //  Our Text object to display the Score
-        var info = this.add.text(10, 10, 'Score: 0', { font: '48px Arial', fill: '#000000' });
+        let info = this.add.text(10, 10, 'Score: 0', { font: '48px Arial', fill: '#000000' });
 
         //  Grab a reference to the Game Scene
-        var ourGame = this.scene.get('GameScene');
+        let ourGame = this.scene.get('GameScene');
 
         //  Listen for events from it
         ourGame.events.on('addScore', function () {
@@ -78,7 +78,7 @@ var UIScene = new Phaser.Class({
 
 });
 
-var config = {
+let config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
@@ -87,4 +87,4 @@ var config = {
     scene: [ GameScene, UIScene ]
 };
 
-var game = new Phaser.Game(config);
+let game = new Phaser.Game(config);
