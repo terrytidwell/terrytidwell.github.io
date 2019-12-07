@@ -33,8 +33,8 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('farm_tile', 'assets/Farm.png');
-        this.load.image('mine_tile', 'assets/mine2.png');
+        this.load.image('farm_tile', 'assets/farm.png');
+        this.load.image('mine_tile', 'assets/mine.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
         this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
@@ -323,7 +323,7 @@ let UIScene = new Phaser.Class({
                     botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                         function ()
                         {
-                            text_game_object.setText(action.getBeginText());
+                            text_game_object.setText(action.getActiveText());
                             // todo sleep
                             action.getExecuteFn()(action_state.m_game_scene);
                         })

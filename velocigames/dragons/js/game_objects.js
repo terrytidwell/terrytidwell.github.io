@@ -2,13 +2,13 @@
 class TileAction
 {
     //--------------------------------------------------------------------------
-    constructor(button_text, begin_text, end_text, duration_seconds, execute_fn)
+    constructor(button_text, active_text, duration_seconds, execute_fn)
     {
         this.m_button_text = button_text;
-        this.m_begin_text = begin_text;
-        this.m_end_text = end_text;
+        this.m_active_text = active_text;
         this.m_duration_seconds = duration_seconds;
         this.m_execute_fn = execute_fn;
+        this.m_is_active = false;
     }
 
     //--------------------------------------------------------------------------
@@ -18,15 +18,9 @@ class TileAction
     }
 
     //--------------------------------------------------------------------------
-    getBeginText()
+    getActiveText()
     {
-        return this.m_begin_text;
-    }
-
-    //--------------------------------------------------------------------------
-    getEndText()
-    {
-        return this.m_end_text;
+        return this.m_active_text;
     }
 
     //--------------------------------------------------------------------------
@@ -39,6 +33,18 @@ class TileAction
     getExecuteFn()
     {
         return this.m_execute_fn;
+    }
+
+    //--------------------------------------------------------------------------
+    isActive()
+    {
+        return this.m_is_active;
+    }
+
+    //--------------------------------------------------------------------------
+    setActive(is_active)
+    {
+        this.m_is_active = is_active;
     }
 }
 
@@ -162,8 +168,7 @@ class MineTile extends Tile
         let actions = [
             new TileAction(
                 "Mine Gold",
-                "Starting to mine for gold.",
-                "Finished mining for gold.",
+                "Mining for gold.",
                 0,
                 function(scene)
                 {
@@ -184,7 +189,22 @@ class FarmTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Farm", ["farm_tile"]);
+        let actions = [
+            new TileAction(
+                "Raise Cow",
+                "Nurturing cow.",
+                5,
+                function(scene)
+                {
+                    game_model.m_global_resources.m_cows += 1;
+                    scene.events.emit("update_global_resources")
+                }),
+        ];
+        super(
+            "Farm",
+            ["farm_tile"],
+            undefined,
+            actions);
     }
 }
 
@@ -309,27 +329,9 @@ class TileMapView
                         Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                         function (pointer, localX, localY, event)
                         {
-                            // BUG: patch stopPropagation to set cancelled
-                            //   on the event itself (as well as on the hidden
-                            //   object)
-                            event.stopPropagation_ = event.stopPropagation;
-                            event.stopPropagation = function ()
-                            {
-                                this.cancelled = true;
-                                this.stopPropagation_();
-                            };
-
                             tile.handleClick(event);
-
-                            if (!event.cancelled)
-                            {
-                                tile_map.handleClick(x, y, tile, event);
-                            }
-
-                            if (!event.cancelled)
-                            {
-                                this.handleClick(x, y, tile, event);
-                            }
+                            tile_map.handleClick(x, y, tile, event);
+                            this.handleClick(x, y, tile, event);
                         },
                         this);
                 }
