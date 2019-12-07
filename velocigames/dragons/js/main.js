@@ -269,7 +269,9 @@ let UIScene = new Phaser.Class({
         this.add.image(
             30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
-            400, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#000000" });
+            200, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#000000" });
+        this.add.image(
+            180, layout_info.m_score_height / 2 + 2, "cow_head");
 
         game_scene.events.on('update_global_resources',
             function ()
