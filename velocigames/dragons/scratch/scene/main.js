@@ -2,12 +2,10 @@ let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    initialize:
-
-        function GameScene ()
-        {
-            Phaser.Scene.call(this, { key: 'GameScene' });
-        },
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'GameScene' });
+    },
 
     preload: function ()
     {
@@ -34,6 +32,7 @@ let GameScene = new Phaser.Class({
         }
 
         this.input.on('gameobjectup', this.clickHandler, this);
+        this.cursors = this.input.keyboard.createCursorKeys();
     },
 
     clickHandler: function (pointer, box)
@@ -44,6 +43,26 @@ let GameScene = new Phaser.Class({
 
         //  Dispatch a Scene event
         this.events.emit('addScore');
+    },
+
+    update: function()
+    {
+        if (this.cursors.left.isDown)
+        {
+            this.cameras.main.x -= 4;
+        }
+        else if (this.cursors.right.isDown)
+        {
+            this.cameras.main.x += 4;
+        }
+        else if (this.cursors.up.isDown)
+        {
+            this.cameras.main.y -= 4;
+        }
+        else if (this.cursors.down.isDown)
+        {
+            this.cameras.main.y += 4;
+        }
     }
 
 });
