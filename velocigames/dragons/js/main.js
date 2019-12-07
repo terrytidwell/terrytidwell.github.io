@@ -58,7 +58,7 @@ let LoadingScreen = new Phaser.Class({
         this.loadingText = this.add.text(game_width/2, game_height/2, "0%", { fontSize: '32px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        this.load.image('farm_tile', 'assets/farm.png');
+        this.load.image('farm_tile', 'assets/farm/farm.png');
         this.load.image('mine_tile', 'assets/mine/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
