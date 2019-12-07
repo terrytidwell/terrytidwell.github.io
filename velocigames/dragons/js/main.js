@@ -33,7 +33,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('farm_tile', 'assets/Farm.png');
+        this.load.image('farm_tile', 'assets/farm.png');
         this.load.image('mine_tile', 'assets/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
