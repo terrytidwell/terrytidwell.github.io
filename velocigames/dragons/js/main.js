@@ -45,8 +45,8 @@ let LoadingScreen = new Phaser.Class({
         /*
         this.graphics = this.add.graphics();
         this.newGraphics = this.add.graphics();
-        var progressBar = new Phaser.Geom.Rectangle(200, 200, 400, 50);
-        var progressBarFill = new Phaser.Geom.Rectangle(205, 205, 290, 40);
+        let progressBar = new Phaser.Geom.Rectangle(200, 200, 400, 50);
+        let progressBarFill = new Phaser.Geom.Rectangle(205, 205, 290, 40);
 
         this.graphics.fillStyle(0xffffff, 1);
         this.graphics.fillRectShape(progressBar);
