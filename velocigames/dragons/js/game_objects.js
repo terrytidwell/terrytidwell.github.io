@@ -57,13 +57,22 @@ class TileMap
 }
 
 //------------------------------------------------------------------------------
-class VillageArea
+class GameArea
+{
+    //--------------------------------------------------------------------------
+    constructor(width, height)
+    {
+        this.m_tile_map = new TileMap(width, height);
+    }
+}
+
+//------------------------------------------------------------------------------
+class VillageArea extends GameArea
 {
     //--------------------------------------------------------------------------
     constructor()
     {
-
-        this.m_tile_map = new TileMap(20, 20);
+        super(20, 20);
 
         for (let x = 0; x < this.m_tile_map.m_width; ++x)
         {
