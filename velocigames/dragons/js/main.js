@@ -55,8 +55,8 @@ let LoadingScreen = new Phaser.Class({
         this.newGraphics.fillRectShape(progressBarFill);
         */
 
-        this.loadingText = this.add.text(game_width/2,game_height/2,"0%", { fontSize: '32px', fill: '#FFF' })
-            .setOrigin(0.5,0.5);
+        this.loadingText = this.add.text(game_width/2, game_height/2, "0%", { fontSize: '32px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
 
         this.load.image('farm_tile', 'assets/farm.png');
         this.load.image('mine_tile', 'assets/mine.png');
@@ -69,7 +69,8 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('action_texture', 'assets/dashboard/detail_display.png');
         this.load.image('score_texture', 'assets/dashboard/stats_display2.png');
         this.load.image('control_texture', 'assets/dashboard/control_display.png');
-        this.load.image('coin', 'assets/coin/coin_straight_on.png');
+        this.load.spritesheet('coin', 'assets/coin/coin.png',
+            { frameWidth: 32, frameHeight: 32 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
@@ -260,18 +261,26 @@ let UIScene = new Phaser.Class({
 
         this.textures.get("score_texture").add(
             "score_area", 0, 0, 0, game_width, layout_info.m_score_height);
-        let background = this.add.image(
+        let background = this.add.sprite(
             0, 0,
             "score_texture", "score_area");
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
             50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#ffffff" });
-        this.add.image(
+        this.anims.create({
+            key: "spin_coin",
+            frames: this.anims.generateFrameNumbers("coin"),
+            frameRate: 20,
+            repeat: -1
+        });
+        sprite = this.add.sprite(
             30, layout_info.m_score_height / 2 + 2, "coin");
+        sprite.anims.load("spin_coin");
+        sprite.anims.play("spin_coin");
         let cows_text = this.add.text(
             200, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#ffffff" });
-        this.add.image(
+        this.add.sprite(
             180, layout_info.m_score_height / 2 + 2, "cow_head");
 
         game_scene.events.on('update_global_resources',
@@ -342,7 +351,7 @@ let UIScene = new Phaser.Class({
 
         this.textures.get("action_texture").add(
             "action_area", 0, 0, 0, game_width, layout_info.m_action_height);
-        let background = this.add.image(
+        let background = this.add.sprite(
             0, action_area_top,
             "action_texture", "action_area");
         background.setOrigin(0, 0);
@@ -418,7 +427,7 @@ let UIScene = new Phaser.Class({
             let button_initial_text = action.isActive()
                 ? action.getActiveText() : action.getButtonText();
 
-            let button_game_object = this.add.image(
+            let button_game_object = this.add.sprite(
                 button_x, button_y, button_initial_texture);
             state.destroy_on_clean_up(button_game_object);
             let text_game_object = this.add.text(
