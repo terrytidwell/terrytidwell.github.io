@@ -154,10 +154,10 @@ let UIScene = new Phaser.Class({
     {
         this.load.image('action_texture', 'assets/black_texture.jpg');
         this.load.image('score_texture', 'assets/white_leather_texture.jpg');
-        this.load.image('volume_off',
-            'assets/baseline_volume_off_black_48dp.png');
-        this.load.image('volume_on',
-            'assets/baseline_volume_up_black_48dp.png');
+        this.load.svg('volume_off',
+            'assets/volume_off-24px.svg');
+        this.load.svg('volume_on',
+            'assets/volume_up-24px.svg');
         this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3')
     },
 
@@ -202,8 +202,8 @@ let UIScene = new Phaser.Class({
         bgm.setLoop(true);
         this.sound.pauseOnBlur = false;
 
-        let icon_size = 96;
-        let icon_scale = 0.5;
+        let icon_size = 24;
+        let icon_scale = 2;
         let icon_right_padding = 10;
         icon_size *= icon_scale;
         let volume_control = this.add.sprite(
