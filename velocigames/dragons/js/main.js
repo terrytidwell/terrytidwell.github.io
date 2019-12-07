@@ -18,6 +18,7 @@ let layout_info = {
     m_map_size_y: 20,
     m_tile_width: 64,
     m_tile_height: 64,
+    m_add_grid_overlay: false,
 
     m_button_width: 265,
     m_button_height: 64,
@@ -199,7 +200,10 @@ let GameScene = new Phaser.Class({
             game_width,
             game_height - layout_info.m_score_height - layout_info.m_action_height);
 
-        //this.addGridOverlay();
+        if (layout_info.m_add_grid_overlay)
+        {
+            this.addGridOverlay();
+        }
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
