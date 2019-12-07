@@ -1,5 +1,11 @@
-// todo: container object
-let villageArea = new VillageArea();
+let game_model = {
+    m_global_resources: {
+        m_gold: 0,
+        m_cows: 0,
+    },
+    m_village_area: new VillageArea(),
+    m_selected_tile: null,
+};
 
 let GameScene = new Phaser.Class({
 
@@ -11,6 +17,9 @@ let GameScene = new Phaser.Class({
     m_cell_width: 64,
     m_cell_height: 64,
 
+    m_score_height: 64,
+    m_action_height: 64 * 2,
+
     //--------------------------------------------------------------------------
     initialize: function ()
     {
@@ -20,8 +29,6 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('bg', 'assets/sky.png');
-
         this.load.image('farm_tile', 'assets/Farm.png');
         this.load.image('mine_tile', 'assets/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
@@ -80,13 +87,18 @@ let GameScene = new Phaser.Class({
 
         this.m_tile_map_view = new TileMapView(
             this, this.m_cell_width, this.m_cell_height);
-        this.m_tile_map_view.attachTileMap(villageArea.m_tile_map);
+        this.m_tile_map_view.attachTileMap(
+            game_model.m_village_area.m_tile_map);
 
         // Set camera bounds.
         this.cameras.main.setBounds(
             0, 0, 
             this.m_grid_size_x * this.m_cell_width, 
             this.m_grid_size_y * this.m_cell_height);
+        this.cameras.main.setPosition(0, this.m_score_height, 0);
+        this.cameras.main.setSize(
+            game_width,
+            game_height - this.m_score_height - this.m_action_height);
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
@@ -95,16 +107,6 @@ let GameScene = new Phaser.Class({
         this.m_cursor_keys.letter_down = this.input.keyboard.addKey("s");
     },
 
-    //--------------------------------------------------------------------------
-    clickHandler: function (pointer, box)
-    {
-        //  Disable our box
-        box.input.enabled = false;
-        box.setVisible(false);
-
-        //  Dispatch a Scene event
-        this.events.emit('addScore');
-    },
 
     //--------------------------------------------------------------------------
     update: function()
@@ -148,8 +150,10 @@ let UIScene = new Phaser.Class({
     preload: function ()
     {
         this.load.image('platform', 'assets/platform.png');
-        this.load.image('volume_off', 'assets/baseline_volume_off_black_48dp.png')
-        this.load.image('volume_on', 'assets/baseline_volume_up_black_48dp.png')
+        this.load.image('volume_off',
+            'assets/baseline_volume_off_black_48dp.png');
+        this.load.image('volume_on',
+            'assets/baseline_volume_up_black_48dp.png');
         this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3')
     },
 
