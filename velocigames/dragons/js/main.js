@@ -20,8 +20,6 @@ let layout_info = {
     m_tile_height: 64,
 
     m_button_width: 265,
-
-    m_button_width: 265,
     m_button_height: 64,
     m_button_spacing: 5,
     m_button_left_margin: 300,
