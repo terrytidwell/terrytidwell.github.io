@@ -12,6 +12,10 @@ let layout_info = {
     m_action_height: 64 * 2,
     m_cell_width: 64,
     m_cell_height: 64,
+    m_button_width: 265,
+    m_button_height: 64,
+    m_button_spacing: 5,
+    m_button_left_margin: 300,
 };
 
 let GameScene = new Phaser.Class({
@@ -158,6 +162,8 @@ let UIScene = new Phaser.Class({
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
         this.load.image('button_passive', 'assets/buttons/button_grey.png');
         this.load.image('button_active',
+            'assets/buttons/button_grey_active2.png');
+        this.load.image('button_busy',
             'assets/buttons/button_grey_active.png');
         this.load.svg('volume_off',
             'assets/volume_off-24px.svg');
@@ -260,76 +266,138 @@ let UIScene = new Phaser.Class({
             "action_texture", "action_area");
         background.setOrigin(0, 0);
 
+        this.m_selected_tile_state = {
+            m_game_scene: game_scene,
+            m_action_area_top: action_area_top,
+            m_tile_label_text: null,
+            m_clean_up_steps: [],
+            destroy_on_clean_up: function (obj)
+            {
+                this.add_clean_up_step(function(){obj.destroy();});
+            },
+            add_clean_up_step: function (fn)
+            {
+                this.m_clean_up_steps.push(fn);
+            },
+            clean_up: function (obj)
+            {
+                for (let key in this.m_clean_up_steps)
+                {
+                    this.m_clean_up_steps[key]();
+                }
+                this.m_clean_up_steps = [];
+            }
+        };
+
         let tile_label_text = this.add.text(
             40 + layout_info.m_cell_width / 2, action_area_top + 5,
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
-        let action_state = {
-            m_game_scene: game_scene,
-            m_tile_game_object: null,
-            m_destroyables: null,
-        };
+        this.m_selected_tile_state.m_tile_label_text = tile_label_text;
+
         game_scene.events.on("update_selected_tile",
-            function (tile)
-            {
-                if (null !== action_state.m_tile_game_object)
+            this.update_selected_tile, this);
+    },
+
+    //--------------------------------------------------------------------------
+    update_selected_tile: function (tile)
+    {
+        let state = this.m_selected_tile_state;
+        state.clean_up();
+
+        game_model.m_selected_tile = tile;
+
+        // show the tile
+        let tile_game_object = tile.createGameObject(this);
+        state.destroy_on_clean_up(tile_game_object);
+        tile_game_object.setPosition(
+            40 + layout_info.m_cell_width / 2,
+            state.m_action_area_top + 40 + layout_info.m_cell_height / 2);
+        state.m_tile_label_text.setText(tile.getDisplayName());
+
+        let actions = tile.getActions();
+        if (undefined === actions)
+        {
+            return;
+        }
+
+        for (let index = 0, max_index = actions.length;
+            index < max_index; ++index)
+        {
+            let action = actions[index];
+
+            let button_x = layout_info.m_button_left_margin
+                + index * (layout_info.m_button_width
+                    + layout_info.m_button_spacing);
+            let button_y = layout_info.m_action_height / 2
+                + state.m_action_area_top;
+            let button_initial_texture = action.isActive()
+                ? "button_busy" : "button_passive";
+            let button_initial_text = action.isActive()
+                ? action.getActiveText() : action.getButtonText();
+
+            let button_game_object = this.add.image(
+                button_x, button_y, button_initial_texture);
+            state.destroy_on_clean_up(button_game_object);
+            let text_game_object = this.add.text(
+                button_x, button_y, button_initial_text,
+                { font: "20px Arial", fill: "#FFFFFF", background:"#808080" });
+            text_game_object.setOrigin(0.5, 0.5);
+            state.destroy_on_clean_up(text_game_object);
+
+            let button_state = {
+                m_pointer_texture: "button_passive",
+            };
+            let updateAppearance = function () {
+                if (action.isActive())
                 {
-                    action_state.m_tile_game_object.destroy();
-                    for (let key in action_state.m_destroyables)
-                    {
-                        let destroyable = action_state.m_destroyables[key];
-                        destroyable.destroy();
-                    }
+                    text_game_object.setText(action.getActiveText());
+                    button_game_object.setTexture("button_busy");
                 }
-
-                game_model.m_selected_tile = tile;
-                action_state.m_tile_game_object = tile.createGameObject(
-                    this);
-                action_state.m_tile_game_object.setPosition(
-                    40 + layout_info.m_cell_width / 2,
-                    action_area_top + 40 + layout_info.m_cell_height / 2);
-                tile_label_text.setText(tile.getDisplayName());
-
-                let actions = tile.getActions();
-                for (let key in actions)
+                else
                 {
-                    if (null == action_state.m_destroyables)
-                    {
-                        action_state.m_destroyables = [];
-                    }
-                    let action = actions[key];
-                    let button_text_str = action.getButtonText();
-                    let botton_game_object = this.add.image(
-                        300, layout_info.m_action_height / 2 + action_area_top,
-                        "button_passive");
-                    action_state.m_destroyables.push(botton_game_object);
-                    let text_game_object = this.add.text(
-                        300, layout_info.m_action_height / 2 + action_area_top,
-                        button_text_str, { font: "20px Arial", fill: "#FFFFff", background:"#808080" });
-                    text_game_object.setOrigin(0.5, 0.5);
-                    action_state.m_destroyables.push(text_game_object);
-
-                    botton_game_object.setInteractive();
-                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
-                        function ()
-                        {
-                            botton_game_object.setTexture("button_active");
-                        });
-                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT,
-                        function ()
-                        {
-                            botton_game_object.setTexture("button_passive");
-                        });
-                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-                        function ()
-                        {
-                            text_game_object.setText(action.getActiveText());
-                            // todo sleep
-                            action.getExecuteFn()(action_state.m_game_scene);
-                        })
+                    text_game_object.setText(action.getButtonText());
+                    button_game_object.setTexture(
+                        button_state.m_pointer_texture);
                 }
+            };
 
-            }, this);
+            button_game_object.setInteractive();
+
+            button_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
+                function ()
+                {
+                    button_state.m_pointer_texture = "button_active";
+                    updateAppearance();
+                });
+            button_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT,
+                function ()
+                {
+                    button_state.m_pointer_texture = "button_passive";
+                    updateAppearance();
+                });
+            button_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+                function ()
+                {
+                    if (!action.isActive())
+                    {
+                        action.getExecuteFn()(state.m_game_scene);
+                        updateAppearance();
+                    }
+                });
+            state.m_game_scene.events.on(
+                "update_actions", updateAppearance);
+            state.add_clean_up_step(function () {
+                state.m_game_scene.events.off(
+                    "update_actions", updateAppearance);
+            });
+            state.m_game_scene.events.on(
+                "update_global_resources", updateAppearance);
+            state.add_clean_up_step(function () {
+                state.m_game_scene.events.off(
+                    "update_global_resources", updateAppearance);
+            });
+        }
     },
 
     //--------------------------------------------------------------------------
