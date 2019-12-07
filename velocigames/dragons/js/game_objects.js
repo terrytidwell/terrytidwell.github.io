@@ -161,7 +161,7 @@ class MineTile extends Tile
     {
         let actions = [
             new TileAction(
-                "Mine Gold.",
+                "Mine Gold",
                 "Starting to mine for gold.",
                 "Finished mining for gold.",
                 0,
@@ -184,7 +184,7 @@ class FarmTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Farm", ["plains_tile", "farm_tile"]);
+        super("Farm", ["farm_tile"]);
     }
 }
 
@@ -194,15 +194,20 @@ class FarmTile extends Tile
 class TileMap
 {
     //--------------------------------------------------------------------------
-    constructor(width, height)
+    constructor(width, height, depth)
     {
         this.m_width = width;
         this.m_height = height;
+        this.m_depth = depth;
 
         this.m_tiles = new Array(this.m_width);
         for (let x = 0; x < this.m_width; ++x)
         {
             this.m_tiles[x] = new Array(this.m_height);
+            for (let y = 0; y < this.m_height; ++y)
+            {
+                this.m_tiles[x][y] = new Array(this.m_depth);
+            }
         }
     }
 
@@ -218,20 +223,28 @@ class TileMap
         return this.m_height;
     }
 
+
     //--------------------------------------------------------------------------
-    getTile(x, y)
+    getDepth()
     {
-        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
-        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
-        return this.m_tiles[x][y];
+        return this.m_depth;
     }
 
     //--------------------------------------------------------------------------
-    setTile(x, y, tile)
+    getTile(x, y, z)
     {
         if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
         if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
-        this.m_tiles[x][y] = tile;
+        if (z < 0 || z >= this.m_depth) throw "z out of range (got " + z + ")";
+        return this.m_tiles[x][y][z];
+    }
+
+    //--------------------------------------------------------------------------
+    setTile(x, y, z, tile)
+    {
+        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
+        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
+        this.m_tiles[x][y][z] = tile;
     }
 
     //--------------------------------------------------------------------------
@@ -269,7 +282,7 @@ class TileMapView
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
-                let tile = this.m_tile_map.getTile(x, y);
+                let tile = this.m_tile_map.getTile(x, y, 0);
                 let tile_game_object = tile.createGameObject(this.m_scene);
                 tile_game_object.setPosition(
                     (x + 0.5) * this.m_tile_width,
@@ -361,24 +374,24 @@ class VillageArea extends GameArea
                 {
                     tile = new PlainsTile();
                 }
-                this.m_tile_map.setTile(x, y, tile);
+                this.m_tile_map.setTile(x, y, 0, tile);
             }
         }
         for (let x = 0; x < this.m_tile_map.getWidth();++x)
         {
             if (x < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x, new PlainsTopTile());
+                this.m_tile_map.setTile(x, x, 0, new PlainsTopTile());
             }
             if (x+1 < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x+1, new PlainsTop2Tile());
+                this.m_tile_map.setTile(x, x+1, 0, new PlainsTop2Tile());
             }
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.m_tile_map.setTile(8, 10, new MineTile());
-        this.m_tile_map.setTile(4, 3, new FarmTile());
+        // this.m_tile_map.setTile(8, 10, new MineTile());
+        // this.m_tile_map.setTile(4, 3, new FarmTile());
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
