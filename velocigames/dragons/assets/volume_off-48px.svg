@@ -12,7 +12,7 @@
    viewBox="0 0 48 48"
    version="1.1"
    id="svg6"
-   sodipodi:docname="volume_off-24px.svg"
+   sodipodi:docname="volume_off-48px.svg"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
   <metadata
      id="metadata12">
@@ -37,23 +37,24 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="1017"
+     inkscape:window-width="1080"
+     inkscape:window-height="1897"
      id="namedview8"
      showgrid="false"
      scale-x="0.5"
      inkscape:zoom="9.8333333"
-     inkscape:cx="12"
+     inkscape:cx="-4.5254238"
      inkscape:cy="12"
-     inkscape:window-x="1912"
-     inkscape:window-y="496"
+     inkscape:window-x="3832"
+     inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg6" />
+     inkscape:current-layer="svg6"
+     inkscape:pagecheckerboard="true" />
   <path
      d="m 33,24 c 0,-3.54 -2.04,-6.58 -5,-8.06 v 4.42 l 4.9,4.9 C 32.96,24.86 33,24.44 33,24 Z m 5,0 c 0,1.88 -0.4,3.64 -1.08,5.28 l 3.02,3.02 C 41.26,29.82 42,27 42,24 42,15.44 36.02,8.28 28,6.46 v 4.12 C 33.78,12.3 38,17.66 38,24 Z M 8.54,6 6,8.54 15.46,18 H 6 v 12 h 8 L 24,40 V 26.54 l 8.5,8.5 C 31.16,36.08 29.66,36.9 28,37.4 v 4.12 c 2.76,-0.62 5.26,-1.9 7.38,-3.62 L 39.46,42 42,39.46 24,21.46 Z M 24,8 19.82,12.18 24,16.36 Z"
      id="path2"
      inkscape:connector-curvature="0"
-     style="stroke-width:2" />
+     style="stroke-width:2;fill:#ffffff" />
   <path
      d="M 0,0 H 48 V 48 H 0 Z"
      id="path4"
