@@ -323,7 +323,7 @@ let UIScene = new Phaser.Class({
                     botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                         function ()
                         {
-                            text_game_object.setText(action.getBeginText());
+                            text_game_object.setText(action.getActiveText());
                             // todo sleep
                             action.getExecuteFn()(action_state.m_game_scene);
                         })
