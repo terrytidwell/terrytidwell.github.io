@@ -64,7 +64,8 @@ initialize:
         {
             for (let j = 0; j < this.grid_size_y; j++)
             {
-                this.add.text((i + 0.5) * this.cell_width, (j + 0.5) * this.cell_height, "X", );
+                let text = this.add.text((i + 0.5) * this.cell_width, (j + 0.5) * this.cell_height, i + "," + j);
+                text.setOrigin(0.5, 0.5);
             }
         }
 
