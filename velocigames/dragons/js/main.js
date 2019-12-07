@@ -1,7 +1,9 @@
 let game_model = {
     m_global_resources: {
         m_gold: 0,
+        m_max_gold: 100,
         m_cows: 0,
+        m_max_cows: 20
     },
     m_village_area: new VillageArea(),
     m_selected_tile: null,
@@ -158,7 +160,8 @@ let UIScene = new Phaser.Class({
     preload: function ()
     {
         this.load.image('action_texture', 'assets/dashboard/detail_display.png');
-        this.load.image('score_texture', 'assets/white_leather_texture.jpg');
+        this.load.image('score_texture', 'assets/dashboard/stats_display2.png');
+        this.load.image('control_texture', 'assets/dashboard/control_display.png');
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
@@ -187,19 +190,19 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
-            50, 10, "Gold: 0", { font: "46px Arial", fill: "#000000" });
+            50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#000000" });
         this.add.image(
             30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
-            400, 10, "Cows: 0", { font: "46px Arial", fill: "#000000" });
+            400, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#000000" });
 
         game_scene.events.on('update_global_resources',
             function ()
             {
                 gold_text.setText(
-                    "Gold: " + game_model.m_global_resources.m_gold);
+                    game_model.m_global_resources.m_gold + "/" + game_model.m_global_resources.m_max_gold);
                 cows_text.setText(
-                    "Cows: " + game_model.m_global_resources.m_cows);
+                    game_model.m_global_resources.m_cows + "/" + game_model.m_global_resources.m_max_cows);
             }, this);
 
         this.create_volume_control();
