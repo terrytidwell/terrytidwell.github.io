@@ -102,6 +102,7 @@ let LoadingScreen = new Phaser.Class({
     {
         this.scene.start('GameScene');
         this.scene.start('UIScene');
+        this.scene.get('GameScene').time.delayedCall(250, function() {game.scene.remove('LoadingScreen')});
     },
 
     //--------------------------------------------------------------------------
