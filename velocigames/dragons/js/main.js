@@ -332,6 +332,7 @@ let UIScene = new Phaser.Class({
             let button_y = layout_info.m_action_height / 2
                 + state.m_action_area_top;
             let button_initial_texture = action.isActive()
+                || !action.isCostMet()
                 ? "button_busy" : "button_passive";
             let button_initial_text = action.isActive()
                 ? action.getActiveText() : action.getButtonText();
@@ -342,6 +343,7 @@ let UIScene = new Phaser.Class({
             let text_game_object = this.add.text(
                 button_x, button_y, button_initial_text,
                 { font: "20px Arial", fill: "#FFFFFF", background:"#808080" });
+            text_game_object.setAlign("center");
             text_game_object.setOrigin(0.5, 0.5);
             state.destroy_on_clean_up(text_game_object);
 
@@ -352,6 +354,11 @@ let UIScene = new Phaser.Class({
                 if (action.isActive())
                 {
                     text_game_object.setText(action.getActiveText());
+                    button_game_object.setTexture("button_busy");
+                }
+                else if (!action.isCostMet())
+                {
+                    text_game_object.setText(action.getButtonText());
                     button_game_object.setTexture("button_busy");
                 }
                 else
@@ -379,7 +386,7 @@ let UIScene = new Phaser.Class({
             button_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function ()
                 {
-                    if (!action.isActive())
+                    if (!action.isActive() && action.isCostMet())
                     {
                         action.getExecuteFn()(state.m_game_scene);
                         updateAppearance();

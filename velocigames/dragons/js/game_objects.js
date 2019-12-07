@@ -2,12 +2,24 @@
 class TileAction
 {
     //--------------------------------------------------------------------------
-    constructor(button_text, active_text, duration_seconds, execute_fn)
+    constructor(values)
     {
+        values = utils.add_defaults({
+            button_text:"button_text",
+            cost_text: null,
+            cost_check_fn: function () { return true; },
+            active_text: "active_text",
+            duration_seconds: 0,
+            execute_fn: null,
+        }, values);
+
         let self = this;
-        this.m_button_text = button_text;
-        this.m_active_text = active_text;
-        this.m_duration_seconds = duration_seconds;
+        this.m_button_text = values.button_text;
+        this.m_cost_text = values.cost_text;
+        this.m_cost_check_fn = values.cost_check_fn;
+        this.m_active_text = values.active_text;
+        this.m_duration_seconds = values.duration_seconds;
+        let execute_fn = values.execute_fn;
         this.m_execute_fn = function(scene)
         {
             self.m_is_active = true;
@@ -19,7 +31,8 @@ class TileAction
     //--------------------------------------------------------------------------
     getButtonText()
     {
-        return this.m_button_text;
+        return this.m_button_text
+            + (null !== this.m_cost_text ? "\nCost: " + this.m_cost_text : "");
     }
 
     //--------------------------------------------------------------------------
@@ -44,6 +57,12 @@ class TileAction
     isActive()
     {
         return this.m_is_active;
+    }
+
+    //--------------------------------------------------------------------------
+    isCostMet()
+    {
+        return this.m_cost_check_fn();
     }
 
     //--------------------------------------------------------------------------
@@ -171,15 +190,15 @@ class MineTile extends Tile
     constructor()
     {
         let actions = [
-            new TileAction(
-                "Mine Gold",
-                "Mining for gold",
-                0,
-                function(scene)
+            new TileAction({
+                button_text: "Mine Gold",
+                active_text: "Mining for gold",
+                execute_fn: function(scene)
                 {
                     game_model.m_global_resources.m_gold += 1;
                     scene.events.emit("update_global_resources")
-                }),
+                },
+            }),
         ];
         super("Mine",
             ["mine_tile"],
@@ -195,25 +214,32 @@ class FarmTile extends Tile
     constructor()
     {
         let actions = [
-            new TileAction(
-                "Raise Cow",
-                "Nurturing cow",
-                5,
-                function(scene)
+            new TileAction({
+                button_text: "Raise Cow",
+                active_text: "Nurturing cow",
+                duration_seconds: 5,
+                execute_fn: function(scene)
                 {
                     game_model.m_global_resources.m_cows += 1;
                     scene.events.emit("update_global_resources")
-                }),
-            new TileAction(
-                "Sell Cow",
-                "Putting cow up for sale",
-                2,
-                function(scene)
+                }
+            }),
+            new TileAction({
+                button_text: "Sell Cow",
+                cost_text: "1 cow",
+                cost_check_fn: function ()
+                {
+                    return game_model.m_global_resources.m_cows >= 1;
+                },
+                active_text: "Putting cow up for sale",
+                duration_seconds: 2,
+                execute_fn: function(scene)
                 {
                     game_model.m_global_resources.m_cows -= 1;
                     game_model.m_global_resources.m_gold += 5;
                     scene.events.emit("update_global_resources")
-                }),
+                }
+            }),
         ];
         super(
             "Farm",
