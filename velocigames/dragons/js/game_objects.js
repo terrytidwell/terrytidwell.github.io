@@ -319,6 +319,19 @@ class TileMap
     }
 
     //--------------------------------------------------------------------------
+    getTileStack(x, y)
+    {
+        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
+        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
+        let stack = [];
+        for (let z = 0; z < this.m_depth; ++z)
+        {
+            stack.push(this.m_tiles[x][y][z]);
+        }
+        return stack;
+    }
+
+    //--------------------------------------------------------------------------
     setTile(x, y, z, tile)
     {
         if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
@@ -366,6 +379,9 @@ class TileMapView
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
+                let tile_stack = this.m_tile_map.getTileStack(x, y);
+                let top_tile_game_object = null;
+                let top_tile = null;
                 for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
                 {
                     let tile = this.m_tile_map.getTile(x, y, z);
@@ -379,17 +395,20 @@ class TileMapView
                         (x + 0.5) * this.m_tile_width,
                         (y + 0.5) * this.m_tile_height,
                         z);
-                    tile_game_object.setInteractive();
-                    tile_game_object.on(
-                        Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-                        function (pointer, localX, localY, event)
-                        {
-                            tile.handleClick(event);
-                            tile_map.handleClick(x, y, tile, event);
-                            this.handleClick(x, y, tile, event);
-                        },
-                        this);
+
+                    top_tile_game_object = tile_game_object;
+                    top_tile = tile;
                 }
+                top_tile_game_object.setInteractive();
+                top_tile_game_object.on(
+                    Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+                    function (pointer, localX, localY, event)
+                    {
+                        top_tile.handleClick(event);
+                        tile_map.handleClick(x, y, top_tile, event);
+                        this.handleClick(x, y, top_tile, event);
+                    },
+                    this);
             }
         }
     }
@@ -412,6 +431,12 @@ class TileMapView
     handleClick(x, y, tile, event)
     {
         this.showCursor(x, y);
+        let tile_info = {
+            m_x: x,
+            m_y: y,
+            m_tile_map: this.m_tile_map,
+            m_tile_stack: this.m_tile_map.getTileStack(x, y)
+        };
         this.m_scene.events.emit("update_selected_tile", tile)
     }
 }

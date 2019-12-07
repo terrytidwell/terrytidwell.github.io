@@ -11,9 +11,14 @@ let game_model = {
 
 let layout_info = {
     m_score_height: 64,
+
     m_action_height: 64 * 2,
+
     m_cell_width: 64,
     m_cell_height: 64,
+
+    m_button_width: 265,
+
     m_button_width: 265,
     m_button_height: 64,
     m_button_spacing: 5,
