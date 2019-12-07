@@ -2,7 +2,13 @@ let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    initialize:
+    grid_size_x: 20,
+    grid_size_y: 20,
+    grid_color: 0xffffff,
+    cell_width: 64,
+    cell_height: 64,
+
+initialize:
 
         function GameScene ()
         {
@@ -33,6 +39,38 @@ let GameScene = new Phaser.Class({
             box.setInteractive();
         }
 
+        graphics = this.add.graphics();
+        graphics.lineStyle(2, this.grid_color, 1);
+        graphics.strokeRect(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
+
+        graphics.beginPath();
+        // Draw vertical lines.
+        for (let i = 1; i < this.grid_size_x; i++)
+        {
+            graphics.moveTo(i * this.cell_width, 0);
+            graphics.lineTo(i * this.cell_width, this.grid_size_y * this.cell_height);
+        }
+
+        // Draw horizontal lines.
+        for (let j = 1; j < this.grid_size_y; j++)
+        {
+            graphics.moveTo(0, j * this.cell_height);
+            graphics.lineTo(this.grid_size_x * this.cell_width, j * this.cell_height);
+        }
+        graphics.closePath();
+        graphics.strokePath();
+
+        for (let i = 0; i < this.grid_size_x; i++)
+        {
+            for (let j = 0; j < this.grid_size_y; j++)
+            {
+                this.add.text((i + 0.5) * this.cell_width, (j + 0.5) * this.cell_height, "X", );
+            }
+        }
+
+        camera = this.cameras.main;
+        camera.setBounds(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
+
         this.input.on('gameobjectup', this.clickHandler, this);
     },
 
@@ -45,7 +83,6 @@ let GameScene = new Phaser.Class({
         //  Dispatch a Scene event
         this.events.emit('addScore');
     }
-
 });
 
 let UIScene = new Phaser.Class({
