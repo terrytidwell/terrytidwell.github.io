@@ -2,9 +2,15 @@
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor(image_tag)
+    constructor(image_key)
     {
-        this.m_image_tag = image_tag;
+        this.m_image_key = image_key;
+    }
+
+    //--------------------------------------------------------------------------
+    getImageKey()
+    {
+        return this.m_image_key;
     }
 }
 
@@ -55,7 +61,76 @@ class TileMap
             this.m_tiles[x] = new Array(this.m_height);
         }
     }
+
+    //--------------------------------------------------------------------------
+    getWidth()
+    {
+        return this.m_width;
+    }
+
+    //--------------------------------------------------------------------------
+    getHeight()
+    {
+        return this.m_height;
+    }
+
+    //--------------------------------------------------------------------------
+    getTile(x, y)
+    {
+        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
+        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
+        return this.m_tiles[x][y];
+    }
+
+    //--------------------------------------------------------------------------
+    setTile(x, y, tile)
+    {
+        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
+        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
+        this.m_tiles[x][y] = tile;
+    }
 }
+
+//------------------------------------------------------------------------------
+class TileMapView
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, tile_width, tile_height)
+    {
+        this.m_scene = scene;
+        this.m_tile_width = tile_width;
+        this.m_tile_height = tile_height;
+        this.m_tile_map = null;
+    }
+
+    //--------------------------------------------------------------------------
+    attachTileMap(tile_map)
+    {
+        if (null !== this.m_tile_map)
+        {
+            throw "Changing tile map not yet implemented."; // todo
+        }
+
+        this.m_tile_map = tile_map;
+        for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
+        {
+            for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
+            {
+                let tile = this.m_tile_map.getTile(x, y);
+                let tile_image = this.m_scene.add.image(
+                    (x + 0.5) * this.m_tile_width,
+                    (y + 0.5) * this.m_tile_height,
+                    tile.getImageKey());
+                tile_image.setInteractive({callback: function()
+                    {
+                        alert("Clicked on x:"+ x + ", y:" + y);
+                    }});
+            }
+        }
+    }
+}
+
+//##############################################################################
 
 //------------------------------------------------------------------------------
 class GameArea
@@ -75,9 +150,9 @@ class VillageArea extends GameArea
     {
         super(20, 20);
 
-        for (let x = 0; x < this.m_tile_map.m_width; ++x)
+        for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
-            for (let y = 0; y < this.m_tile_map.m_height; ++y)
+            for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
                 let tile = null;
                 if (x < y)
@@ -88,11 +163,11 @@ class VillageArea extends GameArea
                 {
                     tile = new PlainsTile();
                 }
-                this.m_tile_map.m_tiles[x][y] = tile;
+                this.m_tile_map.setTile(x, y, tile);
             }
         }
-        let mine_x = Math.floor(this.m_tile_map.m_width / 2);
-        let mine_y = Math.floor(this.m_tile_map.m_height / 2);
-        this.m_tile_map.m_tiles[mine_x][mine_y] = new MineTile();
+        let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
+        let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
+        this.m_tile_map.setTile(mine_x, mine_y, new MineTile());
     }
 }
