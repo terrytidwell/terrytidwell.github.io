@@ -4,7 +4,6 @@ class Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        console.log("In Tile constructor.");
     }
 }
 
@@ -15,7 +14,6 @@ class PlainsTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
@@ -26,7 +24,6 @@ class MountainTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
@@ -37,7 +34,6 @@ class MineTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
