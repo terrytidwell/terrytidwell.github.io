@@ -21,11 +21,12 @@ let GameScene = new Phaser.Class({
     preload: function ()
     {
         this.load.image('bg', 'assets/sky.png');
-        this.load.image('farm', 'assets/Farm.png');
-        
+
+        this.load.image('farm_tile', 'assets/Farm.png');
         this.load.image('mine_tile', 'assets/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
+        this.load.image('selection_overlay', 'assets/selection_box.png');
     },
 
     //--------------------------------------------------------------------------
@@ -87,19 +88,7 @@ let GameScene = new Phaser.Class({
             this.m_grid_size_x * this.m_cell_width, 
             this.m_grid_size_y * this.m_cell_height);
 
-        // Add a farm image to a cell.
-        this.add_image_to_cell(3, 3, "farm");
-
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
-    },
-
-    //--------------------------------------------------------------------------
-    add_image_to_cell(i, j, name)
-    {
-        this.add.sprite(
-            this.m_cell_width * (i + 0.5),
-            this.m_cell_height * (j + 0.5),
-            name)
     },
 
     //--------------------------------------------------------------------------

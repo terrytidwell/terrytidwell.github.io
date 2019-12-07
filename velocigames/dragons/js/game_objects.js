@@ -48,6 +48,16 @@ class MineTile extends Tile
     }
 }
 
+//------------------------------------------------------------------------------
+class FarmTile extends Tile
+{
+    //--------------------------------------------------------------------------
+    constructor()
+    {
+        super(["plains_tile", "farm_tile"]);
+    }
+}
+
 //##############################################################################
 
 //------------------------------------------------------------------------------
@@ -211,5 +221,6 @@ class VillageArea extends GameArea
         let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
         this.m_tile_map.setTile(mine_x, mine_y, new MineTile());
+        this.m_tile_map.setTile(3, 3, new FarmTile());
     }
 }
