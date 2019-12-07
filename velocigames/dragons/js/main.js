@@ -45,7 +45,7 @@ let GameScene = new Phaser.Class({
         let graphics = this.add.graphics();
         graphics.lineStyle(2, this.m_grid_color, 1);
         graphics.strokeRect(0, 0, 
-            this.m_grid_size_x * this.m_cell_width, 
+            this.m_grid_size_x * this.m_cell_width,
             this.m_grid_size_y * this.m_cell_height);
 
         graphics.beginPath();
@@ -53,7 +53,7 @@ let GameScene = new Phaser.Class({
         for (let i = 1; i < this.m_grid_size_x; i++)
         {
             graphics.moveTo(i * this.m_cell_width, 0);
-            graphics.lineTo(i * this.m_cell_width, 
+            graphics.lineTo(i * this.m_cell_width,
                 this.m_grid_size_y * this.m_cell_height);
         }
 
@@ -61,7 +61,7 @@ let GameScene = new Phaser.Class({
         for (let j = 1; j < this.m_grid_size_y; j++)
         {
             graphics.moveTo(0, j * this.m_cell_height);
-            graphics.lineTo(this.m_grid_size_x * this.m_cell_width, 
+            graphics.lineTo(this.m_grid_size_x * this.m_cell_width,
                 j * this.m_cell_height);
         }
         graphics.closePath();
@@ -73,8 +73,8 @@ let GameScene = new Phaser.Class({
             for (let j = 0; j < this.m_grid_size_y; j++)
             {
                 let text = this.add.text(
-                    (i + 0.5) * this.m_cell_width, 
-                    (j + 0.5) * this.m_cell_height, 
+                    (i + 0.5) * this.m_cell_width,
+                    (j + 0.5) * this.m_cell_height,
                     i + "," + j);
                 text.setOrigin(0.5, 0.5);
             }
@@ -95,7 +95,7 @@ let GameScene = new Phaser.Class({
         // Set camera bounds.
         this.cameras.main.setBounds(
             0, 0, 
-            this.m_grid_size_x * this.m_cell_width, 
+            this.m_grid_size_x * this.m_cell_width,
             this.m_grid_size_y * this.m_cell_height);
         this.cameras.main.setPosition(0, layout_info.m_score_height, 0);
         this.cameras.main.setSize(
@@ -165,6 +165,7 @@ let UIScene = new Phaser.Class({
     {
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
+        let game_scene = this.scene.get("GameScene");
 
         this.textures.get("score_texture").add(
             "score_area", 0, 0, 0, game_width, layout_info.m_score_height);
@@ -173,10 +174,21 @@ let UIScene = new Phaser.Class({
             "score_texture", "score_area");
         background.setOrigin(0, 0);
 
-        this.m_gold_text = this.add.text(
-            10, 10, 'Gold: 0', { font: '46px Arial', fill: '#000000' });
-        this.m_cows_text = this.add.text(
-            400, 10, 'Cows: 0', { font: '46px Arial', fill: '#000000' });
+        let gold_text = this.add.text(
+            10, 10, "Gold: 0", { font: "46px Arial", fill: "#000000" });
+        let cows_text = this.add.text(
+            400, 10, "Cows: 0", { font: "46px Arial", fill: "#000000" });
+
+        game_scene.events.on('update_global_resources',
+            function ()
+            {
+                gold_text.setText(
+                    "Gold: " + game_model.m_global_resources.m_gold);
+                cows_text.setText(
+                    "Cows: " + game_model.m_global_resources.m_cows);
+            }, this);
+
+        this.create_volume_control();
     },
 
     //--------------------------------------------------------------------------
@@ -230,39 +242,46 @@ let UIScene = new Phaser.Class({
     {
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
+        let game_scene = this.scene.get("GameScene");
+        let action_area_top = game_height - layout_info.m_action_height;
 
         this.textures.get("action_texture").add(
             "action_area", 0, 0, 0, game_width, layout_info.m_action_height);
         let background = this.add.image(
-            0, game_height - layout_info.m_action_height,
+            0, action_area_top,
             "action_texture", "action_area");
         background.setOrigin(0, 0);
+
+        let tile_label_text = this.add.text(
+            40 + 64 / 2, action_area_top + 5,
+            "", { font: "30px Arial", fill: "#FFFF00" });
+        tile_label_text.setOrigin(0.5, 0);
+        let action_state = {
+            m_tile_game_object: null
+        };
+        game_scene.events.on("update_selected_tile",
+            function (tile)
+            {
+                if (null !== action_state.m_tile_game_object)
+                {
+                    action_state.m_tile_game_object.destroy();
+                }
+                game_model.m_selected_tile = tile;
+                action_state.m_tile_game_object = tile.createGameObject(
+                    this);
+                action_state.m_tile_game_object.setPosition(
+                    40, action_area_top + 40);
+                tile_label_text.setText(tile.getDisplayName())
+
+            }, this);
     },
 
     //--------------------------------------------------------------------------
     create: function ()
     {
-        let game_width = this.game.config.width;
-        let game_height = this.game.config.height;
-
         this.create_score_area();
         this.create_action_area();
-        this.create_volume_control();
-
-
-        // Grab a reference to the Game Scene
-        let ourGame = this.scene.get('GameScene');
-
-        // Listen for events from it
-        ourGame.events.on('addScore', function () {
-
-            this.score += 10;
-
-            info.setText('Score: ' + this.score);
-
-        }, this);
     }
-
 });
 
 let config = {

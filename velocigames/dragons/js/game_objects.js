@@ -2,15 +2,46 @@
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor(image_key)
+    constructor(display_name, image_key)
     {
+        this.m_display_name = display_name;
         this.m_image_key = image_key;
     }
 
     //--------------------------------------------------------------------------
-    getImageKey()
+    getDisplayName()
     {
-        return this.m_image_key;
+        return this.m_display_name;
+    }
+
+    //--------------------------------------------------------------------------
+    createGameObject(scene)
+    {
+        let game_object = null;
+        let image_key = this.m_image_key;
+        if (image_key instanceof Array)
+        {
+            let container = scene.add.container(0, 0);
+            for (let index = 0; index < image_key.length; ++index)
+            {
+                // BUG: would call image constructor, but it doesn't work
+                // because of a 'this' problem
+                let layer_image = scene.add.image(0, 0, image_key[index]);
+                layer_image.setOrigin(0, 0);
+                // we be supposed to remove the image from the scene before
+                // adding it to the container, but it seems to work
+                container.add(layer_image);
+                container.setSize(layer_image.width, layer_image.height);
+            }
+            game_object = container
+        }
+        else
+        {
+            let image = scene.add.image(0, 0, image_key);
+            image.setOrigin(0, 0);
+            game_object = image
+        }
+        return game_object;
     }
 
     //--------------------------------------------------------------------------
@@ -24,7 +55,7 @@ class PlainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("plains_tile");
+        super("Plains", "plains_tile");
     }
 }
 
@@ -34,7 +65,7 @@ class MountainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("mountains_tile");
+        super("Mountains", "mountains_tile");
     }
 }
 
@@ -44,7 +75,7 @@ class MineTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super(["mountains_tile", "mine_tile"]);
+        super("Mine", ["mountains_tile", "mine_tile"]);
     }
 }
 
@@ -54,7 +85,7 @@ class FarmTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super(["plains_tile", "farm_tile"]);
+        super("Farm", ["plains_tile", "farm_tile"]);
     }
 }
 
@@ -107,9 +138,6 @@ class TileMap
     //--------------------------------------------------------------------------
     handleClick(x, y, tile, event)
     {
-        console.log("Clicked on " + tile.getImageKey()
-            + " at " + x + ", " + y + ".");
-        event.stopPropagation();
     }
 }
 
@@ -137,34 +165,31 @@ class TileMapView
             throw "Changing tile map not yet implemented."; // todo
         }
 
-        var self = this;
         this.m_tile_map = tile_map;
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
                 let tile = this.m_tile_map.getTile(x, y);
-                let image_key = tile.getImageKey();
-                if (image_key instanceof Array)
-                {
-                    while (image_key.length > 1)
-                    {
-                        this.m_scene.add.image(
-                            (x + 0.5) * this.m_tile_width,
-                            (y + 0.5) * this.m_tile_height,
-                            image_key.shift())
-                    }
-                    image_key = image_key.shift()
-                }
-                let tile_image = this.m_scene.add.image(
-                    (x + 0.5) * this.m_tile_width,
-                    (y + 0.5) * this.m_tile_height,
-                    image_key);
-                tile_image.setInteractive();
-                tile_image.on(
+                let tile_game_object = tile.createGameObject(this.m_scene);
+                tile_game_object.setPosition(
+                    x * this.m_tile_width,
+                    y * this.m_tile_height);
+                tile_game_object.setInteractive();
+                tile_game_object.on(
                     "pointerup",
                     function(pointer, localX, localY, event)
                     {
+                        // BUG: patch stopPropagation to set cancelled
+                        //   on the event itself (as well as on the hidden
+                        //   object)
+                        event.stopPropagation_ = event.stopPropagation;
+                        event.stopPropagation = function ()
+                        {
+                            this.cancelled = true;
+                            this.stopPropagation_();
+                        };
+
                         tile.handleClick(event);
 
                         if (!event.cancelled)
@@ -174,9 +199,10 @@ class TileMapView
 
                         if (!event.cancelled)
                         {
-                            self.handleClick(x, y, tile, event);
+                            this.handleClick(x, y, tile, event);
                         }
-                    });
+                    },
+                    this);
             }
         }
     }
@@ -199,6 +225,7 @@ class TileMapView
     handleClick(x, y, tile, event)
     {
         this.showCursor(x, y);
+        this.m_scene.events.emit("update_selected_tile", tile)
     }
 }
 
