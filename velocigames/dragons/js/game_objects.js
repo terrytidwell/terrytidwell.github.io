@@ -172,7 +172,7 @@ class MineTile extends Tile
                 }),
         ];
         super("Mine",
-            ["mountains_tile", "mine_tile"],
+            ["mine_tile"],
             undefined,
             actions);
     }
@@ -207,6 +207,10 @@ class TileMap
             for (let y = 0; y < this.m_height; ++y)
             {
                 this.m_tiles[x][y] = new Array(this.m_depth);
+                for (let z = 0; z < this.m_depth; ++z)
+                {
+                    this.m_tiles[x][y][z] = null;
+                }
             }
         }
     }
@@ -282,39 +286,48 @@ class TileMapView
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
-                let tile = this.m_tile_map.getTile(x, y, 0);
-                let tile_game_object = tile.createGameObject(this.m_scene);
-                tile_game_object.setPosition(
-                    (x + 0.5) * this.m_tile_width,
-                    (y + 0.5) * this.m_tile_height);
-                tile_game_object.setInteractive();
-                tile_game_object.on(
-                    "pointerup",
-                    function(pointer, localX, localY, event)
+                for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
+                {
+                    let tile = this.m_tile_map.getTile(x, y, z);
+                    if (tile === null)
                     {
-                        // BUG: patch stopPropagation to set cancelled
-                        //   on the event itself (as well as on the hidden
-                        //   object)
-                        event.stopPropagation_ = event.stopPropagation;
-                        event.stopPropagation = function ()
-                        {
-                            this.cancelled = true;
-                            this.stopPropagation_();
-                        };
+                        continue;
+                    }
 
-                        tile.handleClick(event);
-
-                        if (!event.cancelled)
+                    let tile_game_object = tile.createGameObject(this.m_scene);
+                    tile_game_object.setPosition(
+                        (x + 0.5) * this.m_tile_width,
+                        (y + 0.5) * this.m_tile_height,
+                        z);
+                    tile_game_object.setInteractive();
+                    tile_game_object.on(
+                        "pointerup",
+                        function (pointer, localX, localY, event)
                         {
-                            tile_map.handleClick(x, y, tile, event);
-                        }
+                            // BUG: patch stopPropagation to set cancelled
+                            //   on the event itself (as well as on the hidden
+                            //   object)
+                            event.stopPropagation_ = event.stopPropagation;
+                            event.stopPropagation = function ()
+                            {
+                                this.cancelled = true;
+                                this.stopPropagation_();
+                            };
 
-                        if (!event.cancelled)
-                        {
-                            this.handleClick(x, y, tile, event);
-                        }
-                    },
-                    this);
+                            tile.handleClick(event);
+
+                            if (!event.cancelled)
+                            {
+                                tile_map.handleClick(x, y, tile, event);
+                            }
+
+                            if (!event.cancelled)
+                            {
+                                this.handleClick(x, y, tile, event);
+                            }
+                        },
+                        this);
+                }
             }
         }
     }
@@ -349,7 +362,7 @@ class GameArea
     //--------------------------------------------------------------------------
     constructor(width, height)
     {
-        this.m_tile_map = new TileMap(width, height);
+        this.m_tile_map = new TileMap(width, height, 2);
     }
 }
 
@@ -377,6 +390,7 @@ class VillageArea extends GameArea
                 this.m_tile_map.setTile(x, y, 0, tile);
             }
         }
+
         for (let x = 0; x < this.m_tile_map.getWidth();++x)
         {
             if (x < this.m_tile_map.getHeight())
@@ -390,8 +404,8 @@ class VillageArea extends GameArea
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        // this.m_tile_map.setTile(8, 10, new MineTile());
-        // this.m_tile_map.setTile(4, 3, new FarmTile());
+        this.m_tile_map.setTile(8, 10, 1, new MineTile());
+        this.m_tile_map.setTile(4, 3, 1, new FarmTile());
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
