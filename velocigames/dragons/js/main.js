@@ -17,7 +17,7 @@ let GameScene = new Phaser.Class({
     {
         this.load.image('bg', 'assets/sky.png');
         this.load.image('crate', 'assets/star.png');
-        this.load.image('farm', 'assets/farm_stand_in.png');
+        this.load.image('farm', 'assets/Farm.png');
     },
 
     create: function ()
@@ -26,7 +26,7 @@ let GameScene = new Phaser.Class({
         let game_height = this.game.config.height;
 
         // Background image.
-        this.add.image(game_width / 2, game_height / 2, 'bg');
+        //this.add.image(game_width / 2, game_height / 2, 'bg');
 
         // Stars.
         for (let i = 0; i < 64; i++)
@@ -41,7 +41,7 @@ let GameScene = new Phaser.Class({
         }
 
         // Draw map exterior rectangle.
-        graphics = this.add.graphics();
+        let graphics = this.add.graphics();
         graphics.lineStyle(2, this.grid_color, 1);
         graphics.strokeRect(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
 
@@ -102,19 +102,19 @@ let GameScene = new Phaser.Class({
     {
         if (this.cursors.left.isDown)
         {
-            this.cameras.main.x += 4;
+            this.cameras.main.scrollX -= 4;
         }
         else if (this.cursors.right.isDown)
         {
-            this.cameras.main.x -= 4;
+            this.cameras.main.scrollX += 4;
         }
         else if (this.cursors.up.isDown)
         {
-            this.cameras.main.y += 4;
+            this.cameras.main.scrollY -= 4;
         }
         else if (this.cursors.down.isDown)
         {
-            this.cameras.main.y -= 4;
+            this.cameras.main.scrollY += 4;
         }
     }
 });
@@ -164,7 +164,7 @@ let config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    backgroundColor: '#808080',
+    backgroundColor: '#70D070',
     parent: 'phaser-example',
     scene: [ GameScene, UIScene ]
 };
