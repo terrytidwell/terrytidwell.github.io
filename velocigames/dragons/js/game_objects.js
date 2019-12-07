@@ -10,7 +10,8 @@ class TileAction
             cost_check_fn: function () { return true; },
             active_text: "active_text",
             duration_seconds: 0,
-            execute_fn: null,
+            begin_fn: function() {},
+            end_fn: function() {},
         }, values);
 
         let self = this;
@@ -19,11 +20,19 @@ class TileAction
         this.m_cost_check_fn = values.cost_check_fn;
         this.m_active_text = values.active_text;
         this.m_duration_seconds = values.duration_seconds;
-        let execute_fn = values.execute_fn;
+        this.m_begin_fn = values.begin_fn;
+        this.m_end_fn = values.end_fn;
         this.m_execute_fn = function(scene)
         {
-            self.m_is_active = true;
-            execute_fn(scene);
+            self.m_begin_fn(scene, self);
+            self.setActive(scene,true);
+            scene.time.delayedCall(
+                self.m_duration_seconds * MILLIS_PER_SECOND,
+                function ()
+                {
+                    self.m_end_fn(scene, self);
+                    self.setActive(scene,false);
+                });
         };
         this.m_is_active = false;
     }
@@ -66,9 +75,13 @@ class TileAction
     }
 
     //--------------------------------------------------------------------------
-    setActive(is_active)
+    setActive(scene, is_active)
     {
-        this.m_is_active = is_active;
+        if (is_active !== this.m_is_active)
+        {
+            this.m_is_active = is_active;
+            scene.events.emit("update_actions");
+        }
     }
 }
 
@@ -193,7 +206,8 @@ class MineTile extends Tile
             new TileAction({
                 button_text: "Mine Gold",
                 active_text: "Mining for gold",
-                execute_fn: function(scene)
+                duration_seconds: 0.5,
+                end_fn: function(scene)
                 {
                     game_model.m_global_resources.m_gold += 1;
                     scene.events.emit("update_global_resources")
@@ -216,12 +230,12 @@ class FarmTile extends Tile
         let actions = [
             new TileAction({
                 button_text: "Raise Cow",
-                active_text: "Nurturing cow",
                 duration_seconds: 5,
-                execute_fn: function(scene)
+                active_text: "Nurturing cow",
+                end_fn: function(scene, action)
                 {
                     game_model.m_global_resources.m_cows += 1;
-                    scene.events.emit("update_global_resources")
+                    scene.events.emit("update_global_resources");
                 }
             }),
             new TileAction({
@@ -233,7 +247,7 @@ class FarmTile extends Tile
                 },
                 active_text: "Putting cow up for sale",
                 duration_seconds: 2,
-                execute_fn: function(scene)
+                end_fn: function(scene)
                 {
                     game_model.m_global_resources.m_cows -= 1;
                     game_model.m_global_resources.m_gold += 5;
