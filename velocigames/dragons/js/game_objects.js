@@ -44,7 +44,7 @@ class MineTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("mine_tile");
+        super(["mountains_tile", "mine_tile"]);
     }
 }
 
@@ -130,10 +130,22 @@ class TileMapView
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
                 let tile = this.m_tile_map.getTile(x, y);
+                let image_key = tile.getImageKey();
+                if (image_key instanceof Array)
+                {
+                    while (image_key.length > 1)
+                    {
+                        this.m_scene.add.image(
+                            (x + 0.5) * this.m_tile_width,
+                            (y + 0.5) * this.m_tile_height,
+                            image_key.shift())
+                    }
+                    image_key = image_key.shift()
+                }
                 let tile_image = this.m_scene.add.image(
                     (x + 0.5) * this.m_tile_width,
                     (y + 0.5) * this.m_tile_height,
-                    tile.getImageKey());
+                    image_key);
                 tile_image.setInteractive();
                 tile_image.on(
                     "pointerup",
