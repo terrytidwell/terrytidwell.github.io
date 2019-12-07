@@ -379,6 +379,9 @@ class VillageArea extends GameArea
     {
         super(20, 20);
 
+        this.m_terrain_layer = 0;
+        this.m_building_layer = 1;
+
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
@@ -392,7 +395,7 @@ class VillageArea extends GameArea
                 {
                     tile = new PlainsTile();
                 }
-                this.m_tile_map.setTile(x, y, 0, tile);
+                this.m_tile_map.setTile(x, y, this.m_terrain_layer, tile);
             }
         }
 
@@ -404,16 +407,22 @@ class VillageArea extends GameArea
             }
             if (x+1 < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x+1, 0, new PlainsTop2Tile());
+                this.m_tile_map.setTile(x, x+1, this.m_terrain_layer, new PlainsTop2Tile());
             }
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.m_tile_map.setTile(8, 10, 1, new MineTile());
-        this.m_tile_map.setTile(4, 3, 1, new FarmTile());
+        this.m_tile_map.setTile(8, 10, this.m_building_layer, new MineTile());
+        this.m_tile_map.setTile(4, 3, this.m_building_layer, new FarmTile());
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
         //this.m_tile_map.setTile(1, 2, new PlainsTopTile());
     }
+
+    addBuilding(x, y)
+    {
+
+    }
+
 }
