@@ -88,19 +88,19 @@ let GameScene = new Phaser.Class({
     {
         if (this.cursors.left.isDown)
         {
-            this.cameras.main.x -= 4;
+            this.cameras.main.x += 4;
         }
         else if (this.cursors.right.isDown)
         {
-            this.cameras.main.x += 4;
+            this.cameras.main.x -= 4;
         }
         else if (this.cursors.up.isDown)
         {
-            this.cameras.main.y -= 4;
+            this.cameras.main.y += 4;
         }
         else if (this.cursors.down.isDown)
         {
-            this.cameras.main.y += 4;
+            this.cameras.main.y -= 4;
         }
     }
 });
