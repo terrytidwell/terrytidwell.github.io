@@ -59,7 +59,7 @@ let LoadingScreen = new Phaser.Class({
             .setOrigin(0.5,0.5);
 
         this.load.image('farm_tile', 'assets/farm.png');
-        this.load.image('mine_tile', 'assets/mine.png');
+        this.load.image('mine_tile', 'assets/mine/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
         this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
