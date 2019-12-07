@@ -268,9 +268,14 @@ class TileMapView
         this.m_tile_height = tile_height;
         this.m_tile_map = null;
 
-        this.m_cursor = this.m_scene.add.image(0, 0, "selection_overlay");
-        this.m_cursor.setVisible(false);
-        this.m_cursor.setDepth(1);
+        this.m_selection_cursor = this.m_scene.add.image(0, 0, "selection_overlay");
+        this.m_selection_cursor.setVisible(false);
+        this.m_selection_cursor.setDepth(1);
+
+        // TODO use me
+        this.m_hover_cursor = this.m_scene.add.image(0, 0, "hover_overlay");
+        this.m_hover_cursor.setVisible(false);
+        this.m_hover_cursor.setDepth(1);
     }
 
     //--------------------------------------------------------------------------
@@ -335,14 +340,14 @@ class TileMapView
     //--------------------------------------------------------------------------
     hideCursor()
     {
-        this.m_cursor.setVisible(false);
+        this.m_selection_cursor.setVisible(false);
     }
 
     //--------------------------------------------------------------------------
     showCursor(x, y)
     {
-        this.m_cursor.setVisible(true);
-        this.m_cursor.setPosition((x + 0.5) * this.m_tile_width,
+        this.m_selection_cursor.setVisible(true);
+        this.m_selection_cursor.setPosition((x + 0.5) * this.m_tile_width,
             (y + 0.5) * this.m_tile_height);
     }
 
