@@ -89,6 +89,10 @@ let GameScene = new Phaser.Class({
             this.m_grid_size_y * this.m_cell_height);
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
+        this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
+        this.m_cursor_keys.letter_right = this.input.keyboard.addKey("d");
+        this.m_cursor_keys.letter_up = this.input.keyboard.addKey("w");
+        this.m_cursor_keys.letter_down = this.input.keyboard.addKey("s");
     },
 
     //--------------------------------------------------------------------------
@@ -105,19 +109,23 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function()
     {
-        if (this.m_cursor_keys.left.isDown)
+        if (this.m_cursor_keys.left.isDown
+            || this.m_cursor_keys.letter_left.isDown)
         {
             this.cameras.main.scrollX -= 4;
         }
-        else if (this.m_cursor_keys.right.isDown)
+        else if (this.m_cursor_keys.right.isDown
+            || this.m_cursor_keys.letter_right.isDown)
         {
             this.cameras.main.scrollX += 4;
         }
-        else if (this.m_cursor_keys.up.isDown)
+        else if (this.m_cursor_keys.up.isDown
+            || this.m_cursor_keys.letter_up.isDown)
         {
             this.cameras.main.scrollY -= 4;
         }
-        else if (this.m_cursor_keys.down.isDown)
+        else if (this.m_cursor_keys.down.isDown
+            || this.m_cursor_keys.letter_down.isDown)
         {
             this.cameras.main.scrollY += 4;
         }
