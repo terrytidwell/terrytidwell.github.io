@@ -7,6 +7,11 @@ let game_model = {
     m_selected_tile: null,
 };
 
+let layout_info = {
+    m_score_height: 64,
+    m_action_height: 64 * 2,
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -16,9 +21,6 @@ let GameScene = new Phaser.Class({
     m_grid_color: 0xffffff,
     m_cell_width: 64,
     m_cell_height: 64,
-
-    m_score_height: 64,
-    m_action_height: 64 * 2,
 
     //--------------------------------------------------------------------------
     initialize: function ()
@@ -95,10 +97,10 @@ let GameScene = new Phaser.Class({
             0, 0, 
             this.m_grid_size_x * this.m_cell_width, 
             this.m_grid_size_y * this.m_cell_height);
-        this.cameras.main.setPosition(0, this.m_score_height, 0);
+        this.cameras.main.setPosition(0, layout_info.m_score_height, 0);
         this.cameras.main.setSize(
             game_width,
-            game_height - this.m_score_height - this.m_action_height);
+            game_height - layout_info.m_score_height - layout_info.m_action_height);
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
@@ -149,7 +151,8 @@ let UIScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('platform', 'assets/platform.png');
+        this.load.image('action_texture', 'assets/black_texture.jpg');
+        this.load.image('score_texture', 'assets/white_leather_texture.jpg');
         this.load.image('volume_off',
             'assets/baseline_volume_off_black_48dp.png');
         this.load.image('volume_on',
@@ -158,42 +161,94 @@ let UIScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    create: function ()
+    create_score_area: function ()
     {
-        this.bgm = this.sound.add('bgm');
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
 
-        // Our Text object to display the Score
-        let info = this.add.text(10, 10, 'Score: 0', { font: '48px Arial', fill: '#000000' });
+        this.textures.get("score_texture").add(
+            "score_area", 0, 0, 0, game_width, layout_info.m_score_height);
+        let background = this.add.image(
+            0, 0,
+            "score_texture", "score_area");
+        background.setOrigin(0, 0);
 
-        // Draw actions at the bottom of the screen here.
-        let platform = this.add.sprite(game_width / 2, game_height - 50, "platform");
-        let volume_control = this.add.sprite(game_width-24, 24, 'volume_off').setInteractive();
+        this.m_gold_text = this.add.text(
+            10, 10, 'Gold: 0', { font: '46px Arial', fill: '#000000' });
+        this.m_cows_text = this.add.text(
+            400, 10, 'Cows: 0', { font: '46px Arial', fill: '#000000' });
+    },
+
+    //--------------------------------------------------------------------------
+    create_volume_control: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
         let bgm = this.sound.add('bgm');
         bgm.setLoop(true);
         this.sound.pauseOnBlur = false;
-        let load = this.load;
-        volume_control.scale = 0.5;
+
+        let icon_size = 96;
+        let icon_scale = 0.5;
+        let icon_right_padding = 10;
+        icon_size *= icon_scale;
+        let volume_control = this.add.sprite(
+            game_width - icon_size - icon_right_padding,
+            (layout_info.m_score_height - icon_size) / 2, 'volume_off');
+        volume_control.setOrigin(0, 0);
+        volume_control.scale = icon_scale;
+
+        volume_control.setInteractive();
         volume_control.my_state = {on:false};
         volume_control.on('pointerup',
-        function(pointer, localX, localY, event) {
-            event.stopPropagation();
-            if (volume_control.my_state.on) {
-                volume_control.my_state.on = false;
-                volume_control.setTexture('volume_off');
-                bgm.stop()
-            }
-            else {
-                if (load.isLoading())
+            function(pointer, localX, localY, event)
+            {
+                event.stopPropagation();
+                if (volume_control.my_state.on)
                 {
-                    return;
+                    volume_control.my_state.on = false;
+                    volume_control.setTexture('volume_off');
+                    bgm.stop()
                 }
-                bgm.play();
-                volume_control.my_state.on = true;
-                volume_control.setTexture('volume_on');
-            }
-        });
+                else
+                {
+                    if (this.load.isLoading())
+                    {
+                        return;
+                    }
+                    bgm.play();
+                    volume_control.my_state.on = true;
+                    volume_control.setTexture('volume_on');
+                }
+            }, this);
+
+    },
+
+    //--------------------------------------------------------------------------
+    create_action_area: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
+        this.textures.get("action_texture").add(
+            "action_area", 0, 0, 0, game_width, layout_info.m_action_height);
+        let background = this.add.image(
+            0, game_height - layout_info.m_action_height,
+            "action_texture", "action_area");
+        background.setOrigin(0, 0);
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
+        this.create_score_area();
+        this.create_action_area();
+        this.create_volume_control();
+
 
         // Grab a reference to the Game Scene
         let ourGame = this.scene.get('GameScene');
