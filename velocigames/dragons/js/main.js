@@ -186,7 +186,7 @@ let config = {
     width: 800,
     height: 600,
     backgroundColor: '#70D070',
-    parent: 'phaser-example',
+    autoFocus: true,
     scene: [ GameScene, UIScene ]
 };
 
