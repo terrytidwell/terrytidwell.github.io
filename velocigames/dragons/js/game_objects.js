@@ -4,7 +4,6 @@ class Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        console.log("In Tile constructor.");
     }
 }
 
@@ -15,7 +14,6 @@ class PlainsTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
@@ -26,7 +24,6 @@ class MountainTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
@@ -37,7 +34,6 @@ class MineTile extends Tile
     constructor()
     {
         super();
-        console.log("In PlainsTile constructor.");
     }
 }
 
@@ -67,7 +63,7 @@ class VillageArea
     constructor()
     {
 
-        this.m_tile_map = new TileMap(10, 10);
+        this.m_tile_map = new TileMap(20, 20);
 
         for (let x = 0; x < this.m_tile_map.m_width; ++x)
         {
@@ -85,5 +81,8 @@ class VillageArea
                 this.m_tile_map.m_tiles[x][y] = tile;
             }
         }
+        let mine_x = Math.floor(this.m_tile_map.m_width / 2);
+        let mine_y = Math.floor(this.m_tile_map.m_height / 2);
+        this.m_tile_map.m_tiles[mine_x][mine_y] = new MineTile();
     }
 }
