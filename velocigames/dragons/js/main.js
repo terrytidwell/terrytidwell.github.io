@@ -1,93 +1,110 @@
+// todo: container object
+let villageArea = new VillageArea();
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    grid_size_x: 20,
-    grid_size_y: 20,
-    grid_color: 0xffffff,
-    cell_width: 64,
-    cell_height: 64,
+    m_grid_size_x: 20,
+    m_grid_size_y: 20,
+    m_grid_color: 0xffffff,
+    m_cell_width: 64,
+    m_cell_height: 64,
 
+    //--------------------------------------------------------------------------
     initialize: function ()
     {
         Phaser.Scene.call(this, { key: 'GameScene' });
     },
 
+    //--------------------------------------------------------------------------
     preload: function ()
     {
         this.load.image('bg', 'assets/sky.png');
-        this.load.image('crate', 'assets/star.png');
         this.load.image('farm', 'assets/Farm.png');
+        
+        this.load.image('mine_tile', 'assets/mine2.png');
+        this.load.image('mountains_tile', 'assets/mountains.png');
+        this.load.image('plains_tile', 'assets/plains.png');
     },
 
-    create: function ()
+    //--------------------------------------------------------------------------
+    addGridOverlay: function ()
     {
-        let game_width = this.game.config.width;
-        let game_height = this.game.config.height;
-
-        // Background image.
-        //this.add.image(game_width / 2, game_height / 2, 'bg');
-
-        // Stars.
-        for (let i = 0; i < 64; i++)
-        {
-            let x = Phaser.Math.Between(0, game_width);
-            let y = Phaser.Math.Between(0, game_height);
-
-            let box = this.add.image(x, y, 'crate');
-
-            //  Make them all input enabled
-            box.setInteractive();
-        }
-
         // Draw map exterior rectangle.
         let graphics = this.add.graphics();
-        graphics.lineStyle(2, this.grid_color, 1);
-        graphics.strokeRect(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
+        graphics.lineStyle(2, this.m_grid_color, 1);
+        graphics.strokeRect(0, 0, 
+            this.m_grid_size_x * this.m_cell_width, 
+            this.m_grid_size_y * this.m_cell_height);
 
         graphics.beginPath();
         // Draw vertical lines.
-        for (let i = 1; i < this.grid_size_x; i++)
+        for (let i = 1; i < this.m_grid_size_x; i++)
         {
-            graphics.moveTo(i * this.cell_width, 0);
-            graphics.lineTo(i * this.cell_width, this.grid_size_y * this.cell_height);
+            graphics.moveTo(i * this.m_cell_width, 0);
+            graphics.lineTo(i * this.m_cell_width, 
+                this.m_grid_size_y * this.m_cell_height);
         }
 
         // Draw horizontal lines.
-        for (let j = 1; j < this.grid_size_y; j++)
+        for (let j = 1; j < this.m_grid_size_y; j++)
         {
-            graphics.moveTo(0, j * this.cell_height);
-            graphics.lineTo(this.grid_size_x * this.cell_width, j * this.cell_height);
+            graphics.moveTo(0, j * this.m_cell_height);
+            graphics.lineTo(this.m_grid_size_x * this.m_cell_width, 
+                j * this.m_cell_height);
         }
         graphics.closePath();
         graphics.strokePath();
 
         // Add text to each cell of map.
-        for (let i = 0; i < this.grid_size_x; i++)
+        for (let i = 0; i < this.m_grid_size_x; i++)
         {
-            for (let j = 0; j < this.grid_size_y; j++)
+            for (let j = 0; j < this.m_grid_size_y; j++)
             {
-                let text = this.add.text((i + 0.5) * this.cell_width, (j + 0.5) * this.cell_height, i + "," + j);
+                let text = this.add.text(
+                    (i + 0.5) * this.m_cell_width, 
+                    (j + 0.5) * this.m_cell_height, 
+                    i + "," + j);
                 text.setOrigin(0.5, 0.5);
             }
         }
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
+        this.m_tile_map_view = new TileMapView(
+            this, this.m_cell_width, this.m_cell_height);
+        this.m_tile_map_view.attachTileMap(villageArea.m_tile_map);
 
         // Set camera bounds.
-        this.cameras.main.setBounds(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
+        this.cameras.main.setBounds(
+            0, 0, 
+            this.m_grid_size_x * this.m_cell_width, 
+            this.m_grid_size_y * this.m_cell_height);
 
         // Add a farm image to a cell.
         this.add_image_to_cell(3, 3, "farm");
 
         // Setup click handler.
         this.input.on('gameobjectup', this.clickHandler, this);
-        this.cursors = this.input.keyboard.createCursorKeys();
+        this.m_cursor_keys = this.input.keyboard.createCursorKeys();
     },
 
+    //--------------------------------------------------------------------------
     add_image_to_cell(i, j, name)
     {
-        this.add.sprite(this.cell_width * (i + 0.5), this.cell_height * (j + 0.5), name)
+        this.add.sprite(
+            this.m_cell_width * (i + 0.5),
+            this.m_cell_height * (j + 0.5),
+            name)
     },
 
+    //--------------------------------------------------------------------------
     clickHandler: function (pointer, box)
     {
         //  Disable our box
@@ -98,21 +115,22 @@ let GameScene = new Phaser.Class({
         this.events.emit('addScore');
     },
 
+    //--------------------------------------------------------------------------
     update: function()
     {
-        if (this.cursors.left.isDown)
+        if (this.m_cursor_keys.left.isDown)
         {
             this.cameras.main.scrollX -= 4;
         }
-        else if (this.cursors.right.isDown)
+        else if (this.m_cursor_keys.right.isDown)
         {
             this.cameras.main.scrollX += 4;
         }
-        else if (this.cursors.up.isDown)
+        else if (this.m_cursor_keys.up.isDown)
         {
             this.cameras.main.scrollY -= 4;
         }
-        else if (this.cursors.down.isDown)
+        else if (this.m_cursor_keys.down.isDown)
         {
             this.cameras.main.scrollY += 4;
         }
@@ -123,18 +141,21 @@ let UIScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
+    //--------------------------------------------------------------------------
     initialize: function ()
-        {
-            Phaser.Scene.call(this, { key: 'UIScene', active: true });
+    {
+        Phaser.Scene.call(this, { key: 'UIScene', active: true });
 
-            this.score = 0;
-        },
+        this.score = 0;
+    },
 
+    //--------------------------------------------------------------------------
     preload: function ()
     {
         this.load.image('platform', 'assets/platform.png');
     },
 
+    //--------------------------------------------------------------------------
     create: function ()
     {
         let game_width = this.game.config.width;
