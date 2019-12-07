@@ -23,12 +23,14 @@ class Tile
         if (image_key instanceof Array)
         {
             let container = scene.add.container(0, 0);
+            // note: it is impossible to set the origin of a container,
+            // so we have to leave everything with an origin of (0.5, 0.5)
             for (let index = 0; index < image_key.length; ++index)
             {
                 // BUG: would call image constructor, but it doesn't work
                 // because of a 'this' problem
                 let layer_image = scene.add.image(0, 0, image_key[index]);
-                layer_image.setOrigin(0, 0);
+                // layer_image.setOrigin(0, 0);
                 // we be supposed to remove the image from the scene before
                 // adding it to the container, but it seems to work
                 container.add(layer_image);
@@ -38,8 +40,8 @@ class Tile
         }
         else if (this.m_image_index)
         {
-            let image = scene.add.image(0, 0, image_key, this.m_image_index)
-            image.setOrigin(0, 0);
+            let image = scene.add.image(0, 0, image_key, this.m_image_index);
+            // image.setOrigin(0, 0);
             image.scale = 2;
 
             game_object = image
@@ -47,7 +49,7 @@ class Tile
         else
         {
             let image = scene.add.image(0, 0, image_key);
-            image.setOrigin(0, 0);
+            //image.setOrigin(0, 0);
             game_object = image
         }
         return game_object;
@@ -64,7 +66,8 @@ class PlainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Plains", "terrain", 32*12 + Math.floor(Math.random()*3));
+        super("Plains", "terrain",
+            32*12 + Math.floor(Math.random()*3));
     }
 }
 
@@ -94,7 +97,8 @@ class MountainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Mountains", "terrain", 26*32+18+Math.floor(Math.random()*3));
+        super("Mountains", "terrain",
+            26*32+18+Math.floor(Math.random()*3));
     }
 }
 
@@ -202,8 +206,8 @@ class TileMapView
                 let tile = this.m_tile_map.getTile(x, y);
                 let tile_game_object = tile.createGameObject(this.m_scene);
                 tile_game_object.setPosition(
-                    x * this.m_tile_width,
-                    y * this.m_tile_height);
+                    (x + 0.5) * this.m_tile_width,
+                    (y + 0.5) * this.m_tile_height);
                 tile_game_object.setInteractive();
                 tile_game_object.on(
                     "pointerup",

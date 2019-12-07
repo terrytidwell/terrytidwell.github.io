@@ -10,6 +10,8 @@ let game_model = {
 let layout_info = {
     m_score_height: 64,
     m_action_height: 64 * 2,
+    m_cell_width: 64,
+    m_cell_height: 64,
 };
 
 let GameScene = new Phaser.Class({
@@ -19,8 +21,8 @@ let GameScene = new Phaser.Class({
     m_grid_size_x: 20,
     m_grid_size_y: 20,
     m_grid_color: 0xffffff,
-    m_cell_width: 64,
-    m_cell_height: 64,
+    m_cell_width: layout_info.m_cell_width,
+    m_cell_height: layout_info.m_cell_height,
 
     //--------------------------------------------------------------------------
     initialize: function ()
@@ -36,7 +38,8 @@ let GameScene = new Phaser.Class({
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
         this.load.image('selection_overlay', 'assets/selection_box.png');
-        this.load.spritesheet('terrain', 'assets/terrain-v7.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
+            { frameWidth: 32, frameHeight: 32 });
     },
 
     //--------------------------------------------------------------------------
@@ -254,7 +257,7 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let tile_label_text = this.add.text(
-            40 + 64 / 2, action_area_top + 5,
+            40 + layout_info.m_cell_width / 2, action_area_top + 5,
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
         let action_state = {
@@ -271,7 +274,8 @@ let UIScene = new Phaser.Class({
                 action_state.m_tile_game_object = tile.createGameObject(
                     this);
                 action_state.m_tile_game_object.setPosition(
-                    40, action_area_top + 40);
+                    40 + layout_info.m_cell_width / 2,
+                    action_area_top + 40 + layout_info.m_cell_height / 2);
                 tile_label_text.setText(tile.getDisplayName())
 
             }, this);
