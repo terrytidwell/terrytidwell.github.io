@@ -77,9 +77,9 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('button_busy',
             'assets/buttons/button_grey2B.png');
         this.load.svg('volume_off',
-            'assets/volume_off-24px.svg');
+            'assets/volume_off-48px.svg');
         this.load.svg('volume_on',
-            'assets/volume_up-24px.svg');
+            'assets/volume_up-48px.svg');
         this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3');
 
         this.load.on('progress', this.updateBar, this);
@@ -265,11 +265,11 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
-            50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#000000" });
+            50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#ffffff" });
         this.add.image(
             30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
-            400, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#000000" });
+            400, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#ffffff" });
 
         game_scene.events.on('update_global_resources',
             function ()
@@ -293,8 +293,8 @@ let UIScene = new Phaser.Class({
         bgm.setLoop(true);
         this.sound.pauseOnBlur = false;
 
-        let icon_size = 24;
-        let icon_scale = 2;
+        let icon_size = 48;
+        let icon_scale = 1;
         let icon_right_padding = 10;
         icon_size *= icon_scale;
         let volume_control = this.add.sprite(
