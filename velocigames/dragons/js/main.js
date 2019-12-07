@@ -74,7 +74,8 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('action_texture', 'assets/dashboard/detail_display.png');
         this.load.image('score_texture', 'assets/dashboard/stats_display2.png');
         this.load.image('control_texture', 'assets/dashboard/control_display.png');
-        this.load.spritesheet('coin', 'assets/coin/coin.png',
+        this.load.image('coin', 'assets/coin/coin_straight_on.png');
+        this.load.spritesheet('coin_animated', 'assets/coin/coin.png',
             { frameWidth: 32, frameHeight: 32 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
@@ -273,16 +274,18 @@ let UIScene = new Phaser.Class({
 
         let gold_text = this.add.text(
             50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#ffffff" });
-        this.anims.create({
-            key: "spin_coin",
-            frames: this.anims.generateFrameNumbers("coin"),
-            frameRate: 20,
-            repeat: -1
-        });
-        sprite = this.add.sprite(
+        this.add.sprite(
             30, layout_info.m_score_height / 2 + 2, "coin");
-        sprite.anims.load("spin_coin");
-        sprite.anims.play("spin_coin");
+        // sprite = this.add.sprite(
+        //     30, layout_info.m_score_height / 2 + 2, "coin_animated");
+        // this.anims.create({
+        //     key: "spin_coin",
+        //     frames: this.anims.generateFrameNumbers("coin_animated"),
+        //     frameRate: 20,
+        //     repeat: -1
+        // });
+        // sprite.anims.load("spin_coin");
+        // sprite.anims.play("spin_coin");
         let cows_text = this.add.text(
             200, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
