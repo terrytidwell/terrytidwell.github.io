@@ -1,3 +1,42 @@
+// todo: container object
+let villageArea = new VillageArea();
+
+class TileMapView
+{
+    constructor(scene, tile_width, tile_height)
+    {
+        this.m_scene = scene;
+        this.m_tile_width = tile_width;
+        this.m_tile_height = tile_height;
+        this.m_tile_map = null;
+    }
+
+    attachTileMap(tile_map)
+    {
+        if (null !== this.m_tile_map)
+        {
+            throw "Changing tile map not yet implemented."; // todo
+        }
+        this.m_tile_map = tile_map;
+        for (let x = 0; x < this.m_tile_map.m_width; ++x)
+        {
+            for (let y = 0; y < this.m_tile_map.m_width; ++y)
+            {
+                let tile = this.m_tile_map.m_tiles[x][y];
+                let tile_image = this.m_scene.add.image(
+                    (x + 0.5) * this.m_tile_width, (y + 0.5) * this.m_tile_height, tile.m_image_tag);
+                tile_image.setInteractive({callback: function()
+                    {
+                        alert("Clicked on x:"+ x + ", y:" + y);
+                    }});
+            }
+        }
+
+        //  Make them all input enabled
+
+    }
+}
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -18,6 +57,9 @@ let GameScene = new Phaser.Class({
         this.load.image('bg', 'assets/sky.png');
         this.load.image('crate', 'assets/star.png');
         this.load.image('farm', 'assets/Farm.png');
+        this.load.image('mine_tile', 'assets/mine2.png');
+        this.load.image('mountains_tile', 'assets/mountains.png');
+        this.load.image('plains_tile', 'assets/plains.png');
     },
 
     create: function ()
@@ -28,17 +70,20 @@ let GameScene = new Phaser.Class({
         // Background image.
         //this.add.image(game_width / 2, game_height / 2, 'bg');
 
+        this.m_tile_map_view = new TileMapView(this, this.cell_width, this.cell_height);
+        this.m_tile_map_view.attachTileMap(villageArea.m_tile_map);
+
         // Stars.
-        for (let i = 0; i < 64; i++)
-        {
-            let x = Phaser.Math.Between(0, game_width);
-            let y = Phaser.Math.Between(0, game_height);
-
-            let box = this.add.image(x, y, 'crate');
-
-            //  Make them all input enabled
-            box.setInteractive();
-        }
+        // for (let i = 0; i < 64; i++)
+        // {
+        //     let x = Phaser.Math.Between(0, game_width);
+        //     let y = Phaser.Math.Between(0, game_height);
+        //
+        //     let box = this.add.image(x, y, 'crate');
+        //
+        //     //  Make them all input enabled
+        //     box.setInteractive();
+        // }
 
         // Draw map exterior rectangle.
         let graphics = this.add.graphics();

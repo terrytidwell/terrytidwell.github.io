@@ -2,8 +2,9 @@
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(image_tag)
     {
+        this.m_image_tag = image_tag;
     }
 }
 
@@ -13,17 +14,17 @@ class PlainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super();
+        super("plains_tile");
     }
 }
 
 //------------------------------------------------------------------------------
-class MountainTile extends Tile
+class MountainsTile extends Tile
 {
     //--------------------------------------------------------------------------
     constructor()
     {
-        super();
+        super("mountains_tile");
     }
 }
 
@@ -33,7 +34,7 @@ class MineTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super();
+        super("mine_tile");
     }
 }
 
@@ -81,7 +82,7 @@ class VillageArea extends GameArea
                 let tile = null;
                 if (x < y)
                 {
-                    tile = new MountainTile();
+                    tile = new MountainsTile();
                 }
                 else
                 {
