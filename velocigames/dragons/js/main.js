@@ -1,284 +1,331 @@
-var config = {
-    type: Phaser.AUTO,
-    width: 32*30,
-    height: 32*20,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            debug: false
-        }
+let game_model = {
+    m_global_resources: {
+        m_gold: 0,
+        m_cows: 0,
     },
-	autoCenter: Phaser.Scale.CENTER_BOTH,
-	mode: Phaser.Scale.FIT,
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
+    m_village_area: new VillageArea(),
+    m_selected_tile: null,
 };
 
-var player;
-var stars;
-var bombs;
-var breakables;
-var bumpers;
-var platforms;
-var cursors;
-var score = 0;
-var gameOver = false;
-var scoreText;
-var gravity = 0;
-var camera;
-var flip;
-var shake;
-const MAX_ROTATION = 128;
+let layout_info = {
+    m_score_height: 64,
+    m_action_height: 64 * 2,
+    m_cell_width: 64,
+    m_cell_height: 64,
+};
 
-var game = new Phaser.Game(config);
+let GameScene = new Phaser.Class({
 
-function preload ()
-{
-    this.load.image('sky', 'assets/sky.png');
-    this.load.image('star', 'assets/star.png');
-    this.load.image('bomb', 'assets/bomb.png');
-    this.load.spritesheet('blocks', 'assets/stone.png', { frameWidth: 32, frameHeight: 32 });
-}
+    Extends: Phaser.Scene,
 
-//add a ledge of blocks, at x,y block offset and height by width blocks
-function addLedge(scene, group, x,y,width,height)
-{
-    let block_size=32;
-    let ledge_width = width * block_size;
-    let ledge_height = height * block_size;
-    let center_x = x * block_size + ledge_width/2;
-    let center_y = y * block_size + ledge_height/2;
-    let platform = scene.add.tileSprite(center_x, center_y, ledge_width, ledge_height, 'blocks', 1);
-    group.add(platform);
-}
+    m_grid_size_x: 20,
+    m_grid_size_y: 20,
+    m_grid_color: 0xffffff,
+    m_cell_width: layout_info.m_cell_width,
+    m_cell_height: layout_info.m_cell_height,
 
-function addBreakable(x, y)
-{
-    let block_size = 32;
-    breakables.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',5).setImmovable(true);
-}
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'GameScene' });
+    },
 
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        this.load.image('farm_tile', 'assets/Farm.png');
+        this.load.image('mine_tile', 'assets/mine2.png');
+        this.load.image('mountains_tile', 'assets/mountains.png');
+        this.load.image('plains_tile', 'assets/plains.png');
+        this.load.image('selection_overlay', 'assets/selection_box.png');
+        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
+            { frameWidth: 32, frameHeight: 32 });
+    },
 
-function addBumper(x, y)
-{
-    let block_size = 32;
-    bumpers.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',25).setImmovable(true);
-}
+    //--------------------------------------------------------------------------
+    addGridOverlay: function ()
+    {
+        // Draw map exterior rectangle.
+        let graphics = this.add.graphics();
+        graphics.lineStyle(2, this.m_grid_color, 1);
+        graphics.strokeRect(0, 0, 
+            this.m_grid_size_x * this.m_cell_width,
+            this.m_grid_size_y * this.m_cell_height);
 
-function addStar(x, y)
-{
-    let block_size = 32;
-    stars.create(block_size * x - block_size/2,block_size * y - block_size/2, 'star').setImmovable(true);
-}
-
-function create ()
-{
-    platforms = this.physics.add.staticGroup();
-    breakables = this.physics.add.group();
-    bumpers = this.physics.add.group();
-    stars = this.physics.add.group();
-    bombs = this.physics.add.group();
-
-    addLedge(this, platforms, 0, 0, 1, 20);
-    addLedge(this, platforms, 30, 0, 1, 20);
-    addLedge(this, platforms, 1, 0, 29, 1);
-    addLedge(this, platforms, 1, 19, 29, 1);
-
-    addLedge(this, platforms, 1, 10, 8, 1);
-    addLedge(this, platforms, 9, 12, 5, 1);
-    addLedge(this, platforms, 18, 6, 12, 1);
-    addLedge(this, platforms, 14, 1, 1, 10);
-
-    addBreakable(27, 17);
-    addBreakable(26, 17);
-    addBreakable(25, 17);
-    addBreakable(25, 16);
-    addStar(26, 16);
-    addBreakable(27, 16);
-    addBreakable(27, 15);
-    addBreakable(26, 15);
-    addBreakable(25, 15);
-
-    addBreakable(27, 12);
-    addBreakable(26, 12);
-    addBreakable(25, 12);
-    addBreakable(25, 11);
-    addStar(26, 11);
-    addBreakable(27, 11);
-    addBreakable(27, 10);
-    addBreakable(26, 10);
-    addBreakable(25, 10);
-
-    addBumper(16, 6);
-    addBumper(19, 2);
-    addBumper(22, 6);
-    addBumper(25, 2);
-    addBumper(28, 6);
-
-    player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
-    player.setBounce(0.2);
-    player.setCollideWorldBounds(true);
-
-    bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2).setCollideWorldBounds(true);
-
-    cursors = this.input.keyboard.createCursorKeys();
-
-    this.physics.add.collider(player, platforms);
-    this.physics.add.collider(bombs, platforms);
-    this.physics.add.collider(bombs, breakables);
-    this.physics.add.collider(bombs, bumpers, bounce, null, this);
-    this.physics.add.collider(player, breakables, calculateImpact, null, this);
-    this.physics.add.collider(player, bumpers, bounce, null, this);
-
-    for (let x = 2; x < 15; x++) {
-        for (let y = 2; y < 11; y++)
+        graphics.beginPath();
+        // Draw vertical lines.
+        for (let i = 1; i < this.m_grid_size_x; i++)
         {
-            addStar(x,y);
+            graphics.moveTo(i * this.m_cell_width, 0);
+            graphics.lineTo(i * this.m_cell_width,
+                this.m_grid_size_y * this.m_cell_height);
         }
-    }
 
-    addStar(30, 2 );
-    addStar(30, 3 );
-    addStar(30, 4 );
-    addStar(30, 5 );
-    addStar(30, 6 );
-
-
-    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    this.physics.add.overlap(player, stars, collectStar, null, this);
-
-    this.physics.add.collider(player, bombs, hitBomb, null, this);
-    camera = this.cameras.main;
-    camera.startFollow(player);
-}
-
-function calculateImpact(player, breakables)
-{
-    let pv = player.body.velocity;
-    let speed = player.body.speed;
-    //alert("speed?"+pv.length()+"=?"+speed);
-    let pp = player.body.center;
-    let bp = breakables.body.center;
-    let dp = pp.subtract(bp);
-    let impact = dp.dot(pv);
-    //alert("impact="+impact);
-    if (speed > 500)
-    {
-        breakables.disableBody(true, true);
-    }
-}
-
-function rotateGravity(amount)
-{
-    gravity+=amount;
-    while (gravity < 0 || gravity >= MAX_ROTATION) {
-        if (gravity < 0) {
-            gravity += MAX_ROTATION;
-        } else {
-            //gravity >= MAX_GRAVITY
-            gravity -= MAX_ROTATION;
-        }
-    }
-}
-
-function setGravity(phaser)
-{
-    let x = Math.sin(2 * Math.PI * gravity/MAX_ROTATION);
-    let y = Math.cos(2 * Math.PI * gravity/MAX_ROTATION);
-    player.body.setGravity(Math.round(x*300),Math.round(y*300));
-    bombs.children.each(function(bomb) {
-        bomb.body.setGravity(Math.round(x*300),Math.round(y*300));
-    }, this);
-    camera.setRotation(2 * Math.PI * gravity/MAX_ROTATION);
-}
-
-function bounce(player, bumper)
-{
-    let px = player.body.x;
-    let py = player.body.y;
-    let bx = bumper.body.x;
-    let by = bumper.body.y;
-    let dx = bx - px;
-    let dy = by - py;
-    let dist = Math.sqrt(dx * dx + dy * dy);
-    dx = dx / dist * 450;
-    dy = dy / dist * 450;
-    let vx = player.body.velocity.x;
-    let vy = player.body.velocity.y;
-    player.body.setVelocity(vx - dx, vy - dy);
-}
-
-function update ()
-{
-    if (gameOver)
-    {
-        return;
-    }
-
-    if (player.body.speed > 500)
-    {
-        camera.shake(500, 0.003)
-    }
-    else if (player.body.speed < 500)
-    {
-        camera.shake(0, 0)
-    }
-
-    if (cursors.left.isDown)
-    {
-        rotateGravity(-1);
-        setGravity(this);
-        //player.setVelocityX(-160);
-
-        //player.anims.play('left', true);
-    }
-    else if (cursors.right.isDown)
-    {
-        rotateGravity(1);
-        setGravity(this);
-        //player.setVelocityX(160);
-
-        //player.anims.play('right', true);
-    }
-    else
-    {
-        //player.setVelocityX(0);
-
-        //player.anims.play('turn');
-    }
-
-    if (!flip && (cursors.up.isDown || cursors.down.isDown))
-    {
-        flip = true;
-        gravity += MAX_ROTATION/2;
-        if (gravity >= MAX_ROTATION)
+        // Draw horizontal lines.
+        for (let j = 1; j < this.m_grid_size_y; j++)
         {
-            gravity -= MAX_ROTATION;
+            graphics.moveTo(0, j * this.m_cell_height);
+            graphics.lineTo(this.m_grid_size_x * this.m_cell_width,
+                j * this.m_cell_height);
         }
-        setGravity(this);
-        //player.setVelocityY(-330);
-    }
-    else if (!cursors.up.isDown && !cursors.down.isDown)
+        graphics.closePath();
+        graphics.strokePath();
+
+        // Add text to each cell of map.
+        for (let i = 0; i < this.m_grid_size_x; i++)
+        {
+            for (let j = 0; j < this.m_grid_size_y; j++)
+            {
+                let text = this.add.text(
+                    (i + 0.5) * this.m_cell_width,
+                    (j + 0.5) * this.m_cell_height,
+                    i + "," + j);
+                text.setOrigin(0.5, 0.5);
+            }
+        }
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
     {
-        flip = false;
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
+        this.m_tile_map_view = new TileMapView(
+            this, this.m_cell_width, this.m_cell_height);
+        this.m_tile_map_view.attachTileMap(
+            game_model.m_village_area.m_tile_map);
+
+        // Set camera bounds.
+        this.cameras.main.setBounds(
+            0, 0, 
+            this.m_grid_size_x * this.m_cell_width,
+            this.m_grid_size_y * this.m_cell_height);
+        this.cameras.main.setPosition(0, layout_info.m_score_height, 0);
+        this.cameras.main.setSize(
+            game_width,
+            game_height - layout_info.m_score_height - layout_info.m_action_height);
+
+        this.m_cursor_keys = this.input.keyboard.createCursorKeys();
+        this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
+        this.m_cursor_keys.letter_right = this.input.keyboard.addKey("d");
+        this.m_cursor_keys.letter_up = this.input.keyboard.addKey("w");
+        this.m_cursor_keys.letter_down = this.input.keyboard.addKey("s");
+    },
+
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+        if (this.m_cursor_keys.left.isDown
+            || this.m_cursor_keys.letter_left.isDown)
+        {
+            this.cameras.main.scrollX -= 8;
+        }
+        if (this.m_cursor_keys.right.isDown
+            || this.m_cursor_keys.letter_right.isDown)
+        {
+            this.cameras.main.scrollX += 8;
+        }
+        if (this.m_cursor_keys.up.isDown
+            || this.m_cursor_keys.letter_up.isDown)
+        {
+            this.cameras.main.scrollY -= 8;
+        }
+        if (this.m_cursor_keys.down.isDown
+            || this.m_cursor_keys.letter_down.isDown)
+        {
+            this.cameras.main.scrollY += 8;
+        }
     }
-}
+});
 
-function collectStar (player, star)
-{
-    star.disableBody(true, true);
-}
+let UIScene = new Phaser.Class({
 
-function hitBomb (player, bomb)
-{
-    this.physics.pause();
+    Extends: Phaser.Scene,
 
-    player.setTint(0xff0000);
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'UIScene', active: true });
 
-    player.anims.play('turn');
+        this.score = 0;
+    },
 
-    gameOver = true;
-}
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        this.load.image('action_texture', 'assets/black_texture.jpg');
+        this.load.image('score_texture', 'assets/white_leather_texture.jpg');
+        this.load.svg('volume_off',
+            'assets/volume_off-24px.svg');
+        this.load.svg('volume_on',
+            'assets/volume_up-24px.svg');
+        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3')
+    },
+
+    //--------------------------------------------------------------------------
+    create_score_area: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        let game_scene = this.scene.get("GameScene");
+
+        this.textures.get("score_texture").add(
+            "score_area", 0, 0, 0, game_width, layout_info.m_score_height);
+        let background = this.add.image(
+            0, 0,
+            "score_texture", "score_area");
+        background.setOrigin(0, 0);
+
+        let gold_text = this.add.text(
+            10, 10, "Gold: 0", { font: "46px Arial", fill: "#000000" });
+        let cows_text = this.add.text(
+            400, 10, "Cows: 0", { font: "46px Arial", fill: "#000000" });
+
+        game_scene.events.on('update_global_resources',
+            function ()
+            {
+                gold_text.setText(
+                    "Gold: " + game_model.m_global_resources.m_gold);
+                cows_text.setText(
+                    "Cows: " + game_model.m_global_resources.m_cows);
+            }, this);
+
+        this.create_volume_control();
+    },
+
+    //--------------------------------------------------------------------------
+    create_volume_control: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+
+        let bgm = this.sound.add('bgm');
+        bgm.setLoop(true);
+        this.sound.pauseOnBlur = false;
+
+        let icon_size = 24;
+        let icon_scale = 2;
+        let icon_right_padding = 10;
+        icon_size *= icon_scale;
+        let volume_control = this.add.sprite(
+            game_width - icon_size - icon_right_padding,
+            (layout_info.m_score_height - icon_size) / 2, 'volume_off');
+        volume_control.setOrigin(0, 0);
+        volume_control.scale = icon_scale;
+
+        volume_control.setInteractive();
+        volume_control.my_state = {on:false};
+        volume_control.on('pointerup',
+            function(pointer, localX, localY, event)
+            {
+                event.stopPropagation();
+                if (volume_control.my_state.on)
+                {
+                    volume_control.my_state.on = false;
+                    volume_control.setTexture('volume_off');
+                    bgm.stop()
+                }
+                else
+                {
+                    if (this.load.isLoading())
+                    {
+                        return;
+                    }
+                    bgm.play();
+                    volume_control.my_state.on = true;
+                    volume_control.setTexture('volume_on');
+                }
+            }, this);
+
+    },
+
+    //--------------------------------------------------------------------------
+    create_action_area: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        let game_scene = this.scene.get("GameScene");
+        let action_area_top = game_height - layout_info.m_action_height;
+
+        this.textures.get("action_texture").add(
+            "action_area", 0, 0, 0, game_width, layout_info.m_action_height);
+        let background = this.add.image(
+            0, action_area_top,
+            "action_texture", "action_area");
+        background.setOrigin(0, 0);
+
+        let tile_label_text = this.add.text(
+            40 + layout_info.m_cell_width / 2, action_area_top + 5,
+            "", { font: "30px Arial", fill: "#FFFF00" });
+        tile_label_text.setOrigin(0.5, 0);
+        let action_state = {
+            m_tile_game_object: null,
+            m_action_buttons: null,
+        };
+        game_scene.events.on("update_selected_tile",
+            function (tile)
+            {
+                if (null !== action_state.m_tile_game_object)
+                {
+                    action_state.m_tile_game_object.destroy();
+                    for (let key in action_state.m_action_buttons)
+                    {
+                        let action_button = action_state.m_action_buttons[key];
+                        action_button.destroy();
+                    }
+                }
+
+                game_model.m_selected_tile = tile;
+                action_state.m_tile_game_object = tile.createGameObject(
+                    this);
+                action_state.m_tile_game_object.setPosition(
+                    40 + layout_info.m_cell_width / 2,
+                    action_area_top + 40 + layout_info.m_cell_height / 2);
+                tile_label_text.setText(tile.getDisplayName());
+
+                let actions = tile.getActions();
+                for (let key in actions)
+                {
+                    if (null == action_state.m_action_buttons)
+                    {
+                        action_state.m_action_buttons = [];
+                    }
+                    let action = actions[key];
+                    let button_text = action.getButtonText();
+                    let action_button = this.add.text(
+                        300, layout_info.m_action_height / 2 + action_area_top,
+                        button_text, { font: "20px Arial", fill: "#FFFFff", background:"#808080" });
+                    action_state.m_action_buttons.push(action_button);
+                    action_button.on("pointerup",
+                        function ()
+                        {
+                            action_button.setText(action.getBeginText());
+                            // todo sleep
+                            action.getExecuteFn()();
+                        })
+                }
+
+            }, this);
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        this.create_score_area();
+        this.create_action_area();
+    }
+});
+
+let config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#70D070',
+    autoFocus: true,
+    render: {pixelArt: true},
+    scene: [ GameScene, UIScene ]
+};
+
+let game = new Phaser.Game(config);
