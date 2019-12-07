@@ -14,6 +14,98 @@ let layout_info = {
     m_cell_height: 64,
 };
 
+let LoadingScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    m_grid_size_x: 20,
+    m_grid_size_y: 20,
+    m_grid_color: 0xffffff,
+    m_cell_width: layout_info.m_cell_width,
+    m_cell_height: layout_info.m_cell_height,
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'LoadingScreen', active: true });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        this.cameras.main.setBackgroundColor("#000000");
+        /*
+        this.graphics = this.add.graphics();
+        this.newGraphics = this.add.graphics();
+        var progressBar = new Phaser.Geom.Rectangle(200, 200, 400, 50);
+        var progressBarFill = new Phaser.Geom.Rectangle(205, 205, 290, 40);
+
+        this.graphics.fillStyle(0xffffff, 1);
+        this.graphics.fillRectShape(progressBar);
+
+        this.newGraphics.fillStyle(0x3587e2, 1);
+        this.newGraphics.fillRectShape(progressBarFill);
+        */
+
+        this.loadingText = this.add.text(game_width/2,game_height/2,"0%", { fontSize: '32px', fill: '#FFF' })
+            .setOrigin(0.5,0.5);
+
+        this.load.image('farm_tile', 'assets/farm.png');
+        this.load.image('mine_tile', 'assets/mine.png');
+        this.load.image('mountains_tile', 'assets/mountains.png');
+        this.load.image('plains_tile', 'assets/plains.png');
+        this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
+        this.load.image('hover_overlay', 'assets/selection_box/selection_box_hover.png');
+        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.image('action_texture', 'assets/black_texture.jpg');
+        this.load.image('score_texture', 'assets/white_leather_texture.jpg');
+        this.load.image('coin', 'assets/coin/coin_straight_on.png');
+        this.load.image('button_passive', 'assets/buttons/button_grey.png');
+        this.load.image('button_active',
+            'assets/buttons/button_grey_active.png');
+        this.load.svg('volume_off',
+            'assets/volume_off-24px.svg');
+        this.load.svg('volume_on',
+            'assets/volume_up-24px.svg');
+        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3');
+
+        this.load.on('progress', this.updateBar, this);
+        this.load.on('complete', this.complete, {scene:this.scene});
+    },
+
+    updateBar: function(percentage) {
+        /*
+        this.newGraphics.clear();
+        this.newGraphics.fillStyle(0x3587e2, 1);
+        this.newGraphics.fillRectShape(new Phaser.Geom.Rectangle(205, 205, percentage*390, 40));
+        */
+        percentage = percentage * 100;
+        console.log("P:" + percentage);
+        this.loadingText.setText(percentage.toFixed(0) + "%");
+
+    },
+
+    complete : function()
+    {
+        this.scene.start('GameScene');
+        this.scene.start('UIScene');
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+    }
+});
+
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -27,20 +119,12 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'GameScene' });
+        Phaser.Scene.call(this, { key: 'GameScene', active: false });
     },
 
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('farm_tile', 'assets/farm.png');
-        this.load.image('mine_tile', 'assets/mine.png');
-        this.load.image('mountains_tile', 'assets/mountains.png');
-        this.load.image('plains_tile', 'assets/plains.png');
-        this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
-        this.load.image('hover_overlay', 'assets/selection_box/selection_box_hover.png');
-        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
-            { frameWidth: 32, frameHeight: 32 });
     },
 
     //--------------------------------------------------------------------------
@@ -147,23 +231,12 @@ let UIScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'UIScene', active: true });
+        Phaser.Scene.call(this, { key: 'UIScene', active: false });
     },
 
     //--------------------------------------------------------------------------
     preload: function ()
     {
-        this.load.image('action_texture', 'assets/black_texture.jpg');
-        this.load.image('score_texture', 'assets/white_leather_texture.jpg');
-        this.load.image('coin', 'assets/coin/coin_straight_on.png');
-        this.load.image('button_passive', 'assets/buttons/button_grey.png');
-        this.load.image('button_active',
-            'assets/buttons/button_grey_active.png');
-        this.load.svg('volume_off',
-            'assets/volume_off-24px.svg');
-        this.load.svg('volume_on',
-            'assets/volume_up-24px.svg');
-        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3');
     },
 
     //--------------------------------------------------------------------------
@@ -347,7 +420,7 @@ let config = {
     backgroundColor: '#70D070',
     autoFocus: true,
     render: {pixelArt: true},
-    scene: [ GameScene, UIScene ]
+    scene: [ LoadingScreen, GameScene, UIScene ]
 };
 
 let game = new Phaser.Game(config);
