@@ -14,8 +14,10 @@ let layout_info = {
 
     m_action_height: 64 * 2,
 
-    m_cell_width: 64,
-    m_cell_height: 64,
+    m_map_size_x: 20,
+    m_map_size_y: 20,
+    m_tile_width: 64,
+    m_tile_height: 64,
 
     m_button_width: 265,
 
@@ -28,12 +30,6 @@ let layout_info = {
 let LoadingScreen = new Phaser.Class({
 
     Extends: Phaser.Scene,
-
-    m_grid_size_x: 20,
-    m_grid_size_y: 20,
-    m_grid_color: 0xffffff,
-    m_cell_width: layout_info.m_cell_width,
-    m_cell_height: layout_info.m_cell_height,
 
     //--------------------------------------------------------------------------
     initialize: function ()
@@ -128,11 +124,7 @@ let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    m_grid_size_x: 20,
-    m_grid_size_y: 20,
     m_grid_color: 0xffffff,
-    m_cell_width: layout_info.m_cell_width,
-    m_cell_height: layout_info.m_cell_height,
 
     //--------------------------------------------------------------------------
     initialize: function ()
@@ -151,37 +143,37 @@ let GameScene = new Phaser.Class({
         // Draw map exterior rectangle.
         let graphics = this.add.graphics();
         graphics.lineStyle(2, this.m_grid_color, 1);
-        graphics.strokeRect(0, 0, 
-            this.m_grid_size_x * this.m_cell_width,
-            this.m_grid_size_y * this.m_cell_height);
+        graphics.strokeRect(0, 0,
+            layout_info.m_map_size_x * layout_info.m_tile_width,
+            layout_info.m_map_size_y * layout_info.m_tile_height);
 
         graphics.beginPath();
         // Draw vertical lines.
-        for (let i = 1; i < this.m_grid_size_x; i++)
+        for (let i = 1; i < layout_info.m_map_size_x; i++)
         {
-            graphics.moveTo(i * this.m_cell_width, 0);
-            graphics.lineTo(i * this.m_cell_width,
-                this.m_grid_size_y * this.m_cell_height);
+            graphics.moveTo(i * layout_info.m_tile_width, 0);
+            graphics.lineTo(i * layout_info.m_tile_width,
+                layout_info.m_map_size_y * layout_info.m_tile_height);
         }
 
         // Draw horizontal lines.
-        for (let j = 1; j < this.m_grid_size_y; j++)
+        for (let j = 1; j < layout_info.m_map_size_y; j++)
         {
-            graphics.moveTo(0, j * this.m_cell_height);
-            graphics.lineTo(this.m_grid_size_x * this.m_cell_width,
-                j * this.m_cell_height);
+            graphics.moveTo(0, j * layout_info.m_tile_height);
+            graphics.lineTo(layout_info.m_map_size_x * layout_info.m_tile_width,
+                j * layout_info.m_tile_height);
         }
         graphics.closePath();
         graphics.strokePath();
 
         // Add text to each cell of map.
-        for (let i = 1; i <= this.m_grid_size_x; i++)
+        for (let i = 1; i <= layout_info.m_map_size_x; i++)
         {
-            for (let j = 1; j <= this.m_grid_size_y; j++)
+            for (let j = 1; j <= layout_info.m_map_size_y; j++)
             {
                 let text = this.add.text(
-                    (i - 0.5) * this.m_cell_width,
-                    (j - 0.5) * this.m_cell_height,
+                    (i - 0.5) * layout_info.m_tile_width,
+                    (j - 0.5) * layout_info.m_tile_height,
                     j + "," + i);
                 text.setOrigin(0.5, 0.5);
             }
@@ -195,15 +187,15 @@ let GameScene = new Phaser.Class({
         let game_height = this.game.config.height;
 
         this.m_tile_map_view = new TileMapView(
-            this, this.m_cell_width, this.m_cell_height);
+            this, layout_info.m_tile_width, layout_info.m_tile_height);
         this.m_tile_map_view.attachTileMap(
             game_model.m_village_area.m_tile_map);
 
         // Set camera bounds.
         this.cameras.main.setBounds(
             0, 0, 
-            this.m_grid_size_x * this.m_cell_width,
-            this.m_grid_size_y * this.m_cell_height);
+            layout_info.m_map_size_x * layout_info.m_tile_width,
+            layout_info.m_map_size_y * layout_info.m_tile_height);
         this.cameras.main.setPosition(0, layout_info.m_score_height, 0);
         this.cameras.main.setSize(
             game_width,
@@ -390,7 +382,7 @@ let UIScene = new Phaser.Class({
         };
 
         let tile_label_text = this.add.text(
-            40 + layout_info.m_cell_width / 2, action_area_top + 5,
+            40 + layout_info.m_tile_width / 2, action_area_top + 5,
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
         this.m_selected_tile_state.m_tile_label_text = tile_label_text;
@@ -411,8 +403,8 @@ let UIScene = new Phaser.Class({
         let tile_game_object = tile.createGameObject(this);
         state.destroy_on_clean_up(tile_game_object);
         tile_game_object.setPosition(
-            40 + layout_info.m_cell_width / 2,
-            state.m_action_area_top + 40 + layout_info.m_cell_height / 2);
+            40 + layout_info.m_tile_width / 2,
+            state.m_action_area_top + 40 + layout_info.m_tile_height / 2);
         state.m_tile_label_text.setText(tile.getDisplayName());
 
         let actions = tile.getActions();
