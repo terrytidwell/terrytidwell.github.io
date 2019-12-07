@@ -90,8 +90,6 @@ let GameScene = new Phaser.Class({
         // Add a farm image to a cell.
         this.add_image_to_cell(3, 3, "farm");
 
-        // Setup click handler.
-        this.input.on('gameobjectup', this.clickHandler, this);
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
     },
 

@@ -12,6 +12,10 @@ class Tile
     {
         return this.m_image_key;
     }
+
+    //--------------------------------------------------------------------------
+    handleClick()
+    {}
 }
 
 //------------------------------------------------------------------------------
@@ -89,6 +93,14 @@ class TileMap
         if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
         this.m_tiles[x][y] = tile;
     }
+
+    //--------------------------------------------------------------------------
+    handleClick(x, y, tile, event)
+    {
+        console.log("Clicked on " + tile.getImageKey()
+            + " at " + x + ", " + y + ".");
+        event.stopPropagation();
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -111,6 +123,7 @@ class TileMapView
             throw "Changing tile map not yet implemented."; // todo
         }
 
+        var self = this;
         this.m_tile_map = tile_map;
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
@@ -121,13 +134,30 @@ class TileMapView
                     (x + 0.5) * this.m_tile_width,
                     (y + 0.5) * this.m_tile_height,
                     tile.getImageKey());
-                tile_image.setInteractive({callback: function()
+                tile_image.setInteractive();
+                tile_image.on(
+                    "pointerup",
+                    function(pointer, localX, localY, event)
                     {
-                        alert("Clicked on x:"+ x + ", y:" + y);
-                    }});
+                        tile.handleClick(event);
+
+                        if (!event.cancelled)
+                        {
+                            tile_map.handleClick(x, y, tile, event);
+                        }
+
+                        if (!event.cancelled)
+                        {
+                            self.handleClick(x, y, tile, event);
+                        }
+                    });
             }
         }
     }
+
+    //--------------------------------------------------------------------------
+    handleClick(x, y, tile, event)
+    {}
 }
 
 //##############################################################################
