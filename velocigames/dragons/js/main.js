@@ -155,6 +155,7 @@ let UIScene = new Phaser.Class({
     {
         this.load.image('action_texture', 'assets/black_texture.jpg');
         this.load.image('score_texture', 'assets/white_leather_texture.jpg');
+        this.load.image('coin', 'assets/coin/coin_straight_on.png');
         this.load.image('button_passive', 'assets/buttons/button_grey.png');
         this.load.image('button_active',
             'assets/buttons/button_grey_active.png');
@@ -180,7 +181,9 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
-            10, 10, "Gold: 0", { font: "46px Arial", fill: "#000000" });
+            50, 10, "Gold: 0", { font: "46px Arial", fill: "#000000" });
+        this.add.image(
+            30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
             400, 10, "Cows: 0", { font: "46px Arial", fill: "#000000" });
 
