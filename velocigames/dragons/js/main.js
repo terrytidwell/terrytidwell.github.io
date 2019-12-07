@@ -261,7 +261,8 @@ let UIScene = new Phaser.Class({
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
         let action_state = {
-            m_tile_game_object: null
+            m_tile_game_object: null,
+            m_action_buttons: null,
         };
         game_scene.events.on("update_selected_tile",
             function (tile)
@@ -269,14 +270,42 @@ let UIScene = new Phaser.Class({
                 if (null !== action_state.m_tile_game_object)
                 {
                     action_state.m_tile_game_object.destroy();
+                    for (let key in action_state.m_action_buttons)
+                    {
+                        let action_button = action_state.m_action_buttons[key];
+                        action_button.destroy();
+                    }
                 }
+
                 game_model.m_selected_tile = tile;
                 action_state.m_tile_game_object = tile.createGameObject(
                     this);
                 action_state.m_tile_game_object.setPosition(
                     40 + layout_info.m_cell_width / 2,
                     action_area_top + 40 + layout_info.m_cell_height / 2);
-                tile_label_text.setText(tile.getDisplayName())
+                tile_label_text.setText(tile.getDisplayName());
+
+                let actions = tile.getActions();
+                for (let key in actions)
+                {
+                    if (null == action_state.m_action_buttons)
+                    {
+                        action_state.m_action_buttons = [];
+                    }
+                    let action = actions[key];
+                    let button_text = action.getButtonText();
+                    let action_button = this.add.text(
+                        300, layout_info.m_action_height / 2 + action_area_top,
+                        button_text, { font: "20px Arial", fill: "#FFFFff", background:"#808080" });
+                    action_state.m_action_buttons.push(action_button);
+                    action_button.on("pointerup",
+                        function ()
+                        {
+                            action_button.setText(action.getBeginText());
+                            // todo sleep
+                            action.getExecuteFn()();
+                        })
+                }
 
             }, this);
     },

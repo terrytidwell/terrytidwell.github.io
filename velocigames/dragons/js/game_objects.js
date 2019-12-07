@@ -1,12 +1,57 @@
 //------------------------------------------------------------------------------
+class TileAction
+{
+    //--------------------------------------------------------------------------
+    constructor(button_text, begin_text, end_text, duration_seconds, execute_fn)
+    {
+        this.m_button_text = button_text;
+        this.m_begin_text = begin_text;
+        this.m_end_text = end_text;
+        this.m_duration_seconds = duration_seconds;
+        this.m_execute_fn = execute_fn;
+    }
+
+    //--------------------------------------------------------------------------
+    getButtonText()
+    {
+        return this.m_button_text;
+    }
+
+    //--------------------------------------------------------------------------
+    getBeginText()
+    {
+        return this.m_begin_text;
+    }
+
+    //--------------------------------------------------------------------------
+    getEndText()
+    {
+        return this.m_end_text;
+    }
+
+    //--------------------------------------------------------------------------
+    getDurationSeconds()
+    {
+        return this.m_duration_seconds;
+    }
+
+    //--------------------------------------------------------------------------
+    getExecuteFn()
+    {
+        return this.m_execute_fn;
+    }
+}
+
+//------------------------------------------------------------------------------
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor(display_name, image_key, image_index)
+    constructor(display_name, image_key, image_index, actions)
     {
         this.m_display_name = display_name;
         this.m_image_key = image_key;
         this.m_image_index = image_index;
+        this.m_actions = actions;
     }
 
     //--------------------------------------------------------------------------
@@ -58,6 +103,12 @@ class Tile
     //--------------------------------------------------------------------------
     handleClick()
     {}
+
+    //--------------------------------------------------------------------------
+    getActions()
+    {
+        return this.m_actions;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -108,7 +159,22 @@ class MineTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Mine", ["mountains_tile", "mine_tile"]);
+        let actions = [
+            new TileAction(
+                "Mine Gold.",
+                "Starting to mine for gold.",
+                "Finished mining for gold.",
+                0,
+                function(scene)
+                {
+                    game_model.m_global_resources.m_gold += 1;
+                    scene.events.emit("update_global_resources")
+                }),
+        ];
+        super("Mine",
+            ["mountains_tile", "mine_tile"],
+            undefined,
+            actions);
     }
 }
 
