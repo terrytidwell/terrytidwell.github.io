@@ -17,6 +17,7 @@ let GameScene = new Phaser.Class({
     {
         this.load.image('bg', 'assets/sky.png');
         this.load.image('crate', 'assets/star.png');
+        this.load.image('farm', 'assets/farm_stand_in.png');
     },
 
     create: function ()
@@ -24,8 +25,10 @@ let GameScene = new Phaser.Class({
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
 
+        // Background image.
         this.add.image(game_width / 2, game_height / 2, 'bg');
 
+        // Stars.
         for (let i = 0; i < 64; i++)
         {
             let x = Phaser.Math.Between(0, game_width);
@@ -37,6 +40,7 @@ let GameScene = new Phaser.Class({
             box.setInteractive();
         }
 
+        // Draw map exterior rectangle.
         graphics = this.add.graphics();
         graphics.lineStyle(2, this.grid_color, 1);
         graphics.strokeRect(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
@@ -58,6 +62,7 @@ let GameScene = new Phaser.Class({
         graphics.closePath();
         graphics.strokePath();
 
+        // Add text to each cell of map.
         for (let i = 0; i < this.grid_size_x; i++)
         {
             for (let j = 0; j < this.grid_size_y; j++)
@@ -67,11 +72,20 @@ let GameScene = new Phaser.Class({
             }
         }
 
-        camera = this.cameras.main;
-        camera.setBounds(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
+        // Set camera bounds.
+        this.cameras.main.setBounds(0, 0, this.grid_size_x * this.cell_width, this.grid_size_y * this.cell_height);
 
+        // Add a farm image to a cell.
+        this.add_image_to_cell(3, 3, "farm");
+
+        // Setup click handler.
         this.input.on('gameobjectup', this.clickHandler, this);
         this.cursors = this.input.keyboard.createCursorKeys();
+    },
+
+    add_image_to_cell(i, j, name)
+    {
+        this.add.sprite(this.cell_width * (i + 0.5), this.cell_height * (j + 0.5), name)
     },
 
     clickHandler: function (pointer, box)
@@ -109,9 +123,7 @@ let UIScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    initialize:
-
-        function UIScene ()
+    initialize: function ()
         {
             Phaser.Scene.call(this, { key: 'UIScene', active: true });
 
@@ -128,15 +140,16 @@ let UIScene = new Phaser.Class({
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
 
-        //  Our Text object to display the Score
+        // Our Text object to display the Score
         let info = this.add.text(10, 10, 'Score: 0', { font: '48px Arial', fill: '#000000' });
 
+        // Draw actions at the bottom of the screen here.
         let platform = this.add.sprite(game_width / 2, game_height - 50, "platform");
 
-        //  Grab a reference to the Game Scene
+        // Grab a reference to the Game Scene
         let ourGame = this.scene.get('GameScene');
 
-        //  Listen for events from it
+        // Listen for events from it
         ourGame.events.on('addScore', function () {
 
             this.score += 10;
@@ -145,14 +158,13 @@ let UIScene = new Phaser.Class({
 
         }, this);
     }
-
 });
 
 let config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    backgroundColor: '#800000',
+    backgroundColor: '#808080',
     parent: 'phaser-example',
     scene: [ GameScene, UIScene ]
 };
