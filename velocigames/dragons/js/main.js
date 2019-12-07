@@ -37,8 +37,8 @@ let GameScene = new Phaser.Class({
         this.load.image('mine_tile', 'assets/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
-        this.load.image('selection_overlay', 'assets/selection_box.png');
-        this.load.image('hover_overlay', 'assets/selection_box_hover.png');
+        this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
+        this.load.image('hover_overlay', 'assets/selection_box/selection_box_hover.png');
         this.load.spritesheet('terrain', 'assets/terrain-v7.png',
             { frameWidth: 32, frameHeight: 32 });
     },
