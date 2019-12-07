@@ -2,19 +2,46 @@
 class TileAction
 {
     //--------------------------------------------------------------------------
-    constructor(button_text, active_text, duration_seconds, execute_fn)
+    constructor(values)
     {
-        this.m_button_text = button_text;
-        this.m_active_text = active_text;
-        this.m_duration_seconds = duration_seconds;
-        this.m_execute_fn = execute_fn;
+        values = utils.add_defaults({
+            button_text:"button_text",
+            cost_text: null,
+            cost_check_fn: function () { return true; },
+            active_text: "active_text",
+            duration_seconds: 0,
+            begin_fn: function() {},
+            end_fn: function() {},
+        }, values);
+
+        let self = this;
+        this.m_button_text = values.button_text;
+        this.m_cost_text = values.cost_text;
+        this.m_cost_check_fn = values.cost_check_fn;
+        this.m_active_text = values.active_text;
+        this.m_duration_seconds = values.duration_seconds;
+        this.m_begin_fn = values.begin_fn;
+        this.m_end_fn = values.end_fn;
+        this.m_execute_fn = function(scene)
+        {
+            self.m_begin_fn(scene, self);
+            self.setActive(scene,true);
+            scene.time.delayedCall(
+                self.m_duration_seconds * MILLIS_PER_SECOND,
+                function ()
+                {
+                    self.m_end_fn(scene, self);
+                    self.setActive(scene,false);
+                });
+        };
         this.m_is_active = false;
     }
 
     //--------------------------------------------------------------------------
     getButtonText()
     {
-        return this.m_button_text;
+        return this.m_button_text
+            + (null !== this.m_cost_text ? "\nCost: " + this.m_cost_text : "");
     }
 
     //--------------------------------------------------------------------------
@@ -42,9 +69,19 @@ class TileAction
     }
 
     //--------------------------------------------------------------------------
-    setActive(is_active)
+    isCostMet()
     {
-        this.m_is_active = is_active;
+        return this.m_cost_check_fn();
+    }
+
+    //--------------------------------------------------------------------------
+    setActive(scene, is_active)
+    {
+        if (is_active !== this.m_is_active)
+        {
+            this.m_is_active = is_active;
+            scene.events.emit("update_actions");
+        }
     }
 }
 
@@ -166,15 +203,16 @@ class MineTile extends Tile
     constructor()
     {
         let actions = [
-            new TileAction(
-                "Mine Gold",
-                "Mining for gold.",
-                0,
-                function(scene)
+            new TileAction({
+                button_text: "Mine Gold",
+                active_text: "Mining for gold",
+                duration_seconds: 0.5,
+                end_fn: function(scene)
                 {
                     game_model.m_global_resources.m_gold += 1;
                     scene.events.emit("update_global_resources")
-                }),
+                },
+            }),
         ];
         super("Mine",
             ["mine_tile"],
@@ -190,15 +228,32 @@ class FarmTile extends Tile
     constructor()
     {
         let actions = [
-            new TileAction(
-                "Raise Cow",
-                "Nurturing cow.",
-                5,
-                function(scene)
+            new TileAction({
+                button_text: "Raise Cow",
+                duration_seconds: 5,
+                active_text: "Nurturing cow",
+                end_fn: function(scene, action)
                 {
                     game_model.m_global_resources.m_cows += 1;
+                    scene.events.emit("update_global_resources");
+                }
+            }),
+            new TileAction({
+                button_text: "Sell Cow",
+                cost_text: "1 cow",
+                cost_check_fn: function ()
+                {
+                    return game_model.m_global_resources.m_cows >= 1;
+                },
+                active_text: "Putting cow up for sale",
+                duration_seconds: 2,
+                end_fn: function(scene)
+                {
+                    game_model.m_global_resources.m_cows -= 1;
+                    game_model.m_global_resources.m_gold += 5;
                     scene.events.emit("update_global_resources")
-                }),
+                }
+            }),
         ];
         super(
             "Farm",
