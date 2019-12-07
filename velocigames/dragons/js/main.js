@@ -70,7 +70,7 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('score_texture', 'assets/dashboard/stats_display2.png');
         this.load.image('control_texture', 'assets/dashboard/control_display.png');
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
-        this.load.image('cow', 'assets/cow/cow_head.png');
+        this.load.image('cow_head', 'assets/cow/cow_head.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
             'assets/buttons/button_grey2C.png');
@@ -247,6 +247,7 @@ let UIScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
+
     },
 
     //--------------------------------------------------------------------------
