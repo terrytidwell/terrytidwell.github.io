@@ -306,7 +306,7 @@ class TileMapView
                         z);
                     tile_game_object.setInteractive();
                     tile_game_object.on(
-                        "pointerup",
+                        Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                         function (pointer, localX, localY, event)
                         {
                             // BUG: patch stopPropagation to set cancelled

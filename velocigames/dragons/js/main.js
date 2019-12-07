@@ -114,7 +114,6 @@ let GameScene = new Phaser.Class({
         this.m_cursor_keys.letter_down = this.input.keyboard.addKey("s");
     },
 
-
     //--------------------------------------------------------------------------
     update: function()
     {
@@ -149,8 +148,6 @@ let UIScene = new Phaser.Class({
     initialize: function ()
     {
         Phaser.Scene.call(this, { key: 'UIScene', active: true });
-
-        this.score = 0;
     },
 
     //--------------------------------------------------------------------------
@@ -158,11 +155,14 @@ let UIScene = new Phaser.Class({
     {
         this.load.image('action_texture', 'assets/black_texture.jpg');
         this.load.image('score_texture', 'assets/white_leather_texture.jpg');
+        this.load.image('button_passive', 'assets/buttons/button_grey.png');
+        this.load.image('button_active',
+            'assets/buttons/button_grey_active.png');
         this.load.svg('volume_off',
             'assets/volume_off-24px.svg');
         this.load.svg('volume_on',
             'assets/volume_up-24px.svg');
-        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3')
+        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3');
     },
 
     //--------------------------------------------------------------------------
@@ -218,7 +218,7 @@ let UIScene = new Phaser.Class({
 
         volume_control.setInteractive();
         volume_control.my_state = {on:false};
-        volume_control.on('pointerup',
+        volume_control.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
             function(pointer, localX, localY, event)
             {
                 event.stopPropagation();
@@ -262,8 +262,9 @@ let UIScene = new Phaser.Class({
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
         let action_state = {
+            m_game_scene: game_scene,
             m_tile_game_object: null,
-            m_action_buttons: null,
+            m_destroyables: null,
         };
         game_scene.events.on("update_selected_tile",
             function (tile)
@@ -271,10 +272,10 @@ let UIScene = new Phaser.Class({
                 if (null !== action_state.m_tile_game_object)
                 {
                     action_state.m_tile_game_object.destroy();
-                    for (let key in action_state.m_action_buttons)
+                    for (let key in action_state.m_destroyables)
                     {
-                        let action_button = action_state.m_action_buttons[key];
-                        action_button.destroy();
+                        let destroyable = action_state.m_destroyables[key];
+                        destroyable.destroy();
                     }
                 }
 
@@ -289,22 +290,39 @@ let UIScene = new Phaser.Class({
                 let actions = tile.getActions();
                 for (let key in actions)
                 {
-                    if (null == action_state.m_action_buttons)
+                    if (null == action_state.m_destroyables)
                     {
-                        action_state.m_action_buttons = [];
+                        action_state.m_destroyables = [];
                     }
                     let action = actions[key];
-                    let button_text = action.getButtonText();
-                    let action_button = this.add.text(
+                    let button_text_str = action.getButtonText();
+                    let botton_game_object = this.add.image(
                         300, layout_info.m_action_height / 2 + action_area_top,
-                        button_text, { font: "20px Arial", fill: "#FFFFff", background:"#808080" });
-                    action_state.m_action_buttons.push(action_button);
-                    action_button.on("pointerup",
+                        "button_passive");
+                    action_state.m_destroyables.push(botton_game_object);
+                    let text_game_object = this.add.text(
+                        300, layout_info.m_action_height / 2 + action_area_top,
+                        button_text_str, { font: "20px Arial", fill: "#FFFFff", background:"#808080" });
+                    text_game_object.setOrigin(0.5, 0.5);
+                    action_state.m_destroyables.push(text_game_object);
+
+                    botton_game_object.setInteractive();
+                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
                         function ()
                         {
-                            action_button.setText(action.getBeginText());
+                            botton_game_object.setTexture("button_active");
+                        });
+                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT,
+                        function ()
+                        {
+                            botton_game_object.setTexture("button_passive");
+                        });
+                    botton_game_object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+                        function ()
+                        {
+                            text_game_object.setText(action.getBeginText());
                             // todo sleep
-                            action.getExecuteFn()();
+                            action.getExecuteFn()(action_state.m_game_scene);
                         })
                 }
 
