@@ -153,11 +153,15 @@ let UIScene = new Phaser.Class({
     preload: function ()
     {
         this.load.image('platform', 'assets/platform.png');
+        this.load.image('volume_off', 'assets/baseline_volume_off_black_48dp.png')
+        this.load.image('volume_on', 'assets/baseline_volume_up_black_48dp.png')
+        this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3')
     },
 
     //--------------------------------------------------------------------------
     create: function ()
     {
+        this.bgm = this.sound.add('bgm');
         let game_width = this.game.config.width;
         let game_height = this.game.config.height;
 
@@ -166,6 +170,31 @@ let UIScene = new Phaser.Class({
 
         // Draw actions at the bottom of the screen here.
         let platform = this.add.sprite(game_width / 2, game_height - 50, "platform");
+        let volume_control = this.add.sprite(game_width-24, 24, 'volume_off').setInteractive();
+        let bgm = this.sound.add('bgm');
+        bgm.setLoop(true);
+        this.sound.pauseOnBlur = false;
+        let load = this.load;
+        volume_control.scale = 0.5;
+        volume_control.my_state = {on:false};
+        volume_control.on('pointerup',
+        function(pointer, localX, localY, event) {
+            event.stopPropagation();
+            if (volume_control.my_state.on) {
+                volume_control.my_state.on = false;
+                volume_control.setTexture('volume_off');
+                bgm.stop()
+            }
+            else {
+                if (load.isLoading())
+                {
+                    return;
+                }
+                bgm.play();
+                volume_control.my_state.on = true;
+                volume_control.setTexture('volume_on');
+            }
+        });
 
         // Grab a reference to the Game Scene
         let ourGame = this.scene.get('GameScene');
@@ -179,6 +208,7 @@ let UIScene = new Phaser.Class({
 
         }, this);
     }
+
 });
 
 let config = {
