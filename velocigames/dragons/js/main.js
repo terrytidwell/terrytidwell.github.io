@@ -175,14 +175,14 @@ let GameScene = new Phaser.Class({
         graphics.strokePath();
 
         // Add text to each cell of map.
-        for (let i = 0; i < this.m_grid_size_x; i++)
+        for (let i = 1; i <= this.m_grid_size_x; i++)
         {
-            for (let j = 0; j < this.m_grid_size_y; j++)
+            for (let j = 1; j <= this.m_grid_size_y; j++)
             {
                 let text = this.add.text(
-                    (i + 0.5) * this.m_cell_width,
-                    (j + 0.5) * this.m_cell_height,
-                    i + "," + j);
+                    (i - 0.5) * this.m_cell_width,
+                    (j - 0.5) * this.m_cell_height,
+                    j + "," + i);
                 text.setOrigin(0.5, 0.5);
             }
         }
@@ -208,6 +208,8 @@ let GameScene = new Phaser.Class({
         this.cameras.main.setSize(
             game_width,
             game_height - layout_info.m_score_height - layout_info.m_action_height);
+
+        //this.addGridOverlay();
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
