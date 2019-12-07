@@ -36,6 +36,7 @@ let GameScene = new Phaser.Class({
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
         this.load.image('selection_overlay', 'assets/selection_box.png');
+        this.load.spritesheet('terrain', 'assets/terrain-v7.png', { frameWidth: 32, frameHeight: 32 });
     },
 
     //--------------------------------------------------------------------------
@@ -116,22 +117,22 @@ let GameScene = new Phaser.Class({
         if (this.m_cursor_keys.left.isDown
             || this.m_cursor_keys.letter_left.isDown)
         {
-            this.cameras.main.scrollX -= 4;
+            this.cameras.main.scrollX -= 8;
         }
-        else if (this.m_cursor_keys.right.isDown
+        if (this.m_cursor_keys.right.isDown
             || this.m_cursor_keys.letter_right.isDown)
         {
-            this.cameras.main.scrollX += 4;
+            this.cameras.main.scrollX += 8;
         }
-        else if (this.m_cursor_keys.up.isDown
+        if (this.m_cursor_keys.up.isDown
             || this.m_cursor_keys.letter_up.isDown)
         {
-            this.cameras.main.scrollY -= 4;
+            this.cameras.main.scrollY -= 8;
         }
-        else if (this.m_cursor_keys.down.isDown
+        if (this.m_cursor_keys.down.isDown
             || this.m_cursor_keys.letter_down.isDown)
         {
-            this.cameras.main.scrollY += 4;
+            this.cameras.main.scrollY += 8;
         }
     }
 });
@@ -290,6 +291,7 @@ let config = {
     height: 600,
     backgroundColor: '#70D070',
     autoFocus: true,
+    render: {pixelArt: true},
     scene: [ GameScene, UIScene ]
 };
 

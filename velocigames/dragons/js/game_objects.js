@@ -2,10 +2,11 @@
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor(display_name, image_key)
+    constructor(display_name, image_key, image_index)
     {
         this.m_display_name = display_name;
         this.m_image_key = image_key;
+        this.m_image_index = image_index;
     }
 
     //--------------------------------------------------------------------------
@@ -35,6 +36,14 @@ class Tile
             }
             game_object = container
         }
+        else if (this.m_image_index)
+        {
+            let image = scene.add.image(0, 0, image_key, this.m_image_index)
+            image.setOrigin(0, 0);
+            image.scale = 2;
+
+            game_object = image
+        }
         else
         {
             let image = scene.add.image(0, 0, image_key);
@@ -55,7 +64,27 @@ class PlainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Plains", "plains_tile");
+        super("Plains", "terrain", 32*12 + Math.floor(Math.random()*3));
+    }
+}
+
+//------------------------------------------------------------------------------
+class PlainsTopTile extends Tile
+{
+    //--------------------------------------------------------------------------
+    constructor()
+    {
+        super("Plains", "terrain", 32*41+5);
+    }
+}
+
+//------------------------------------------------------------------------------
+class PlainsTop2Tile extends Tile
+{
+    //--------------------------------------------------------------------------
+    constructor()
+    {
+        super("Mountains", "terrain", 32*40+4);
     }
 }
 
@@ -65,7 +94,7 @@ class MountainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Mountains", "mountains_tile");
+        super("Mountains", "terrain", 26*32+18+Math.floor(Math.random()*3));
     }
 }
 
@@ -265,9 +294,24 @@ class VillageArea extends GameArea
                 this.m_tile_map.setTile(x, y, tile);
             }
         }
-        let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
-        let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.m_tile_map.setTile(mine_x, mine_y, new MineTile());
-        this.m_tile_map.setTile(3, 3, new FarmTile());
+        for (let x = 0; x < this.m_tile_map.getWidth();++x)
+        {
+            if (x < this.m_tile_map.getHeight())
+            {
+                this.m_tile_map.setTile(x, x, new PlainsTopTile());
+            }
+            if (x+1 < this.m_tile_map.getHeight())
+            {
+                this.m_tile_map.setTile(x, x+1, new PlainsTop2Tile());
+            }
+        }
+        //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
+        //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
+        this.m_tile_map.setTile(8, 10, new MineTile());
+        this.m_tile_map.setTile(4, 3, new FarmTile());
+
+        //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
+        //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
+        //this.m_tile_map.setTile(1, 2, new PlainsTopTile());
     }
 }
