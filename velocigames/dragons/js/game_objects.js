@@ -1174,6 +1174,7 @@ class DragonSteelsCoin
         );
         sprite.setDepth(2); // ensure not behind tiles
         sprite.flipX = true;
+        sprite.setTint(0xF03030);
         scene.anims.create({
             key: "flying_dragon",
             frames: scene.anims.generateFrameNumbers("flying_dragon_spritesheet"),
