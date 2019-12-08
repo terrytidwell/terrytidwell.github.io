@@ -229,7 +229,7 @@ let GameScene = new Phaser.Class({
             game_model.m_global_resources.m_gold += 1;
             let game_scene = game.scene.getScene("GameScene");
             game_scene.events.emit("update_global_resources");
-            // todo: Remove coin sprite.
+            game_scene.children.remove(coin_sprite);
         });
 
         // Add animated cow on map.
