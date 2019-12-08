@@ -1115,6 +1115,8 @@ class DroppedResource
             duration: 1000,
             ease: 'Sine.easeOut',
         });
+
+        return sprite;
     }
 }
 
@@ -1128,6 +1130,14 @@ class Coin extends DroppedResource
             "coin_spritesheet", "spin_coin",
             "m_gold", "m_max_gold");
     }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let sprite = super.create();
+        // sprite.on();
+        return sprite;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -1139,6 +1149,41 @@ class Cow extends DroppedResource
         super(scene, tile_x, tile_y, cow_value,
             "cow_spritesheet", "playful_cow",
             "m_cows", "m_max_cows");
+    }
+}
+
+//------------------------------------------------------------------------------
+class DragonSteelsCoin
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, coin_tile_x, coin_tile_y)
+    {
+        this.scene = scene;
+        this.coin_tile_x = coin_tile_x;
+        this.coin_tile_y = coin_tile_y;
+        this.create();
+    }
+
+    create()
+    {
+        let scene = this.scene;
+        let sprite = scene.add.sprite(
+            (this.coin_tile_x + 0.5) * layout_info.m_tile_width,
+            (this.coin_tile_x + 0.5) * layout_info.m_tile_height,
+            "flying_dragon_spritesheet",
+        );
+        sprite.setDepth(2); // ensure not behind tiles
+        sprite.flipX = true;
+        scene.anims.create({
+            key: "flying_dragon",
+            frames: scene.anims.generateFrameNumbers("flying_dragon_spritesheet"),
+            frameRate: 4,
+            repeat: -1
+        });
+
+        let self = this;
+        sprite.anims.load("flying_dragon");
+        sprite.anims.play("flying_dragon");
     }
 }
 

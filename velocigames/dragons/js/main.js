@@ -401,6 +401,9 @@ let GameScene = new Phaser.Class({
             (layout_info.m_map_size_x / 2) * layout_info.m_tile_width,
             (layout_info.m_map_size_y / 2) * layout_info.m_tile_height);
 
+        // Dragon flies across screen.
+        let dragon_steels_coin = new DragonSteelsCoin(this, 10, 10);
+
         // Add grid overlay.
         if (layout_info.m_add_grid_overlay)
         {
