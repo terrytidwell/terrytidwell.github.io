@@ -1167,10 +1167,10 @@ class DragonSteelsCoin
     create()
     {
         let scene = this.scene;
-        let sprite = scene.add.sprite(
-            (this.coin_tile_x + 0.5) * layout_info.m_tile_width,
-            (this.coin_tile_x + 0.5) * layout_info.m_tile_height,
-            "flying_dragon_spritesheet",
+        let start_x = (-0.5) * layout_info.m_tile_width;
+        let start_y = (this.coin_tile_y + 0.5) * layout_info.m_tile_height;
+
+        let sprite = scene.add.sprite(start_x, start_y, "flying_dragon_spritesheet",
         );
         sprite.setDepth(2); // ensure not behind tiles
         sprite.flipX = true;
@@ -1185,6 +1185,21 @@ class DragonSteelsCoin
         let self = this;
         sprite.anims.load("flying_dragon");
         sprite.anims.play("flying_dragon");
+
+        let target_x = (layout_info.m_map_size_x + 0.5) * layout_info.m_tile_width;
+        let target_y = start_y;
+
+        let distance = Math.sqrt(Math.pow(target_x - start_x, 2) + Math.pow(target_y - start_y, 2));
+        let duration = distance / layout_info.m_dragon_fly_speed_pps * 1000;
+
+        let tween = scene.tweens.add({
+            targets: [ sprite ],
+            x: target_x,
+            y: target_y,
+            duration: duration,
+            // ease: 'Sine.easeOut',
+            repeat: -1,
+        });
     }
 }
 

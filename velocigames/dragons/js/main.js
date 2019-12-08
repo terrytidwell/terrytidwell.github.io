@@ -20,6 +20,9 @@ let layout_info = {
     m_map_size_y: 20,
     m_tile_width: 64,
     m_tile_height: 64,
+
+    m_dragon_fly_speed_pps: 4 * 64,     // pixels per second
+
     m_add_grid_overlay: false,
 
     m_button_width: 265,
