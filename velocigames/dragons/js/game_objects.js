@@ -306,22 +306,40 @@ class MountainsTile extends Tile
 }
 
 //------------------------------------------------------------------------------
-class BuildingTile extends Tile
+class UpgradeBadgeTile extends Tile
 {
 
     //--------------------------------------------------------------------------
-    constructor(values)
+    constructor()
     {
-        super(values);
+        super({});
+        this.m_parent_tile = null;
         this.m_upgrade_level = 0;
+    }
+
+    //--------------------------------------------------------------------------
+    setParentTile(parent_tile)
+    {
+        this.m_parent_tile = parent_tile;
+    }
+
+    //--------------------------------------------------------------------------
+    getDisplayName()
+    {
+        return this.m_parent_tile.getDisplayName();
     }
 
     //--------------------------------------------------------------------------
     createGameObject(scene)
     {
-        this.m_upgrade_object = scene.add.image(
+        return scene.add.image(
             0, 0, "upgrade_spritesheet", this.m_upgrade_level);
-        return super.createGameObject(scene);
+    }
+
+    //--------------------------------------------------------------------------
+    getActions()
+    {
+        return this.m_parent_tile.getActions();
     }
 
     //--------------------------------------------------------------------------
@@ -342,8 +360,24 @@ class BuildingTile extends Tile
         if (this.m_upgrade_level + 1 < this.getMaxUpgradeLevel())
         {
             this.m_upgrade_level += 1;
-            this.m_upgrade_object.setFrame(this.m_upgrade_level);
         }
+    }
+}
+
+//------------------------------------------------------------------------------
+class BuildingTile extends Tile {
+
+    //--------------------------------------------------------------------------
+    constructor(values)
+    {
+        super(values);
+        this.m_upgrade_badge_tile = null;
+    }
+
+    //------------------------------------------------------------------------------
+    getUpgradeBadgeTile()
+    {
+        return this.m_upgrade_badge_tile;
     }
 }
 
@@ -351,7 +385,7 @@ class BuildingTile extends Tile
 class MineTile extends BuildingTile
 {
     //--------------------------------------------------------------------------
-    constructor(x, y)
+    constructor(x, y, game_area, upgrade_badge_tile)
     {
         let actions = [
             new TileAction({
@@ -360,11 +394,44 @@ class MineTile extends BuildingTile
                     "Mining for gold": 10,
                     "Digging in mine": 3,
                     "Swinging pick axe": 3,
-                    "Picking nose": 1},
+                    "Picking nose": 1,
+                },
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
                     let coin = new Coin(scene, x, y, 1);
+                },
+            }),
+            new TileAction({
+                button_text: "Upgrade Mine",
+                cost_text_fn: function() {
+                    return (upgrade_badge_tile.getUpgradeLevel() + 1)
+                        * 20 + " gold"
+                },
+                duration_seconds: 5,
+                active_text: {
+                    "Hiring miners": 10,
+                    "Intalling new equipment": 1,
+                    "Sharpening pickaxes": 1,
+                    "Digging deeper": 1,
+                    "Hunting balrogs": 1,
+                },
+                cost_check_fn: function ()
+                {
+                    return game_model.m_global_resources.m_gold >=
+                        (upgrade_badge_tile.getUpgradeLevel() + 1) * 20;
+                },
+                begin_fn: function (scene, action)
+                {
+                    game_model.m_global_resources.m_gold -=
+                        (upgrade_badge_tile.getUpgradeLevel() + 1) * 20;
+                    scene.events.emit("update_global_resources");
+                },
+                end_fn: function(scene)
+                {
+                    upgrade_badge_tile.upgradeBuilding();
+                    game_area.getTileMap().setTile(
+                        x, y, GameArea.BADGE_LAYER, upgrade_badge_tile)
                 },
             }),
         ];
@@ -374,6 +441,7 @@ class MineTile extends BuildingTile
             actions: actions,
             x: x, y: y
         });
+        this.m_upgrade_badge_tile = upgrade_badge_tile
     }
 }
 
@@ -1025,8 +1093,15 @@ class GameArea
     //--------------------------------------------------------------------------
     addBuilding(x, y, building_tile_class)
     {
-        let building_tile = new building_tile_class(x, y);
+        let upgrade_badge_tile = new UpgradeBadgeTile();
+        let building_tile = new building_tile_class(
+            x, y, this, upgrade_badge_tile);
+        upgrade_badge_tile.setParentTile(building_tile);
+
         this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER, building_tile);
+        this.m_tile_map.setTile(x, y, GameArea.BADGE_LAYER,
+            building_tile.getUpgradeBadgeTile());
+
         if (x + 1 < this.m_tile_map.getWidth())
         {
             this.createBuildingAddTileIfPossible(x + 1, y);
@@ -1061,7 +1136,8 @@ class GameArea
 }
 GameArea.TERRAIN_LAYER = 0;
 GameArea.BUILDING_LAYER = 1;
-GameArea.MAX_LAYERS = 2;
+GameArea.BADGE_LAYER = 2;
+GameArea.MAX_LAYERS = 3;
 
 //------------------------------------------------------------------------------
 class VillageArea extends GameArea
