@@ -268,7 +268,49 @@ class MountainsTile extends Tile
 }
 
 //------------------------------------------------------------------------------
-class MineTile extends Tile
+class BuildingTile extends Tile
+{
+
+    //--------------------------------------------------------------------------
+    constructor(values)
+    {
+        super(values);
+        this.m_upgrade_level = 0;
+    }
+
+    //--------------------------------------------------------------------------
+    createGameObject(scene)
+    {
+        this.m_upgrade_object = scene.add.image(
+            0, 0, "upgrade_spritesheet", this.m_upgrade_level);
+        return super.createGameObject(scene);
+    }
+
+    //--------------------------------------------------------------------------
+    getUpgradeLevel()
+    {
+        return this.m_upgrade_level;
+    }
+
+    //--------------------------------------------------------------------------
+    getMaxUpgradeLevel()
+    {
+        return 4;
+    }
+
+    //--------------------------------------------------------------------------
+    upgradeBuilding()
+    {
+        if (this.m_upgrade_level + 1 < this.getMaxUpgradeLevel())
+        {
+            this.m_upgrade_level += 1;
+            this.m_upgrade_object.setFrame(this.m_upgrade_level);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+class MineTile extends BuildingTile
 {
     //--------------------------------------------------------------------------
     constructor(x, y)
@@ -294,7 +336,7 @@ class MineTile extends Tile
 }
 
 //------------------------------------------------------------------------------
-class FarmTile extends Tile
+class FarmTile extends BuildingTile
 {
     //--------------------------------------------------------------------------
     constructor(x, y)
@@ -344,7 +386,7 @@ class FarmTile extends Tile
 }
 
 //------------------------------------------------------------------------------
-class HoardTile extends Tile
+class HoardTile extends BuildingTile
 {
     //--------------------------------------------------------------------------
     constructor(x, y)
