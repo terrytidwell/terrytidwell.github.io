@@ -229,12 +229,6 @@ let GameScene = new Phaser.Class({
             this.addGridOverlay();
         }
 
-        // Add animated coin on map.
-        //let coin = new Coin(this, 8, 10);
-
-        // Add animated cow on map.
-        let cow = new Cow(this, 11, 8);
-
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
         this.m_cursor_keys.letter_right = this.input.keyboard.addKey("d");

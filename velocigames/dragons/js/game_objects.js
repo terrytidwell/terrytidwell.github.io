@@ -280,9 +280,7 @@ class MineTile extends Tile
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
-                    let coin = new Coin(scene, x, y);
-                    //game_model.m_global_resources.m_gold += 1;
-                    //scene.events.emit("update_global_resources")
+                    let coin = new Coin(scene, x, y, 1);
                 },
             }),
         ];
@@ -308,8 +306,7 @@ class FarmTile extends Tile
                 active_text: "Nurturing cow",
                 end_fn: function(scene, action)
                 {
-                    game_model.m_global_resources.m_cows += 1;
-                    scene.events.emit("update_global_resources");
+                    new Cow(scene, x, y, 1);
                 }
             }),
             new TileAction({
@@ -321,11 +318,19 @@ class FarmTile extends Tile
                 },
                 active_text: "Putting cow up for sale",
                 duration_seconds: 2,
-                end_fn: function(scene)
+                begin_fn: function (scene)
                 {
                     game_model.m_global_resources.m_cows -= 1;
-                    game_model.m_global_resources.m_gold += 5;
-                    scene.events.emit("update_global_resources")
+                    scene.events.emit("update_global_resources");
+
+                },
+                end_fn: function(scene)
+                {
+                    new Coin(scene, x, y, 1);
+                    new Coin(scene, x, y, 1);
+                    new Coin(scene, x, y, 1);
+                    new Coin(scene, x, y, 1);
+                    new Coin(scene, x, y, 1);
                 }
             }),
         ];
@@ -614,14 +619,26 @@ class TileMapView
 //##############################################################################
 
 //------------------------------------------------------------------------------
-class Coin
+class DroppedResource
 {
     //--------------------------------------------------------------------------
-    constructor(scene, tile_x, tile_y)
+    constructor(scene, tile_x, tile_y, value, sprite_sheet_key,
+                anim_key, global_resource_key, global_max_resource_key)
     {
         this.scene = scene;
         this.tile_x = tile_x;
         this.tile_y = tile_y;
+        this.value = value;
+        this.value_scale = 0.01;
+
+        this.spit_distance_min = 1;
+        this.spit_distance_max = 2;
+
+        this.sprite_sheet_key = sprite_sheet_key;
+        this.anim_key = anim_key;
+        this.global_resource_key = global_resource_key;
+        this.global_max_resource_key = global_max_resource_key;
+
         this.create();
     }
 
@@ -629,44 +646,72 @@ class Coin
     create()
     {
         let scene = this.scene;
-        let coin_sprite = scene.add.sprite(
+        // let sprite = scene.add.sprite({
+        //     "x": (this.tile_x + 0.5) * layout_info.m_tile_width,
+        //     "y": (this.tile_y + 0.5) * layout_info.m_tile_height,
+        //     "key": this.sprite_sheet_key,
+        //     // "scale": {
+        //     //     x: 1 + this.value * this.value_scale,
+        //     //     y: 1 + this.value * this.value_scale,
+        //     // }
+        // });
+        let sprite = scene.add.sprite(
             (this.tile_x + 0.5) * layout_info.m_tile_width,
             (this.tile_y + 0.5) * layout_info.m_tile_height,
-            "coin_spritesheet");
+            this.sprite_sheet_key,
+            // "scale": {
+            //     x: 1 + this.value * this.value_scale,
+            //     y: 1 + this.value * this.value_scale,
+            // }
+        );
         scene.anims.create({
-            key: "spin_coin",
-            frames: scene.anims.generateFrameNumbers("coin_spritesheet"),
+            key: this.anim_key,
+            frames: scene.anims.generateFrameNumbers(this.sprite_sheet_key),
             frameRate: 30,
             repeat: -1
         });
-        coin_sprite.anims.load("spin_coin");
-        coin_sprite.anims.play("spin_coin");
-        console.log("Spin coin created");
+
+        let self = this;
+        sprite.anims.load(this.anim_key);
+        sprite.anims.play(this.anim_key);
+
         let hit_area = new Phaser.Geom.Rectangle(
             (this.tile_x + 0.5) * layout_info.m_tile_width - 64,
             (this.tile_y + 0.5) * layout_info.m_tile_height - 64,
             128, 128
         );
-        coin_sprite.setInteractive({"hitArea": hit_area});
-        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer, localX, localY, event) {
+        sprite.setInteractive({"hitArea": hit_area});
+        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function (pointer, localX, localY, event) {
             event.stopPropagation();
-            if (game_model.m_global_resources.m_gold + 1 < game_model.m_global_resources.m_max_gold)
+            if (game_model.m_global_resources[self.global_resource_key] + self.value <
+                game_model.m_global_resources[self.global_max_resource_key])
             {
-                game_model.m_global_resources.m_gold += 1;
+                game_model.m_global_resources[self.global_resource_key] += self.value;
                 scene.events.emit("update_global_resources");
-                scene.children.remove(coin_sprite);
+                scene.children.remove(sprite);
             }
             else
             {
                 // TODO play bad noise and show x sprite?
+                console.log("unable to remove coin");
             }
         });
 
-        let coin = this;
+        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer, localX, localY, event)
+        {
+            event.stopPropagation();
+        });
+
+
+            let spit_distance = Math.random() * (this.spit_distance_max - this.spit_distance_min) + this.spit_distance_min;
+        let radians = Math.random() * 2 * Math.PI;
+        let target_x = ((this.tile_x + 0.5) + Math.cos(radians) * spit_distance);
+        let target_y = ((this.tile_y + 0.5) + Math.sin(radians) * spit_distance);
+
         let tween = scene.tweens.add({
-            targets: [ coin_sprite ],
-            x: (coin.tile_x + 0.5 + 3 * (Math.random() - 0.5)) * layout_info.m_tile_width,
-            y: (coin.tile_y + 1.5 + (Math.random() - 0.5)) * layout_info.m_tile_height,
+            targets: [ sprite ],
+            x: (target_x) * layout_info.m_tile_width,
+            y: (target_y) * layout_info.m_tile_height,
             duration: 1000,
             ease: 'Sine.easeOut',
         });
@@ -674,33 +719,26 @@ class Coin
 }
 
 //------------------------------------------------------------------------------
-class Cow
+class Coin extends DroppedResource
 {
     //--------------------------------------------------------------------------
-    constructor(scene, tile_x, tile_y)
+    constructor(scene, tile_x, tile_y, coin_value)
     {
-        this.scene = scene;
-        this.tile_x = tile_x;
-        this.tile_y = tile_y;
-        this.create();
+        super(scene, tile_x, tile_y, coin_value,
+            "coin_spritesheet", "spin_coin",
+            "m_gold", "m_max_gold");
     }
+}
 
+//------------------------------------------------------------------------------
+class Cow extends DroppedResource
+{
     //--------------------------------------------------------------------------
-    create()
+    constructor(scene, tile_x, tile_y, cow_value)
     {
-        let scene = this.scene;
-        let cow_sprite = scene.add.sprite(
-            (this.tile_x + 0.4) * layout_info.m_tile_width,
-            (this.tile_y + 0.5) * layout_info.m_tile_height,
-            "cow_spritesheet");
-        scene.anims.create({
-            key: "playful_cow",
-            frames: scene.anims.generateFrameNumbers("cow_spritesheet"),
-            frameRate: 30,
-            repeat: -1
-        });
-        cow_sprite.anims.load("playful_cow");
-        cow_sprite.anims.play("playful_cow");
+        super(scene, tile_x, tile_y, cow_value,
+            "cow_spritesheet", "playful_cow",
+            "m_cows", "m_max_cows");
     }
 }
 
