@@ -120,8 +120,9 @@ let LoadingScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     complete: function()
     {
-        this.scene.start('GameScene');
-        this.scene.start('UIScene');
+        this.scene.start('TitleScreen');
+        //this.scene.start('GameScene');
+        //this.scene.start('UIScene');
         this.scene.get('GameScene').time.delayedCall(
             250, function() { game.scene.remove('LoadingScreen'); });
     },
@@ -137,6 +138,160 @@ let LoadingScreen = new Phaser.Class({
     },
 });
 
+let TitleScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'TitleScreen', active: false });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        this.cameras.main.setBackgroundColor("#000000");
+        this.titleText = this.add.text(
+            game_width / 2, game_height / 2,
+            "Dragon Age: Origins", { fontSize: '32px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.titleText.alpha = 0;
+
+        this.play_button = this.add.text(
+            game_width / 2, game_height / 2 + 64,
+            "Play", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.play_button.alpha = 0;
+        this.play_button.setInteractive();
+        this.play_button.on('pointerover',function(pointer){
+            if (this.alpha >= 0.5)
+            {
+                this.alpha = 1;
+            }
+        });
+        this.play_button.on('pointerout',function(pointer){
+            if (this.alpha >= 0.5)
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.play_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event)
+            {
+                this.scene.start('GameScene');
+                this.scene.start('UIScene');
+                this.scene.get('GameScene').time.delayedCall(
+                    250, function() { game.scene.remove('TitleScreen'); });
+            }, this);
+
+        this.credit_button = this.add.text(
+            game_width / 2, game_height / 2 + 64+48,
+            "Credits", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.credit_button.alpha = 0;
+        this.credit_button.setInteractive();
+        this.credit_button.on('pointerover',function(pointer){
+            if (this.alpha >= 0.5)
+            {
+                this.alpha = 1;
+            }
+        });
+        this.credit_button.on('pointerout',function(pointer){
+            if (this.alpha >= 0.5)
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.credit_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event)
+            {
+                this.scene.start('CreditsScreen');
+                this.scene.stop('TitleScreen');
+            }, this);
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+        if (this.titleText.alpha < 1)
+        {
+            this.titleText.alpha += 0.0125
+        }
+        else {
+            this.titleText.alpha = 1;
+            if (this.credit_button.alpha < 0.5)
+            {
+                this.credit_button.alpha += 0.05;
+                this.play_button.alpha += 0.05;
+            }
+        }
+    },
+});
+
+let CreditsScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    credits: ["Created in 48 hours by:","Alex S. from Rolla","Arik","Louis",
+        "Michael","Michelle","Nancy","Terry","Vanessa",
+        "","Music:","Suonatore di Liuto Kevin MacLeod (incompetech.com)\n" +
+    "Licensed under Creative Commons: By Attribution 3.0 License\n" +
+    "http://creativecommons.org/licenses/by/3.0/",
+    "","Special Thanks To:","Barry","Joe","Ethan","Leon","Anton","Katie","Emily"],
+
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'CreditsScreen', active: false });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        this.cameras.main.scrollY = 0;
+        this.cameras.main.setBackgroundColor("#000000");
+        let offset = 18;
+        this.max_credit_y = 0;
+        for (const credit of this.credits)
+        {
+            let text = this.add.text(
+                game_width / 2, game_height + offset,
+                credit, { fontSize: '18px', fill: '#FFF' })
+                .setOrigin(0.5, 0);
+            offset += text.height + 18;
+            this.max_credit_y = text.height + text.y;
+        }
+
+
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+        this.cameras.main.scrollY += 5;
+        if (this.cameras.main.scrollY > this.max_credit_y)
+        {
+            this.scene.start('TitleScreen');
+            this.scene.stop('CreditsScreen');
+        }
+    },
+});
 
 let GameScene = new Phaser.Class({
 
@@ -541,7 +696,7 @@ let config = {
     backgroundColor: '#70D070',
     autoFocus: true,
     render: {pixelArt: true},
-    scene: [ LoadingScreen, GameScene, UIScene ]
+    scene: [ LoadingScreen, TitleScreen, CreditsScreen, GameScene, UIScene ]
 };
 
 let game = new Phaser.Game(config);
