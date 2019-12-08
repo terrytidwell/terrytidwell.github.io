@@ -444,6 +444,44 @@ class TileMapView
 //##############################################################################
 
 //------------------------------------------------------------------------------
+class Coin
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, tile_x, tile_y)
+    {
+        this.scene = scene;
+        this.tile_x = tile_x;
+        this.tile_y = tile_y;
+        this.create();
+    }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let scene = this.scene;
+        let coin_sprite = scene.add.sprite(
+            (this.tile_x + 0.5) * layout_info.m_tile_width, (this.tile_y + 0.5) * layout_info.m_tile_height, "coin_spritesheet");
+        scene.anims.create({
+            key: "spin_coin",
+            frames: scene.anims.generateFrameNumbers("coin_spritesheet"),
+            frameRate: 30,
+            repeat: -1
+        });
+        coin_sprite.anims.load("spin_coin");
+        coin_sprite.anims.play("spin_coin");
+        console.log("Spin coin created");
+        coin_sprite.setInteractive();
+        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
+            game_model.m_global_resources.m_gold += 1;
+            scene.events.emit("update_global_resources");
+            scene.children.remove(coin_sprite);
+        });
+    }
+}
+
+//##############################################################################
+
+//------------------------------------------------------------------------------
 class GameArea
 {
     //--------------------------------------------------------------------------

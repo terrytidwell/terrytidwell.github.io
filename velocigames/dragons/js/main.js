@@ -213,24 +213,7 @@ let GameScene = new Phaser.Class({
         }
 
         // Add animated coin on map.
-        let coin_sprite = this.add.sprite(
-            8.5 * layout_info.m_tile_width, 10.5 * layout_info.m_tile_height, "coin_spritesheet");
-        this.anims.create({
-            key: "spin_coin",
-            frames: this.anims.generateFrameNumbers("coin_spritesheet"),
-            frameRate: 30,
-            repeat: -1
-        });
-        coin_sprite.anims.load("spin_coin");
-        coin_sprite.anims.play("spin_coin");
-        console.log("Spin coin created");
-        coin_sprite.setInteractive();
-        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
-            game_model.m_global_resources.m_gold += 1;
-            let game_scene = game.scene.getScene("GameScene");
-            game_scene.events.emit("update_global_resources");
-            game_scene.children.remove(coin_sprite);
-        });
+        let coin = new Coin(this, 8, 10);
 
         // Add animated cow on map.
         let cow_sprite = this.add.sprite(
