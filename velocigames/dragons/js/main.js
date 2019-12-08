@@ -173,7 +173,7 @@ let GameScene = new Phaser.Class({
                 let text = this.add.text(
                     (i + 0.5) * layout_info.m_tile_width,
                     (j + 0.5) * layout_info.m_tile_height,
-                    j + "," + i);
+                    i + "," + j);
                 text.setOrigin(0.5, 0.5);
             }
         }
@@ -208,6 +208,18 @@ let GameScene = new Phaser.Class({
         {
             this.addGridOverlay();
         }
+
+        // Add animated coin on map.
+        sprite = this.add.sprite(
+            13.5 * layout_info.m_tile_width, 9.5 * layout_info.m_tile_height, "coin_animated");
+        this.anims.create({
+            key: "spin_coin",
+            frames: this.anims.generateFrameNumbers("coin_animated"),
+            frameRate: 20,
+            repeat: -1
+        });
+        sprite.anims.load("spin_coin");
+        sprite.anims.play("spin_coin");
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
@@ -276,16 +288,6 @@ let UIScene = new Phaser.Class({
             50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
             30, layout_info.m_score_height / 2 + 2, "coin");
-        // sprite = this.add.sprite(
-        //     30, layout_info.m_score_height / 2 + 2, "coin_animated");
-        // this.anims.create({
-        //     key: "spin_coin",
-        //     frames: this.anims.generateFrameNumbers("coin_animated"),
-        //     frameRate: 20,
-        //     repeat: -1
-        // });
-        // sprite.anims.load("spin_coin");
-        // sprite.anims.play("spin_coin");
         let cows_text = this.add.text(
             200, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
