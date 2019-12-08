@@ -864,12 +864,12 @@ class TileMapView
         this.m_selection_cursor
             = this.m_scene.add.image(0, 0, "selection_overlay");
         this.m_selection_cursor.setVisible(false);
-        this.m_selection_cursor.setDepth(1);
+        this.m_selection_cursor.setDepth(constants.m_selection_cursor_depth);
 
         // TODO use me
         this.m_hover_cursor = this.m_scene.add.image(0, 0, "hover_overlay");
         this.m_hover_cursor.setVisible(false);
-        this.m_hover_cursor.setDepth(1);
+        this.m_hover_cursor.setDepth(constants.m_hover_cursor_depth);
     }
 
     //--------------------------------------------------------------------------
@@ -1058,7 +1058,7 @@ class DroppedResource
             //     y: 1 + this.value * this.value_scale,
             // }
         );
-        sprite.setDepth(2); // ensure not behind tiles
+        sprite.setDepth(constants.m_dropped_resource_depth); // ensure not behind tiles
         scene.anims.create({
             key: this.anim_key,
             frames: scene.anims.generateFrameNumbers(this.sprite_sheet_key),
@@ -1172,7 +1172,7 @@ class DragonSteelsCoin
 
         let sprite = scene.add.sprite(start_x, start_y, "flying_dragon_spritesheet",
         );
-        sprite.setDepth(2); // ensure not behind tiles
+        sprite.setDepth(constants.m_dragon_depth);
         sprite.flipX = true;
         sprite.setTint(0xF03030);
         scene.anims.create({
