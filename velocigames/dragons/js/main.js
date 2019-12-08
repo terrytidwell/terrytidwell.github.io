@@ -72,6 +72,8 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
         this.load.spritesheet('coin_spritesheet', 'assets/coin/coin.png',
             { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('cow_spritesheet', 'assets/cow/cow_projectile_sprite_sheet.png',
+            { frameWidth: 64, frameHeight: 64 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
@@ -221,6 +223,18 @@ let GameScene = new Phaser.Class({
         });
         sprite.anims.load("spin_coin");
         sprite.anims.play("spin_coin");
+
+        // Add animated cow on map.
+        sprite = this.add.sprite(
+            11.4 * layout_info.m_tile_width, 8.5 * layout_info.m_tile_height, "cow_spritesheet");
+        this.anims.create({
+            key: "playful_cow",
+            frames: this.anims.generateFrameNumbers("cow_spritesheet"),
+            frameRate: 30,
+            repeat: -1
+        });
+        sprite.anims.load("playful_cow");
+        sprite.anims.play("playful_cow");
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
