@@ -119,12 +119,16 @@ class Tile
             image_index: null,
             mouseover_image_key: null,
             actions: [],
+            x: 0,
+            y: 0,
         }, values);
         this.m_display_name = values.display_name;
         this.m_image_key = values.image_key;
         this.m_image_index = values.image_index;
         this.m_mouseover_image_key = values.mouseover_image_key;
         this.m_actions = values.actions;
+        this.m_x = values.x;
+        this.m_y = values.y;
     }
 
     //--------------------------------------------------------------------------
@@ -207,12 +211,13 @@ class Tile
 class PlainsTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x, y)
     {
         super({
             display_name: "Plains",
             image_key: "terrain",
-            image_index: 32*12 + Math.floor(Math.random()*3)
+            image_index: 32*12 + Math.floor(Math.random()*3),
+            x: x, y: y
         });
     }
 }
@@ -221,12 +226,13 @@ class PlainsTile extends Tile
 class PlainsTopTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x, y)
     {
         super({
             display_name: "Plains",
             image_key: "terrain",
-            image_index: 32*41+5
+            image_index: 32*41+5,
+            x: x, y: y
         });
     }
 }
@@ -235,12 +241,13 @@ class PlainsTopTile extends Tile
 class PlainsTop2Tile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x,y)
     {
         super({
             display_name: "Mountains",
             image_key: "terrain",
             image_index: 32 * 40 + 4,
+            x: x, y: y
         });
     }
 }
@@ -249,12 +256,13 @@ class PlainsTop2Tile extends Tile
 class MountainsTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x,y)
     {
         super({
             display_name: "Mountains",
             image_key: "terrain",
             image_index: 26 * 32 + 18 + Math.floor(Math.random() * 3),
+            x: x, y: y
         });
     }
 }
@@ -263,7 +271,7 @@ class MountainsTile extends Tile
 class MineTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x, y)
     {
         let actions = [
             new TileAction({
@@ -272,7 +280,7 @@ class MineTile extends Tile
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
-                    let coin = new Coin(scene, 8, 10);
+                    let coin = new Coin(scene, x, y);
                     //game_model.m_global_resources.m_gold += 1;
                     //scene.events.emit("update_global_resources")
                 },
@@ -282,6 +290,7 @@ class MineTile extends Tile
             display_name: "Mine",
             image_key: "mine_tile",
             actions: actions,
+            x: x, y: y
         });
     }
 }
@@ -290,7 +299,7 @@ class MineTile extends Tile
 class FarmTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor()
+    constructor(x, y)
     {
         let actions = [
             new TileAction({
@@ -324,6 +333,7 @@ class FarmTile extends Tile
             display_name: "Farm",
             image_key: "farm_tile",
             actions: actions,
+            x: x, y: y
         });
     }
 }
@@ -332,7 +342,7 @@ class FarmTile extends Tile
 class BuildingAddTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor(terrain_name)
+    constructor(terrain_name, x, y)
     {
 
         let actions = [
@@ -418,6 +428,7 @@ class BuildingAddTile extends Tile
             image_key: "plus_tile",
             mouseover_image_key: "plus_tile_hover",
             actions: actions,
+            x: x, y: y
         });
     }
 }
@@ -606,11 +617,10 @@ class TileMapView
 class Coin
 {
     //--------------------------------------------------------------------------
-    constructor(scene, tile_x, tile_y)
+    constructor(parent_tile, scene)
     {
         this.scene = scene;
-        this.tile_x = tile_x;
-        this.tile_y = tile_y;
+        this.parent_tile = parent_tile;
         this.create();
     }
 
@@ -710,11 +720,11 @@ class VillageArea extends GameArea
                 let tile = null;
                 if (x < y)
                 {
-                    tile = new MountainsTile();
+                    tile = new MountainsTile(x,y);
                 }
                 else
                 {
-                    tile = new PlainsTile();
+                    tile = new PlainsTile(x,y);
                 }
                 this.m_tile_map.setTile(x, y, this.m_terrain_layer, tile);
             }
@@ -724,17 +734,17 @@ class VillageArea extends GameArea
         {
             if (x < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x, 0, new PlainsTopTile());
+                this.m_tile_map.setTile(x, x, 0, new PlainsTopTile(x,x));
             }
             if (x+1 < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x+1, this.m_terrain_layer, new PlainsTop2Tile());
+                this.m_tile_map.setTile(x, x+1, this.m_terrain_layer, new PlainsTop2Tile(x,x+1));
             }
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.addBuilding(8, 10, new MineTile());
-        this.addBuilding(11, 8, new FarmTile());
+        this.addBuilding(8, 10, new MineTile(8, 10,));
+        this.addBuilding(11, 8, new FarmTile(11, 8));
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
@@ -767,7 +777,8 @@ class VillageArea extends GameArea
         let tile_stack = this.m_tile_map.getTileStack(x,y);
         if (tile_stack[this.m_building_layer] === null)
         {
-            this.m_tile_map.setTile(x, y, this.m_building_layer, new BuildingAddTile(tile_stack[this.m_terrain_layer].getDisplayName()));
+            this.m_tile_map.setTile(x, y, this.m_building_layer,
+                new BuildingAddTile(tile_stack[this.m_terrain_layer].getDisplayName(), x, y));
         }
     }
 }
