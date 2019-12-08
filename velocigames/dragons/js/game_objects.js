@@ -362,8 +362,10 @@ class DragonBadgeTile extends Tile
     //--------------------------------------------------------------------------
     createGameObject(scene)
     {
-        return scene.add.image(
+        let sprite = scene.add.sprite(
             0, 0, "hoard_dragon_tile");
+        sprite.setTint(0xF03030);
+        return sprite;
     }
 
     //--------------------------------------------------------------------------
