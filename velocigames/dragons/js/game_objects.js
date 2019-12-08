@@ -343,6 +343,36 @@ class UpgradeBadgeTile extends Tile
 }
 
 //------------------------------------------------------------------------------
+class DragonBadgeTile extends Tile
+{
+
+    //--------------------------------------------------------------------------
+    constructor(parent_tile)
+    {
+        super({});
+        this.m_parent_tile = parent_tile;
+    }
+
+    //--------------------------------------------------------------------------
+    getDisplayName()
+    {
+        return this.m_parent_tile.getDisplayName();
+    }
+
+    //--------------------------------------------------------------------------
+    createGameObject(scene)
+    {
+        return scene.add.image(
+            0, 0, "hoard_dragon_tile");
+    }
+
+    //--------------------------------------------------------------------------
+    getActions()
+    {
+        return this.m_parent_tile.getActions();
+    }
+}
+//------------------------------------------------------------------------------
 class BuildingTile extends Tile {
 
     //--------------------------------------------------------------------------
@@ -550,6 +580,12 @@ class HoardTile extends BuildingTile
     //--------------------------------------------------------------------------
     constructor(level, x, y, game_area)
     {
+        let has_dragon = false;
+        if (level == 4)
+        {
+            level = 3;
+            has_dragon = true;
+        }
         let actions = [];
         if (level < 3)
         {
@@ -591,6 +627,43 @@ class HoardTile extends BuildingTile
                     },
                 }))
         }
+        if (level === 3 && !has_dragon)
+        {
+            let next_level = level + 1;
+            actions.push(
+                new TileAction({
+                    button_text: "Summon Dragon",
+                    cost_text_fn: function() {
+                        return next_level * 20 + " gold"
+                    },
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
+                    active_text: {
+                        "Summoning dragon": 10,
+                    },
+                    cost_check_fn: function ()
+                    {
+                        return game_model.m_global_resources.m_gold
+                            >= next_level * 20
+                            && !actions[0].isActive();
+                    },
+                    begin_fn: function (scene, action)
+                    {
+                        game_model.m_global_resources.m_gold -=
+                            next_level * 20;
+                        scene.events.emit("update_global_resources");
+                        game_area.startConstruction({
+                            display_name: "Partial Hoard",
+                            image_key: "hoard_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
+                    },
+                    end_fn: function(scene)
+                    {
+                        game_area.addBuildingOnly(next_level, x, y, HoardTile);
+                    },
+                }))
+        }
         super({
             display_name: "Hoard",
             image_key: "hoard_" + level + "_tile",
@@ -598,6 +671,11 @@ class HoardTile extends BuildingTile
             x: x, y: y
         });
         this.m_level = level;
+        if (has_dragon)
+        {
+            this.m_upgrade_badge_tile = new DragonBadgeTile(this);
+
+        }
     }
 }
 
