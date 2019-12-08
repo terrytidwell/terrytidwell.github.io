@@ -228,7 +228,7 @@ let GameScene = new Phaser.Class({
         coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
             game_model.m_global_resources.m_gold += 1;
             let game_scene = game.scene.getScene("GameScene");
-            this.events.emit("update_global_resources");
+            game_scene.events.emit("update_global_resources");
             // todo: Remove coin sprite.
         });
 
