@@ -617,10 +617,11 @@ class TileMapView
 class Coin
 {
     //--------------------------------------------------------------------------
-    constructor(parent_tile, scene)
+    constructor(scene, tile_x, tile_y)
     {
         this.scene = scene;
-        this.parent_tile = parent_tile;
+        this.tile_x = tile_x;
+        this.tile_y = tile_y;
         this.create();
     }
 
