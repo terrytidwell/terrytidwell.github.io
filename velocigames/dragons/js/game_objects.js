@@ -8,6 +8,7 @@ class TileAction
             button_text:"button_text",
             cost_text: null,
             cost_check_fn: function () { return true; },
+            cost_text_fn: null,
             active_text: "active_text",
             duration_seconds: 0,
             begin_fn: function() {},
@@ -17,6 +18,7 @@ class TileAction
         let self = this;
         this.m_button_text = values.button_text;
         this.m_cost_text = values.cost_text;
+        this.m_cost_text_fn = values.cost_text_fn;
         this.m_cost_check_fn = values.cost_check_fn;
         this.m_active_text = values.active_text;
         this.m_duration_seconds = values.duration_seconds;
@@ -41,7 +43,24 @@ class TileAction
     getButtonText()
     {
         return this.m_button_text
-            + (null !== this.m_cost_text ? "\nCost: " + this.m_cost_text : "");
+            + this.getCostText();
+    }
+
+    //--------------------------------------------------------------------------
+    getCostText()
+    {
+        if (null !== this.m_cost_text)
+        {
+            return "\nCost: " + this.m_cost_text;
+        }
+        else if (null !== this.m_cost_text_fn)
+        {
+            return "\nCost: " + this.m_cost_text_fn();
+        }
+        else
+        {
+            return "";
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -260,6 +279,101 @@ class FarmTile extends Tile
             ["farm_tile"],
             undefined,
             actions);
+    }
+}
+
+//------------------------------------------------------------------------------
+class BuildingAddTile extends Tile
+{
+    //--------------------------------------------------------------------------
+    constructor(terrain_name)
+    {
+
+        let actions = [
+            new TileAction({
+                button_text: "Gather Hoard",
+                cost_text_fn: function() {
+                    return game_model.m_global_resources.m_hoard_cost + " gold"
+                },
+                duration_seconds: 30,
+                active_text: "Gathering Gold",
+                cost_check_fn: function ()
+                {
+                    return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_hoard_cost;
+                },
+                begin_fn: function (scene, action)
+                {
+                    game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_hoard_cost;
+                    game_model.m_global_resources.m_hoard_cost += 10;
+                    scene.events.emit("update_global_resources");
+                },
+                end_fn: function (scene, action)
+                {
+                }
+            }),
+        ];
+
+        if (terrain_name === "Mountains")
+        {
+            actions.push(
+                new TileAction({
+                    button_text: "Dig Mine",
+                    cost_text_fn: function() {
+                        return game_model.m_global_resources.m_mine_cost + " gold"
+                    },
+                    duration_seconds: 30,
+                    active_text: "Blasting away",
+                    cost_check_fn: function ()
+                    {
+                        return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_mine_cost;
+                    },
+                    begin_fn: function (scene, action)
+                    {
+                        game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_mine_cost;
+                        game_model.m_global_resources.m_mine_cost += 10;
+                        scene.events.emit("update_global_resources");
+                    },
+                    end_fn: function (scene, action)
+                    {
+                    }
+                }),
+            );
+        }
+        else if (terrain_name === "Plains")
+        {
+            actions.push(
+                new TileAction({
+                    button_text: "Found Farm",
+                    cost_text_fn: function() {
+                        return game_model.m_global_resources.m_farm_cost + " gold"
+                    },
+                    duration_seconds: 30,
+                    active_text: "Pretending to have a green thumb",
+                    cost_check_fn: function ()
+                    {
+                        return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_farm_cost;
+                    },
+                    begin_fn: function (scene, action)
+                    {
+                        game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_farm_cost;
+                        game_model.m_global_resources.m_farm_cost += 10;
+                        scene.events.emit("update_global_resources");
+
+                    },
+                    end_fn: function (scene, action)
+                    {
+                    }
+                }),
+            );
+        }
+
+        super(
+            terrain_name,
+            ["plus_tile"],
+            undefined,
+            actions);
+
+
     }
 }
 
@@ -494,17 +608,41 @@ class VillageArea extends GameArea
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.m_tile_map.setTile(8, 10, this.m_building_layer, new MineTile());
-        this.m_tile_map.setTile(11, 8, this.m_building_layer, new FarmTile());
+        this.addBuilding(8, 10, new MineTile());
+        this.addBuilding(11, 8, new FarmTile());
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
         //this.m_tile_map.setTile(1, 2, new PlainsTopTile());
     }
 
-    addBuilding(x, y)
+    addBuilding(x, y, building_tile)
     {
-
+        this.m_tile_map.setTile(x, y, this.m_building_layer, building_tile);
+        if (x+1 < this.m_tile_map.getWidth())
+        {
+            this.createBuildingAddTileIfPossible(x+1, y);
+        }
+        if (x-1 >= 0)
+        {
+            this.createBuildingAddTileIfPossible(x-1, y);
+        }
+        if (y+1 < this.m_tile_map.getHeight())
+        {
+            this.createBuildingAddTileIfPossible(x, y+1);
+        }
+        if (y-1 >= 0)
+        {
+            this.createBuildingAddTileIfPossible(x, y-1);
+        }
     }
 
+    createBuildingAddTileIfPossible(x, y)
+    {
+        let tile_stack = this.m_tile_map.getTileStack(x,y);
+        if (tile_stack[this.m_building_layer] === null)
+        {
+            this.m_tile_map.setTile(x, y, this.m_building_layer, new BuildingAddTile(tile_stack[this.m_terrain_layer].getDisplayName()));
+        }
+    }
 }

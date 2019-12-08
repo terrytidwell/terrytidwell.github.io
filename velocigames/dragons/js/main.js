@@ -3,7 +3,10 @@ let game_model = {
         m_gold: 0,
         m_max_gold: 100,
         m_cows: 0,
-        m_max_cows: 20
+        m_max_cows: 20,
+        m_farm_cost: 10,
+        m_mine_cost: 10,
+        m_hoard_cost: 10,
     },
     m_village_area: new VillageArea(),
     m_selected_tile: null,
@@ -62,6 +65,8 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('mine_tile', 'assets/mine/mine2.png');
         this.load.image('mountains_tile', 'assets/mountains.png');
         this.load.image('plains_tile', 'assets/plains.png');
+        this.load.image('plus_tile', 'assets/plus/plus_inactive.png');
+        this.load.image('plus_tile_hover', 'assets/plus/plus.png');
         this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
         this.load.image('hover_overlay', 'assets/selection_box/selection_box_hover.png');
         this.load.spritesheet('terrain', 'assets/terrain-v7.png',
