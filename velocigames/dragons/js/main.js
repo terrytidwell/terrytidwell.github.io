@@ -166,13 +166,13 @@ let GameScene = new Phaser.Class({
         graphics.strokePath();
 
         // Add text to each cell of map.
-        for (let i = 1; i <= layout_info.m_map_size_x; i++)
+        for (let i = 0; i < layout_info.m_map_size_x; i++)
         {
-            for (let j = 1; j <= layout_info.m_map_size_y; j++)
+            for (let j = 0; j < layout_info.m_map_size_y; j++)
             {
                 let text = this.add.text(
-                    (i - 0.5) * layout_info.m_tile_width,
-                    (j - 0.5) * layout_info.m_tile_height,
+                    (i + 0.5) * layout_info.m_tile_width,
+                    (j + 0.5) * layout_info.m_tile_height,
                     j + "," + i);
                 text.setOrigin(0.5, 0.5);
             }
