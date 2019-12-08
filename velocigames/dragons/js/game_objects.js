@@ -1172,7 +1172,7 @@ class DragonSteelsCoin
 
         let sprite = scene.add.sprite(start_x, start_y, "flying_dragon_spritesheet",
         );
-        sprite.setDepth(2); // ensure not behind tiles
+        sprite.setDepth(4);
         sprite.flipX = true;
         sprite.setTint(0xF03030);
         scene.anims.create({
