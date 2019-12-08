@@ -146,6 +146,7 @@ let GameScene = new Phaser.Class({
             layout_info.m_map_size_x * layout_info.m_tile_width,
             layout_info.m_map_size_y * layout_info.m_tile_height);
 
+        graphics.lineStyle(1, this.m_grid_color, 0.75);
         graphics.beginPath();
         // Draw vertical lines.
         for (let i = 1; i < layout_info.m_map_size_x; i++)
@@ -211,7 +212,7 @@ let GameScene = new Phaser.Class({
 
         // Add animated coin on map.
         sprite = this.add.sprite(
-            13.5 * layout_info.m_tile_width, 9.5 * layout_info.m_tile_height, "coin_animated");
+            8.5 * layout_info.m_tile_width, 10.5 * layout_info.m_tile_height, "coin_animated");
         this.anims.create({
             key: "spin_coin",
             frames: this.anims.generateFrameNumbers("coin_animated"),
