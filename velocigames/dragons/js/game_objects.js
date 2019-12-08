@@ -487,6 +487,46 @@ class FarmTile extends BuildingTile
                 }
             }),
         ];
+        if (level < 3)
+        {
+            let next_level = level + 1;
+            actions.push(
+                new TileAction({
+                    button_text: "Upgrade Farm",
+                    cost_text_fn: function() {
+                        return next_level * 20 + " gold"
+                    },
+                    duration_seconds: 5,
+                    active_text: {
+                        "Building another barn": 10,
+                        "Fertilizing fields": 1,
+                        "Strengthenng fences": 1,
+                    },
+                    cost_check_fn: function ()
+                    {
+                        return game_model.m_global_resources.m_gold
+                            >= next_level * 20
+                            && !actions[0].isActive()
+                            && !actions[1].isActive();
+                    },
+                    begin_fn: function (scene, action)
+                    {
+                        game_model.m_global_resources.m_gold -=
+                            next_level * 20;
+                        scene.events.emit("update_global_resources");
+                        game_area.startConstruction({
+                            display_name: "Partial farm",
+                            image_key: "farm_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
+                    },
+                    end_fn: function(scene)
+                    {
+                        game_area.addBuildingOnly(next_level, x, y, FarmTile);
+                    },
+                }))
+        }
         super({
             display_name: "Farm",
             image_key: "farm_tile",
@@ -507,9 +547,51 @@ class HoardTile extends BuildingTile
     //--------------------------------------------------------------------------
     constructor(level, x, y, game_area)
     {
+        let actions = [];
+        if (level < 3)
+        {
+            let next_level = level + 1;
+            actions.push(
+                new TileAction({
+                    button_text: "Upgrade Hoard",
+                    cost_text_fn: function() {
+                        return next_level * 20 + " gold"
+                    },
+                    duration_seconds: 5,
+                    active_text: {
+                        "Adding more gold": 10,
+                        "Taxing the peasants": 1,
+                        "MUST HAVE MOAR": 1,
+                        "Greed is good": 1,
+                    },
+                    cost_check_fn: function ()
+                    {
+                        return game_model.m_global_resources.m_gold
+                            >= next_level * 20
+                            && !actions[0].isActive();
+                    },
+                    begin_fn: function (scene, action)
+                    {
+                        game_model.m_global_resources.m_gold -=
+                            next_level * 20;
+                        scene.events.emit("update_global_resources");
+                        game_area.startConstruction({
+                            display_name: "Partial Hoard",
+                            image_key: "hoard_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
+                    },
+                    end_fn: function(scene)
+                    {
+                        game_area.addBuildingOnly(next_level, x, y, HoardTile);
+                    },
+                }))
+        }
         super({
             display_name: "Hoard",
-            image_key: "hoard_0_tile",
+            image_key: "hoard_" + level + "_tile",
+            actions: actions,
             x: x, y: y
         });
         this.m_level = level;

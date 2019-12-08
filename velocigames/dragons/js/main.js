@@ -73,6 +73,9 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('hoard_construction_tile',
             'assets/hoard/hoard_construction.png');
         this.load.image('hoard_0_tile', 'assets/hoard/hoard.png');
+        this.load.image('hoard_1_tile', 'assets/hoard/hoard2.png');
+        this.load.image('hoard_2_tile', 'assets/hoard/hoard3.png');
+        this.load.image('hoard_3_tile', 'assets/hoard/hoard4.png');
 
         this.load.spritesheet('terrain', 'assets/terrain-v7.png',
             { frameWidth: 32, frameHeight: 32 });
