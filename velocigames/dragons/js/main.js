@@ -11,6 +11,13 @@ let game_model = {
     m_village_area: new VillageArea(),
 };
 
+let constants = {
+    m_selection_cursor_depth: 1,
+    m_hover_cursor_depth: 1,
+    m_dropped_resource_depth: 2,
+    m_dragon_depth: 4,
+};
+
 let layout_info = {
     m_score_height: 64,
 
