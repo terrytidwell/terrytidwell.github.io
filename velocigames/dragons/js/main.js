@@ -633,11 +633,25 @@ let UIScene = new Phaser.Class({
         {
             let action = actions[index];
 
-            let button_x = layout_info.m_button_left_margin
-                + index * (layout_info.m_button_width
-                    + layout_info.m_button_spacing);
-            let button_y = layout_info.m_action_height / 2
-                + state.m_action_area_top;
+            let button_x, button_y;
+            if (max_index <= 2)
+            {
+                button_x = layout_info.m_button_left_margin
+                    + index * (layout_info.m_button_width
+                        + layout_info.m_button_spacing);
+                button_y = layout_info.m_action_height / 2
+                    + state.m_action_area_top;
+            }
+            else
+            {
+                let x_index = index % 2;
+                let y_index = (index - x_index) / 2;
+                button_x = layout_info.m_button_left_margin
+                    + x_index * (layout_info.m_button_width
+                        + layout_info.m_button_spacing);
+                button_y = (layout_info.m_action_height / 4) * ( 2 * y_index + 1)
+                    + state.m_action_area_top;
+            }
             let button_initial_texture = action.isActive()
                 || !action.isCostMet()
                 ? "button_busy" : "button_passive";
