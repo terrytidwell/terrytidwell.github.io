@@ -29,6 +29,8 @@ let layout_info = {
     m_button_height: 64,
     m_button_spacing: 5,
     m_button_left_margin: 350,
+    m_button_top_margin: 8,
+    m_button_bottom_margin: 6,
 
     m_tile_preview_left_center: 80,
     m_tile_preview_tile_top_center: 78,
@@ -117,11 +119,18 @@ let LoadingScreen = new Phaser.Class({
             'assets/dragon/dragon_strip.png',
             { frameWidth: 64, frameHeight: 64 });
 
-        this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
-        this.load.image('button_active',
+        this.load.image('lg_button_passive',
+            'assets/buttons/button_grey2A.png');
+        this.load.image('lg_button_active',
             'assets/buttons/button_grey2C.png');
-        this.load.image('button_busy',
+        this.load.image('lg_button_busy',
             'assets/buttons/button_grey2B.png');
+        this.load.image('md_button_passive',
+            'assets/buttons/button_grey3A.png');
+        this.load.image('md_button_active',
+            'assets/buttons/button_grey3C.png');
+        this.load.image('md_button_busy',
+            'assets/buttons/button_grey3B.png');
 
         this.load.svg('volume_off',
             'assets/volume_off-48px.svg');
@@ -640,25 +649,32 @@ let UIScene = new Phaser.Class({
             index < max_index; ++index)
         {
             let action = actions[index];
+            let adj_action_height = layout_info.m_action_height
+                - layout_info.m_button_top_margin
+                - layout_info.m_button_bottom_margin;
+            let adj_action_area_top = state.m_action_area_top
+                + layout_info.m_button_top_margin;
 
-            let button_x, button_y;
+            let button_x, button_y, button_size;
             if (max_index <= 2)
             {
+                button_size = "lg_";
                 button_x = layout_info.m_button_left_margin
                     + index * (layout_info.m_button_width
                         + layout_info.m_button_spacing);
-                button_y = layout_info.m_action_height / 2
-                    + state.m_action_area_top;
+                button_y = adj_action_height / 2
+                    + adj_action_area_top;
             }
             else
             {
+                button_size = "md_";
                 let x_index = index % 2;
                 let y_index = (index - x_index) / 2;
                 button_x = layout_info.m_button_left_margin
                     + x_index * (layout_info.m_button_width
                         + layout_info.m_button_spacing);
-                button_y = (layout_info.m_action_height / 4) * ( 2 * y_index + 1)
-                    + state.m_action_area_top;
+                button_y = (adj_action_height / 4) * ( 2 * y_index + 1)
+                    + adj_action_area_top;
             }
             let button_initial_texture = action.isActive()
                 || !action.isCostMet()
@@ -667,7 +683,7 @@ let UIScene = new Phaser.Class({
                 ? action.getActiveText() : action.getButtonText();
 
             let button_game_object = this.add.sprite(
-                button_x, button_y, button_initial_texture);
+                button_x, button_y, button_size + button_initial_texture);
             state.destroy_on_clean_up(button_game_object);
             let text_game_object = this.add.text(
                 button_x, button_y, button_initial_text,
@@ -683,18 +699,20 @@ let UIScene = new Phaser.Class({
                 if (action.isActive())
                 {
                     text_game_object.setText(action.getActiveText());
-                    button_game_object.setTexture("button_busy");
+                    button_game_object.setTexture(
+                        button_size + "button_busy");
                 }
                 else if (!action.isCostMet())
                 {
                     text_game_object.setText(action.getButtonText());
-                    button_game_object.setTexture("button_busy");
+                    button_game_object.setTexture(
+                        button_size + "button_busy");
                 }
                 else
                 {
                     text_game_object.setText(action.getButtonText());
                     button_game_object.setTexture(
-                        button_state.m_pointer_texture);
+                        button_size + button_state.m_pointer_texture);
                 }
             };
 
