@@ -117,11 +117,13 @@ class Tile
             display_name: "display_name",
             image_key: "image_key",
             image_index: null,
+            mouseover_image_key: null,
             actions: [],
         }, values);
         this.m_display_name = values.display_name;
         this.m_image_key = values.image_key;
         this.m_image_index = values.image_index;
+        this.m_mouseover_image_key = values.mouseover_image_key;
         this.m_actions = values.actions;
     }
 
@@ -138,7 +140,7 @@ class Tile
         let image_key = this.m_image_key;
         if (image_key instanceof Array)
         {
-            // not used - may be deleted
+            // todo: not used - may be deleted
             let container = scene.add.container(0, 0);
             // note: it is impossible to set the origin of a container,
             // so we have to leave everything with an origin of (0.5, 0.5)
@@ -169,7 +171,22 @@ class Tile
         {
             // simple image
             let image = scene.add.image(0, 0, image_key);
-            //image.setOrigin(0, 0);
+            // image.setOrigin(0, 0);
+            if (null !== this.m_mouseover_image_key)
+            {
+                let mouseover_image_key = this.m_mouseover_image_key;
+                image.setInteractive();
+                image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
+                    function ()
+                    {
+                        image.setTexture(mouseover_image_key);
+                    });
+                image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT,
+                    function ()
+                    {
+                        image.setTexture(image_key);
+                    });
+            }
             game_object = image
         }
         return game_object;
@@ -402,8 +419,6 @@ class BuildingAddTile extends Tile
             mouseover_image_key: "plus_tile_hover",
             actions: actions,
         });
-
-
     }
 }
 

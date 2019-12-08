@@ -58,7 +58,9 @@ let LoadingScreen = new Phaser.Class({
         this.newGraphics.fillRectShape(progressBarFill);
         */
 
-        this.loadingText = this.add.text(game_width/2, game_height/2, "0%", { fontSize: '32px', fill: '#FFF' })
+        this.loadingText = this.add.text(
+            game_width / 2, game_height / 2,
+            "0%", { fontSize: '32px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
         this.load.image('farm_tile', 'assets/farm/farm.png');
@@ -67,17 +69,23 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('plains_tile', 'assets/plains.png');
         this.load.image('plus_tile', 'assets/plus/plus_inactive.png');
         this.load.image('plus_tile_hover', 'assets/plus/plus.png');
-        this.load.image('selection_overlay', 'assets/selection_box/selection_box.png');
-        this.load.image('hover_overlay', 'assets/selection_box/selection_box_hover.png');
+        this.load.image('selection_overlay',
+            'assets/selection_box/selection_box.png');
+        this.load.image('hover_overlay',
+            'assets/selection_box/selection_box_hover.png');
         this.load.spritesheet('terrain', 'assets/terrain-v7.png',
             { frameWidth: 32, frameHeight: 32 });
-        this.load.image('action_texture', 'assets/dashboard/detail_display.png');
-        this.load.image('score_texture', 'assets/dashboard/stats_display2.png');
-        this.load.image('control_texture', 'assets/dashboard/control_display.png');
+        this.load.image('action_texture',
+            'assets/dashboard/detail_display.png');
+        this.load.image('score_texture',
+            'assets/dashboard/stats_display2.png');
+        this.load.image('control_texture',
+            'assets/dashboard/control_display.png');
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
         this.load.spritesheet('coin_spritesheet', 'assets/coin/coin.png',
             { frameWidth: 32, frameHeight: 32 });
-        this.load.spritesheet('cow_spritesheet', 'assets/cow/cow_projectile_sprite_sheet.png',
+        this.load.spritesheet('cow_spritesheet',
+            'assets/cow/cow_projectile_sprite_sheet.png',
             { frameWidth: 64, frameHeight: 64 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
@@ -92,9 +100,11 @@ let LoadingScreen = new Phaser.Class({
         this.load.audio('bgm', 'assets/Suonatore_di_Liuto.mp3');
 
         this.load.on('progress', this.updateBar, this);
-        this.load.on('complete', this.complete, {scene:this.scene});
+        this.load.on('complete',
+            this.complete, {scene:this.scene});
     },
 
+    //--------------------------------------------------------------------------
     updateBar: function(percentage) {
         /*
         this.newGraphics.clear();
@@ -107,11 +117,13 @@ let LoadingScreen = new Phaser.Class({
 
     },
 
-    complete : function()
+    //--------------------------------------------------------------------------
+    complete: function()
     {
         this.scene.start('GameScene');
         this.scene.start('UIScene');
-        this.scene.get('GameScene').time.delayedCall(250, function() {game.scene.remove('LoadingScreen')});
+        this.scene.get('GameScene').time.delayedCall(
+            250, function() { game.scene.remove('LoadingScreen'); });
     },
 
     //--------------------------------------------------------------------------
@@ -122,7 +134,7 @@ let LoadingScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function()
     {
-    }
+    },
 });
 
 
@@ -269,7 +281,6 @@ let UIScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function ()
     {
-
     },
 
     //--------------------------------------------------------------------------
@@ -287,11 +298,13 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
-            50, 20, "0/" + game_model.m_global_resources.m_max_gold, { font: "26px Arial", fill: "#ffffff" });
+            50, 20, "0/" + game_model.m_global_resources.m_max_gold,
+            { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
             30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
-            200, 20, "0/" + game_model.m_global_resources.m_max_cows, { font: "26px Arial", fill: "#ffffff" });
+            200, 20, "0/" + game_model.m_global_resources.m_max_cows,
+            { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
             180, layout_info.m_score_height / 2 + 2, "cow_head");
 
@@ -299,9 +312,11 @@ let UIScene = new Phaser.Class({
             function ()
             {
                 gold_text.setText(
-                    game_model.m_global_resources.m_gold + "/" + game_model.m_global_resources.m_max_gold);
+                    game_model.m_global_resources.m_gold
+                    + "/" + game_model.m_global_resources.m_max_gold);
                 cows_text.setText(
-                    game_model.m_global_resources.m_cows + "/" + game_model.m_global_resources.m_max_cows);
+                    game_model.m_global_resources.m_cows
+                    + "/" + game_model.m_global_resources.m_max_cows);
             }, this);
 
         this.create_volume_control();
