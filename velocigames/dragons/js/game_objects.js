@@ -642,11 +642,24 @@ class Coin
         coin_sprite.anims.load("spin_coin");
         coin_sprite.anims.play("spin_coin");
         console.log("Spin coin created");
-        coin_sprite.setInteractive();
-        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
-            game_model.m_global_resources.m_gold += 1;
-            scene.events.emit("update_global_resources");
-            scene.children.remove(coin_sprite);
+        let hit_area = new Phaser.Geom.Rectangle(
+            (this.tile_x + 0.5) * layout_info.m_tile_width - 64,
+            (this.tile_y + 0.5) * layout_info.m_tile_height - 64,
+            128, 128
+        );
+        coin_sprite.setInteractive({"hitArea": hit_area});
+        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer, localX, localY, event) {
+            event.stopPropagation();
+            if (game_model.m_global_resources.m_gold + 1 < game_model.m_global_resources.m_max_gold)
+            {
+                game_model.m_global_resources.m_gold += 1;
+                scene.events.emit("update_global_resources");
+                scene.children.remove(coin_sprite);
+            }
+            else
+            {
+                // TODO play bad noise and show x sprite?
+            }
         });
 
         let coin = this;
