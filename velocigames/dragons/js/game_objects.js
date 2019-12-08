@@ -228,8 +228,9 @@ class MineTile extends Tile
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
-                    game_model.m_global_resources.m_gold += 1;
-                    scene.events.emit("update_global_resources")
+                    let coin = new Coin(scene, 8, 10);
+                    //game_model.m_global_resources.m_gold += 1;
+                    //scene.events.emit("update_global_resources")
                 },
             }),
         ];
@@ -552,6 +553,86 @@ class TileMapView
             m_tile_stack: this.m_tile_map.getTileStack(x, y)
         };
         this.m_scene.events.emit("update_selected_tile", tile)
+    }
+}
+
+//##############################################################################
+
+//------------------------------------------------------------------------------
+class Coin
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, tile_x, tile_y)
+    {
+        this.scene = scene;
+        this.tile_x = tile_x;
+        this.tile_y = tile_y;
+        this.create();
+    }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let scene = this.scene;
+        let coin_sprite = scene.add.sprite(
+            (this.tile_x + 0.5) * layout_info.m_tile_width,
+            (this.tile_y + 0.5) * layout_info.m_tile_height,
+            "coin_spritesheet");
+        scene.anims.create({
+            key: "spin_coin",
+            frames: scene.anims.generateFrameNumbers("coin_spritesheet"),
+            frameRate: 30,
+            repeat: -1
+        });
+        coin_sprite.anims.load("spin_coin");
+        coin_sprite.anims.play("spin_coin");
+        console.log("Spin coin created");
+        coin_sprite.setInteractive();
+        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
+            game_model.m_global_resources.m_gold += 1;
+            scene.events.emit("update_global_resources");
+            scene.children.remove(coin_sprite);
+        });
+
+        let coin = this;
+        let tween = scene.tweens.add({
+            targets: [ coin_sprite ],
+            x: (coin.tile_x + 0.5 + 3 * (Math.random() - 0.5)) * layout_info.m_tile_width,
+            y: (coin.tile_y + 1.5 + (Math.random() - 0.5)) * layout_info.m_tile_height,
+            duration: 1000,
+            ease: 'Sine.easeOut',
+        });
+    }
+}
+
+//------------------------------------------------------------------------------
+class Cow
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, tile_x, tile_y)
+    {
+        this.scene = scene;
+        this.tile_x = tile_x;
+        this.tile_y = tile_y;
+        this.create();
+    }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let scene = this.scene;
+        let cow_sprite = scene.add.sprite(
+            (this.tile_x + 0.4) * layout_info.m_tile_width,
+            (this.tile_y + 0.5) * layout_info.m_tile_height,
+            "cow_spritesheet");
+        scene.anims.create({
+            key: "playful_cow",
+            frames: scene.anims.generateFrameNumbers("cow_spritesheet"),
+            frameRate: 30,
+            repeat: -1
+        });
+        cow_sprite.anims.load("playful_cow");
+        cow_sprite.anims.play("playful_cow");
     }
 }
 
