@@ -28,17 +28,55 @@ class TileAction
         this.m_end_fn = values.end_fn;
         this.m_execute_fn = function(scene)
         {
+            self.chooseCurrentActiveText();
             self.m_begin_fn(scene, self);
-            self.setActive(scene,true);
+            self.setActive(scene, true);
             scene.time.delayedCall(
                 self.m_duration_seconds * MILLIS_PER_SECOND,
                 function ()
                 {
                     self.m_end_fn(scene, self);
-                    self.setActive(scene,false);
+                    this.m_current_active_text = "";
+                    self.setActive(scene, false);
                 });
         };
+
         this.m_is_active = false;
+        this.m_current_active_text = "";
+    }
+
+    //--------------------------------------------------------------------------
+    chooseCurrentActiveText()
+    {
+        if (this.m_active_text instanceof Array)
+        {
+            this.m_current_active_text = this.m_active_text[
+                Math.floor(Math.random() * this.m_active_text.length)];
+        }
+        else if (this.m_active_text instanceof Object)
+        {
+            let sum = 0;
+            for (let key in this.m_active_text)
+            {
+                sum += this.m_active_text[key];
+            }
+            let choice = Math.floor(Math.random() * sum);
+            for (let key in this.m_active_text)
+            {
+                this.m_current_active_text = key;
+                let portion = this.m_active_text[key];
+                if (choice < portion)
+                {
+                    break;
+                }
+                choice -= portion;
+            }
+        }
+        else
+        {
+            this.m_current_active_text = this.m_active_text;
+        }
+
     }
 
     //--------------------------------------------------------------------------
@@ -68,7 +106,7 @@ class TileAction
     //--------------------------------------------------------------------------
     getActiveText()
     {
-        return this.m_active_text;
+        return this.m_current_active_text;
     }
 
     //--------------------------------------------------------------------------
@@ -318,7 +356,11 @@ class MineTile extends BuildingTile
         let actions = [
             new TileAction({
                 button_text: "Mine Gold",
-                active_text: "Mining for gold",
+                active_text: {
+                    "Mining for gold": 10,
+                    "Digging in mine": 3,
+                    "Swinging pick axe": 3,
+                    "Picking nose": 1},
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
@@ -345,7 +387,14 @@ class FarmTile extends BuildingTile
             new TileAction({
                 button_text: "Raise Cow",
                 duration_seconds: 5,
-                active_text: "Nurturing cow",
+                active_text: {
+                    "Nurturing cow": 20,
+                    "Building cow": 1,
+                    "Growing cow": 1,
+                    "Propagating bovine": 1,
+                    "Making dragon food": 1,
+                    "Flinging cow\nhigh in the air": 1,
+                },
                 end_fn: function(scene, action)
                 {
                     new Cow(scene, x, y, 1);
@@ -358,7 +407,13 @@ class FarmTile extends BuildingTile
                 {
                     return game_model.m_global_resources.m_cows >= 1;
                 },
-                active_text: "Putting cow up for sale",
+                active_text: {
+                    "Putting cow up for sale": 10,
+                    "Bargaining cow price": 1,
+                    "Commodities trading": 1,
+                    "Hawking cow": 1,
+                    "Trading cow for\nmagic beans": 1,
+                },
                 duration_seconds: 2,
                 begin_fn: function (scene)
                 {
@@ -415,7 +470,14 @@ class BuildingAddTile extends Tile
                         + " gold"
                 },
                 duration_seconds: 30,
-                active_text: "Gathering Gold",
+                active_text: {
+                    "Gathering gold": 10,
+                    "Making pile of money": 1,
+                    "Stacking gold pieces": 1,
+                    "Hoarding gold": 1,
+                    "Jumping in pile of gold": 1,
+                    "Corralling coins": 1,
+                },
                 cost_check_fn: function ()
                 {
                     return game_model.m_global_resources.m_gold
@@ -451,7 +513,13 @@ class BuildingAddTile extends Tile
                             + " gold"
                     },
                     duration_seconds: 30,
-                    active_text: "Blasting away",
+                    active_text: {
+                        "Blasting away": 10,
+                        "Diggy Diggy Hole": 1,
+                        "Digging to China": 1,
+                        "Excavating": 1,
+                        "Playing in the dirt": 1,
+                    },
                     cost_check_fn: function ()
                     {
                         return game_model.m_global_resources.m_gold
@@ -487,7 +555,13 @@ class BuildingAddTile extends Tile
                             + " gold"
                     },
                     duration_seconds: 30,
-                    active_text: "Pretending to have\na green thumb",
+                    active_text: {
+                        "Pretending to have\na green thumb": 10,
+                        "Raising barn": 1,
+                        "Building grain silo": 1,
+                        "Pulling stumps": 1,
+                        "Putting up a fence": 1,
+                    },
                     cost_check_fn: function ()
                     {
                         return game_model.m_global_resources.m_gold
