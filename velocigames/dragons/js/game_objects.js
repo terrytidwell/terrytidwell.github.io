@@ -241,7 +241,7 @@ class PlainsTopTile extends Tile
 class PlainsTop2Tile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor(x,y)
+    constructor(x, y)
     {
         super({
             display_name: "Mountains",
@@ -256,7 +256,7 @@ class PlainsTop2Tile extends Tile
 class MountainsTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor(x,y)
+    constructor(x, y)
     {
         super({
             display_name: "Mountains",
@@ -344,32 +344,61 @@ class FarmTile extends Tile
 }
 
 //------------------------------------------------------------------------------
+class HoardTile extends Tile
+{
+    //--------------------------------------------------------------------------
+    constructor(x, y)
+    {
+        super({
+            display_name: "Hoard",
+            image_key: "hoard_0_tile",
+            x: x, y: y
+        });
+    }
+}
+
+
+//------------------------------------------------------------------------------
 class BuildingAddTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor(terrain_name, x, y)
+    constructor(terrain_name, x, y, tile_map)
     {
 
         let actions = [
             new TileAction({
                 button_text: "Gather Hoard",
                 cost_text_fn: function() {
-                    return game_model.m_global_resources.m_hoard_cost + " gold"
+                    return game_model.m_global_resources.m_hoard_cost
+                        + " gold"
                 },
                 duration_seconds: 30,
                 active_text: "Gathering Gold",
                 cost_check_fn: function ()
                 {
-                    return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_hoard_cost;
+                    return game_model.m_global_resources.m_gold
+                        >= game_model.m_global_resources.m_hoard_cost;
                 },
                 begin_fn: function (scene, action)
                 {
-                    game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_hoard_cost;
+                    game_model.m_global_resources.m_gold
+                        -= game_model.m_global_resources.m_hoard_cost;
                     game_model.m_global_resources.m_hoard_cost += 10;
                     scene.events.emit("update_global_resources");
+                    let construction_tile = new Tile({
+                            display_name: "Partial Hoard",
+                            image_key: "hoard_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
+                    tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
+                        construction_tile)
                 },
                 end_fn: function (scene, action)
                 {
+                    let hoard_tile = new HoardTile(x, y);
+                    tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
+                        hoard_tile)
                 }
             }),
         ];
@@ -380,17 +409,20 @@ class BuildingAddTile extends Tile
                 new TileAction({
                     button_text: "Dig Mine",
                     cost_text_fn: function() {
-                        return game_model.m_global_resources.m_mine_cost + " gold"
+                        return game_model.m_global_resources.m_mine_cost
+                            + " gold"
                     },
                     duration_seconds: 30,
                     active_text: "Blasting away",
                     cost_check_fn: function ()
                     {
-                        return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_mine_cost;
+                        return game_model.m_global_resources.m_gold
+                            >= game_model.m_global_resources.m_mine_cost;
                     },
                     begin_fn: function (scene, action)
                     {
-                        game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_mine_cost;
+                        game_model.m_global_resources.m_gold
+                            -= game_model.m_global_resources.m_mine_cost;
                         game_model.m_global_resources.m_mine_cost += 10;
                         scene.events.emit("update_global_resources");
                     },
@@ -406,17 +438,20 @@ class BuildingAddTile extends Tile
                 new TileAction({
                     button_text: "Found Farm",
                     cost_text_fn: function() {
-                        return game_model.m_global_resources.m_farm_cost + " gold"
+                        return game_model.m_global_resources.m_farm_cost
+                            + " gold"
                     },
                     duration_seconds: 30,
                     active_text: "Pretending to have a green thumb",
                     cost_check_fn: function ()
                     {
-                        return game_model.m_global_resources.m_gold >= game_model.m_global_resources.m_farm_cost;
+                        return game_model.m_global_resources.m_gold
+                            >= game_model.m_global_resources.m_farm_cost;
                     },
                     begin_fn: function (scene, action)
                     {
-                        game_model.m_global_resources.m_gold -= game_model.m_global_resources.m_farm_cost;
+                        game_model.m_global_resources.m_gold
+                            -= game_model.m_global_resources.m_farm_cost;
                         game_model.m_global_resources.m_farm_cost += 10;
                         scene.events.emit("update_global_resources");
 
@@ -449,6 +484,9 @@ class TileMap
         this.m_width = width;
         this.m_height = height;
         this.m_depth = depth;
+
+        // (x, y, z, old_tile, new_tile)
+        this.listeners = new utils.ListenerList();
 
         this.m_tiles = new Array(this.m_width);
         for (let x = 0; x < this.m_width; ++x)
@@ -506,11 +544,29 @@ class TileMap
     }
 
     //--------------------------------------------------------------------------
-    setTile(x, y, z, tile)
+    getTopTile(x, y)
     {
         if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
         if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
-        this.m_tiles[x][y][z] = tile;
+        for (let z = this.m_depth - 1; z >= 0 ; --z)
+        {
+            let tile = this.m_tiles[x][y][z];
+            if (null !== tile)
+            {
+                return tile;
+            }
+        }
+        return null;
+    }
+
+    //--------------------------------------------------------------------------
+    setTile(x, y, z, new_tile)
+    {
+        if (x < 0 || x >= this.m_width) throw "x out of range (got " + x + ")";
+        if (y < 0 || y >= this.m_height) throw "y out of range (got " + y + ")";
+        let old_tile = this.m_tiles[x][y][z];
+        this.m_tiles[x][y][z] = new_tile;
+        this.listeners.notify(x, y, z, old_tile, new_tile)
     }
 
     //--------------------------------------------------------------------------
@@ -529,8 +585,12 @@ class TileMapView
         this.m_tile_width = tile_width;
         this.m_tile_height = tile_height;
         this.m_tile_map = null;
+        this.m_game_object_map = null;
 
-        this.m_selection_cursor = this.m_scene.add.image(0, 0, "selection_overlay");
+        this.m_selection_x = null;
+        this.m_selection_y = null;
+        this.m_selection_cursor
+            = this.m_scene.add.image(0, 0, "selection_overlay");
         this.m_selection_cursor.setVisible(false);
         this.m_selection_cursor.setDepth(1);
 
@@ -549,53 +609,108 @@ class TileMapView
         }
 
         this.m_tile_map = tile_map;
+
+        // listen for model changes
+        let self = this;
+        this.m_tile_map.listeners.add(
+            function (x, y, z, old_tile, new_tile)
+            {
+                self.handleModelChange(x, y, z, old_tile, new_tile);
+            });
+
+        // create empty m_game_object_map
+        this.m_game_object_map = new Array(this.m_tile_map.getWidth());
+        for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
+        {
+            this.m_game_object_map[x] = new Array(this.m_tile_map.getHeight());
+            for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
+            {
+                this.m_game_object_map[x][y] = new Array(this.m_tile_map.getDepth());
+            }
+        }
+
+        // create game objects for whole map
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
-                let tile_stack = this.m_tile_map.getTileStack(x, y);
-                let top_tile_game_object = null;
-                let top_tile = null;
-                for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
-                {
-                    let tile = this.m_tile_map.getTile(x, y, z);
-                    if (tile === null)
-                    {
-                        continue;
-                    }
-
-                    let tile_game_object = tile.createGameObject(this.m_scene);
-                    tile_game_object.setPosition(
-                        (x + 0.5) * this.m_tile_width,
-                        (y + 0.5) * this.m_tile_height,
-                        z);
-
-                    top_tile_game_object = tile_game_object;
-                    top_tile = tile;
-                }
-                top_tile_game_object.setInteractive();
-                top_tile_game_object.on(
-                    Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-                    function (pointer, localX, localY, event)
-                    {
-                        top_tile.handleClick(event);
-                        tile_map.handleClick(x, y, top_tile, event);
-                        this.handleClick(x, y, top_tile, event);
-                    },
-                    this);
+                this.buildTileStack(x, y);
             }
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // create game objects for a stack
+    buildTileStack(x, y)
+    {
+        let tile_stack = this.m_tile_map.getTileStack(x, y);
+        let top_tile_game_object = null;
+        let top_tile = null;
+        for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
+        {
+            let tile = this.m_tile_map.getTile(x, y, z);
+            if (tile === null)
+            {
+                continue;
+            }
+
+            let tile_game_object = tile.createGameObject(this.m_scene);
+            tile_game_object.setPosition(
+                (x + 0.5) * this.m_tile_width,
+                (y + 0.5) * this.m_tile_height,
+                z);
+
+            this.m_game_object_map[x][y][z] = tile_game_object;
+            top_tile_game_object = tile_game_object;
+            top_tile = tile;
+        }
+
+        top_tile_game_object.setInteractive();
+        top_tile_game_object.on(
+            Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function (pointer, localX, localY, event)
+            {
+                top_tile.handleClick(event);
+                this.m_tile_map.handleClick(x, y, top_tile, event);
+                this.handleClick(x, y, top_tile, event);
+            },
+            this);
+    }
+
+    //--------------------------------------------------------------------------
+    handleModelChange(x, y, z, old_tile, new_tile)
+    {
+        for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
+        {
+            let game_object = this.m_game_object_map[x][y][z];
+            if (game_object === null)
+            {
+                continue;
+            }
+            game_object.destroy();
+            this.m_game_object_map[x][y][z] = null;
+        }
+        this.buildTileStack(x, y);
+        if (x === this.m_selection_x && y === this.m_selection_y)
+        {
+            let top_tile = this.m_tile_map.getTopTile(x, y);
+            this.handleClick(x, y, top_tile, null);
         }
     }
 
     //--------------------------------------------------------------------------
     hideCursor()
     {
+        this.m_selection_x = null;
+        this.m_selection_y = null;
         this.m_selection_cursor.setVisible(false);
     }
 
     //--------------------------------------------------------------------------
     showCursor(x, y)
     {
+        this.m_selection_x = x;
+        this.m_selection_y = y;
         this.m_selection_cursor.setVisible(true);
         this.m_selection_cursor.setPosition((x + 0.5) * this.m_tile_width,
             (y + 0.5) * this.m_tile_height);
@@ -749,9 +864,13 @@ class GameArea
     //--------------------------------------------------------------------------
     constructor(width, height)
     {
-        this.m_tile_map = new TileMap(width, height, 2);
+        this.m_tile_map = new TileMap(width, height, GameArea.MAX_LAYERS);
     }
 }
+GameArea.TERRAIN_LAYER = 0;
+GameArea.BUILDING_LAYER = 1;
+GameArea.MAX_LAYERS = 2;
+
 
 //------------------------------------------------------------------------------
 class VillageArea extends GameArea
@@ -761,9 +880,6 @@ class VillageArea extends GameArea
     {
         super(20, 20);
 
-        this.m_terrain_layer = 0;
-        this.m_building_layer = 1;
-
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
@@ -771,13 +887,13 @@ class VillageArea extends GameArea
                 let tile = null;
                 if (x < y)
                 {
-                    tile = new MountainsTile(x,y);
+                    tile = new MountainsTile(x, y);
                 }
                 else
                 {
-                    tile = new PlainsTile(x,y);
+                    tile = new PlainsTile(x, y);
                 }
-                this.m_tile_map.setTile(x, y, this.m_terrain_layer, tile);
+                this.m_tile_map.setTile(x, y, GameArea.TERRAIN_LAYER, tile);
             }
         }
 
@@ -789,7 +905,8 @@ class VillageArea extends GameArea
             }
             if (x+1 < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x+1, this.m_terrain_layer, new PlainsTop2Tile(x,x+1));
+                this.m_tile_map.setTile(x, x+1, GameArea.TERRAIN_LAYER,
+                    new PlainsTop2Tile(x,x+1));
             }
         }
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
@@ -802,9 +919,10 @@ class VillageArea extends GameArea
         //this.m_tile_map.setTile(1, 2, new PlainsTopTile());
     }
 
+    //--------------------------------------------------------------------------
     addBuilding(x, y, building_tile)
     {
-        this.m_tile_map.setTile(x, y, this.m_building_layer, building_tile);
+        this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER, building_tile);
         if (x+1 < this.m_tile_map.getWidth())
         {
             this.createBuildingAddTileIfPossible(x+1, y);
@@ -823,13 +941,16 @@ class VillageArea extends GameArea
         }
     }
 
+    //--------------------------------------------------------------------------
     createBuildingAddTileIfPossible(x, y)
     {
-        let tile_stack = this.m_tile_map.getTileStack(x,y);
-        if (tile_stack[this.m_building_layer] === null)
+        let tile_stack = this.m_tile_map.getTileStack(x, y);
+        if (tile_stack[GameArea.BUILDING_LAYER] === null)
         {
-            this.m_tile_map.setTile(x, y, this.m_building_layer,
-                new BuildingAddTile(tile_stack[this.m_terrain_layer].getDisplayName(), x, y));
+            this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
+                new BuildingAddTile(
+                    tile_stack[GameArea.TERRAIN_LAYER].getDisplayName(),
+                    x, y, this.m_tile_map));
         }
     }
 }
