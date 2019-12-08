@@ -395,7 +395,7 @@ let UIScene = new Phaser.Class({
         tile_label_text.setOrigin(0.5, 0);
         this.m_selected_tile_state.m_tile_label_text = tile_label_text;
         this.m_instructions_text = this.add.text( 200, action_area_top + 20,
-            "Welcome to VelociVilliage!\nYou can explore with the arrow keys.\nClick on a tile to examine it.",
+            "Welcome to VelociVillage!\nYou can explore with the arrow keys.\nClick on a tile to examine it.",
             { font: "25px Arial", fill: "#FFFF00" });
         
         game_scene.events.on("update_selected_tile",
