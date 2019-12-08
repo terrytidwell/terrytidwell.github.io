@@ -483,8 +483,8 @@ class Coin
         let coin = this;
         let tween = scene.tweens.add({
             targets: [ coin_sprite ],
-            x: (coin.tile_x + 1.5) * layout_info.m_tile_width,
-            y: (coin.tile_y + 1.5) * layout_info.m_tile_height,
+            x: (coin.tile_x + 0.5 + 3 * (Math.random() - 0.5)) * layout_info.m_tile_width,
+            y: (coin.tile_y + 1.5 + (Math.random() - 0.5)) * layout_info.m_tile_height,
             duration: 1000,
             ease: 'Sine.easeOut',
         });
