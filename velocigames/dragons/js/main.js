@@ -18,8 +18,7 @@ let layout_info = {
     m_map_size_y: 20,
     m_tile_width: 64,
     m_tile_height: 64,
-
-    m_button_width: 265,
+    m_add_grid_overlay: false,
 
     m_button_width: 265,
     m_button_height: 64,
@@ -46,8 +45,8 @@ let LoadingScreen = new Phaser.Class({
         /*
         this.graphics = this.add.graphics();
         this.newGraphics = this.add.graphics();
-        var progressBar = new Phaser.Geom.Rectangle(200, 200, 400, 50);
-        var progressBarFill = new Phaser.Geom.Rectangle(205, 205, 290, 40);
+        let progressBar = new Phaser.Geom.Rectangle(200, 200, 400, 50);
+        let progressBarFill = new Phaser.Geom.Rectangle(205, 205, 290, 40);
 
         this.graphics.fillStyle(0xffffff, 1);
         this.graphics.fillRectShape(progressBar);
@@ -167,13 +166,13 @@ let GameScene = new Phaser.Class({
         graphics.strokePath();
 
         // Add text to each cell of map.
-        for (let i = 1; i <= layout_info.m_map_size_x; i++)
+        for (let i = 0; i < layout_info.m_map_size_x; i++)
         {
-            for (let j = 1; j <= layout_info.m_map_size_y; j++)
+            for (let j = 0; j < layout_info.m_map_size_y; j++)
             {
                 let text = this.add.text(
-                    (i - 0.5) * layout_info.m_tile_width,
-                    (j - 0.5) * layout_info.m_tile_height,
+                    (i + 0.5) * layout_info.m_tile_width,
+                    (j + 0.5) * layout_info.m_tile_height,
                     j + "," + i);
                 text.setOrigin(0.5, 0.5);
             }
@@ -200,8 +199,15 @@ let GameScene = new Phaser.Class({
         this.cameras.main.setSize(
             game_width,
             game_height - layout_info.m_score_height - layout_info.m_action_height);
+        this.cameras.main.centerOn(
+            (layout_info.m_map_size_x / 2) * layout_info.m_tile_width,
+            (layout_info.m_map_size_y / 2) * layout_info.m_tile_height);
 
-        //this.addGridOverlay();
+        // Add grid overlay.
+        if (layout_info.m_add_grid_overlay)
+        {
+            this.addGridOverlay();
+        }
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");

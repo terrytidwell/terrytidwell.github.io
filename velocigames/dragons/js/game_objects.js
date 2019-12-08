@@ -495,7 +495,7 @@ class VillageArea extends GameArea
         //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
         //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
         this.m_tile_map.setTile(8, 10, this.m_building_layer, new MineTile());
-        this.m_tile_map.setTile(4, 3, this.m_building_layer, new FarmTile());
+        this.m_tile_map.setTile(11, 8, this.m_building_layer, new FarmTile());
 
         //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
         //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());

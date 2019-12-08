@@ -5,7 +5,7 @@ utils = {};
 //------------------------------------------------------------------------------
 utils.add_defaults = function(default_values, values)
 {
-    for (var key in default_values)
+    for (let key in default_values)
     {
         if (default_values.hasOwnProperty(key)
             && ! (key in values))
