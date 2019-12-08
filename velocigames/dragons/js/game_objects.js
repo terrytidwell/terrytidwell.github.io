@@ -1,3 +1,6 @@
+const CREATE_SECONDS = 10;
+const UPGRADE_PER_LEVEL_SECONDS = 5;
+
 //------------------------------------------------------------------------------
 class TileAction
 {
@@ -387,7 +390,7 @@ class MineTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Hiring miners": 10,
                         "Intalling new equipment": 1,
@@ -496,11 +499,11 @@ class FarmTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Building another barn": 10,
                         "Fertilizing fields": 1,
-                        "Strengthenng fences": 1,
+                        "Strengthening fences": 1,
                     },
                     cost_check_fn: function ()
                     {
@@ -557,7 +560,7 @@ class HoardTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Adding more gold": 10,
                         "Taxing the peasants": 1,
@@ -613,7 +616,7 @@ class BuildingAddTile extends Tile
                     return game_model.m_global_resources.m_hoard_cost
                         + " gold"
                 },
-                duration_seconds: 30,
+                duration_seconds: CREATE_SECONDS,
                 active_text: {
                     "Gathering gold": 10,
                     "Making pile of money": 1,
@@ -656,7 +659,7 @@ class BuildingAddTile extends Tile
                         return game_model.m_global_resources.m_mine_cost
                             + " gold"
                     },
-                    duration_seconds: 30,
+                    duration_seconds: CREATE_SECONDS,
                     active_text: {
                         "Blasting away": 10,
                         "Diggy Diggy Hole": 1,
@@ -698,7 +701,7 @@ class BuildingAddTile extends Tile
                         return game_model.m_global_resources.m_farm_cost
                             + " gold"
                     },
-                    duration_seconds: 30,
+                    duration_seconds: CREATE_SECONDS,
                     active_text: {
                         "Pretending to have\na green thumb": 10,
                         "Raising barn": 1,
