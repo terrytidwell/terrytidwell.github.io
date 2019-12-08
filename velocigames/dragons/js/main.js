@@ -203,7 +203,7 @@ let TitleScreen = new Phaser.Class({
         this.cameras.main.setBackgroundColor("#000000");
         this.titleText = this.add.text(
             game_width / 2, game_height / 2,
-            "Untitled Dragon Game", { fontSize: '32px', fill: '#FFF' })
+            "Here There Be Dragons", { fontSize: '32px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
         this.titleText.alpha = 0;
 

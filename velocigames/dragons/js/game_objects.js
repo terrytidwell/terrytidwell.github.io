@@ -665,7 +665,7 @@ class HoardTile extends BuildingTile
                 }))
         }
         super({
-            display_name: "Hoard",
+            display_name: (has_dragon ? "Dragon " : "") + "Hoard",
             image_key: "hoard_" + level + "_tile",
             actions: actions,
             x: x, y: y
