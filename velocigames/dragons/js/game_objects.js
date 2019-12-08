@@ -460,7 +460,9 @@ class Coin
     {
         let scene = this.scene;
         let coin_sprite = scene.add.sprite(
-            (this.tile_x + 0.5) * layout_info.m_tile_width, (this.tile_y + 0.5) * layout_info.m_tile_height, "coin_spritesheet");
+            (this.tile_x + 0.5) * layout_info.m_tile_width,
+            (this.tile_y + 0.5) * layout_info.m_tile_height,
+            "coin_spritesheet");
         scene.anims.create({
             key: "spin_coin",
             frames: scene.anims.generateFrameNumbers("coin_spritesheet"),
@@ -476,6 +478,35 @@ class Coin
             scene.events.emit("update_global_resources");
             scene.children.remove(coin_sprite);
         });
+    }
+}
+
+//------------------------------------------------------------------------------
+class Cow
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, tile_x, tile_y)
+    {
+        this.scene = scene;
+        this.tile_x = tile_x;
+        this.tile_y = tile_y;
+        this.create();
+    }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let scene = this.scene;
+        let cow_sprite = scene.add.sprite(
+            (this.tile_x + 0.4) * layout_info.m_tile_width, (this.tile_y + 0.5) * layout_info.m_tile_height, "cow_spritesheet");
+        scene.anims.create({
+            key: "playful_cow",
+            frames: scene.anims.generateFrameNumbers("cow_spritesheet"),
+            frameRate: 30,
+            repeat: -1
+        });
+        cow_sprite.anims.load("playful_cow");
+        cow_sprite.anims.play("playful_cow");
     }
 }
 

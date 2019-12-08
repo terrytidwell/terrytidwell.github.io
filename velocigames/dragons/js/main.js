@@ -216,16 +216,7 @@ let GameScene = new Phaser.Class({
         let coin = new Coin(this, 8, 10);
 
         // Add animated cow on map.
-        let cow_sprite = this.add.sprite(
-            11.4 * layout_info.m_tile_width, 8.5 * layout_info.m_tile_height, "cow_spritesheet");
-        this.anims.create({
-            key: "playful_cow",
-            frames: this.anims.generateFrameNumbers("cow_spritesheet"),
-            frameRate: 30,
-            repeat: -1
-        });
-        cow_sprite.anims.load("playful_cow");
-        cow_sprite.anims.play("playful_cow");
+        let cow = new Cow(this, 11, 8);
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
