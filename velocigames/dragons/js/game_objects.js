@@ -540,6 +540,17 @@ class FarmTile extends BuildingTile
         if (1 === level || 2 === level || 3 === level)
         {
             this.m_upgrade_badge_tile = new UpgradeBadgeTile(this, level);
+            let scene = game.scene.getScene("GameScene");
+            this.spawn_timer = scene.time.addEvent(
+                {
+                    "delay": 5000 - level * 1000,
+                    "loop": true,
+                    "callback": function (scene, x, y, value) {
+                        new Cow(scene, x, y, 1);
+                    },
+                    "args": [scene, x, y, 1]
+                }
+            );
         }
     }
 }
@@ -1080,7 +1091,7 @@ class DroppedResource
             function (pointer, localX, localY, event)
             {
                 event.stopPropagation();
-                if (game_model.m_global_resources[self.global_resource_key] + self.value <
+                if (game_model.m_global_resources[self.global_resource_key] + self.value <=
                     game_model.m_global_resources[self.global_max_resource_key])
                 {
                     game_model.m_global_resources[self.global_resource_key] += self.value;
