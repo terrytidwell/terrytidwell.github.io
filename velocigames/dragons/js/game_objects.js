@@ -479,6 +479,21 @@ class Coin
             scene.events.emit("update_global_resources");
             scene.children.remove(coin_sprite);
         });
+
+        let coin = this;
+        let tween = scene.tweens.add({
+            targets: [ coin_sprite ],
+            x: (coin.tile_x + 1.5) * layout_info.m_tile_width,
+            y: (coin.tile_y + 1.5) * layout_info.m_tile_height,
+            duration: 1000,
+            ease: 'Sine.easeOut',
+            flipX: true,
+            yoyo: false,
+            repeat: 0,
+            delay: function (i, total, target) {
+                return i * 1000;
+            }
+        });
     }
 }
 
