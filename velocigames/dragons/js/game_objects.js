@@ -209,8 +209,9 @@ class MineTile extends Tile
                 duration_seconds: 0.5,
                 end_fn: function(scene)
                 {
-                    game_model.m_global_resources.m_gold += 1;
-                    scene.events.emit("update_global_resources")
+                    let coin = new Coin(scene, 8, 10);
+                    //game_model.m_global_resources.m_gold += 1;
+                    //scene.events.emit("update_global_resources")
                 },
             }),
         ];
@@ -498,7 +499,9 @@ class Cow
     {
         let scene = this.scene;
         let cow_sprite = scene.add.sprite(
-            (this.tile_x + 0.4) * layout_info.m_tile_width, (this.tile_y + 0.5) * layout_info.m_tile_height, "cow_spritesheet");
+            (this.tile_x + 0.4) * layout_info.m_tile_width,
+            (this.tile_y + 0.5) * layout_info.m_tile_height,
+            "cow_spritesheet");
         scene.anims.create({
             key: "playful_cow",
             frames: scene.anims.generateFrameNumbers("cow_spritesheet"),

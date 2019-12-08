@@ -213,7 +213,7 @@ let GameScene = new Phaser.Class({
         }
 
         // Add animated coin on map.
-        let coin = new Coin(this, 8, 10);
+        //let coin = new Coin(this, 8, 10);
 
         // Add animated cow on map.
         let cow = new Cow(this, 11, 8);
