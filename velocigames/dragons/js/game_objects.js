@@ -774,16 +774,18 @@ class TileMapView
     }
 
     //--------------------------------------------------------------------------
-    handleClick(x, y, tile, event)
+    handleClick(x, y, top_tile, event)
     {
         this.showCursor(x, y);
         let tile_info = {
             m_x: x,
             m_y: y,
+            m_top_tile: top_tile,
             m_tile_map: this.m_tile_map,
-            m_tile_stack: this.m_tile_map.getTileStack(x, y)
+            m_tile_stack: this.m_tile_map.getTileStack(x, y),
+            m_event: event,
         };
-        this.m_scene.events.emit("update_selected_tile", tile)
+        this.m_scene.events.emit("update_selected_tile", tile_info)
     }
 }
 

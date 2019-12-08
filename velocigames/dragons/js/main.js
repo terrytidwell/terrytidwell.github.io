@@ -591,21 +591,32 @@ let UIScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    update_selected_tile: function (tile)
+    update_selected_tile: function (tile_info)
     {
         this.m_instructions_text.destroy();
         let state = this.m_selected_tile_state;
         state.clean_up();
 
-        // show the tile
-        let tile_game_object = tile.createGameObject(this);
-        state.destroy_on_clean_up(tile_game_object);
-        tile_game_object.setPosition(
-            40 + layout_info.m_tile_width / 2,
-            state.m_action_area_top + 40 + layout_info.m_tile_height / 2);
-        state.m_tile_label_text.setText(tile.getDisplayName());
+        let top_tile = tile_info.m_top_tile;
+        let tile_stack = tile_info.m_tile_stack;
 
-        let actions = tile.getActions();
+        // show the tile stack
+        for (let index = 0; index < tile_stack.length; ++index)
+        {
+            let tile = tile_stack[index];
+            if (null == tile)
+            {
+                continue;
+            }
+            let tile_game_object = tile.createGameObject(this);
+            state.destroy_on_clean_up(tile_game_object);
+            tile_game_object.setPosition(
+                40 + layout_info.m_tile_width / 2,
+                state.m_action_area_top + 40 + layout_info.m_tile_height / 2);
+        }
+        state.m_tile_label_text.setText(top_tile.getDisplayName());
+
+        let actions = top_tile.getActions();
         for (let index = 0, max_index = actions.length;
             index < max_index; ++index)
         {
