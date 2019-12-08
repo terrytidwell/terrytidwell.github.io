@@ -28,7 +28,11 @@ let layout_info = {
     m_button_width: 265,
     m_button_height: 64,
     m_button_spacing: 5,
-    m_button_left_margin: 300,
+    m_button_left_margin: 350,
+
+    m_tile_preview_left_center: 80,
+    m_tile_preview_tile_top_center: 78,
+    m_tile_preview_text_top_margin: 10,
 };
 
 let LoadingScreen = new Phaser.Class({
@@ -87,7 +91,7 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('plus_tile_hover', 'assets/plus/plus.png');
 
         this.load.spritesheet('upgrade_spritesheet',
-            'assets/upgrade/upgrade_strip.png',
+            'assets/upgrade/upgrade_strip2.png',
             { frameWidth: 64, frameHeight: 64 });
 
         this.load.image('selection_overlay',
@@ -589,7 +593,8 @@ let UIScene = new Phaser.Class({
         };
 
         let tile_label_text = this.add.text(
-            40 + layout_info.m_tile_width / 2, action_area_top + 5,
+            layout_info.m_tile_preview_left_center,
+            action_area_top + layout_info.m_tile_preview_text_top_margin,
             "", { font: "30px Arial", fill: "#FFFF00" });
         tile_label_text.setOrigin(0.5, 0);
         this.m_selected_tile_state.m_tile_label_text = tile_label_text;
@@ -625,8 +630,8 @@ let UIScene = new Phaser.Class({
             let tile_game_object = tile.createGameObject(this);
             state.destroy_on_clean_up(tile_game_object);
             tile_game_object.setPosition(
-                40 + layout_info.m_tile_width / 2,
-                state.m_action_area_top + 40 + layout_info.m_tile_height / 2);
+                layout_info.m_tile_preview_left_center,
+                state.m_action_area_top + layout_info.m_tile_preview_tile_top_center);
         }
         state.m_tile_label_text.setText(top_tile.getDisplayName());
 
