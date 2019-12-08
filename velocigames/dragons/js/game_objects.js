@@ -362,8 +362,10 @@ class DragonBadgeTile extends Tile
     //--------------------------------------------------------------------------
     createGameObject(scene)
     {
-        return scene.add.image(
+        let sprite = scene.add.sprite(
             0, 0, "hoard_dragon_tile");
+        sprite.setTint(0xF03030);
+        return sprite;
     }
 
     //--------------------------------------------------------------------------
@@ -676,7 +678,7 @@ class HoardTile extends BuildingTile
                 }))
         }
         super({
-            display_name: "Hoard",
+            display_name: (has_dragon ? "Dragon " : "") + "Hoard",
             image_key: "hoard_" + level + "_tile",
             actions: actions,
             x: x, y: y
@@ -1256,14 +1258,30 @@ class DragonSteelsCoin
     create()
     {
         let scene = this.scene;
+
+        // Fly horizontally.
+        //let random_tile_y = Math.floor((layout_info.m_map_size_y - 0.001) * Math.random());
+
         let start_x = (-0.5) * layout_info.m_tile_width;
         let start_y = (this.coin_tile_y + 0.5) * layout_info.m_tile_height;
+        let target_x = (layout_info.m_map_size_x + 0.5) * layout_info.m_tile_width;
+        let target_y = start_y;
 
         let sprite = scene.add.sprite(start_x, start_y, "flying_dragon_spritesheet",
         );
         sprite.setDepth(constants.m_dragon_depth);
         sprite.flipX = true;
         sprite.setTint(0xF03030);
+
+        // if (Math.random() < 0.5)
+        // {
+        //     // Fly right-to-left, so swap start and target x.
+        //     let tmp_x = start_x;
+        //     start_x = target_x;
+        //     target_x = tmp_x;
+        //     sprite.flipX = !sprite.flipX;
+        // }
+
         scene.anims.create({
             key: "flying_dragon",
             frames: scene.anims.generateFrameNumbers("flying_dragon_spritesheet"),
@@ -1275,9 +1293,6 @@ class DragonSteelsCoin
         sprite.anims.load("flying_dragon");
         sprite.anims.play("flying_dragon");
 
-        let target_x = (layout_info.m_map_size_x + 0.5) * layout_info.m_tile_width;
-        let target_y = start_y;
-
         let distance = Math.sqrt(Math.pow(target_x - start_x, 2) + Math.pow(target_y - start_y, 2));
         let duration = distance / layout_info.m_dragon_fly_speed_pps * 1000;
 
@@ -1286,7 +1301,6 @@ class DragonSteelsCoin
             x: target_x,
             y: target_y,
             duration: duration,
-            // ease: 'Sine.easeOut',
             repeat: -1,
         });
     }
