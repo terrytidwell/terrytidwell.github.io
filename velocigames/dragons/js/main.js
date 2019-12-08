@@ -213,7 +213,7 @@ let GameScene = new Phaser.Class({
         }
 
         // Add animated coin on map.
-        sprite = this.add.sprite(
+        let coin_sprite = this.add.sprite(
             8.5 * layout_info.m_tile_width, 10.5 * layout_info.m_tile_height, "coin_spritesheet");
         this.anims.create({
             key: "spin_coin",
@@ -221,11 +221,19 @@ let GameScene = new Phaser.Class({
             frameRate: 30,
             repeat: -1
         });
-        sprite.anims.load("spin_coin");
-        sprite.anims.play("spin_coin");
+        coin_sprite.anims.load("spin_coin");
+        coin_sprite.anims.play("spin_coin");
+        console.log("Spin coin created");
+        coin_sprite.setInteractive();
+        coin_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
+            game_model.m_global_resources.m_gold += 1;
+            let game_scene = game.scene.getScene("GameScene");
+            this.events.emit("update_global_resources");
+            // todo: Remove coin sprite.
+        });
 
         // Add animated cow on map.
-        sprite = this.add.sprite(
+        let cow_sprite = this.add.sprite(
             11.4 * layout_info.m_tile_width, 8.5 * layout_info.m_tile_height, "cow_spritesheet");
         this.anims.create({
             key: "playful_cow",
@@ -233,8 +241,8 @@ let GameScene = new Phaser.Class({
             frameRate: 30,
             repeat: -1
         });
-        sprite.anims.load("playful_cow");
-        sprite.anims.play("playful_cow");
+        cow_sprite.anims.load("playful_cow");
+        cow_sprite.anims.play("playful_cow");
 
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
