@@ -216,7 +216,7 @@ let GameScene = new Phaser.Class({
         this.anims.create({
             key: "spin_coin",
             frames: this.anims.generateFrameNumbers("coin_animated"),
-            frameRate: 20,
+            frameRate: 30,
             repeat: -1
         });
         sprite.anims.load("spin_coin");
