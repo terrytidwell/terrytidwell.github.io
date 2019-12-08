@@ -1,3 +1,6 @@
+const CREATE_SECONDS = 10;
+const UPGRADE_PER_LEVEL_SECONDS = 5;
+
 //------------------------------------------------------------------------------
 class TileAction
 {
@@ -387,7 +390,7 @@ class MineTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Hiring miners": 10,
                         "Intalling new equipment": 1,
@@ -496,11 +499,11 @@ class FarmTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Building another barn": 10,
                         "Fertilizing fields": 1,
-                        "Strengthenng fences": 1,
+                        "Strengthening fences": 1,
                     },
                     cost_check_fn: function ()
                     {
@@ -557,7 +560,7 @@ class HoardTile extends BuildingTile
                     cost_text_fn: function() {
                         return next_level * 20 + " gold"
                     },
-                    duration_seconds: 5,
+                    duration_seconds: UPGRADE_PER_LEVEL_SECONDS * next_level,
                     active_text: {
                         "Adding more gold": 10,
                         "Taxing the peasants": 1,
@@ -613,7 +616,7 @@ class BuildingAddTile extends Tile
                     return game_model.m_global_resources.m_hoard_cost
                         + " gold"
                 },
-                duration_seconds: 30,
+                duration_seconds: CREATE_SECONDS,
                 active_text: {
                     "Gathering gold": 10,
                     "Making pile of money": 1,
@@ -656,7 +659,7 @@ class BuildingAddTile extends Tile
                         return game_model.m_global_resources.m_mine_cost
                             + " gold"
                     },
-                    duration_seconds: 30,
+                    duration_seconds: CREATE_SECONDS,
                     active_text: {
                         "Blasting away": 10,
                         "Diggy Diggy Hole": 1,
@@ -698,7 +701,7 @@ class BuildingAddTile extends Tile
                         return game_model.m_global_resources.m_farm_cost
                             + " gold"
                     },
-                    duration_seconds: 30,
+                    duration_seconds: CREATE_SECONDS,
                     active_text: {
                         "Pretending to have\na green thumb": 10,
                         "Raising barn": 1,
@@ -1112,6 +1115,8 @@ class DroppedResource
             duration: 1000,
             ease: 'Sine.easeOut',
         });
+
+        return sprite;
     }
 }
 
@@ -1125,6 +1130,14 @@ class Coin extends DroppedResource
             "coin_spritesheet", "spin_coin",
             "m_gold", "m_max_gold");
     }
+
+    //--------------------------------------------------------------------------
+    create()
+    {
+        let sprite = super.create();
+        // sprite.on();
+        return sprite;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -1136,6 +1149,41 @@ class Cow extends DroppedResource
         super(scene, tile_x, tile_y, cow_value,
             "cow_spritesheet", "playful_cow",
             "m_cows", "m_max_cows");
+    }
+}
+
+//------------------------------------------------------------------------------
+class DragonSteelsCoin
+{
+    //--------------------------------------------------------------------------
+    constructor(scene, coin_tile_x, coin_tile_y)
+    {
+        this.scene = scene;
+        this.coin_tile_x = coin_tile_x;
+        this.coin_tile_y = coin_tile_y;
+        this.create();
+    }
+
+    create()
+    {
+        let scene = this.scene;
+        let sprite = scene.add.sprite(
+            (this.coin_tile_x + 0.5) * layout_info.m_tile_width,
+            (this.coin_tile_x + 0.5) * layout_info.m_tile_height,
+            "flying_dragon_spritesheet",
+        );
+        sprite.setDepth(2); // ensure not behind tiles
+        sprite.flipX = true;
+        scene.anims.create({
+            key: "flying_dragon",
+            frames: scene.anims.generateFrameNumbers("flying_dragon_spritesheet"),
+            frameRate: 4,
+            repeat: -1
+        });
+
+        let self = this;
+        sprite.anims.load("flying_dragon");
+        sprite.anims.play("flying_dragon");
     }
 }
 

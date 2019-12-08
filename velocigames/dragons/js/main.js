@@ -83,6 +83,10 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('plus_tile', 'assets/plus/plus_inactive.png');
         this.load.image('plus_tile_hover', 'assets/plus/plus.png');
 
+        this.load.spritesheet('upgrade_spritesheet',
+            'assets/upgrade/upgrade_strip2.png',
+            { frameWidth: 64, frameHeight: 64 });
+
         this.load.image('selection_overlay',
             'assets/selection_box/selection_box.png');
         this.load.image('hover_overlay',
@@ -95,15 +99,16 @@ let LoadingScreen = new Phaser.Class({
         this.load.image('control_texture',
             'assets/dashboard/control_display.png');
         this.load.image('coin', 'assets/coin/coin_straight_on.png');
+        this.load.image('cow_head', 'assets/cow/cow_head.png');
+
         this.load.spritesheet('coin_spritesheet', 'assets/coin/coin.png',
             { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('cow_spritesheet',
             'assets/cow/cow_projectile_sprite_sheet.png',
             { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('upgrade_spritesheet',
-            'assets/upgrade/upgrade_strip2.png',
+        this.load.spritesheet('flying_dragon_spritesheet',
+            'assets/dragon/dragon_strip.png',
             { frameWidth: 64, frameHeight: 64 });
-        this.load.image('cow_head', 'assets/cow/cow_head.png');
 
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
@@ -395,6 +400,9 @@ let GameScene = new Phaser.Class({
         this.cameras.main.centerOn(
             (layout_info.m_map_size_x / 2) * layout_info.m_tile_width,
             (layout_info.m_map_size_y / 2) * layout_info.m_tile_height);
+
+        // Dragon flies across screen.
+        let dragon_steels_coin = new DragonSteelsCoin(this, 10, 10);
 
         // Add grid overlay.
         if (layout_info.m_add_grid_overlay)
