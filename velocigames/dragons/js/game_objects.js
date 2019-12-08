@@ -357,13 +357,13 @@ class HoardTile extends Tile
     }
 }
 
-
 //------------------------------------------------------------------------------
 class BuildingAddTile extends Tile
 {
     //--------------------------------------------------------------------------
-    constructor(terrain_name, x, y, tile_map)
+    constructor(terrain_name, x, y, game_area)
     {
+        let tile_map = game_area.getTileMap();
 
         let actions = [
             new TileAction({
@@ -385,20 +385,16 @@ class BuildingAddTile extends Tile
                         -= game_model.m_global_resources.m_hoard_cost;
                     game_model.m_global_resources.m_hoard_cost += 10;
                     scene.events.emit("update_global_resources");
-                    let construction_tile = new Tile({
-                            display_name: "Partial Hoard",
-                            image_key: "hoard_construction_tile",
-                            actions: [action],
-                            x: x, y: y
-                        });
-                    tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
-                        construction_tile)
+                    game_area.startConstruction({
+                        display_name: "Partial Hoard",
+                        image_key: "hoard_construction_tile",
+                        actions: [action],
+                        x: x, y: y
+                    });
                 },
                 end_fn: function (scene, action)
                 {
-                    let hoard_tile = new HoardTile(x, y);
-                    tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
-                        hoard_tile)
+                    game_area.addBuilding(x, y, HoardTile)
                 }
             }),
         ];
@@ -425,9 +421,16 @@ class BuildingAddTile extends Tile
                             -= game_model.m_global_resources.m_mine_cost;
                         game_model.m_global_resources.m_mine_cost += 10;
                         scene.events.emit("update_global_resources");
+                        game_area.startConstruction({
+                            display_name: "Partial Mine",
+                            image_key: "mine_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
                     },
                     end_fn: function (scene, action)
                     {
+                        game_area.addBuilding(x, y, MineTile)
                     }
                 }),
             );
@@ -454,10 +457,16 @@ class BuildingAddTile extends Tile
                             -= game_model.m_global_resources.m_farm_cost;
                         game_model.m_global_resources.m_farm_cost += 10;
                         scene.events.emit("update_global_resources");
-
+                        game_area.startConstruction({
+                            display_name: "Partial Farm",
+                            image_key: "farm_construction_tile",
+                            actions: [action],
+                            x: x, y: y
+                        });
                     },
                     end_fn: function (scene, action)
                     {
+                        game_area.addBuilding(x, y, FarmTile)
                     }
                 }),
             );
@@ -622,10 +631,16 @@ class TileMapView
         this.m_game_object_map = new Array(this.m_tile_map.getWidth());
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
-            this.m_game_object_map[x] = new Array(this.m_tile_map.getHeight());
+            this.m_game_object_map[x]
+                = new Array(this.m_tile_map.getHeight());
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
             {
-                this.m_game_object_map[x][y] = new Array(this.m_tile_map.getDepth());
+                this.m_game_object_map[x][y]
+                    = new Array(this.m_tile_map.getDepth());
+                for (let z = 0; z < this.m_tile_map.getDepth(); ++z)
+                {
+                    this.m_game_object_map[x][y][z] = null;
+                }
             }
         }
 
@@ -866,11 +881,63 @@ class GameArea
     {
         this.m_tile_map = new TileMap(width, height, GameArea.MAX_LAYERS);
     }
+
+    //--------------------------------------------------------------------------
+    getTileMap()
+    {
+        return this.m_tile_map;
+    }
+
+    //--------------------------------------------------------------------------
+    startConstruction(values)
+    {
+        let construction_tile = new Tile(values);
+        this.m_tile_map.setTile(
+            values.x, values.y,
+            GameArea.BUILDING_LAYER,
+            construction_tile)
+    }
+
+    //--------------------------------------------------------------------------
+    addBuilding(x, y, building_tile_class)
+    {
+        let building_tile = new building_tile_class(x, y);
+        this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER, building_tile);
+        if (x + 1 < this.m_tile_map.getWidth())
+        {
+            this.createBuildingAddTileIfPossible(x + 1, y);
+        }
+        if (x - 1 >= 0)
+        {
+            this.createBuildingAddTileIfPossible(x - 1, y);
+        }
+        if (y + 1 < this.m_tile_map.getHeight())
+        {
+            this.createBuildingAddTileIfPossible(x, y + 1);
+        }
+        if (y - 1 >= 0)
+        {
+            this.createBuildingAddTileIfPossible(x, y - 1);
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    createBuildingAddTileIfPossible(x, y)
+    {
+        let tile_stack = this.m_tile_map.getTileStack(x, y);
+        if (tile_stack[GameArea.BUILDING_LAYER] === null)
+        {
+            this.m_tile_map.setTile(
+                x, y, GameArea.BUILDING_LAYER,
+                new BuildingAddTile(
+                    tile_stack[GameArea.TERRAIN_LAYER].getDisplayName(),
+                    x, y, this));
+        }
+    }
 }
 GameArea.TERRAIN_LAYER = 0;
 GameArea.BUILDING_LAYER = 1;
 GameArea.MAX_LAYERS = 2;
-
 
 //------------------------------------------------------------------------------
 class VillageArea extends GameArea
@@ -880,6 +947,7 @@ class VillageArea extends GameArea
     {
         super(20, 20);
 
+        // build the half mountains / half plains map
         for (let x = 0; x < this.m_tile_map.getWidth(); ++x)
         {
             for (let y = 0; y < this.m_tile_map.getHeight(); ++y)
@@ -897,60 +965,23 @@ class VillageArea extends GameArea
             }
         }
 
+        // smooth the border
         for (let x = 0; x < this.m_tile_map.getWidth();++x)
         {
             if (x < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x, 0, new PlainsTopTile(x,x));
+                this.m_tile_map.setTile(x, x, GameArea.TERRAIN_LAYER,
+                    new PlainsTopTile(x,x));
             }
             if (x+1 < this.m_tile_map.getHeight())
             {
-                this.m_tile_map.setTile(x, x+1, GameArea.TERRAIN_LAYER,
-                    new PlainsTop2Tile(x,x+1));
+                this.m_tile_map.setTile(x, x + 1, GameArea.TERRAIN_LAYER,
+                    new PlainsTop2Tile(x,x + 1));
             }
         }
-        //let mine_x = Math.floor(this.m_tile_map.getWidth() / 2);
-        //let mine_y = Math.floor(this.m_tile_map.getHeight() / 2);
-        this.addBuilding(8, 10, new MineTile(8, 10,));
-        this.addBuilding(11, 8, new FarmTile(11, 8));
 
-        //this.m_tile_map.setTile(0, 1, new PlainsTopTile());
-        //this.m_tile_map.setTile(0, 2, new PlainsTop2Tile());
-        //this.m_tile_map.setTile(1, 2, new PlainsTopTile());
-    }
-
-    //--------------------------------------------------------------------------
-    addBuilding(x, y, building_tile)
-    {
-        this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER, building_tile);
-        if (x+1 < this.m_tile_map.getWidth())
-        {
-            this.createBuildingAddTileIfPossible(x+1, y);
-        }
-        if (x-1 >= 0)
-        {
-            this.createBuildingAddTileIfPossible(x-1, y);
-        }
-        if (y+1 < this.m_tile_map.getHeight())
-        {
-            this.createBuildingAddTileIfPossible(x, y+1);
-        }
-        if (y-1 >= 0)
-        {
-            this.createBuildingAddTileIfPossible(x, y-1);
-        }
-    }
-
-    //--------------------------------------------------------------------------
-    createBuildingAddTileIfPossible(x, y)
-    {
-        let tile_stack = this.m_tile_map.getTileStack(x, y);
-        if (tile_stack[GameArea.BUILDING_LAYER] === null)
-        {
-            this.m_tile_map.setTile(x, y, GameArea.BUILDING_LAYER,
-                new BuildingAddTile(
-                    tile_stack[GameArea.TERRAIN_LAYER].getDisplayName(),
-                    x, y, this.m_tile_map));
-        }
+        // add the initial buildings
+        this.addBuilding(8, 10, MineTile);
+        this.addBuilding(11, 8, FarmTile);
     }
 }
