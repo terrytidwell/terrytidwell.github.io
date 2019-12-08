@@ -67,7 +67,8 @@ let LoadingScreen = new Phaser.Class({
             'assets/farm/farm_construction.png');
 
         this.load.image('mine_tile', 'assets/mine/mine2.png');
-        this.load.image('mine_construction_tile', 'assets/mine/mine_construction.png');
+        this.load.image('mine_construction_tile',
+            'assets/mine/mine_construction.png');
 
         this.load.image('hoard_construction_tile',
             'assets/hoard/hoard_construction.png');
@@ -126,7 +127,7 @@ let LoadingScreen = new Phaser.Class({
         this.newGraphics.fillRectShape(new Phaser.Geom.Rectangle(205, 205, percentage*390, 40));
         */
         percentage = percentage * 100;
-        console.log("P:" + percentage);
+        // console.log("P:" + percentage);
         this.loadingText.setText(percentage.toFixed(0) + "%");
 
     },
@@ -501,7 +502,7 @@ let UIScene = new Phaser.Class({
 
         let icon_size = 48;
         let icon_scale = 1;
-        let icon_right_padding = 10;
+        let icon_right_padding = 28;
         icon_size *= icon_scale;
         let volume_control = this.add.sprite(
             game_width - icon_size - icon_right_padding,

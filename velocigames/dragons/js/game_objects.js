@@ -487,7 +487,7 @@ class BuildingAddTile extends Tile
                             + " gold"
                     },
                     duration_seconds: 30,
-                    active_text: "Pretending to have a green thumb",
+                    active_text: "Pretending to have\na green thumb",
                     cost_check_fn: function ()
                     {
                         return game_model.m_global_resources.m_gold
@@ -835,6 +835,7 @@ class DroppedResource
             //     y: 1 + this.value * this.value_scale,
             // }
         );
+        sprite.setDepth(2); // ensure not behind tiles
         scene.anims.create({
             key: this.anim_key,
             frames: scene.anims.generateFrameNumbers(this.sprite_sheet_key),
@@ -852,29 +853,34 @@ class DroppedResource
             128, 128
         );
         sprite.setInteractive({"hitArea": hit_area});
-        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function (pointer, localX, localY, event) {
-            event.stopPropagation();
-            if (game_model.m_global_resources[self.global_resource_key] + self.value <
-                game_model.m_global_resources[self.global_max_resource_key])
+        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function (pointer, localX, localY, event)
             {
-                game_model.m_global_resources[self.global_resource_key] += self.value;
-                scene.events.emit("update_global_resources");
-                scene.children.remove(sprite);
-            }
-            else
-            {
-                // TODO play bad noise and show x sprite?
-                console.log("unable to remove coin");
-            }
+                event.stopPropagation();
+                if (game_model.m_global_resources[self.global_resource_key] + self.value <
+                    game_model.m_global_resources[self.global_max_resource_key])
+                {
+                    game_model.m_global_resources[self.global_resource_key] += self.value;
+                    scene.events.emit("update_global_resources");
+                    scene.children.remove(sprite);
+                }
+                else
+                {
+                    // TODO play bad noise and show x sprite?
+                    console.log("unable to remove coin");
+                }
         });
 
-        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer, localX, localY, event)
-        {
-            event.stopPropagation();
-        });
+        sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
+            function (pointer, localX, localY, event)
+            {
+                event.stopPropagation();
+            });
 
 
-            let spit_distance = Math.random() * (this.spit_distance_max - this.spit_distance_min) + this.spit_distance_min;
+        let spit_distance = Math.random()
+            * (this.spit_distance_max - this.spit_distance_min)
+            + this.spit_distance_min;
         let radians = Math.random() * 2 * Math.PI;
         let target_x = ((this.tile_x + 0.5) + Math.cos(radians) * spit_distance);
         let target_y = ((this.tile_y + 0.5) + Math.sin(radians) * spit_distance);
