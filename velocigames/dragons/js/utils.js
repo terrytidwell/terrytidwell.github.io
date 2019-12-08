@@ -38,3 +38,32 @@ utils.get_required_field = function(obj, field)
     return obj[field];
 };
 
+//------------------------------------------------------------------------------
+utils.ListenerList = class {
+
+    //--------------------------------------------------------------------------
+    constructor()
+    {
+        this.m_listeners = []
+    }
+
+    //--------------------------------------------------------------------------
+    add(new_listener)
+    {
+        this.m_listeners.push(new_listener);
+    }
+
+    //--------------------------------------------------------------------------
+    remove(old_listener)
+    {
+        this.m_listeners = this.m_listeners.filter(
+            listener => listener === old_listener);
+    }
+
+    //--------------------------------------------------------------------------
+    notify()
+    {
+        this.m_listeners.forEach(
+            listener => listener(...arguments));
+    }
+};

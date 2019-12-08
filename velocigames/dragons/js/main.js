@@ -9,7 +9,6 @@ let game_model = {
         m_hoard_cost: 10,
     },
     m_village_area: new VillageArea(),
-    m_selected_tile: null,
 };
 
 let layout_info = {
@@ -64,17 +63,27 @@ let LoadingScreen = new Phaser.Class({
             .setOrigin(0.5, 0.5);
 
         this.load.image('farm_tile', 'assets/farm/farm.png');
+        this.load.image('farm_construction_tile',
+            'assets/farm/farm_construction.png');
+
         this.load.image('mine_tile', 'assets/mine/mine2.png');
-        this.load.image('mountains_tile', 'assets/mountains.png');
-        this.load.image('plains_tile', 'assets/plains.png');
+        this.load.image('mine_construction_tile', 'assets/mine/mine_construction.png');
+
+        this.load.image('hoard_construction_tile',
+            'assets/hoard/hoard_construction.png');
+        this.load.image('hoard_0_tile', 'assets/hoard/hoard.png');
+
+        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
+            { frameWidth: 32, frameHeight: 32 });
+
         this.load.image('plus_tile', 'assets/plus/plus_inactive.png');
         this.load.image('plus_tile_hover', 'assets/plus/plus.png');
+
         this.load.image('selection_overlay',
             'assets/selection_box/selection_box.png');
         this.load.image('hover_overlay',
             'assets/selection_box/selection_box_hover.png');
-        this.load.spritesheet('terrain', 'assets/terrain-v7.png',
-            { frameWidth: 32, frameHeight: 32 });
+
         this.load.image('action_texture',
             'assets/dashboard/detail_display.png');
         this.load.image('score_texture',
@@ -87,12 +96,17 @@ let LoadingScreen = new Phaser.Class({
         this.load.spritesheet('cow_spritesheet',
             'assets/cow/cow_projectile_sprite_sheet.png',
             { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('upgrade_spritesheet',
+            'assets/upgrade/upgrade_spritesheet.png',
+            { frameWidth: 16, frameHeight: 16 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
+
         this.load.image('button_passive', 'assets/buttons/button_grey2A.png');
         this.load.image('button_active',
             'assets/buttons/button_grey2C.png');
         this.load.image('button_busy',
             'assets/buttons/button_grey2B.png');
+
         this.load.svg('volume_off',
             'assets/volume_off-48px.svg');
         this.load.svg('volume_on',
@@ -384,12 +398,6 @@ let GameScene = new Phaser.Class({
             this.addGridOverlay();
         }
 
-        // Add animated coin on map.
-        //let coin = new Coin(this, 8, 10);
-
-        // Add animated cow on map.
-        let cow = new Cow(this, 11, 8);
-
         this.m_cursor_keys = this.input.keyboard.createCursorKeys();
         this.m_cursor_keys.letter_left = this.input.keyboard.addKey("a");
         this.m_cursor_keys.letter_right = this.input.keyboard.addKey("d");
@@ -453,12 +461,16 @@ let UIScene = new Phaser.Class({
         background.setOrigin(0, 0);
 
         let gold_text = this.add.text(
-            50, 20, "0/" + game_model.m_global_resources.m_max_gold,
+            50, 20,
+            game_model.m_global_resources.m_gold
+                + "/" + game_model.m_global_resources.m_max_gold,
             { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
             30, layout_info.m_score_height / 2 + 2, "coin");
         let cows_text = this.add.text(
-            200, 20, "0/" + game_model.m_global_resources.m_max_cows,
+            200, 20,
+            game_model.m_global_resources.m_cows
+                + "/" + game_model.m_global_resources.m_max_cows,
             { font: "26px Arial", fill: "#ffffff" });
         this.add.sprite(
             180, layout_info.m_score_height / 2 + 2, "cow_head");
@@ -468,10 +480,10 @@ let UIScene = new Phaser.Class({
             {
                 gold_text.setText(
                     game_model.m_global_resources.m_gold
-                    + "/" + game_model.m_global_resources.m_max_gold);
+                        + "/" + game_model.m_global_resources.m_max_gold);
                 cows_text.setText(
                     game_model.m_global_resources.m_cows
-                    + "/" + game_model.m_global_resources.m_max_cows);
+                        + "/" + game_model.m_global_resources.m_max_cows);
             }, this);
 
         this.create_volume_control();
@@ -584,8 +596,6 @@ let UIScene = new Phaser.Class({
         let state = this.m_selected_tile_state;
         state.clean_up();
 
-        game_model.m_selected_tile = tile;
-
         // show the tile
         let tile_game_object = tile.createGameObject(this);
         state.destroy_on_clean_up(tile_game_object);
@@ -663,7 +673,6 @@ let UIScene = new Phaser.Class({
                     if (!action.isActive() && action.isCostMet())
                     {
                         action.getExecuteFn()(state.m_game_scene);
-                        updateAppearance();
                     }
                 });
             state.m_game_scene.events.on(
