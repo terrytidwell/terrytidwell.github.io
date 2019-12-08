@@ -2,10 +2,12 @@
 class TileAction
 {
     //--------------------------------------------------------------------------
+    // button_text, cost_text, cost_check_fn, cost_text_fn, active_text,
+    // duration_seconds, begin_fn, end_fn
     constructor(values)
     {
         values = utils.add_defaults({
-            button_text:"button_text",
+            button_text: "button_text",
             cost_text: null,
             cost_check_fn: function () { return true; },
             cost_text_fn: null,
@@ -108,12 +110,19 @@ class TileAction
 class Tile
 {
     //--------------------------------------------------------------------------
-    constructor(display_name, image_key, image_index, actions)
+    // display_name, image_key, image_index, actions
+    constructor(values)
     {
-        this.m_display_name = display_name;
-        this.m_image_key = image_key;
-        this.m_image_index = image_index;
-        this.m_actions = actions;
+        values = utils.add_defaults({
+            display_name: "display_name",
+            image_key: "image_key",
+            image_index: null,
+            actions: [],
+        }, values);
+        this.m_display_name = values.display_name;
+        this.m_image_key = values.image_key;
+        this.m_image_index = values.image_index;
+        this.m_actions = values.actions;
     }
 
     //--------------------------------------------------------------------------
@@ -129,6 +138,7 @@ class Tile
         let image_key = this.m_image_key;
         if (image_key instanceof Array)
         {
+            // not used - may be deleted
             let container = scene.add.container(0, 0);
             // note: it is impossible to set the origin of a container,
             // so we have to leave everything with an origin of (0.5, 0.5)
@@ -145,8 +155,10 @@ class Tile
             }
             game_object = container
         }
-        else if (this.m_image_index)
+        else if (null !== this.m_image_index)
         {
+            // terrain
+
             let image = scene.add.image(0, 0, image_key, this.m_image_index);
             // image.setOrigin(0, 0);
             image.scale = 2;
@@ -155,6 +167,7 @@ class Tile
         }
         else
         {
+            // simple image
             let image = scene.add.image(0, 0, image_key);
             //image.setOrigin(0, 0);
             game_object = image
@@ -179,8 +192,11 @@ class PlainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Plains", "terrain",
-            32*12 + Math.floor(Math.random()*3));
+        super({
+            display_name: "Plains",
+            image_key: "terrain",
+            image_index: 32*12 + Math.floor(Math.random()*3)
+        });
     }
 }
 
@@ -190,7 +206,11 @@ class PlainsTopTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Plains", "terrain", 32*41+5);
+        super({
+            display_name: "Plains",
+            image_key: "terrain",
+            image_index: 32*41+5
+        });
     }
 }
 
@@ -200,7 +220,11 @@ class PlainsTop2Tile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Mountains", "terrain", 32*40+4);
+        super({
+            display_name: "Mountains",
+            image_key: "terrain",
+            image_index: 32 * 40 + 4,
+        });
     }
 }
 
@@ -210,8 +234,11 @@ class MountainsTile extends Tile
     //--------------------------------------------------------------------------
     constructor()
     {
-        super("Mountains", "terrain",
-            26*32+18+Math.floor(Math.random()*3));
+        super({
+            display_name: "Mountains",
+            image_key: "terrain",
+            image_index: 26 * 32 + 18 + Math.floor(Math.random() * 3),
+        });
     }
 }
 
@@ -234,10 +261,11 @@ class MineTile extends Tile
                 },
             }),
         ];
-        super("Mine",
-            ["mine_tile"],
-            undefined,
-            actions);
+        super({
+            display_name: "Mine",
+            image_key: "mine_tile",
+            actions: actions,
+        });
     }
 }
 
@@ -275,11 +303,11 @@ class FarmTile extends Tile
                 }
             }),
         ];
-        super(
-            "Farm",
-            ["farm_tile"],
-            undefined,
-            actions);
+        super({
+            display_name: "Farm",
+            image_key: "farm_tile",
+            actions: actions,
+        });
     }
 }
 
@@ -368,11 +396,12 @@ class BuildingAddTile extends Tile
             );
         }
 
-        super(
-            terrain_name,
-            ["plus_tile"],
-            undefined,
-            actions);
+        super({
+            display_name: terrain_name,
+            image_key: "plus_tile",
+            mouseover_image_key: "plus_tile_hover",
+            actions: actions,
+        });
 
 
     }
