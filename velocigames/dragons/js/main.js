@@ -101,7 +101,7 @@ let LoadingScreen = new Phaser.Class({
             'assets/cow/cow_projectile_sprite_sheet.png',
             { frameWidth: 64, frameHeight: 64 });
         this.load.spritesheet('upgrade_spritesheet',
-            'assets/upgrade/upgrade_strip.png',
+            'assets/upgrade/upgrade_strip2.png',
             { frameWidth: 64, frameHeight: 64 });
         this.load.image('cow_head', 'assets/cow/cow_head.png');
 
