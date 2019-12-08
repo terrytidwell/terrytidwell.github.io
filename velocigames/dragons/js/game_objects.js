@@ -1168,10 +1168,10 @@ class DroppedResource
         sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
             function (pointer, localX, localY, event)
             {
-                event.stopPropagation();
                 if (game_model.m_global_resources[self.global_resource_key] + self.value <=
                     game_model.m_global_resources[self.global_max_resource_key])
                 {
+                    event.stopPropagation();
                     game_model.m_global_resources[self.global_resource_key] += self.value;
                     scene.events.emit("update_global_resources");
                     scene.children.remove(sprite);
