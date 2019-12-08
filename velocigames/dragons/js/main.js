@@ -170,7 +170,7 @@ let TitleScreen = new Phaser.Class({
         this.cameras.main.setBackgroundColor("#000000");
         this.titleText = this.add.text(
             game_width / 2, game_height / 2,
-            "Dragon Age: Origins", { fontSize: '32px', fill: '#FFF' })
+            "Untitled Dragon Game", { fontSize: '32px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
         this.titleText.alpha = 0;
 
@@ -298,7 +298,7 @@ let CreditsScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function()
     {
-        this.cameras.main.scrollY += 5;
+        this.cameras.main.scrollY += 0.5;
         if (this.cameras.main.scrollY > this.max_credit_y)
         {
             this.scene.start('TitleScreen');
