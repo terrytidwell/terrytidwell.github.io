@@ -487,12 +487,6 @@ class Coin
             y: (coin.tile_y + 1.5) * layout_info.m_tile_height,
             duration: 1000,
             ease: 'Sine.easeOut',
-            flipX: true,
-            yoyo: false,
-            repeat: 0,
-            delay: function (i, total, target) {
-                return i * 1000;
-            }
         });
     }
 }
