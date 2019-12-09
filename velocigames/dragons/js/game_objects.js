@@ -464,6 +464,17 @@ class MineTile extends BuildingTile
         if (1 === level || 2 === level || 3 === level)
         {
             this.m_upgrade_badge_tile = new UpgradeBadgeTile(this, level);
+            let scene = game.scene.getScene("GameScene");
+            this.spawn_timer = scene.time.addEvent(
+                {
+                    "delay": 5000 - level * 1000,
+                    "loop": true,
+                    "callback": function (scene, x, y, value) {
+                        new Coin(scene, x, y, value);
+                    },
+                    "args": [scene, x, y, 1]
+                }
+            );
         }
     }
 }
