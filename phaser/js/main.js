@@ -1,15 +1,18 @@
 var config = {
     type: Phaser.AUTO,
-    width: 32*30,
-    height: 32*20,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        parent: 'phaser-example',
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 800,
+        height: 600
+    },
     physics: {
         default: 'arcade',
         arcade: {
             debug: false
         }
     },
-	autoCenter: Phaser.Scale.CENTER_BOTH,
-	mode: Phaser.Scale.FIT,
     scene: {
         preload: preload,
         create: create,
@@ -120,9 +123,9 @@ function create ()
 
     player = this.physics.add.sprite(3 * 32 - 16, 15 * 32 - 16, 'star');
     player.setBounce(0.2);
-    player.setCollideWorldBounds(true);
+    //player.setCollideWorldBounds(true);
 
-    //bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2).setCollideWorldBounds(true);
+    //bombs.create(32*28 - 16, 32*18 - 16, 'bomb').setBounce(0.2); //.setCollideWorldBounds(true);
 
     cursors = this.input.keyboard.createCursorKeys();
 
