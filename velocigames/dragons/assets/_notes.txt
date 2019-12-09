@@ -1,0 +1,11 @@
+seamless-paper-texture.jpg: https://images.app.goo.gl/AziGuGCE9B6igWKp7
+black_texture.jpg: https://images.app.goo.gl/M6uKLu64yMtH452t6
+white_leather_texture.jpg: https://images.app.goo.gl/7SyJeeUdUmrQpDxo7
+
+Suonatore di Liuto Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 3.0 License
+http://creativecommons.org/licenses/by/3.0/
+
+----
+Not used but cool:
+https://images.app.goo.gl/oLGeU9hf19A42aUi6
