@@ -1,6 +1,6 @@
 let game_model = {
     m_global_resources: {
-        m_gold: 0,
+        m_gold: 40,
         m_max_gold: 100,
         m_cows: 0,
         m_max_cows: 20,
