@@ -107,6 +107,155 @@ let GameScene = new Phaser.Class({
         let stars = this.physics.add.group();
         G.bombs = this.physics.add.group();
 
+        let self=this;
+
+        //   0                   1                   2                   3
+        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
+        let map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], //00
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //01
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //02
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //03
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //04
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //05
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1], //06
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //07
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //08
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //09
+            [1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //10
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //11
+            [1,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //12
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //13
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //14
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //15
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //16
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //17
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //18
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  //19
+        ];
+
+        (function (map, func, param1, param2) {
+            let map_height = map.length;
+            let map_width = map[0].length;
+
+            function find_test_points(x, y, height, width, dx, dy)
+            {
+                let points = [];
+                if (dx !== 0)
+                {
+                    let x_offset = dx > 0 ? width-1 : 0;
+                    for (let i = 0; i < height; ++i)
+                    {
+                        points.push({y: y+i, x:x+x_offset+dx})
+                    }
+                }
+                if (dy !== 0)
+                {
+                    let y_offset = dy > 0 ? height-1 : 0;
+                    for (let i = 0; i < width; ++i)
+                    {
+                        points.push({y:y+y_offset+dy, x:x+i})
+                    }
+                }
+                if (dx !== 0 && dy !== 0)
+                {
+                    let x_offset = dx > 0 ? width-1 : 0;
+                    let y_offset = dy > 0 ? height-1 : 0;
+                    points.push({y:y+y_offset+dy, x:x+x_offset+dx})
+                }
+                return points;
+            };
+
+            function test_points(points)
+            {
+                for (let i = 0; i < points.length; ++i)
+                {
+                    if (points[i].x >= 0 && points[i].x < map_width &&
+                        points[i].y >= 0 && points[i].y < map_height &&
+                        map[points[i].y][points[i].x] == 1)
+                    {
+                        //no conflict yet
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function expand(x, y, height, width) {
+                let diag = [
+                    [-1,-1],
+                    [-1, 1],
+                    [1, -1],
+                    [1, 1],
+                    [0,-1],
+                    [0, 1],
+                    [-1, 0],
+                    [1, 0],
+                ];
+                for (let i = 0; i < diag.length; ++i)
+                {
+                    let dx = diag[i][0];
+                    let dy = diag[i][1];
+                    let test_set = find_test_points(x,y,height,width,dx, dy);
+                    let passed = test_points(test_set);
+                    if (passed)
+                    {
+                        //new shape
+                        if (dx != 0)
+                        {
+                            width++;
+                            if (dx < 0)
+                            {
+                                x--;
+                            }
+                        }
+                        if (dy != 0)
+                        {
+                            height++;
+                            if (dx < 0)
+                            {
+                                y--;
+                            }
+                        }
+                        return expand(x,y,height,width)
+                    }
+                }
+
+                return {x:x, y:y, height:height, width:width};
+            }
+
+            function erase(x, y, height, width)
+            {
+                for (let dy = 0; dy < height; ++dy)
+                {
+                    for (let dx = 0; dx < width; ++dx)
+                    {
+                        map[y+dy][x+dx]=0;
+                    }
+                }
+            }
+
+            for (let y = 0; y < map.length; ++y)
+            {
+                for (let x = 0; x < map[y].length; ++x)
+                {
+                    if (map[y][x] == 1)
+                    {
+                        let poly = expand(x,y,1,1);
+                        func(poly);
+                        //alert(JSON.stringify(expand(x,y,1,1)));
+                        erase(poly.x, poly.y, poly.height, poly.width);
+                    }
+                }
+            }
+        })(map, function(poly) {
+            self.addLedge(self, platforms, poly.x, poly.y, poly.width, poly.height);
+        });
+
+/*
         this.addLedge(this, platforms, 0, 0, 1, 20);
         this.addLedge(this, platforms, 30, 0, 1, 20);
         this.addLedge(this, platforms, 1, 0, 29, 1);
@@ -116,7 +265,7 @@ let GameScene = new Phaser.Class({
         this.addLedge(this, platforms, 9, 12, 5, 1);
         this.addLedge(this, platforms, 18, 6, 12, 1);
         this.addLedge(this, platforms, 14, 1, 1, 10);
-
+*/
         this.addBreakable( breakables, 27, 17);
         this.addBreakable( breakables, 26, 17);
         this.addBreakable( breakables, 25, 17);
