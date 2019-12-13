@@ -140,11 +140,42 @@ let LevelArray = [
         player_x: 1,
         player_y: 1,
     },
+    {
+        name: "Physics Tests",
+        //   0                   1                   2                   3
+        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+        map: [
+            [1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1],
+        ],
+        create: function (screen)
+        {
+            screen.addLedge(3,3,4,1);
+            screen.addLedge(7,3,1,4);
+            screen.addLedge(4,7,4,1);
+            screen.addLedge(3,4,1,4);
+            screen.addBomb(1,41);
+            screen.addBomb(32, 1);
+            screen.addBomb(32, 41);
+
+        },
+        player_x: 5,
+        player_y: 1,
+    },
 ];
 
 let currentLevelIndex = 0;
 
-let LevelSelectScene = new Phaser.Class({
+let  LevelSelectScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
@@ -187,6 +218,7 @@ let LevelSelectScene = new Phaser.Class({
         this.play_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
             function(pointer, localX, localY, event) {
                 this.scene.start('GameScene');
+                this.scene.start('UIScene');
                 this.scene.stop('LevelSelectScene');
             }, this
         );
@@ -257,6 +289,66 @@ let LevelSelectScene = new Phaser.Class({
         this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
         this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
          */
+    },
+});
+
+let UIScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'UIScene', active: false });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        let game_width = this.game.config.width;
+        this.back_button = this.add.text(
+            0, 0,
+            "<<", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0, 0);
+        this.back_button.alpha = 0.5;
+        this.back_button.setInteractive();
+        this.back_button.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.back_button.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.back_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                this.scene.stop('GameScene');
+                this.scene.stop('UIScene');
+                this.scene.start('LevelSelectScene');
+            }, this
+        );
+        this.score = this.add.text(
+            game_width, 0, "0/0", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(1, 0);
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+        let GameScene = this.scene.get('GameScene');
+        if (GameScene.myGameState && GameScene.myGameState.stars)
+        {
+            let stars = GameScene.myGameState.stars;
+            this.score.setText(stars.countActive(false) + "/"+stars.getLength(true));
+        }
+
     },
 });
 
@@ -399,9 +491,15 @@ let GameScene = new Phaser.Class({
         let currentLevel = LevelArray[currentLevelIndex];
         currentLevel.create(this);
 
-        (function (map, func) {
-            let map_height = map.length;
-            let map_width = map[0].length;
+        (function (original_map, func) {
+            //we modify the map, make a deep copy
+            let map = [];
+            let map_height = original_map.length;
+            let map_width = original_map[0].length;
+            for (let y = 0; y < map_height; ++y)
+            {
+                map[y] = original_map[y].concat();
+            }
 
             function find_test_points(x, y, height, width, dx, dy)
             {
@@ -522,6 +620,7 @@ let GameScene = new Phaser.Class({
 
         G.player = this.physics.add.sprite(currentLevel.player_x * 32 + 16, currentLevel.player_y * 32 + 16, 'star');
         G.player.setBounce(0.2);
+        G.player.setTint(0x00a7e6)
 
         G.cursors = this.input.keyboard.createCursorKeys();
 
@@ -544,7 +643,6 @@ let GameScene = new Phaser.Class({
         this.physics.add.collider(G.player, G.bombs, this.hitBomb, null, this);
         let camera = this.cameras.main;
         camera.startFollow(G.player);
-
     },
 
     //--------------------------------------------------------------------------
@@ -665,7 +763,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LevelSelectScene, GameScene ]
+    scene: [ LevelSelectScene, GameScene, UIScene ]
 };
 
 let game = new Phaser.Game(config);
