@@ -1,8 +1,6 @@
-let currentLevel = 0;
-
 let LevelArray = [
     {
-        name: "Test Level",
+        name: "Test Level (Hard)",
         //   0                   1                   2                   3
         //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
         map: [
@@ -92,7 +90,7 @@ let LevelArray = [
             [1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1], //09
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1], //10
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1], //11
-            [1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,1,1,1], //12
+            [1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1], //12
             [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1], //13
             [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1], //14
             [1,0,0,1,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,1,1,1,1,0,0,1], //15
@@ -129,11 +127,138 @@ let LevelArray = [
             screen.addBomb(1,41);
             screen.addBomb(32, 1);
             screen.addBomb(32, 41);
+            for ( let y = 0; y < LevelArray[currentLevelIndex].map.length; ++y )
+            {
+                for (let x = 0; x < LevelArray[currentLevelIndex].map[y].length; ++x )
+                {
+                    if (Math.random() < 0.1) {
+                        screen.addStar(x, y);
+                    }
+                }
+            }
         },
         player_x: 1,
         player_y: 1,
     },
 ];
+
+let currentLevelIndex = 0;
+
+let LevelSelectScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'LevelSelectScene', active: true });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        let game_width = this.game.config.width;
+        let game_height = this.game.config.height;
+        this.cameras.main.scrollY = 0;
+        this.cameras.main.setBackgroundColor("#000000");
+        let offset = 18;
+
+        this.play_button = this.add.text(
+            game_width / 2, game_height / 2,
+            LevelArray[currentLevelIndex].name, { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.play_button.alpha = 0.5;
+        this.play_button.setInteractive();
+        this.play_button.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.play_button.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.play_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                this.scene.start('GameScene');
+                this.scene.stop('LevelSelectScene');
+            }, this
+        );
+
+        this.previous = this.add.text(this.play_button.x - this.play_button.width / 2 - 12,
+            game_height / 2,
+            "<<", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(1 , 0.5);
+        this.previous.setInteractive();
+        this.previous.alpha = 0.5;
+        this.previous.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.previous.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.previous.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                currentLevelIndex-=1;
+                if (currentLevelIndex < 0)
+                {
+                    currentLevelIndex = LevelArray.length - 1;
+                }
+                this.play_button.setText(LevelArray[currentLevelIndex].name);
+                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
+                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
+            }, this
+        );
+
+        this.next = this.add.text(this.play_button.x + this.play_button.width / 2 + 12,
+            game_height / 2,
+            ">>", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.next.setInteractive();
+        this.next.alpha = 0.5;
+        this.next.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.next.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.next.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                currentLevelIndex+=1;
+                if (currentLevelIndex >= LevelArray.length)
+                {
+                    currentLevelIndex = 0;
+                }
+                this.play_button.setText(LevelArray[currentLevelIndex].name);
+                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
+                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
+            }, this
+        );
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+        /*
+        this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
+        this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
+         */
+    },
+});
 
 let GameScene = new Phaser.Class({
 
@@ -144,7 +269,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'GameScene', active: true });
+        Phaser.Scene.call(this, { key: 'GameScene', active: false });
     },
 
     //--------------------------------------------------------------------------
@@ -270,9 +395,9 @@ let GameScene = new Phaser.Class({
         G.bombs = this.physics.add.group();
 
         let self=this;
-        let level = LevelArray[currentLevel];
 
-        level.create(this);
+        let currentLevel = LevelArray[currentLevelIndex];
+        currentLevel.create(this);
 
         (function (map, func) {
             let map_height = map.length;
@@ -391,11 +516,11 @@ let GameScene = new Phaser.Class({
                     }
                 }
             }
-        })(level.map, function(poly) {
+        })(currentLevel.map, function(poly) {
             self.addLedge(poly.x, poly.y, poly.width, poly.height);
         });
 
-        G.player = this.physics.add.sprite(level.player_x * 32 + 16, level.player_y * 32 + 16, 'star');
+        G.player = this.physics.add.sprite(currentLevel.player_x * 32 + 16, currentLevel.player_y * 32 + 16, 'star');
         G.player.setBounce(0.2);
 
         G.cursors = this.input.keyboard.createCursorKeys();
@@ -540,7 +665,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene ]
+    scene: [ LevelSelectScene, GameScene ]
 };
 
 let game = new Phaser.Game(config);
