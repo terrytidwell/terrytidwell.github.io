@@ -141,7 +141,7 @@ let LevelArray = [
         player_y: 1,
     },
     {
-        name: "Physics Tests",
+        name: "Broken Physics Tests Case",
         //   0                   1                   2                   3
         //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
         map: [
@@ -167,6 +167,16 @@ let LevelArray = [
             screen.addBomb(32, 1);
             screen.addBomb(32, 41);
 
+            screen.myGameState.player.setX(44);
+            screen.myGameState.player.setY(309);
+            screen.myGameState.gravity = 117;
+            screen.myGameState.gravity += screen.myGameState.MAX_ROTATION/2;
+            if (screen.myGameState.gravity >= screen.myGameState.MAX_ROTATION)
+            {
+                screen.myGameState.gravity -= screen.myGameState.MAX_ROTATION;
+            }
+            screen.setGravity();
+            screen.myGameState.gameOver = true;
         },
         player_x: 5,
         player_y: 1,
@@ -489,7 +499,6 @@ let GameScene = new Phaser.Class({
         let self=this;
 
         let currentLevel = LevelArray[currentLevelIndex];
-        currentLevel.create(this);
 
         (function (original_map, func) {
             //we modify the map, make a deep copy
@@ -643,6 +652,8 @@ let GameScene = new Phaser.Class({
         this.physics.add.collider(G.player, G.bombs, this.hitBomb, null, this);
         let camera = this.cameras.main;
         camera.startFollow(G.player);
+
+        currentLevel.create(this);
     },
 
     //--------------------------------------------------------------------------
@@ -710,12 +721,12 @@ let GameScene = new Phaser.Class({
         if (G.cursors.left.isDown)
         {
             this.rotateGravity(-1);
-            this.setGravity(this);
+            this.setGravity();
         }
         else if (G.cursors.right.isDown)
         {
             this.rotateGravity(1);
-            this.setGravity(this);
+            this.setGravity();
         }
         else
         {
@@ -738,7 +749,7 @@ let GameScene = new Phaser.Class({
             {
                 G.gravity -= G.MAX_ROTATION;
             }
-            this.setGravity(this);
+            this.setGravity();
             //player.setVelocityY(-330);
         }
         else if (!G.cursors.up.isDown && !G.cursors.down.isDown)
