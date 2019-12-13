@@ -1,6 +1,10 @@
+let currentLevel = 0;
+
 let LevelArray = [
     {
         name: "Test Level",
+        //   0                   1                   2                   3
+        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
         map: [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], //00
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], //01
@@ -26,50 +30,50 @@ let LevelArray = [
         create: function (screen)
         {
             let G = screen.myGameState;
-            screen.addBreakable(27, 17);
-            screen.addBreakable(26, 17);
-            screen.addBreakable(25, 17);
+            screen.addBreakable(26, 16);
             screen.addBreakable(25, 16);
-            screen.addStar(26, 16);
-            screen.addBreakable(27, 16);
-            screen.addBreakable(27, 15);
+            screen.addBreakable(24, 16);
+            screen.addBreakable(24, 15);
+            screen.addStar(25, 15);
             screen.addBreakable(26, 15);
-            screen.addBreakable(25, 15);
+            screen.addBreakable(26, 14);
+            screen.addBreakable(25, 14);
+            screen.addBreakable(24, 14);
 
-            screen.addBreakable(27, 12);
-            screen.addBreakable(26, 12);
-            screen.addBreakable(25, 12);
+            screen.addBreakable(26, 11);
             screen.addBreakable(25, 11);
-            screen.addStar(26, 11);
-            screen.addBreakable(27, 11);
-            screen.addBreakable(27, 10);
+            screen.addBreakable(24, 11);
+            screen.addBreakable(24, 10);
+            screen.addStar(25, 10);
             screen.addBreakable(26, 10);
-            screen.addBreakable(25, 10);
+            screen.addBreakable(26, 9);
+            screen.addBreakable(25, 9);
+            screen.addBreakable(24, 9);
 
-            screen.addBumper(16, 6);
-            screen.addBumper(19, 2);
-            screen.addBumper(22, 6);
-            screen.addBumper(25, 2);
-            screen.addBumper(28, 6);
+            screen.addBumper(15, 5);
+            screen.addBumper(18, 1);
+            screen.addBumper(21, 5);
+            screen.addBumper(24, 1);
+            screen.addBumper(27, 5);
 
-            screen.addBomb(28, 18);
+            screen.addBomb(27, 17);
 
-            for (let x = 2; x < 15; x++) {
-                for (let y = 2; y < 11; y++)
+            for (let x = 1; x < 14; x++) {
+                for (let y = 1; y < 10; y++)
                 {
                     screen.addStar(x,y);
                 }
             }
 
-            screen.addStar(30, 2 );
-            screen.addStar(30, 3 );
-            screen.addStar(30, 4 );
-            screen.addStar(30, 5 );
-            screen.addStar(30, 6 );
+            screen.addStar(29, 1 );
+            screen.addStar(29, 2 );
+            screen.addStar(29, 3 );
+            screen.addStar(29, 4 );
+            screen.addStar(29, 5 );
 
         },
-        player_x: 3,
-        player_y: 15
+        player_x: 2,
+        player_y: 14
     },
     {
         name: "Maze",
@@ -122,12 +126,12 @@ let LevelArray = [
         ],
         create: function (screen)
         {
-            screen.addBomb(2,42);
-            screen.addBomb(33, 2);
-            screen.addBomb(33, 42);
+            screen.addBomb(1,41);
+            screen.addBomb(32, 1);
+            screen.addBomb(32, 41);
         },
-        player_x: 2,
-        player_y: 2,
+        player_x: 1,
+        player_y: 1,
     },
 ];
 
@@ -164,12 +168,11 @@ let GameScene = new Phaser.Class({
         let center_y = y * block_size + ledge_height/2;
         let platform = this.add.tileSprite(center_x, center_y, ledge_width, ledge_height, 'blocks', 1);
         let colors = [
-            0xff0000,
-            0x00ff00,
-            0x0000ff,
-            0xffff00,
-            0xff00ff,
-            0x00ffff
+            0xefc7c2,
+            0xffe5d4,
+            0xbfd3c1,
+            0x68a691,
+            0x695f5d
         ];
         platform.setTint(colors[Math.floor(Math.random()*colors.length)]);
         group.add(platform);
@@ -180,7 +183,7 @@ let GameScene = new Phaser.Class({
     {
         let group = this.myGameState.bombs;
         let block_size = 32;
-        group.create(block_size * x - block_size/2,block_size * y - block_size/2, 'bomb').setBounce(0.2);
+        group.create(block_size * x + block_size/2,block_size * y + block_size/2, 'bomb').setBounce(0.2);
     },
 
     //--------------------------------------------------------------------------
@@ -188,7 +191,7 @@ let GameScene = new Phaser.Class({
     {
         let group = this.myGameState.breakables;
         let block_size = 32;
-        group.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',5).setImmovable(true);
+        group.create(block_size * x + block_size/2,block_size * y + block_size/2, 'blocks',5).setImmovable(true);
     },
 
     //--------------------------------------------------------------------------
@@ -196,7 +199,7 @@ let GameScene = new Phaser.Class({
     {
         let group = this.myGameState.bumpers;
         let block_size = 32;
-        group.create(block_size * x - block_size/2,block_size * y - block_size/2, 'blocks',25).setImmovable(true);
+        group.create(block_size * x + block_size/2,block_size * y + block_size/2, 'blocks',25).setImmovable(true);
     },
 
     //--------------------------------------------------------------------------
@@ -204,7 +207,7 @@ let GameScene = new Phaser.Class({
     {
         let group = this.myGameState.stars;
         let block_size = 32;
-        group.create(block_size * x - block_size/2,block_size * y - block_size/2, 'star').setImmovable(true);
+        group.create(block_size * x + block_size/2,block_size * y + block_size/2, 'star').setImmovable(true);
     },
 
     //--------------------------------------------------------------------------
@@ -267,7 +270,7 @@ let GameScene = new Phaser.Class({
         G.bombs = this.physics.add.group();
 
         let self=this;
-        let level = LevelArray[1];
+        let level = LevelArray[currentLevel];
 
         level.create(this);
 
@@ -392,7 +395,7 @@ let GameScene = new Phaser.Class({
             self.addLedge(poly.x, poly.y, poly.width, poly.height);
         });
 
-        G.player = this.physics.add.sprite(level.player_x * 32 - 16, level.player_y * 32 - 16, 'star');
+        G.player = this.physics.add.sprite(level.player_x * 32 + 16, level.player_y * 32 + 16, 'star');
         G.player.setBounce(0.2);
 
         G.cursors = this.input.keyboard.createCursorKeys();
