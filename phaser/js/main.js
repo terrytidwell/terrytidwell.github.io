@@ -131,7 +131,7 @@ let LevelArray = [
             {
                 for (let x = 0; x < LevelArray[currentLevelIndex].map[y].length; ++x )
                 {
-                    if (Math.random() < 0.1) {
+                    if (LevelArray[currentLevelIndex].map[y][x] == 0 && Math.random() < 0.1) {
                         screen.addStar(x, y);
                     }
                 }
