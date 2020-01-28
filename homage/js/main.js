@@ -23,6 +23,9 @@ let GameScene = new Phaser.Class({
         this.load.image('standing_whip1', 'assets/standing_whip1.png');
         this.load.image('standing_whip2', 'assets/standing_whip2.png');
         this.load.image('standing_whip3', 'assets/standing_whip3.png');
+        this.load.image('whip1', 'assets/whip1.png');
+        this.load.image('whip2', 'assets/whip2.png');
+        this.load.image('whip3', 'assets/whip3.png');
         this.load.image('block', 'assets/block.png');
     },
 
@@ -46,8 +49,11 @@ let GameScene = new Phaser.Class({
                 ducking : false,
                 attacking : false,
                 ready_to_attack : false,
-                hit : false
-            }, 
+                hit : false,
+                whip1 : null,
+                whip2 : null,
+                whip3 : null,
+            },
             cursors : null,
 		};
         let G = this.myGameState;
@@ -100,6 +106,15 @@ let GameScene = new Phaser.Class({
         G.player.sprite = this.physics.add.sprite(400, 100, 'simon1').setScale(4);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
+        G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
+        G.player.whip1.visible = false;
+        G.player.whip1.body.allowGravity = false;
+        G.player.whip2 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip2').setScale(4);
+        G.player.whip2.visible = false;
+        G.player.whip2.body.allowGravity = false;
+        G.player.whip3 = this.physics.add.sprite(G.player.sprite.body.left - 44*4, G.player.sprite.body.top, 'whip3').setScale(4);
+        G.player.whip3.visible = false;
+        G.player.whip3.body.allowGravity = false;
         //G.player.sprite.body.setSize(16*4,32*4);
         
         G.cursors = this.input.keyboard.createCursorKeys();
@@ -119,6 +134,30 @@ let GameScene = new Phaser.Class({
     update: function() {
         let G = this.myGameState;
 
+        G.player.whip1.body.x = G.player.sprite.body.right;
+        G.player.whip1.setFlipX(G.player.sprite.flipX);
+        if (G.player.sprite.flipX)
+        {
+            G.player.whip1.body.x = G.player.sprite.body.left - 64;
+        }
+        G.player.whip1.body.y = G.player.sprite.body.top;
+
+        G.player.whip2.body.x = G.player.sprite.body.right;
+        G.player.whip2.setFlipX(G.player.sprite.flipX);
+        if (G.player.sprite.flipX)
+        {
+            G.player.whip2.body.x = G.player.sprite.body.left - 64;
+        }
+        G.player.whip2.body.y = G.player.sprite.body.top;
+
+        G.player.whip3.body.x = G.player.sprite.body.left - 44*4;
+        G.player.whip3.setFlipX(G.player.sprite.flipX);
+        if (G.player.sprite.flipX)
+        {
+            G.player.whip3.body.x = G.player.sprite.body.right;
+        }
+        G.player.whip3.body.y = G.player.sprite.body.top;
+
         if (!G.cursors.up.isDown) {
             G.player.ready_to_jump = true
         }
@@ -126,20 +165,34 @@ let GameScene = new Phaser.Class({
             G.player.ready_to_attack = true;
         }
 
-        if (G.cursors.letter_left.isDown && G.player.ready_to_attack && !G.player_attacking)
+        if (G.cursors.letter_left.isDown && G.player.ready_to_attack && !G.player.attacking)
         {
             G.player.attacking = true;
             G.player.ready_to_attack = false;
             let attack_end = function () {
                 G.player.attacking = false;
+                G.player.whip3.visible = false;
+            };
+            let attack_update = function (animation, frame, gameObject) {
+                if (frame.index === 2) {
+                    G.player.whip1.visible = false;
+                    G.player.whip2.visible = true;
+                } else if (frame.index === 3) {
+                    G.player.whip2.visible = false;
+                    G.player.whip3.visible = true;
+                }
             };
             G.player.sprite.on('animationcomplete-standing_whip', attack_end);
             G.player.sprite.on('animationcomplete-ducking_whip', attack_end);
+            G.player.sprite.on('animationupdate-ducking_whip', attack_update);
+            G.player.sprite.on('animationupdate-standing_whip', attack_update);
             if (!G.player.ducking) {
                 G.player.sprite.anims.play('standing_whip', false);
             } else {
                 G.player.sprite.anims.play('ducking_whip', false);
             }
+
+            G.player.whip1.visible = true;
         }
 
         if (G.player.attacking && G.player.sprite.body.touching.down)
