@@ -16,6 +16,7 @@ let GameScene = new Phaser.Class({
         this.load.image('simon1', 'assets/simon1.png');
         this.load.image('simon2', 'assets/simon2.png');
         this.load.image('simon3', 'assets/simon3.png');
+        this.load.image('simon_ducking', 'assets/simon_ducking.png');
         this.load.image('block', 'assets/block.png');
     },
 
@@ -34,6 +35,8 @@ let GameScene = new Phaser.Class({
         this.myGameState = {
             platforms: null,
             player : null,
+            ready_to_jump : true,
+            jumping : false,
             cursors : null,
 		};
         let G = this.myGameState;
@@ -50,12 +53,19 @@ let GameScene = new Phaser.Class({
 		});
 
         G.platforms = this.physics.add.staticGroup();
+        this.addBlock(400-64*5,300);
+        this.addBlock(400-64*4,300);
         this.addBlock(400,300);
+        this.addBlock(400-64,300+128);
+        this.addBlock(400-128,300+196);
+        this.addBlock(400-196,300+196);
         this.addBlock(464,300);
         this.addBlock(528,300);
         this.addBlock(596,300-64);
         this.addBlock(596,300-128);
-        G.player = this.physics.add.sprite(400, 150, 'simon1').setScale(4);
+        G.player = this.physics.add.sprite(400, 100, 'simon1').setScale(4);
+        G.player.originX = 0;
+        G.player.originY = 1;
         //G.player.body.setSize(16*4,32*4);
         G.cursors = this.input.keyboard.createCursorKeys();
 
@@ -71,30 +81,64 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    update: function()
-    {
+    update: function() {
         let G = this.myGameState;
 
-        if (G.cursors.left.isDown )
-        {
+        if (G.cursors.left.isDown) {
             G.player.setFlipX(false);
-            G.player.x = G.player.x - 2;
-            G.player.anims.play('walk', true)
-        }
-        else if (G.cursors.right.isDown)
-        {
+            G.player.setVelocityX(-196);
+            if (!G.jumping) {
+                G.player.anims.play('walk', true);
+                G.player.setSize(16, 32);
+            }
+        } else if (G.cursors.right.isDown) {
             G.player.setFlipX(true);
-            G.player.x = G.player.x + 2;
-            G.player.anims.play('walk', true)
-        }
-        else
-        {
+            G.player.setVelocityX(196)
+            if (!G.jumping) {
+                G.player.anims.play('walk', true);
+                G.player.setSize(16, 32);
+            }
+        } else {
             G.player.anims.stop();
-            G.player.setTexture('simon1');
+            G.player.setVelocityX(0);
+            if (!G.jumping) {
+                G.player.setTexture('simon1');
+                G.player.setSize(16, 32);
+            }
         }
 
+        if (!G.cursors.up.isDown) {
+            G.ready_to_jump = true
+        }
 
-
+        if (G.player.body.touching.down) {
+            if (G.jumping) {
+                G.jumping = false;
+            } else if (G.cursors.up.isDown && G.ready_to_jump) {
+                G.jumping = true;
+                G.ready_to_jump = false;
+                G.player.anims.stop();
+                G.player.setTexture('simon_ducking');
+                G.player.setSize(16, 24);
+                G.player.setVelocityY(-512 - 96);
+            }
+            else if (G.cursors.down.isDown) {
+                G.player.anims.stop();
+                G.player.setTexture('simon_ducking');
+                G.player.setSize(16, 24);
+                G.player.setVelocityX(0);
+            }
+        } else {
+            if (!G.jumping) {
+                G.player.anims.stop();
+                G.player.setTexture('simon1');
+                G.player.setSize(16, 32);
+            } else {
+                G.player.anims.stop();
+                G.player.setTexture('simon_ducking');
+                G.player.setSize(16, 24);
+            }
+        }
     }
 });
 
@@ -113,8 +157,8 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
-            debug: true
+            gravity: { y: 1024+256 },
+            debug: false
         }
     },
     scene: [ GameScene ]
