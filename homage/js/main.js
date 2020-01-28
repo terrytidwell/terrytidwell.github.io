@@ -19,6 +19,15 @@ let GameScene = new Phaser.Class({
         this.load.image('block', 'assets/block.png');
     },
 
+    addBlock: function(x, y)
+    {
+        let G = this.myGameState;
+        let block = this.add.sprite(x, y, 'block').setScale(4);
+        G.platforms.add(block);
+        block.body.setSize(4*16,4*16);
+        block.body.setOffset(-24,-24)
+    },
+
     //--------------------------------------------------------------------------
     create: function ()
     {
@@ -41,20 +50,13 @@ let GameScene = new Phaser.Class({
 		});
 
         G.platforms = this.physics.add.staticGroup();
-        G.platforms.add(this.add.sprite(400, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*4, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*8, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*12, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*16, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*20, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400+16*24, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*4, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*8, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*12, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*16, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*20, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.platforms.add(this.add.sprite(400-16*24, 300, 'block').setScale(4).setY(300+16*4+24));
-        G.player = this.physics.add.sprite(400, 300, 'simon1').setScale(4);
+        this.addBlock(400,300);
+        this.addBlock(464,300);
+        this.addBlock(528,300);
+        this.addBlock(596,300-64);
+        this.addBlock(596,300-128);
+        G.player = this.physics.add.sprite(400, 150, 'simon1').setScale(4);
+        //G.player.body.setSize(16*4,32*4);
         G.cursors = this.input.keyboard.createCursorKeys();
 
         G.cursors.letter_left = this.input.keyboard.addKey("a");
@@ -111,8 +113,8 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 0 },
-            debug: false
+            gravity: { y: 300 },
+            debug: true
         }
     },
     scene: [ GameScene ]
