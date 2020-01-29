@@ -53,13 +53,12 @@ let GameScene = new Phaser.Class({
         let block = this.add.sprite(x, y, 'block').setScale(PNG_TO_GRID_SCALE);
         group.add(block);
         fix_object(block, GRID_SIZE, GRID_SIZE);
+        return block;
     },
 
     addVerticalBlock: function(group, x, y)
     {
-        let block = this.add.sprite(x, y, 'block').setScale(PNG_TO_GRID_SCALE);
-        group.add(block);
-        fix_object(block, GRID_SIZE, GRID_SIZE);
+        let block = this.addBlock(group, x, y);
         block.body.checkCollision.up = false;
         block.body.checkCollision.down = false;
     },
@@ -67,6 +66,27 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function ()
     {
+        let map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,0,0,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1],
+            [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1],
+            [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
         this.myGameState = {
             platforms: null,
             player : {
@@ -120,6 +140,7 @@ let GameScene = new Phaser.Class({
         G.platforms = this.physics.add.staticGroup();
         G.breakable_platforms = this.physics.add.staticGroup();
 
+        /*
         let scene_height = SCREEN_HEIGHT * 2;
         let scene_width = SCREEN_WIDTH * 2;
         for (let x = 0; x < scene_width / GRID_SIZE; x++) {
@@ -132,10 +153,40 @@ let GameScene = new Phaser.Class({
             this.addVerticalBlock(G.platforms, GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
             this.addVerticalBlock(G.platforms, (scene_width / GRID_SIZE - 1)*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
         }
+        */
 
+        let scene_height = map.length * GRID_SIZE;
+        let scene_width = 0;
+        for (let y = 0; y < map.length; ++y)
+        {
+            scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
+            for (let x = 0; x < map[y].length; ++x)
+            {
+                if (map[y][x] === 1)
+                {
+                    let block = this.addBlock(G.platforms, x*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
+                    if (y > 0 && map[y-1][x] === 1)
+                    {
+                        block.body.checkCollision.up = false;
+                    }
+                    if (x > 0 && map[y][x-1] === 1)
+                    {
+                        block.body.checkCollision.left = false;
+                    }
+                    if (x + 1 < map[y].length > 0 && map[y][x+1] === 1)
+                    {
+                        block.body.checkCollision.right = false;
+                    }
+                    if (y + 1 < map.length > 0 && map[y+1][x] === 1)
+                    {
+                        block.body.checkCollision.down = false;
+                    }
+                }
+            }
+        }
 
         //set up player
-        G.player.sprite = this.physics.add.sprite(64, 64*3, 'simon1').setScale(4);
+        G.player.sprite = this.physics.add.sprite(scene_width - 128, scene_height - 64, 'simon1').setScale(4);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
         G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
@@ -168,7 +219,7 @@ let GameScene = new Phaser.Class({
         //set up camera
         let camera = this.cameras.main;
         camera.startFollow(G.player.sprite);
-        camera.setBounds(0, 0, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2);
+        camera.setBounds(0, 0, scene_width, scene_height);
 
         //set up collider groups
         this.physics.add.collider(G.player.sprite, G.platforms);
