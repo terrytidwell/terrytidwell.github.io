@@ -16,6 +16,7 @@ let GameScene = new Phaser.Class({
         this.load.image('simon1', 'assets/simon1.png');
         this.load.image('simon2', 'assets/simon2.png');
         this.load.image('simon3', 'assets/simon3.png');
+        this.load.image('hit', 'assets/hit.png');
         this.load.image('simon_ducking', 'assets/simon_ducking.png');
         this.load.image('ducking_whip1', 'assets/ducking_whip1.png');
         this.load.image('ducking_whip2', 'assets/ducking_whip2.png');
@@ -55,6 +56,7 @@ let GameScene = new Phaser.Class({
                 whip3 : null,
             },
             cursors : null,
+            whips: null
 		};
         let G = this.myGameState;
 		this.anims.create({
@@ -90,6 +92,13 @@ let GameScene = new Phaser.Class({
         });
 
         G.platforms = this.physics.add.staticGroup();
+        G.breakable_platforms = this.physics.add.staticGroup();
+        this.addBlock(G.breakable_platforms, 400-64*6,300-64);
+        this.addBlock(G.breakable_platforms, 400-64*6,300-128);
+
+        this.addBlock(G.platforms, 400-64*6,300);
+        this.addBlock(G.platforms, 400-64*7,300);
+        this.addBlock(G.platforms, 400-64*8,300);
         this.addBlock(G.platforms, 400-64*5,300);
         this.addBlock(G.platforms, 400-64*4,300);
         this.addBlock(G.platforms, 400,300);
@@ -102,19 +111,29 @@ let GameScene = new Phaser.Class({
         this.addBlock(G.platforms, 596,300-128);
         let bg = this.physics.add.staticGroup();
         this.addBlock(bg, 596,300-64);
-        this.addBlock(bg, 400-64*6,300);
+
         G.player.sprite = this.physics.add.sprite(400, 100, 'simon1').setScale(4);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
         G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
         G.player.whip1.visible = false;
         G.player.whip1.body.allowGravity = false;
+        G.player.whip1.body.immovable = true;
         G.player.whip2 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip2').setScale(4);
         G.player.whip2.visible = false;
         G.player.whip2.body.allowGravity = false;
-        G.player.whip3 = this.physics.add.sprite(G.player.sprite.body.left - 44*4, G.player.sprite.body.top, 'whip3').setScale(4);
+        G.player.whip2.body.immovable = true;
+        G.player.whip3 = this.physics.add.sprite(G.player.sprite.body.left - 44*4, G.player.sprite.body.top + 8*4, 'whip3').setScale(4);
         G.player.whip3.visible = false;
         G.player.whip3.body.allowGravity = false;
+        G.player.whip3.body.immovable = true;
+        G.player.whip3.body.setOffset(0,-1);
+        G.whips = this.physics.add.group();
+        G.whips.defaults.setAllowGravity = false;
+        G.whips.defaults.setImmovable = true;
+        G.whips.add(G.player.whip1);
+        G.whips.add(G.player.whip2);
+        G.whips.add(G.player.whip3);
         //G.player.sprite.body.setSize(16*4,32*4);
         
         G.cursors = this.input.keyboard.createCursorKeys();
@@ -128,6 +147,30 @@ let GameScene = new Phaser.Class({
         camera.startFollow(G.player.sprite);
 
         this.physics.add.collider(G.player.sprite, G.platforms);
+        this.physics.add.collider(G.player.sprite, G.breakable_platforms);
+        this.physics.add.overlap(G.whips, G.breakable_platforms, this.whipHit, null, this);
+    },
+
+    whipHit: function(whip, breakable_platform) {
+        if (whip.visible) {
+            breakable_platform.destroy();
+        }
+    },
+
+    playerDamage: function() {
+        let G = this.myGameState;
+        let dx = -196;
+        if(!G.player.sprite.flipX) {
+            dx = dx * -1;
+        }
+        G.player.sprite.anims.stop();
+        G.player.sprite.setTexture('hit');
+        G.player.ducking = false;
+        G.player.attacking = false;
+        G.player.sprite.setSize(16, 32);
+        G.player.hit = true;
+        G.player.sprite.setVelocityY(-608/2);
+        G.player.sprite.setVelocityX(dx);
     },
 
     //--------------------------------------------------------------------------
@@ -156,7 +199,7 @@ let GameScene = new Phaser.Class({
         {
             G.player.whip3.body.x = G.player.sprite.body.right;
         }
-        G.player.whip3.body.y = G.player.sprite.body.top;
+        G.player.whip3.body.y = G.player.sprite.body.top + 8*4;
 
         if (!G.cursors.up.isDown) {
             G.player.ready_to_jump = true
@@ -165,12 +208,14 @@ let GameScene = new Phaser.Class({
             G.player.ready_to_attack = true;
         }
 
-        if (G.cursors.letter_left.isDown && G.player.ready_to_attack && !G.player.attacking)
+        if (!G.player.hit && G.cursors.letter_left.isDown && G.player.ready_to_attack && !G.player.attacking)
         {
             G.player.attacking = true;
             G.player.ready_to_attack = false;
             let attack_end = function () {
                 G.player.attacking = false;
+                G.player.whip1.visible = false;
+                G.player.whip2.visible = false;
                 G.player.whip3.visible = false;
             };
             let attack_update = function (animation, frame, gameObject) {
@@ -259,6 +304,18 @@ let GameScene = new Phaser.Class({
                     G.player.ducking = true;
                     G.player.sprite.setSize(16, 24);
                 }
+            }
+        }
+
+        if (!G.player.hit && G.cursors.letter_right.isDown)
+        {
+            this.playerDamage();
+        }
+        if (G.player.hit)
+        {
+            if (G.player.sprite.body.touching.down)
+            {
+                G.player.hit = false;
             }
         }
     }
