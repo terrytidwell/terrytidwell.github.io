@@ -1,8 +1,26 @@
+const SCREEN_WIDTH = 832;
+const SCREEN_HEIGHT = 576;
+const GRID_SIZE = 64;
+const PNG_GRID_SIZE = 16;
+const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
+
+function delta_adjustment(object_size)
+{
+    return (PNG_GRID_SIZE - GRID_SIZE)/2;
+}
+
+function fix_object(object, width, height)
+{
+    object.setScale(PNG_TO_GRID_SCALE);
+    object.body.setSize(width, height);
+    let delta_x = delta_adjustment(width);
+    let delta_y = delta_adjustment(height);
+    object.body.setOffset(delta_x, delta_y);
+}
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
-
-    m_grid_color: 0xffffff,
 
     //--------------------------------------------------------------------------
     initialize: function ()
@@ -32,10 +50,18 @@ let GameScene = new Phaser.Class({
 
     addBlock: function(group, x, y)
     {
-        let block = this.add.sprite(x, y, 'block').setScale(4);
+        let block = this.add.sprite(x, y, 'block').setScale(PNG_TO_GRID_SCALE);
         group.add(block);
-        block.body.setSize(4*16,4*16);
-        block.body.setOffset(-24,-24)
+        fix_object(block, GRID_SIZE, GRID_SIZE);
+    },
+
+    addVerticalBlock: function(group, x, y)
+    {
+        let block = this.add.sprite(x, y, 'block').setScale(PNG_TO_GRID_SCALE);
+        group.add(block);
+        fix_object(block, GRID_SIZE, GRID_SIZE);
+        block.body.checkCollision.up = false;
+        block.body.checkCollision.down = false;
     },
 
     //--------------------------------------------------------------------------
@@ -93,26 +119,23 @@ let GameScene = new Phaser.Class({
 
         G.platforms = this.physics.add.staticGroup();
         G.breakable_platforms = this.physics.add.staticGroup();
-        this.addBlock(G.breakable_platforms, 400-64*6,300-64);
-        this.addBlock(G.breakable_platforms, 400-64*6,300-128);
 
-        this.addBlock(G.platforms, 400-64*6,300);
-        this.addBlock(G.platforms, 400-64*7,300);
-        this.addBlock(G.platforms, 400-64*8,300);
-        this.addBlock(G.platforms, 400-64*5,300);
-        this.addBlock(G.platforms, 400-64*4,300);
-        this.addBlock(G.platforms, 400,300);
-        this.addBlock(G.platforms, 400-64,300+128);
-        this.addBlock(G.platforms, 400-128,300+196);
-        this.addBlock(G.platforms, 400-196,300+196);
-        this.addBlock(G.platforms, 464,300);
-        this.addBlock(G.platforms, 528,300);
+        let scene_height = SCREEN_HEIGHT * 2;
+        let scene_width = SCREEN_WIDTH * 2;
+        for (let x = 0; x < scene_width / GRID_SIZE; x++) {
+            this.addBlock(G.platforms, x*GRID_SIZE+GRID_SIZE/2,GRID_SIZE/2);
+            if (Math.random() < 0.8) {
+                this.addBlock(G.platforms, x * GRID_SIZE + GRID_SIZE / 2, (scene_height / GRID_SIZE - 1) * GRID_SIZE + GRID_SIZE / 2);
+            }
+        }
+        for (let y = 1; y < (scene_width / GRID_SIZE - 1); y++) {
+            this.addVerticalBlock(G.platforms, GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
+            this.addVerticalBlock(G.platforms, (scene_width / GRID_SIZE - 1)*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
+        }
 
-        this.addBlock(G.platforms, 596,300-128);
-        let bg = this.physics.add.staticGroup();
-        this.addBlock(bg, 596,300-64);
 
-        G.player.sprite = this.physics.add.sprite(400, 100, 'simon1').setScale(4);
+        //set up player
+        G.player.sprite = this.physics.add.sprite(64, 64*3, 'simon1').setScale(4);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
         G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
@@ -134,18 +157,20 @@ let GameScene = new Phaser.Class({
         G.whips.add(G.player.whip1);
         G.whips.add(G.player.whip2);
         G.whips.add(G.player.whip3);
-        //G.player.sprite.body.setSize(16*4,32*4);
-        
-        G.cursors = this.input.keyboard.createCursorKeys();
 
+        //set up input
+        G.cursors = this.input.keyboard.createCursorKeys();
         G.cursors.letter_left = this.input.keyboard.addKey("a");
         G.cursors.letter_right = this.input.keyboard.addKey("d");
         G.cursors.letter_up = this.input.keyboard.addKey("w");
         G.cursors.letter_down = this.input.keyboard.addKey("s");
 
+        //set up camera
         let camera = this.cameras.main;
         camera.startFollow(G.player.sprite);
+        camera.setBounds(0, 0, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2);
 
+        //set up collider groups
         this.physics.add.collider(G.player.sprite, G.platforms);
         this.physics.add.collider(G.player.sprite, G.breakable_platforms);
         this.physics.add.overlap(G.whips, G.breakable_platforms, this.whipHit, null, this);
@@ -322,6 +347,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
+    // backgroundColor: '#70D070',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
@@ -330,13 +356,13 @@ let config = {
         mode: Phaser.Scale.FIT,
         parent: 'phaser-example',
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: 800,
-        height: 600
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT
     },
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1024+256 },
+            gravity: { y: 20 * GRID_SIZE },
             debug: false
         }
     },
