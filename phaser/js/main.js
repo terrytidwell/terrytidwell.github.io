@@ -148,21 +148,21 @@ let LevelArray = [
             [1,1,1,1,1,1,1,1,1,1,1],
             [1,0,0,0,0,0,0,0,0,0,1],
             [1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,1,1,0,0,1],
+            [1,0,0,1,0,0,0,1,0,0,1],
+            [1,0,0,1,0,0,0,1,0,0,1],
+            [1,0,0,1,0,0,0,1,0,0,1],
+            [1,0,0,1,1,1,1,1,0,0,1],
             [1,0,0,0,0,0,0,0,0,0,1],
             [1,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,1],
         ],
         create: function (screen)
         {
-            screen.addLedge(3,3,4,1);
-            screen.addLedge(7,3,1,4);
-            screen.addLedge(4,7,4,1);
-            screen.addLedge(3,4,1,4);
+            //screen.addLedge(3,3,4,1);
+            //screen.addLedge(7,3,1,4);
+            //screen.addLedge(4,7,4,1);
+            //screen.addLedge(3,4,1,4);
             screen.addBomb(1,41);
             screen.addBomb(32, 1);
             screen.addBomb(32, 41);
@@ -403,6 +403,7 @@ let GameScene = new Phaser.Class({
         ];
         platform.setTint(colors[Math.floor(Math.random()*colors.length)]);
         group.add(platform);
+        return platform;
     },
 
     //--------------------------------------------------------------------------
@@ -500,131 +501,36 @@ let GameScene = new Phaser.Class({
 
         let currentLevel = LevelArray[currentLevelIndex];
 
-        (function (original_map, func) {
-            //we modify the map, make a deep copy
-            let map = [];
-            let map_height = original_map.length;
-            let map_width = original_map[0].length;
-            for (let y = 0; y < map_height; ++y)
-            {
-                map[y] = original_map[y].concat();
-            }
-
-            function find_test_points(x, y, height, width, dx, dy)
-            {
-                let points = [];
-                if (dx !== 0)
-                {
-                    let x_offset = dx > 0 ? width-1 : 0;
-                    for (let i = 0; i < height; ++i)
-                    {
-                        points.push({y: y+i, x:x+x_offset+dx})
-                    }
-                }
-                if (dy !== 0)
-                {
-                    let y_offset = dy > 0 ? height-1 : 0;
-                    for (let i = 0; i < width; ++i)
-                    {
-                        points.push({y:y+y_offset+dy, x:x+i})
-                    }
-                }
-                if (dx !== 0 && dy !== 0)
-                {
-                    let x_offset = dx > 0 ? width-1 : 0;
-                    let y_offset = dy > 0 ? height-1 : 0;
-                    points.push({y:y+y_offset+dy, x:x+x_offset+dx})
-                }
-                return points;
-            };
-
-            function test_points(points)
-            {
-                for (let i = 0; i < points.length; ++i)
-                {
-                    if (points[i].x >= 0 && points[i].x < map_width &&
-                        points[i].y >= 0 && points[i].y < map_height &&
-                        map[points[i].y][points[i].x] == 1)
-                    {
-                        //no conflict yet
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            function expand(x, y, height, width) {
-                let diag = [
-                    [-1,-1],
-                    [-1, 1],
-                    [1, -1],
-                    [1, 1],
-                    [0,-1],
-                    [0, 1],
-                    [-1, 0],
-                    [1, 0],
-                ];
-                for (let i = 0; i < diag.length; ++i)
-                {
-                    let dx = diag[i][0];
-                    let dy = diag[i][1];
-                    let test_set = find_test_points(x,y,height,width,dx, dy);
-                    let passed = test_points(test_set);
-                    if (passed)
-                    {
-                        //new shape
-                        if (dx != 0)
-                        {
-                            width++;
-                            if (dx < 0)
-                            {
-                                x--;
-                            }
-                        }
-                        if (dy != 0)
-                        {
-                            height++;
-                            if (dx < 0)
-                            {
-                                y--;
-                            }
-                        }
-                        return expand(x,y,height,width)
-                    }
-                }
-
-                return {x:x, y:y, height:height, width:width};
-            }
-
-            function erase(x, y, height, width)
-            {
-                for (let dy = 0; dy < height; ++dy)
-                {
-                    for (let dx = 0; dx < width; ++dx)
-                    {
-                        map[y+dy][x+dx]=0;
-                    }
-                }
-            }
-
+        (function (map, func) {
             for (let y = 0; y < map.length; ++y)
             {
                 for (let x = 0; x < map[y].length; ++x)
                 {
-                    if (map[y][x] == 1)
+                    if (map[y][x] === 1)
                     {
-                        let poly = expand(x,y,1,1);
-                        func(poly);
-                        //alert(JSON.stringify(expand(x,y,1,1)));
-                        erase(poly.x, poly.y, poly.height, poly.width);
+                        let poly = func({x: x, y:y, width: 1, height: 1});
+                        if (y > 0 && map[y-1][x] === 1)
+                        {
+                            poly.body.checkCollision.up = false;
+                        }
+                        if (x > 0 && map[y][x-1] === 1)
+                        {
+                            poly.body.checkCollision.left = false;
+                        }
+                        if (x + 1 < map[y].length > 0 && map[y][x+1] === 1)
+                        {
+                            poly.body.checkCollision.right = false;
+                        }
+                        if (y + 1 < map.length > 0 && map[y+1][x] === 1)
+                        {
+                            poly.body.checkCollision.down = false;
+                        }
                     }
                 }
             }
-        })(currentLevel.map, function(poly) {
-            self.addLedge(poly.x, poly.y, poly.width, poly.height);
+        } )
+        (currentLevel.map, function(poly) {
+            return self.addLedge(poly.x, poly.y, poly.width, poly.height);
         });
 
         G.player = this.physics.add.sprite(currentLevel.player_x * 32 + 16, currentLevel.player_y * 32 + 16, 'star');
