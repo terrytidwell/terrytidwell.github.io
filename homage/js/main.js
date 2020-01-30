@@ -3,6 +3,9 @@ const SCREEN_HEIGHT = 576;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
+let PlayerStartX = 25;
+let PlayerStartY = 26;
+let PlayerFlip = false;
 
 function delta_adjustment(object_size)
 {
@@ -301,8 +304,45 @@ let GameScene = new Phaser.Class({
             return ghost.getData("state") === 0;
         };
 
+        let exit = this.add.zone(-2 * GRID_SIZE + GRID_SIZE/2, 3 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
+        G.dangerous.add(exit);
+        exit.body.allowGravity = false;
+        let self = this;
+        exit.shouldDamagePlayer = function(player, source) {
+            PlayerStartX = 25;
+            PlayerStartY = 5;
+            PlayerFlip = false;
+            self.scene.stop('GameScene');
+            self.scene.start('GameScene');
+            return false;
+        };
+
+        exit = this.add.zone(27 * GRID_SIZE + GRID_SIZE/2, 3 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
+        G.dangerous.add(exit);
+        exit.body.allowGravity = false;
+        exit.shouldDamagePlayer = function(player, source) {
+            PlayerStartX = 0;
+            PlayerStartY = 5;
+            PlayerFlip = true;
+            self.scene.stop('GameScene');
+            self.scene.start('GameScene');
+            return false;
+        };
+
+        exit = this.add.zone(27 * GRID_SIZE + GRID_SIZE/2, 24 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
+        G.dangerous.add(exit);
+        exit.body.allowGravity = false;
+        exit.shouldDamagePlayer = function(player, source) {
+            PlayerStartX = 0;
+            PlayerStartY = 5;
+            PlayerFlip = true;
+            self.scene.stop('GameScene');
+            self.scene.start('GameScene');
+            return false;
+        };
+
         //set up player
-        G.player.sprite = this.physics.add.sprite(scene_width - 128, scene_height - 64, 'simon1').setScale(4);
+        G.player.sprite = this.physics.add.sprite(PlayerStartX * GRID_SIZE, PlayerStartY * GRID_SIZE, 'simon1').setScale(4).setFlipX(PlayerFlip);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
         G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
