@@ -334,7 +334,7 @@ let GameScene = new Phaser.Class({
 
         //set up camera
         let camera = this.cameras.main;
-        camera.startFollow(G.player.sprite, false, 1, 1, 0, +64);
+        camera.startFollow(G.player.sprite, true, 1, 1, 0, +64);
         camera.setBounds(0, 0, scene_width, scene_height);
 
         //set up collider groups
