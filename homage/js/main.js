@@ -49,6 +49,8 @@ let GameScene = new Phaser.Class({
         this.load.image('column_left', 'assets/column_left.png');
         this.load.image('column_right', 'assets/column_right.png');
         this.load.image('bricks', 'assets/bricks.png');
+        this.load.image('ghost1', 'assets/ghost1.png');
+        this.load.image('ghost2', 'assets/ghost2.png');
         this.load.image('ghost3', 'assets/ghost3.png');
         this.load.image('ghost4', 'assets/ghost4.png');
     },
@@ -111,6 +113,8 @@ let GameScene = new Phaser.Class({
                 attacking : false,
                 ready_to_attack : false,
                 hit : false,
+                can_recover_from_hit : true,
+                mercy_invicible : false,
                 whip1 : null,
                 whip2 : null,
                 whip3 : null,
@@ -171,10 +175,26 @@ let GameScene = new Phaser.Class({
             frameRate: 4,
             repeat: -1
         });
+        this.anims.create({
+            key: 'ghost_disappear',
+            frames: [
+                { key: 'ghost2' },
+                { key: 'ghost1' },
+                { key: 'ghost1' },
+                { key: 'ghost1' },
+                { key: 'ghost1' },
+                { key: 'ghost1' },
+                { key: 'ghost2' }
+            ],
+            frameRate: 4,
+            repeat: 0
+        });
 
         //let bg = this.physics.add.staticGroup();
         G.platforms = this.physics.add.staticGroup();
-        G.breakable_platforms = this.physics.add.group();
+        G.updatables = this.physics.add.group();
+        G.hittables = this.physics.add.group();
+        G.dangerous = this.physics.add.group();
 
         let scene_height = map.length * GRID_SIZE;
         let scene_width = 0;
@@ -230,11 +250,17 @@ let GameScene = new Phaser.Class({
         }
 
         let ghost = this.physics.add.sprite(scene_width - 64 * 8, scene_height - 64* 8, 'ghost3').setScale(4);
-        G.breakable_platforms.add(ghost);
+        G.updatables.add(ghost);
+        G.hittables.add(ghost);
+        G.dangerous.add(ghost);
         ghost.anims.play('ghost_walk', false);
         ghost.body.allowGravity = false;
         ghost.body.onCollide = false;
+        ghost.setData("state", 0);
         ghost.update = function () {
+            if (ghost.getData("state") !== 0) {
+                return;
+            }
             let gx = (ghost.body.left + ghost.body.right)/2;
             let gy = (ghost.body.top + ghost.body.bottom)/2;
             let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
@@ -257,6 +283,22 @@ let GameScene = new Phaser.Class({
 
             ghost.setVelocityX(dx / l * 64);
             ghost.setVelocityY(dy / l * 64);
+        };
+        ghost.hit = function () {
+            if (ghost.getData("state") !== 0)
+            {
+                return;
+            }
+            ghost.setData("state", 1);
+            ghost.setVelocity(0,0);
+            ghost.on('animationcomplete-ghost_disappear', function(){
+                ghost.setData("state", 0);
+                ghost.anims.play('ghost_walk', false);
+            });
+            ghost.anims.play('ghost_disappear', false);
+        };
+        ghost.shouldDamagePlayer = function(player, source) {
+            return ghost.getData("state") === 0;
         };
 
         //set up player
@@ -297,19 +339,27 @@ let GameScene = new Phaser.Class({
 
         //set up collider groups
         this.physics.add.collider(G.player.sprite, G.platforms);
-        this.physics.add.overlap(G.whips, G.breakable_platforms, this.whipHit, null, this);
-        this.physics.add.overlap(G.player.sprite, G.breakable_platforms, this.playerDamage, null, this);
+        this.physics.add.overlap(G.whips, G.hittables, this.whipHit, null, this);
+        this.physics.add.overlap(G.player.sprite, G.dangerous, this.hitPlayer, null, this);
     },
 
-    whipHit: function(whip, breakable_platform) {
-        if (whip.visible) {
-            breakable_platform.destroy();
+    whipHit: function(whip, hittable) {
+        if (whip.visible && hittable.hit) {
+            hittable.hit();
+        }
+    },
+
+    hitPlayer: function(player, source) {
+        let G = this.myGameState;
+        if (source.shouldDamagePlayer && source.shouldDamagePlayer())
+        {
+            this.playerDamage(player, source);
         }
     },
 
     playerDamage: function(player, source) {
         let G = this.myGameState;
-        if (G.player.hit)
+        if (G.player.hit || G.player.mercy_invicible)
         {
             return;
         }
@@ -335,18 +385,36 @@ let GameScene = new Phaser.Class({
         G.player.attacking = false;
         G.player.sprite.setSize(16, 32);
         G.player.hit = true;
+        G.player.mercy_invicible = true;
+        G.player.can_recover_from_hit = false;
+        this.time.delayedCall(250, this.playerCanRecover, [], this);
+        this.time.delayedCall(1000, this.playerVulnerable, [], this);
+        G.player.sprite.alpha = 0.5;
         G.player.sprite.setVelocityY(-608/2);
         G.player.sprite.setVelocityX(dx);
+    },
+
+    playerCanRecover: function()
+    {
+        let G = this.myGameState;
+        G.player.can_recover_from_hit = true;
+    },
+
+    playerVulnerable: function()
+    {
+        let G = this.myGameState;
+        G.player.mercy_invicible = false;
+        G.player.sprite.alpha = 1;
     },
 
     //--------------------------------------------------------------------------
     update: function() {
         let G = this.myGameState;
 
-        G.breakable_platforms.children.each(function(breakable) {
-            if (breakable.update)
+        G.updatables.children.each(function(updatable) {
+            if (updatable.update)
             {
-                breakable.update();
+                updatable.update();
             }
         }, this);
 
@@ -484,7 +552,7 @@ let GameScene = new Phaser.Class({
         {
             this.playerDamage(G.player.sprite, G.player.sprite);
         }
-        if (G.player.hit)
+        if (G.player.hit && G.player.can_recover_from_hit)
         {
             if (G.player.sprite.body.blocked.down)
             {
