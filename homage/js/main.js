@@ -48,6 +48,9 @@ let GameScene = new Phaser.Class({
         this.load.image('block', 'assets/block.png');
         this.load.image('column_left', 'assets/column_left.png');
         this.load.image('column_right', 'assets/column_right.png');
+        this.load.image('bricks', 'assets/bricks.png');
+        this.load.image('ghost3', 'assets/ghost3.png');
+        this.load.image('ghost4', 'assets/ghost4.png');
     },
 
     addBlock: function(group, x, y)
@@ -90,12 +93,12 @@ let GameScene = new Phaser.Class({
             [1,2,3,0,0,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
             [1,2,3,0,0,0,0,0,0,0,2,3,0,0,2,3,0,0,1,1,1,1,1,1,1,1],
             [1,1,1,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,0,0,0,0,1],
-            [0,0,0,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [0,0,0,1,1,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [0,0,0,0,0,0,0,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
-            [0,0,0,0,0,0,0,1,1,1,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,2,3,0,0,1,1,0,0,0,0,0,2,3,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            [4,4,4,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+            [4,4,4,1,1,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+            [4,4,4,4,4,4,4,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
+            [4,4,4,4,4,4,4,1,1,1,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
+            [4,4,4,4,4,4,4,4,4,4,2,3,0,0,1,1,0,0,0,0,0,2,3,0,0,0],
+            [4,4,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
 
         this.myGameState = {
@@ -148,9 +151,30 @@ let GameScene = new Phaser.Class({
             repeat: 0
         });
 
+        this.anims.create({
+            key: 'standing_whip',
+            frames: [
+                { key: 'standing_whip1' },
+                { key: 'standing_whip2' },
+                { key: 'standing_whip3' }
+            ],
+            frameRate: 8,
+            repeat: 0
+        });
+
+        this.anims.create({
+            key: 'ghost_walk',
+            frames: [
+                { key: 'ghost3' },
+                { key: 'ghost4' }
+            ],
+            frameRate: 4,
+            repeat: -1
+        });
+
         //let bg = this.physics.add.staticGroup();
         G.platforms = this.physics.add.staticGroup();
-        G.breakable_platforms = this.physics.add.staticGroup();
+        G.breakable_platforms = this.physics.add.group();
 
         let scene_height = map.length * GRID_SIZE;
         let scene_width = 0;
@@ -159,13 +183,14 @@ let GameScene = new Phaser.Class({
             scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
             for (let x = 0; x < map[y].length; ++x)
             {
-                if (map[y][x] === 2)
-                {
+                if (map[y][x] === 2) {
                     this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE);
                 }
-                if (map[y][x] === 3)
-                {
+                if (map[y][x] === 3) {
                     this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setFlipX(true);
+                }
+                if (map[y][x] === 4) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bricks').setScale(PNG_TO_GRID_SCALE).setTint(0x404040);
                 }
             }
         }
@@ -197,6 +222,36 @@ let GameScene = new Phaser.Class({
                 }
             }
         }
+
+        let ghost = this.physics.add.sprite(scene_width - 64 * 8, scene_height - 64* 8, 'ghost3').setScale(4);
+        G.breakable_platforms.add(ghost);
+        ghost.anims.play('ghost_walk', false);
+        ghost.body.allowGravity = false;
+        ghost.body.onCollide = false;
+        ghost.update = function () {
+            let gx = (ghost.body.left + ghost.body.right)/2;
+            let gy = (ghost.body.top + ghost.body.bottom)/2;
+            let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
+            let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
+            let dx = px - gx;
+            let dy = py - gy;
+            let l = Math.sqrt(dx * dx + dy * dy);
+            if (dx > SCREEN_WIDTH || dy > SCREEN_HEIGHT)
+            {
+                ghost.setVelocity(0,0);
+                return;
+            }
+            if (dx > 0)
+            {
+                ghost.setFlipX(true);
+            } else
+            {
+                ghost.setFlipX(false)
+            }
+
+            ghost.setVelocityX(dx / l * 64);
+            ghost.setVelocityY(dy / l * 64);
+        };
 
         //set up player
         G.player.sprite = this.physics.add.sprite(scene_width - 128, scene_height - 64, 'simon1').setScale(4);
@@ -236,8 +291,8 @@ let GameScene = new Phaser.Class({
 
         //set up collider groups
         this.physics.add.collider(G.player.sprite, G.platforms);
-        this.physics.add.collider(G.player.sprite, G.breakable_platforms);
         this.physics.add.overlap(G.whips, G.breakable_platforms, this.whipHit, null, this);
+        this.physics.add.overlap(G.player.sprite, G.breakable_platforms, this.playerDamage, null, this);
     },
 
     whipHit: function(whip, breakable_platform) {
@@ -246,8 +301,24 @@ let GameScene = new Phaser.Class({
         }
     },
 
-    playerDamage: function() {
+    playerDamage: function(player, source) {
         let G = this.myGameState;
+        if (G.player.hit)
+        {
+            return;
+        }
+        let sx = (source.body.left + source.body.right)/2;
+        let sy = (source.body.top + source.body.bottom)/2;
+        let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
+        let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
+        if (sx > px)
+        {
+            G.player.sprite.setFlipX(true);
+        }
+        else if (sx < px)
+        {
+            G.player.sprite.setFlipX(false);
+        }
         let dx = -196;
         if(!G.player.sprite.flipX) {
             dx = dx * -1;
@@ -265,6 +336,13 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function() {
         let G = this.myGameState;
+
+        G.breakable_platforms.children.each(function(breakable) {
+            if (breakable.update)
+            {
+                breakable.update();
+            }
+        }, this);
 
         G.player.whip1.body.x = G.player.sprite.body.right;
         G.player.whip1.setFlipX(G.player.sprite.flipX);
@@ -329,7 +407,7 @@ let GameScene = new Phaser.Class({
             G.player.whip1.visible = true;
         }
 
-        if (G.player.attacking && G.player.sprite.body.touching.down)
+        if (G.player.attacking && G.player.sprite.body.blocked.down)
         {
             G.player.sprite.setVelocityX(0);
         }
@@ -362,7 +440,7 @@ let GameScene = new Phaser.Class({
                 }
             }
 
-            if (G.player.sprite.body.touching.down) {
+            if (G.player.sprite.body.blocked.down) {
                 if (G.player.jumping) {
                     G.player.jumping = false;
                 } else if (G.cursors.up.isDown && G.player.ready_to_jump) {
@@ -398,11 +476,11 @@ let GameScene = new Phaser.Class({
 
         if (!G.player.hit && G.cursors.letter_right.isDown)
         {
-            this.playerDamage();
+            this.playerDamage(G.player.sprite, G.player.sprite);
         }
         if (G.player.hit)
         {
-            if (G.player.sprite.body.touching.down)
+            if (G.player.sprite.body.blocked.down)
             {
                 G.player.hit = false;
             }
