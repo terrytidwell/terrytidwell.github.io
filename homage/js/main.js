@@ -3,9 +3,119 @@ const SCREEN_HEIGHT = 576;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
-let PlayerStartX = 25;
-let PlayerStartY = 26;
-let PlayerFlip = false;
+let CurrentRoom = 'great_hall';
+let CurrentEntrance = 2;
+
+let RoomDictionary =
+{
+    'great_hall':
+        {
+            map: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],
+                [1,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,5,6,0,0,1],
+                [1,2,3,1,1,1,1,1,1,0,0,0,0,0,5,6,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,5,6,0,0,0,0,0,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,2,3,0,0,0,1,1,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,2,3,0,0,0,5,6,0,0,2,3,0,0,0,0,0,1,1,0,0,1],
+                [1,2,3,0,0,2,3,0,0,0,2,3,0,0,1,1,0,0,0,0,0,5,6,0,0,1],
+                [1,2,3,0,0,2,3,0,0,0,2,3,0,0,5,6,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,2,3,0,0,0,1,1,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,1,1,0,0,0,5,6,0,0,2,3,0,0,0,0,0,1,1,0,0,1],
+                [1,2,3,0,0,5,6,0,0,0,2,3,0,0,2,3,0,0,0,0,0,5,6,0,0,1],
+                [1,1,1,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,5,6,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [1,2,3,0,0,5,6,0,0,0,2,3,0,0,2,3,0,0,1,1,1,1,1,1,1,1],
+                [1,1,1,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,5,6,0,0,1],
+                [4,4,4,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [4,4,4,1,1,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
+                [4,4,4,4,4,4,4,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
+                [4,4,4,4,4,4,4,1,1,1,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
+                [4,4,4,4,4,4,4,4,4,4,2,3,0,0,1,1,0,0,0,0,0,2,3,0,0,0],
+                [4,4,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            exits: [
+                {x:27, y:24, w:1, h:3, dest:'small_room', entrance_index:0},
+                {x:27, y:3, w:1, h:3, dest:'side_hall', entrance_index:0},
+                {x:-2, y:3, w:1, h:3, dest:'small_room2', entrance_index:0},
+            ],
+            entrances: [
+                {x:0, y:5, flip: true},
+                {x:25, y:5, flip: false},
+                {x:25, y:26, flip: false}
+            ],
+            create : function (screen)
+            {
+                screen.addGhost(26 - 8,27 - 8);
+            }
+        },
+    'side_hall':
+        {
+            map: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,0,0,0,0,0,1],
+                [1,0,0,1,1,1,1,1,1,1,1,0,0,2,3,0,0,1,1,1,1,1,1,1,1,0,0,0,2,3,0,0,0,1,1,1,1,1,1],
+                [1,0,0,0,0,0,5,6,0,0,0,0,0,2,3,0,0,0,0,0,5,6,0,0,0,0,0,0,2,3,0,0,0,0,0,0,0,0,1],
+            ],
+            exits: [
+                {x:-2, y:3, w:1, h:3, dest:'great_hall', entrance_index:1}
+            ],
+            entrances: [
+                {x:0, y:5, flip: true}
+            ]
+        },
+    'small_room':
+        {
+            map: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            exits: [
+                {x:-2, y:6, w:1, h:3, dest:'great_hall', entrance_index:2}
+            ],
+            entrances: [
+                {x:0, y:8, flip: true}
+            ]
+        },
+    'small_room2':
+        {
+            map: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0,0,0,0,1,1],
+                [1,0,0,0,0,0,0,0,0,1,1,0,0],
+                [1,0,0,0,0,0,0,1,1,0,0,0,0],
+                [1,1,1,1,1,1,1,0,0,0,0,0,0]
+            ],
+            exits: [
+                {x:14, y:3, w:1, h:3, dest:'great_hall', entrance_index:0}
+            ],
+            entrances: [
+                {x:12, y:5, flip: false}
+            ]
+        },
+}
+
 
 function delta_adjustment(object_size)
 {
@@ -66,45 +176,82 @@ let GameScene = new Phaser.Class({
         return block;
     },
 
-    addVerticalBlock: function(group, x, y)
+    addGhost: function(x,y)
     {
-        let block = this.addBlock(group, x, y);
-        block.body.checkCollision.up = false;
-        block.body.checkCollision.down = false;
+        let G = this.myGameState;
+        let ghost = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'ghost3').setScale(4);
+        G.updatables.add(ghost);
+        G.hittables.add(ghost);
+        G.dangerous.add(ghost);
+        ghost.anims.play('ghost_walk', false);
+        ghost.body.allowGravity = false;
+        ghost.body.onCollide = false;
+        ghost.setData("state", 0);
+        ghost.update = function () {
+            if (ghost.getData("state") !== 0) {
+                return;
+            }
+            let gx = (ghost.body.left + ghost.body.right)/2;
+            let gy = (ghost.body.top + ghost.body.bottom)/2;
+            let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
+            let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
+            let dx = px - gx;
+            let dy = py - gy;
+            let l = Math.sqrt(dx * dx + dy * dy);
+            if (dx > SCREEN_WIDTH || dy > SCREEN_HEIGHT)
+            {
+                ghost.setVelocity(0,0);
+                return;
+            }
+            if (dx > 0)
+            {
+                ghost.setFlipX(true);
+            } else
+            {
+                ghost.setFlipX(false)
+            }
+
+            ghost.setVelocityX(dx / l * 64);
+            ghost.setVelocityY(dy / l * 64);
+        };
+        ghost.hit = function () {
+            if (ghost.getData("state") !== 0)
+            {
+                return;
+            }
+            ghost.setData("state", 1);
+            ghost.setVelocity(0,0);
+            ghost.on('animationcomplete-ghost_disappear', function(){
+                ghost.setData("state", 0);
+                ghost.anims.play('ghost_walk', false);
+            });
+            ghost.anims.play('ghost_disappear', false);
+        };
+        ghost.shouldDamagePlayer = function(player, source) {
+            return ghost.getData("state") === 0;
+        };
+    },
+
+    addExit : function (x, y, w, h, room, entrance_index) {
+        let G = this.myGameState;
+        let self = this;
+        let exit = this.add.zone(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE * w, h * GRID_SIZE);
+        G.dangerous.add(exit);
+        exit.body.allowGravity = false;
+        exit.shouldDamagePlayer = function(player, source) {
+            CurrentEntrance = entrance_index;
+            CurrentRoom = room;
+            self.scene.stop('GameScene');
+            self.scene.start('GameScene');
+            return false;
+        };
     },
 
     //--------------------------------------------------------------------------
     create: function ()
     {
-        let map = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],
-            [1,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,5,6,0,0,1],
-            [1,2,3,1,1,1,1,1,1,0,0,0,0,0,5,6,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,5,6,0,0,0,0,0,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,2,3,0,0,0,1,1,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,2,3,0,0,0,5,6,0,0,2,3,0,0,0,0,0,1,1,0,0,1],
-            [1,2,3,0,0,2,3,0,0,0,2,3,0,0,1,1,0,0,0,0,0,5,6,0,0,1],
-            [1,2,3,0,0,2,3,0,0,0,2,3,0,0,5,6,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,2,3,0,0,0,1,1,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,1,1,0,0,0,5,6,0,0,2,3,0,0,0,0,0,1,1,0,0,1],
-            [1,2,3,0,0,5,6,0,0,0,2,3,0,0,2,3,0,0,0,0,0,5,6,0,0,1],
-            [1,1,1,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,5,6,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [1,2,3,0,0,5,6,0,0,0,2,3,0,0,2,3,0,0,1,1,1,1,1,1,1,1],
-            [1,1,1,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,5,6,0,0,1],
-            [4,4,4,0,0,2,3,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [4,4,4,1,1,1,1,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,1],
-            [4,4,4,4,4,4,4,0,0,0,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
-            [4,4,4,4,4,4,4,1,1,1,2,3,0,0,2,3,0,0,0,0,0,2,3,0,0,0],
-            [4,4,4,4,4,4,4,4,4,4,2,3,0,0,1,1,0,0,0,0,0,2,3,0,0,0],
-            [4,4,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ];
+        let room = RoomDictionary[CurrentRoom];
+        let map = room.map;
 
         this.myGameState = {
             platforms: null,
@@ -252,97 +399,20 @@ let GameScene = new Phaser.Class({
             }
         }
 
-        let ghost = this.physics.add.sprite(scene_width - 64 * 8, scene_height - 64* 8, 'ghost3').setScale(4);
-        G.updatables.add(ghost);
-        G.hittables.add(ghost);
-        G.dangerous.add(ghost);
-        ghost.anims.play('ghost_walk', false);
-        ghost.body.allowGravity = false;
-        ghost.body.onCollide = false;
-        ghost.setData("state", 0);
-        ghost.update = function () {
-            if (ghost.getData("state") !== 0) {
-                return;
-            }
-            let gx = (ghost.body.left + ghost.body.right)/2;
-            let gy = (ghost.body.top + ghost.body.bottom)/2;
-            let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
-            let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
-            let dx = px - gx;
-            let dy = py - gy;
-            let l = Math.sqrt(dx * dx + dy * dy);
-            if (dx > SCREEN_WIDTH || dy > SCREEN_HEIGHT)
-            {
-                ghost.setVelocity(0,0);
-                return;
-            }
-            if (dx > 0)
-            {
-                ghost.setFlipX(true);
-            } else
-            {
-                ghost.setFlipX(false)
-            }
+        for (exit of room.exits)
+        {
+            this.addExit(exit.x, exit.y, exit.w, exit.h, exit.dest, exit.entrance_index);
+        }
 
-            ghost.setVelocityX(dx / l * 64);
-            ghost.setVelocityY(dy / l * 64);
-        };
-        ghost.hit = function () {
-            if (ghost.getData("state") !== 0)
-            {
-                return;
-            }
-            ghost.setData("state", 1);
-            ghost.setVelocity(0,0);
-            ghost.on('animationcomplete-ghost_disappear', function(){
-                ghost.setData("state", 0);
-                ghost.anims.play('ghost_walk', false);
-            });
-            ghost.anims.play('ghost_disappear', false);
-        };
-        ghost.shouldDamagePlayer = function(player, source) {
-            return ghost.getData("state") === 0;
-        };
-
-        let exit = this.add.zone(-2 * GRID_SIZE + GRID_SIZE/2, 3 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
-        G.dangerous.add(exit);
-        exit.body.allowGravity = false;
-        let self = this;
-        exit.shouldDamagePlayer = function(player, source) {
-            PlayerStartX = 25;
-            PlayerStartY = 5;
-            PlayerFlip = false;
-            self.scene.stop('GameScene');
-            self.scene.start('GameScene');
-            return false;
-        };
-
-        exit = this.add.zone(27 * GRID_SIZE + GRID_SIZE/2, 3 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
-        G.dangerous.add(exit);
-        exit.body.allowGravity = false;
-        exit.shouldDamagePlayer = function(player, source) {
-            PlayerStartX = 0;
-            PlayerStartY = 5;
-            PlayerFlip = true;
-            self.scene.stop('GameScene');
-            self.scene.start('GameScene');
-            return false;
-        };
-
-        exit = this.add.zone(27 * GRID_SIZE + GRID_SIZE/2, 24 * GRID_SIZE + GRID_SIZE/2).setSize(GRID_SIZE, 3 * GRID_SIZE);
-        G.dangerous.add(exit);
-        exit.body.allowGravity = false;
-        exit.shouldDamagePlayer = function(player, source) {
-            PlayerStartX = 0;
-            PlayerStartY = 5;
-            PlayerFlip = true;
-            self.scene.stop('GameScene');
-            self.scene.start('GameScene');
-            return false;
-        };
+        if (room.create) {
+            room.create(this);
+        }
 
         //set up player
-        G.player.sprite = this.physics.add.sprite(PlayerStartX * GRID_SIZE, PlayerStartY * GRID_SIZE, 'simon1').setScale(4).setFlipX(PlayerFlip);
+        let start_x = room.entrances[CurrentEntrance].x;
+        let start_y = room.entrances[CurrentEntrance].y;
+        let start_flip = room.entrances[CurrentEntrance].flip;
+        G.player.sprite = this.physics.add.sprite(start_x * GRID_SIZE, start_y * GRID_SIZE, 'simon1').setScale(4).setFlipX(start_flip);
         G.player.sprite.originX = 0;
         G.player.sprite.originY = 1;
         G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
