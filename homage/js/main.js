@@ -499,10 +499,18 @@ let GameScene = new Phaser.Class({
         G.player.can_recover_from_hit = false;
         this.time.delayedCall(250, this.playerCanRecover, [], this);
         this.time.delayedCall(1000, this.playerVulnerable, [], this);
+        this.time.delayedCall(750, this.playerOpaque, [], this);
         G.player.sprite.alpha = 0.5;
         G.player.sprite.setVelocityY(-608/2);
         G.player.sprite.setVelocityX(dx);
     },
+
+    playerOpaque: function()
+    {
+        let G = this.myGameState;
+        G.player.sprite.alpha = 1;
+    },
+
 
     playerCanRecover: function()
     {
