@@ -52,6 +52,8 @@ let RoomDictionary =
             create : function (screen)
             {
                 screen.addGhost(26 - 8,27 - 8);
+                screen.addSkeleton(14,24);
+                screen.addSkeleton(12,25);
             }
         },
     'side_hall':
@@ -166,6 +168,11 @@ let GameScene = new Phaser.Class({
         this.load.image('ghost2', 'assets/ghost2.png');
         this.load.image('ghost3', 'assets/ghost3.png');
         this.load.image('ghost4', 'assets/ghost4.png');
+        this.load.image('skeleton1', 'assets/skeleton1.png');
+        this.load.image('skeleton2', 'assets/skeleton2.png');
+        this.load.image('skeleton_death1', 'assets/skeleton_death1.png');
+        this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
+        this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
     },
 
     addBlock: function(group, x, y)
@@ -229,6 +236,63 @@ let GameScene = new Phaser.Class({
         };
         ghost.shouldDamagePlayer = function(player, source) {
             return ghost.getData("state") === 0;
+        };
+    },
+
+    addSkeleton : function (x, y)
+    {
+        let G = this.myGameState;
+        let skeleton = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton1').setScale(4);
+        let skeleton_guide_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
+        let skeleton_guide_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
+        G.updatables.add(skeleton);
+        G.hittables.add(skeleton);
+        G.dangerous.add(skeleton);
+        G.platform_hit.add(skeleton);
+        G.platform_hit.add(skeleton_guide_left);
+        G.platform_hit.add(skeleton_guide_right);
+        skeleton.anims.play('skeleton_walk', false);
+        skeleton.setData('state', 0);
+        skeleton.body.allowGravity = true;
+        skeleton_guide_left.body.allowGravity = true;
+        skeleton_guide_right.body.allowGravity = true;
+        skeleton_guide_right.visible = false;
+        skeleton_guide_left.visible = false;
+        skeleton.body.setVelocity(-196/2, 0);
+        skeleton.update = function()
+        {
+            skeleton_guide_left.body.x = skeleton.body.x - GRID_SIZE;
+            skeleton_guide_right.body.x = skeleton.body.x + GRID_SIZE;
+            skeleton_guide_left.body.y = skeleton.body.y + GRID_SIZE;
+            skeleton_guide_right.body.y = skeleton.body.y + GRID_SIZE;
+            if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down)
+            {
+                skeleton.setFlipX(true);
+                skeleton.body.setVelocity(196/2, 0);
+            }
+            else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down)
+            {
+                skeleton.setFlipX(false);
+                skeleton.body.setVelocity(-196/2, 0);
+            }
+        };
+        skeleton.hit = function()
+        {
+            if (skeleton.getData('state')===0)
+            {
+                skeleton.body.setVelocity(0,0);
+                skeleton.body.setVelocity(0,0);
+                skeleton.on('animationcomplete-skeleton_death', function() {
+                    skeleton.destroy();
+                    skeleton_guide_left.destroy();
+                    skeleton_guide_right.destroy();
+                });
+                skeleton.setData('state', 1);
+                skeleton.anims.play('skeleton_death', false);
+            }
+        };
+        skeleton.shouldDamagePlayer = function(player, source) {
+            return skeleton.getData("state") === 0;
         };
     },
 
@@ -326,6 +390,15 @@ let GameScene = new Phaser.Class({
             repeat: -1
         });
         this.anims.create({
+            key: 'skeleton_walk',
+            frames: [
+                { key: 'skeleton1' },
+                { key: 'skeleton2' }
+            ],
+            frameRate: 4,
+            repeat: -1
+        });
+        this.anims.create({
             key: 'ghost_disappear',
             frames: [
                 { key: 'ghost2' },
@@ -339,12 +412,23 @@ let GameScene = new Phaser.Class({
             frameRate: 4,
             repeat: 0
         });
+        this.anims.create({
+            key: 'skeleton_death',
+            frames: [
+                { key: 'skeleton_death1' },
+                { key: 'skeleton_death2' },
+                { key: 'skeleton_death3' }
+            ],
+            frameRate: 4,
+            repeat: 0
+        });
 
         //let bg = this.physics.add.staticGroup();
         G.platforms = this.physics.add.staticGroup();
         G.updatables = this.physics.add.group();
         G.hittables = this.physics.add.group();
         G.dangerous = this.physics.add.group();
+        G.platform_hit = this.physics.add.group();
 
         let scene_height = map.length * GRID_SIZE;
         let scene_width = 0;
@@ -431,8 +515,8 @@ let GameScene = new Phaser.Class({
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
         G.whips.defaults.setImmovable = true;
-        G.whips.add(G.player.whip1);
-        G.whips.add(G.player.whip2);
+        //G.whips.add(G.player.whip1);
+        //G.whips.add(G.player.whip2);
         G.whips.add(G.player.whip3);
 
         //set up input
@@ -449,6 +533,9 @@ let GameScene = new Phaser.Class({
 
         //set up collider groups
         this.physics.add.collider(G.player.sprite, G.platforms);
+        this.physics.add.collider(G.platform_hit, G.platforms);
+        //this.physics.add.collider(skeleton_guide_left, G.platforms);
+        //this.physics.add.collider(skeleton_guide_right, G.platforms);
         this.physics.add.overlap(G.whips, G.hittables, this.whipHit, null, this);
         this.physics.add.overlap(G.player.sprite, G.dangerous, this.hitPlayer, null, this);
     },
