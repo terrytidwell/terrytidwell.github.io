@@ -54,6 +54,9 @@ let RoomDictionary =
                 screen.addGhost(26 - 8,27 - 8);
                 screen.addSkeleton(14,24);
                 screen.addSkeleton(12,25);
+                screen.addSkeleton(10,10);
+                screen.addBat(-13, 23);
+                screen.addBat(-11, 24);
             }
         },
     'side_hall':
@@ -164,6 +167,9 @@ let GameScene = new Phaser.Class({
         this.load.image('column_left', 'assets/column_left.png');
         this.load.image('column_right', 'assets/column_right.png');
         this.load.image('bricks', 'assets/bricks.png');
+        this.load.image('bat1', 'assets/bat1.png');
+        this.load.image('bat2', 'assets/bat2.png');
+        this.load.image('bat3', 'assets/bat3.png');
         this.load.image('ghost1', 'assets/ghost1.png');
         this.load.image('ghost2', 'assets/ghost2.png');
         this.load.image('ghost3', 'assets/ghost3.png');
@@ -238,6 +244,30 @@ let GameScene = new Phaser.Class({
             return ghost.getData("state") === 0;
         };
     },
+    
+    addBat: function(x,y) {
+        let G = this.myGameState;
+        let bat = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bat1').setScale(4).setFlipX(true);
+        G.dangerous.add(bat);
+        G.hittables.add(bat);
+        this.tweens.add({
+            targets: bat,
+            y: 22 * GRID_SIZE + GRID_SIZE / 2,
+            ease: 'Sine.easeInOut',
+            duration: 1000,
+            repeat: -1,
+            yoyo: true
+        });
+        bat.setVelocityX(GRID_SIZE * 4);
+        bat.body.allowGravity = false;
+        bat.anims.play('bat_walk');
+        bat.hit = function () {
+            bat.destroy();
+        };
+        bat.shouldDamagePlayer = function (player, source) {
+            return true;
+        };
+    },
 
     addSkeleton : function (x, y)
     {
@@ -258,9 +288,13 @@ let GameScene = new Phaser.Class({
         skeleton_guide_right.body.allowGravity = true;
         skeleton_guide_right.visible = false;
         skeleton_guide_left.visible = false;
-        skeleton.body.setVelocity(-196/2, 0);
+        skeleton.body.setVelocityX(-196/2);
         skeleton.update = function()
         {
+            if (skeleton.getData('state') === 1)
+            {
+                skeleton.body.setVelocityX(0);
+            }
             skeleton_guide_left.body.x = skeleton.body.x - GRID_SIZE;
             skeleton_guide_right.body.x = skeleton.body.x + GRID_SIZE;
             skeleton_guide_left.body.y = skeleton.body.y + GRID_SIZE;
@@ -268,20 +302,19 @@ let GameScene = new Phaser.Class({
             if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down)
             {
                 skeleton.setFlipX(true);
-                skeleton.body.setVelocity(196/2, 0);
+                skeleton.body.setVelocityX(196/2);
             }
             else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down)
             {
                 skeleton.setFlipX(false);
-                skeleton.body.setVelocity(-196/2, 0);
+                skeleton.body.setVelocityX(-196/2);
             }
         };
         skeleton.hit = function()
         {
             if (skeleton.getData('state')===0)
             {
-                skeleton.body.setVelocity(0,0);
-                skeleton.body.setVelocity(0,0);
+                skeleton.body.setVelocityX(0);
                 skeleton.on('animationcomplete-skeleton_death', function() {
                     skeleton.destroy();
                     skeleton_guide_left.destroy();
@@ -422,6 +455,16 @@ let GameScene = new Phaser.Class({
             frameRate: 4,
             repeat: 0
         });
+        this.anims.create({
+            key: 'bat_walk',
+            frames: [
+                { key: 'bat1' },
+                { key: 'bat2' },
+                { key: 'bat3' }
+            ],
+            frameRate: 4,
+            repeat: -1
+        });
 
         //let bg = this.physics.add.staticGroup();
         G.platforms = this.physics.add.staticGroup();
@@ -491,6 +534,28 @@ let GameScene = new Phaser.Class({
         if (room.create) {
             room.create(this);
         }
+
+        let bat = this.physics.add.sprite(-13 * GRID_SIZE + GRID_SIZE/2, 23 * GRID_SIZE + GRID_SIZE/2, 'bat1').setScale(4).setFlipX(true);
+        G.dangerous.add(bat);
+        G.hittables.add(bat);
+        this.tweens.add({
+            targets: bat,
+            y: 22 * GRID_SIZE + GRID_SIZE/2,
+            ease: 'Sine.easeInOut',
+            duration: 1000,
+            repeat: -1,
+            yoyo: true
+        });
+        bat.setVelocityX(256);
+        bat.body.allowGravity = false;
+        bat.anims.play('bat_walk');
+        bat.hit = function()
+        {
+            bat.destroy();
+        };
+        bat.shouldDamagePlayer = function(player, source) {
+            return true;
+        };
 
         //set up player
         let start_x = room.entrances[CurrentEntrance].x;
