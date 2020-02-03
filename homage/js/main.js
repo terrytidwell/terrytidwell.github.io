@@ -6,6 +6,255 @@ const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
 let CurrentRoom = 'great_hall';
 let CurrentEntrance = 2;
 
+let Player = {
+    initialize : function(screen,x,y,flip)
+    {
+        Player.sprite = null;
+        Player.ready_to_jump = false;
+        Player.jumping = false;
+        Player.ducking = false;
+        Player.attacking = false;
+        Player.ready_to_attack = false;
+        Player.hit = false;
+        Player.can_recover_from_hit = true;
+        Player.mercy_invicible = false;
+        Player.whip1 = null;
+        Player.whip2 = null;
+        Player.whip3 = null;
+        Player.sprite = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
+        Player.sprite.originX = 0;
+        Player.sprite.originY = 1;
+        Player.whip1 = screen.physics.add.sprite(Player.sprite.body.right, Player.sprite.body.top, 'whip1').setScale(4);
+        Player.whip1.visible = false;
+        Player.whip1.body.allowGravity = false;
+        Player.whip1.body.immovable = true;
+        Player.whip2 = screen.physics.add.sprite(Player.sprite.body.right, Player.sprite.body.top, 'whip2').setScale(4);
+        Player.whip2.visible = false;
+        Player.whip2.body.allowGravity = false;
+        Player.whip2.body.immovable = true;
+        Player.whip3 = screen.physics.add.sprite(Player.sprite.body.left - 44 * 4, Player.sprite.body.top + 8 * 4, 'whip3').setScale(4);
+        Player.whip3.visible = false;
+        Player.whip3.body.allowGravity = false;
+        Player.whip3.body.immovable = true;
+        Player.whip3.body.setOffset(0, -1);
+    },
+    playerOpaque: function()
+    {
+        Player.sprite.alpha = 1;
+    },
+    update: function(screen)
+    {
+        let cursors = screen.myGameState.cursors;
+        Player.whip1.body.x = Player.sprite.body.right;
+        Player.whip1.setFlipX(Player.sprite.flipX);
+        if (Player.sprite.flipX)
+        {
+            Player.whip1.body.x = Player.sprite.body.left - 64;
+        }
+        Player.whip1.body.y = Player.sprite.body.top;
+
+        Player.whip2.body.x = Player.sprite.body.right;
+        Player.whip2.setFlipX(Player.sprite.flipX);
+        if (Player.sprite.flipX)
+        {
+            Player.whip2.body.x = Player.sprite.body.left - 64;
+        }
+        Player.whip2.body.y = Player.sprite.body.top;
+
+        Player.whip3.body.x = Player.sprite.body.left - 44*4;
+        Player.whip3.setFlipX(Player.sprite.flipX);
+        if (Player.sprite.flipX)
+        {
+            Player.whip3.body.x = Player.sprite.body.right;
+        }
+        Player.whip3.body.y = Player.sprite.body.top + 8*4;
+
+        if (!cursors.up.isDown) {
+            Player.ready_to_jump = true
+        }
+        if (!cursors.letter_left.isDown) {
+            Player.ready_to_attack = true;
+        }
+
+        if (!Player.hit && cursors.letter_left.isDown && Player.ready_to_attack && !Player.attacking)
+        {
+            Player.attacking = true;
+            Player.ready_to_attack = false;
+            let attack_end = function () {
+                Player.attacking = false;
+                Player.whip1.visible = false;
+                Player.whip2.visible = false;
+                Player.whip3.visible = false;
+            };
+            let attack_update = function (animation, frame, gameObject) {
+                if (frame.index === 2) {
+                    Player.whip1.visible = false;
+                    Player.whip2.visible = true;
+                } else if (frame.index === 3) {
+                    Player.whip2.visible = false;
+                    Player.whip3.visible = true;
+                }
+            };
+            Player.sprite.on('animationcomplete-standing_whip', attack_end);
+            Player.sprite.on('animationcomplete-ducking_whip', attack_end);
+            Player.sprite.on('animationupdate-ducking_whip', attack_update);
+            Player.sprite.on('animationupdate-standing_whip', attack_update);
+            if (!Player.ducking) {
+                Player.sprite.anims.play('standing_whip', false);
+            } else {
+                Player.sprite.anims.play('ducking_whip', false);
+            }
+
+            Player.whip1.visible = true;
+        }
+
+        if (Player.attacking && Player.sprite.body.blocked.down)
+        {
+            Player.sprite.setVelocityX(0);
+        }
+
+        if (!Player.attacking && !Player.hit)
+        {
+            if (cursors.left.isDown) {
+                Player.sprite.setFlipX(false);
+                Player.sprite.setVelocityX(-196);
+                if (!Player.jumping) {
+                    Player.sprite.anims.play('walk', true);
+                    Player.ducking = false;
+                    Player.sprite.setSize(16, 32);
+                }
+            } else if (cursors.right.isDown) {
+                Player.sprite.setFlipX(true);
+                Player.sprite.setVelocityX(196);
+                if (!Player.jumping) {
+                    Player.sprite.anims.play('walk', true);
+                    Player.ducking = false;
+                    Player.sprite.setSize(16, 32);
+                }
+            } else {
+                Player.sprite.anims.stop();
+                Player.sprite.setVelocityX(0);
+                if (!Player.jumping) {
+                    Player.sprite.setTexture('simon1');
+                    Player.ducking = false;
+                    Player.sprite.setSize(16, 32);
+                }
+            }
+
+            if (Player.sprite.body.blocked.down) {
+                if (Player.jumping) {
+                    Player.jumping = false;
+                } else if (cursors.up.isDown && Player.ready_to_jump) {
+                    Player.jumping = true;
+                    Player.ready_to_jump = false;
+                    Player.sprite.anims.stop();
+                    Player.sprite.setTexture('simon_ducking');
+                    Player.ducking = true;
+                    Player.sprite.setSize(16, 24);
+                    Player.sprite.setVelocityY(-512 - 96);
+                }
+                else if (cursors.down.isDown) {
+                    Player.sprite.anims.stop();
+                    Player.sprite.setTexture('simon_ducking');
+                    Player.ducking = true;
+                    Player.sprite.setSize(16, 24);
+                    Player.sprite.setVelocityX(0);
+                }
+            } else {
+                if (!Player.jumping) {
+                    Player.sprite.anims.stop();
+                    Player.sprite.setTexture('simon1');
+                    Player.ducking = false;
+                    Player.sprite.setSize(16, 32);
+                } else {
+                    Player.sprite.anims.stop();
+                    Player.sprite.setTexture('simon_ducking');
+                    Player.ducking = true;
+                    Player.sprite.setSize(16, 24);
+                }
+            }
+        }
+
+        if (!Player.hit && cursors.letter_right.isDown)
+        {
+            this.playerDamage(screen, Player.sprite, Player.sprite);
+        }
+        if (Player.hit && Player.can_recover_from_hit)
+        {
+            if (Player.sprite.body.blocked.down)
+            {
+                Player.hit = false;
+            }
+        }  
+    },
+    whipHit: function(whip, hittable) {
+        if (whip.visible && hittable.hit) {
+            hittable.hit();
+        }
+    },
+
+    hitPlayer: function(player, source) {
+        if (source.shouldDamagePlayer && source.shouldDamagePlayer())
+        {
+            Player.playerDamage(this, player, source);
+        }
+    },
+
+    playerDamage: function(screen, player, source) {
+        if (Player.hit || Player.mercy_invicible)
+        {
+            return;
+        }
+        let sx = (source.body.left + source.body.right)/2;
+        let sy = (source.body.top + source.body.bottom)/2;
+        let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
+        let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
+        if (sx > px)
+        {
+            Player.sprite.setFlipX(true);
+        }
+        else if (sx < px)
+        {
+            Player.sprite.setFlipX(false);
+        }
+        let dx = -196;
+        if(!Player.sprite.flipX) {
+            dx = dx * -1;
+        }
+        Player.sprite.anims.stop();
+        Player.sprite.setTexture('hit');
+        Player.ducking = false;
+        Player.attacking = false;
+        Player.sprite.setSize(16, 32);
+        Player.hit = true;
+        Player.mercy_invicible = true;
+        Player.can_recover_from_hit = false;
+        screen.time.delayedCall(250, Player.playerCanRecover, [], this);
+        screen.time.delayedCall(1000, Player.playerVulnerable, [], this);
+        screen.time.delayedCall(750, Player.playerOpaque, [], this);
+        Player.sprite.alpha = 0.5;
+        Player.sprite.setVelocityY(-608/2);
+        Player.sprite.setVelocityX(dx);
+    },
+
+    playerOpaque: function()
+    {
+        Player.sprite.alpha = 1;
+    },
+
+
+    playerCanRecover: function()
+    {
+        Player.can_recover_from_hit = true;
+    },
+
+    playerVulnerable: function()
+    {
+        Player.mercy_invicible = false;
+        Player.sprite.alpha = 1;
+    },
+};
+
 let RoomDictionary =
 {
     'great_hall':
@@ -206,8 +455,8 @@ let GameScene = new Phaser.Class({
             }
             let gx = (ghost.body.left + ghost.body.right)/2;
             let gy = (ghost.body.top + ghost.body.bottom)/2;
-            let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
-            let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
+            let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
+            let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
             let dx = px - gx;
             let dy = py - gy;
             let l = Math.sqrt(dx * dx + dy * dy);
@@ -352,20 +601,6 @@ let GameScene = new Phaser.Class({
 
         this.myGameState = {
             platforms: null,
-            player : {
-                sprite : null,
-                ready_to_jump : false,
-                jumping : false,
-                ducking : false,
-                attacking : false,
-                ready_to_attack : false,
-                hit : false,
-                can_recover_from_hit : true,
-                mercy_invicible : false,
-                whip1 : null,
-                whip2 : null,
-                whip3 : null,
-            },
             cursors : null,
             whips: null
 		};
@@ -535,54 +770,16 @@ let GameScene = new Phaser.Class({
             room.create(this);
         }
 
-        let bat = this.physics.add.sprite(-13 * GRID_SIZE + GRID_SIZE/2, 23 * GRID_SIZE + GRID_SIZE/2, 'bat1').setScale(4).setFlipX(true);
-        G.dangerous.add(bat);
-        G.hittables.add(bat);
-        this.tweens.add({
-            targets: bat,
-            y: 22 * GRID_SIZE + GRID_SIZE/2,
-            ease: 'Sine.easeInOut',
-            duration: 1000,
-            repeat: -1,
-            yoyo: true
-        });
-        bat.setVelocityX(256);
-        bat.body.allowGravity = false;
-        bat.anims.play('bat_walk');
-        bat.hit = function()
-        {
-            bat.destroy();
-        };
-        bat.shouldDamagePlayer = function(player, source) {
-            return true;
-        };
-
         //set up player
         let start_x = room.entrances[CurrentEntrance].x;
         let start_y = room.entrances[CurrentEntrance].y;
         let start_flip = room.entrances[CurrentEntrance].flip;
-        G.player.sprite = this.physics.add.sprite(start_x * GRID_SIZE, start_y * GRID_SIZE, 'simon1').setScale(4).setFlipX(start_flip);
-        G.player.sprite.originX = 0;
-        G.player.sprite.originY = 1;
-        G.player.whip1 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip1').setScale(4);
-        G.player.whip1.visible = false;
-        G.player.whip1.body.allowGravity = false;
-        G.player.whip1.body.immovable = true;
-        G.player.whip2 = this.physics.add.sprite(G.player.sprite.body.right, G.player.sprite.body.top, 'whip2').setScale(4);
-        G.player.whip2.visible = false;
-        G.player.whip2.body.allowGravity = false;
-        G.player.whip2.body.immovable = true;
-        G.player.whip3 = this.physics.add.sprite(G.player.sprite.body.left - 44*4, G.player.sprite.body.top + 8*4, 'whip3').setScale(4);
-        G.player.whip3.visible = false;
-        G.player.whip3.body.allowGravity = false;
-        G.player.whip3.body.immovable = true;
-        G.player.whip3.body.setOffset(0,-1);
+        Player.initialize(this, start_x, start_y, start_flip);
+
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
         G.whips.defaults.setImmovable = true;
-        //G.whips.add(G.player.whip1);
-        //G.whips.add(G.player.whip2);
-        G.whips.add(G.player.whip3);
+        G.whips.add(Player.whip3);
 
         //set up input
         G.cursors = this.input.keyboard.createCursorKeys();
@@ -593,88 +790,14 @@ let GameScene = new Phaser.Class({
 
         //set up camera
         let camera = this.cameras.main;
-        camera.startFollow(G.player.sprite, true, 1, 1, 0, +64);
+        camera.startFollow(Player.sprite, true, 1, 1, 0, +64);
         camera.setBounds(0, 0, scene_width, scene_height);
 
         //set up collider groups
-        this.physics.add.collider(G.player.sprite, G.platforms);
+        this.physics.add.collider(Player.sprite, G.platforms);
         this.physics.add.collider(G.platform_hit, G.platforms);
-        //this.physics.add.collider(skeleton_guide_left, G.platforms);
-        //this.physics.add.collider(skeleton_guide_right, G.platforms);
-        this.physics.add.overlap(G.whips, G.hittables, this.whipHit, null, this);
-        this.physics.add.overlap(G.player.sprite, G.dangerous, this.hitPlayer, null, this);
-    },
-
-    whipHit: function(whip, hittable) {
-        if (whip.visible && hittable.hit) {
-            hittable.hit();
-        }
-    },
-
-    hitPlayer: function(player, source) {
-        let G = this.myGameState;
-        if (source.shouldDamagePlayer && source.shouldDamagePlayer())
-        {
-            this.playerDamage(player, source);
-        }
-    },
-
-    playerDamage: function(player, source) {
-        let G = this.myGameState;
-        if (G.player.hit || G.player.mercy_invicible)
-        {
-            return;
-        }
-        let sx = (source.body.left + source.body.right)/2;
-        let sy = (source.body.top + source.body.bottom)/2;
-        let px = (G.player.sprite.body.left + G.player.sprite.body.right)/2;
-        let py = (G.player.sprite.body.top + G.player.sprite.body.bottom)/2;
-        if (sx > px)
-        {
-            G.player.sprite.setFlipX(true);
-        }
-        else if (sx < px)
-        {
-            G.player.sprite.setFlipX(false);
-        }
-        let dx = -196;
-        if(!G.player.sprite.flipX) {
-            dx = dx * -1;
-        }
-        G.player.sprite.anims.stop();
-        G.player.sprite.setTexture('hit');
-        G.player.ducking = false;
-        G.player.attacking = false;
-        G.player.sprite.setSize(16, 32);
-        G.player.hit = true;
-        G.player.mercy_invicible = true;
-        G.player.can_recover_from_hit = false;
-        this.time.delayedCall(250, this.playerCanRecover, [], this);
-        this.time.delayedCall(1000, this.playerVulnerable, [], this);
-        this.time.delayedCall(750, this.playerOpaque, [], this);
-        G.player.sprite.alpha = 0.5;
-        G.player.sprite.setVelocityY(-608/2);
-        G.player.sprite.setVelocityX(dx);
-    },
-
-    playerOpaque: function()
-    {
-        let G = this.myGameState;
-        G.player.sprite.alpha = 1;
-    },
-
-
-    playerCanRecover: function()
-    {
-        let G = this.myGameState;
-        G.player.can_recover_from_hit = true;
-    },
-
-    playerVulnerable: function()
-    {
-        let G = this.myGameState;
-        G.player.mercy_invicible = false;
-        G.player.sprite.alpha = 1;
+        this.physics.add.overlap(G.whips, G.hittables, Player.whipHit, null, this);
+        this.physics.add.overlap(Player.sprite, G.dangerous, Player.hitPlayer, null, this);
     },
 
     //--------------------------------------------------------------------------
@@ -688,147 +811,7 @@ let GameScene = new Phaser.Class({
             }
         }, this);
 
-        G.player.whip1.body.x = G.player.sprite.body.right;
-        G.player.whip1.setFlipX(G.player.sprite.flipX);
-        if (G.player.sprite.flipX)
-        {
-            G.player.whip1.body.x = G.player.sprite.body.left - 64;
-        }
-        G.player.whip1.body.y = G.player.sprite.body.top;
-
-        G.player.whip2.body.x = G.player.sprite.body.right;
-        G.player.whip2.setFlipX(G.player.sprite.flipX);
-        if (G.player.sprite.flipX)
-        {
-            G.player.whip2.body.x = G.player.sprite.body.left - 64;
-        }
-        G.player.whip2.body.y = G.player.sprite.body.top;
-
-        G.player.whip3.body.x = G.player.sprite.body.left - 44*4;
-        G.player.whip3.setFlipX(G.player.sprite.flipX);
-        if (G.player.sprite.flipX)
-        {
-            G.player.whip3.body.x = G.player.sprite.body.right;
-        }
-        G.player.whip3.body.y = G.player.sprite.body.top + 8*4;
-
-        if (!G.cursors.up.isDown) {
-            G.player.ready_to_jump = true
-        }
-        if (!G.cursors.letter_left.isDown) {
-            G.player.ready_to_attack = true;
-        }
-
-        if (!G.player.hit && G.cursors.letter_left.isDown && G.player.ready_to_attack && !G.player.attacking)
-        {
-            G.player.attacking = true;
-            G.player.ready_to_attack = false;
-            let attack_end = function () {
-                G.player.attacking = false;
-                G.player.whip1.visible = false;
-                G.player.whip2.visible = false;
-                G.player.whip3.visible = false;
-            };
-            let attack_update = function (animation, frame, gameObject) {
-                if (frame.index === 2) {
-                    G.player.whip1.visible = false;
-                    G.player.whip2.visible = true;
-                } else if (frame.index === 3) {
-                    G.player.whip2.visible = false;
-                    G.player.whip3.visible = true;
-                }
-            };
-            G.player.sprite.on('animationcomplete-standing_whip', attack_end);
-            G.player.sprite.on('animationcomplete-ducking_whip', attack_end);
-            G.player.sprite.on('animationupdate-ducking_whip', attack_update);
-            G.player.sprite.on('animationupdate-standing_whip', attack_update);
-            if (!G.player.ducking) {
-                G.player.sprite.anims.play('standing_whip', false);
-            } else {
-                G.player.sprite.anims.play('ducking_whip', false);
-            }
-
-            G.player.whip1.visible = true;
-        }
-
-        if (G.player.attacking && G.player.sprite.body.blocked.down)
-        {
-            G.player.sprite.setVelocityX(0);
-        }
-
-        if (!G.player.attacking && !G.player.hit)
-        {
-            if (G.cursors.left.isDown) {
-                G.player.sprite.setFlipX(false);
-                G.player.sprite.setVelocityX(-196);
-                if (!G.player.jumping) {
-                    G.player.sprite.anims.play('walk', true);
-                    G.player.ducking = false;
-                    G.player.sprite.setSize(16, 32);
-                }
-            } else if (G.cursors.right.isDown) {
-                G.player.sprite.setFlipX(true);
-                G.player.sprite.setVelocityX(196);
-                if (!G.player.jumping) {
-                    G.player.sprite.anims.play('walk', true);
-                    G.player.ducking = false;
-                    G.player.sprite.setSize(16, 32);
-                }
-            } else {
-                G.player.sprite.anims.stop();
-                G.player.sprite.setVelocityX(0);
-                if (!G.player.jumping) {
-                    G.player.sprite.setTexture('simon1');
-                    G.player.ducking = false;
-                    G.player.sprite.setSize(16, 32);
-                }
-            }
-
-            if (G.player.sprite.body.blocked.down) {
-                if (G.player.jumping) {
-                    G.player.jumping = false;
-                } else if (G.cursors.up.isDown && G.player.ready_to_jump) {
-                    G.player.jumping = true;
-                    G.player.ready_to_jump = false;
-                    G.player.sprite.anims.stop();
-                    G.player.sprite.setTexture('simon_ducking');
-                    G.player.ducking = true;
-                    G.player.sprite.setSize(16, 24);
-                    G.player.sprite.setVelocityY(-512 - 96);
-                }
-                else if (G.cursors.down.isDown) {
-                    G.player.sprite.anims.stop();
-                    G.player.sprite.setTexture('simon_ducking');
-                    G.player.ducking = true;
-                    G.player.sprite.setSize(16, 24);
-                    G.player.sprite.setVelocityX(0);
-                }
-            } else {
-                if (!G.player.jumping) {
-                    G.player.sprite.anims.stop();
-                    G.player.sprite.setTexture('simon1');
-                    G.player.ducking = false;
-                    G.player.sprite.setSize(16, 32);
-                } else {
-                    G.player.sprite.anims.stop();
-                    G.player.sprite.setTexture('simon_ducking');
-                    G.player.ducking = true;
-                    G.player.sprite.setSize(16, 24);
-                }
-            }
-        }
-
-        if (!G.player.hit && G.cursors.letter_right.isDown)
-        {
-            this.playerDamage(G.player.sprite, G.player.sprite);
-        }
-        if (G.player.hit && G.player.can_recover_from_hit)
-        {
-            if (G.player.sprite.body.blocked.down)
-            {
-                G.player.hit = false;
-            }
-        }
+        Player.update(this);
     }
 });
 
