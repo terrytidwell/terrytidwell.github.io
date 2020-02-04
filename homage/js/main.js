@@ -428,6 +428,8 @@ let GameScene = new Phaser.Class({
         this.load.image('skeleton_death1', 'assets/skeleton_death1.png');
         this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
+        //this.load.tilemapTiledJSON('map', 'assets/TestRoom.json');
+        //this.load.image('tiles', 'assets/spritemap.png');
     },
 
     addBlock: function(group, x, y)
@@ -760,6 +762,15 @@ let GameScene = new Phaser.Class({
                 }
             }
         }
+
+        /*
+        let map = this.make.tilemap({ key: 'map' });
+        let tileset = map.addTilesetImage('spritemap', 'tiles', 16, 16);
+        let layer = map.createStaticLayer('CollisionLayer', tileset, 0, 0);
+        layer.setScale(4);
+        layer.setCollisionByProperty({ collides: true });
+        this.physics.add.collider(Player.sprite, layer);
+         */
 
         for (exit of room.exits)
         {
