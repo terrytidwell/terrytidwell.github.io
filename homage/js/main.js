@@ -29,9 +29,10 @@ let Player = {
         Player.hitbox.originX = 0.5;
         Player.hitbox.originY = 0.5;
 
-        Player.hitbox.body.setSize(Player.sprite.width * 3/4, Player.sprite.height * 7/8);
-        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width/2;
-        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 15/4;
+        Player.hitbox.body.setSize(Player.sprite.width * 1/4, Player.sprite.height * 7/8);
+        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width * 3/2;
+        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 30/8;
+
         Player.hitbox.visible = false;
         Player.hitbox.body.allowGravity = false;
         Player.hitbox.body.immovable = true;
@@ -50,15 +51,11 @@ let Player = {
         Player.whip3.body.immovable = true;
         Player.whip3.body.setOffset(0, -1);
     },
-    playerOpaque: function()
-    {
-        Player.sprite.alpha = 1;
-    },
     update: function(screen)
     {
         let cursors = screen.myGameState.cursors;
-        Player.hitbox.body.setSize(Player.sprite.width * 3/4, Player.sprite.height * 7/8);
-        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width/2;
+        Player.hitbox.body.setSize(Player.sprite.width * 1/4, Player.sprite.height * 7/8);
+        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width * 3/2;
         Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 30/8;
 
         Player.whip1.body.x = Player.sprite.body.right;
@@ -250,6 +247,9 @@ let Player = {
         screen.time.delayedCall(1000, Player.playerVulnerable, [], this);
         screen.time.delayedCall(750, Player.playerOpaque, [], this);
         Player.sprite.alpha = 0.5;
+        Player.whip1.alpha = 0.5;
+        Player.whip2.alpha = 0.5;
+        Player.whip3.alpha = 0.5;
         Player.sprite.setVelocityY(-608/2);
         Player.sprite.setVelocityX(dx);
     },
@@ -257,6 +257,9 @@ let Player = {
     playerOpaque: function()
     {
         Player.sprite.alpha = 1;
+        Player.whip1.alpha = 1;
+        Player.whip2.alpha = 1;
+        Player.whip3.alpha = 1;
     },
 
 
@@ -268,7 +271,7 @@ let Player = {
     playerVulnerable: function()
     {
         Player.mercy_invicible = false;
-        Player.sprite.alpha = 1;
+        Player.playerOpaque();
     },
 };
 
