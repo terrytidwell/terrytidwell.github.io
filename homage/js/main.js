@@ -24,6 +24,18 @@ let Player = {
         Player.sprite = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
         Player.sprite.originX = 0;
         Player.sprite.originY = 1;
+        Player.hitbox = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
+
+        Player.hitbox.originX = 0.5;
+        Player.hitbox.originY = 0.5;
+
+        Player.hitbox.body.setSize(Player.sprite.width * 3/4, Player.sprite.height * 7/8);
+        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width/2;
+        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 15/4;
+        Player.hitbox.visible = false;
+        Player.hitbox.body.allowGravity = false;
+        Player.hitbox.body.immovable = true;
+
         Player.whip1 = screen.physics.add.sprite(Player.sprite.body.right, Player.sprite.body.top, 'whip1').setScale(4);
         Player.whip1.visible = false;
         Player.whip1.body.allowGravity = false;
@@ -45,6 +57,10 @@ let Player = {
     update: function(screen)
     {
         let cursors = screen.myGameState.cursors;
+        Player.hitbox.body.setSize(Player.sprite.width * 3/4, Player.sprite.height * 7/8);
+        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width/2;
+        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 30/8;
+
         Player.whip1.body.x = Player.sprite.body.right;
         Player.whip1.setFlipX(Player.sprite.flipX);
         if (Player.sprite.flipX)
@@ -185,8 +201,9 @@ let Player = {
             {
                 Player.hit = false;
             }
-        }  
+        }
     },
+
     whipHit: function(whip, hittable) {
         if (whip.visible && hittable.hit) {
             hittable.hit();
@@ -827,7 +844,7 @@ let GameScene = new Phaser.Class({
         this.physics.add.collider(Player.sprite, G.platforms);
         this.physics.add.collider(G.platform_hit, G.platforms);
         this.physics.add.overlap(G.whips, G.hittables, Player.whipHit, null, this);
-        this.physics.add.overlap(Player.sprite, G.dangerous, Player.hitPlayer, null, this);
+        this.physics.add.overlap(Player.hitbox, G.dangerous, Player.hitPlayer, null, this);
     },
 
     //--------------------------------------------------------------------------
