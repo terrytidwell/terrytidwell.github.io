@@ -3,8 +3,8 @@ const SCREEN_HEIGHT = 576;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
-let CurrentRoom = 'great_hall';
-let CurrentEntrance = 2;
+let CurrentRoom = 'Crypt1';
+let CurrentEntrance = 0;
 
 let Player = {
     initialize : function(screen,x,y,flip)
@@ -289,7 +289,7 @@ let RoomDictionary =
                 [4,4,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             ],
             exits: [
-                {x:27, y:24, w:1, h:3, dest:'small_room', entrance_index:0},
+                {x:27, y:24, w:1, h:3, dest:'Crypt1', entrance_index:1},
                 {x:27, y:3, w:1, h:3, dest:'side_hall', entrance_index:0},
                 {x:-2, y:3, w:1, h:3, dest:'small_room2', entrance_index:0},
             ],
@@ -328,26 +328,6 @@ let RoomDictionary =
                 {x:0, y:5, flip: true}
             ]
         },
-    'small_room':
-        {
-            map: [
-                [1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,1],
-                [0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ],
-            exits: [
-                {x:-2, y:6, w:1, h:3, dest:'great_hall', entrance_index:2}
-            ],
-            entrances: [
-                {x:0, y:8, flip: true}
-            ]
-        },
     'small_room2':
         {
             map: [
@@ -366,6 +346,18 @@ let RoomDictionary =
             ],
             entrances: [
                 {x:12, y:5, flip: false}
+            ]
+        },
+    'Crypt1':
+        {
+            map_key: 'Crypt1',
+            tile_key: 'crypt_tiles',
+            exits: [
+                {x:-2, y:24, w:1, h:3, dest:'great_hall', entrance_index:2}
+            ],
+            entrances: [
+                {x:6, y:5, flip: false},
+                {x:0, y:26, flip: true}
             ]
         },
 }
@@ -428,8 +420,8 @@ let GameScene = new Phaser.Class({
         this.load.image('skeleton_death1', 'assets/skeleton_death1.png');
         this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
-        //this.load.tilemapTiledJSON('map', 'assets/TestRoom.json');
-        //this.load.image('tiles', 'assets/spritemap.png');
+        this.load.tilemapTiledJSON('Crypt1', 'assets/Crypt1.json');
+        this.load.image('crypt_tiles', 'assets/crypt_tiles.png');
     },
 
     addBlock: function(group, x, y)
@@ -595,11 +587,86 @@ let GameScene = new Phaser.Class({
         };
     },
 
+    addLegacyMap : function () {
+        let G = this.myGameState;
+        let room = RoomDictionary[CurrentRoom];
+        let map = room.map;
+        let scene_height = map.length * GRID_SIZE;
+        let scene_width = 0;
+        for (let y = 0; y < map.length; ++y)
+        {
+            scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
+            for (let x = 0; x < map[y].length; ++x)
+            {
+                if (map[y][x] === 2) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE);
+                }
+                if (map[y][x] === 3) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setFlipX(true);
+                }
+                if (map[y][x] === 4) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bricks').setScale(PNG_TO_GRID_SCALE).setTint(0x404040);
+                }
+                if (map[y][x] === 5) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setTint(0x404040);
+                }
+                if (map[y][x] === 6) {
+                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setFlipX(true).setTint(0x404040);
+                }
+            }
+        }
+
+        for (let y = 0; y < map.length; ++y)
+        {
+            scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
+            for (let x = 0; x < map[y].length; ++x)
+            {
+                if (map[y][x] === 1)
+                {
+                    let block = this.addBlock(G.platforms, x*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
+                    if (y > 0 && map[y-1][x] === 1)
+                    {
+                        block.body.checkCollision.up = false;
+                    }
+                    if (x > 0 && map[y][x-1] === 1)
+                    {
+                        block.body.checkCollision.left = false;
+                    }
+                    if (x + 1 < map[y].length > 0 && map[y][x+1] === 1)
+                    {
+                        block.body.checkCollision.right = false;
+                    }
+                    if (y + 1 < map.length > 0 && map[y+1][x] === 1)
+                    {
+                        block.body.checkCollision.down = false;
+                    }
+                }
+            }
+        }
+        this.cameras.main.setBounds(0, 0, scene_width, scene_height);
+    },
+
+    addTileMap : function ()
+    {
+        let G = this.myGameState;
+        let room = RoomDictionary[CurrentRoom];
+        let map_key = room.map_key;
+        let tile_key = room.tile_key;
+        let map = this.make.tilemap({ key: map_key });
+        let tileset = map.addTilesetImage(tile_key, tile_key, 16, 16);
+        let layer = map.createStaticLayer('Bg', tileset, 0, 0);
+        layer.setScale(4);
+        layer = map.createStaticLayer('Walls', tileset, 0, 0);
+        G.platforms = layer;
+        layer.setScale(4);
+        layer.setCollisionByProperty({ collides: true });
+        this.cameras.main.setBounds(0, 0, map.widthInPixels * 4, map.heightInPixels * 4);
+    },
+
     //--------------------------------------------------------------------------
     create: function ()
     {
         let room = RoomDictionary[CurrentRoom];
-        let map = room.map;
 
         this.myGameState = {
             platforms: null,
@@ -710,67 +777,15 @@ let GameScene = new Phaser.Class({
         G.dangerous = this.physics.add.group();
         G.platform_hit = this.physics.add.group();
 
-        let scene_height = map.length * GRID_SIZE;
-        let scene_width = 0;
-        for (let y = 0; y < map.length; ++y)
+        if(room.map)
         {
-            scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
-            for (let x = 0; x < map[y].length; ++x)
-            {
-                if (map[y][x] === 2) {
-                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE);
-                }
-                if (map[y][x] === 3) {
-                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setFlipX(true);
-                }
-                if (map[y][x] === 4) {
-                    this.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bricks').setScale(PNG_TO_GRID_SCALE).setTint(0x404040);
-                }
-                if (map[y][x] === 5) {
-                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setTint(0x404040);
-                }
-                if (map[y][x] === 6) {
-                    this.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, 'column_left').setScale(PNG_TO_GRID_SCALE).setFlipX(true).setTint(0x404040);
-                }
-            }
+            this.addLegacyMap();
+        }
+        else
+        {
+            this.addTileMap();
         }
 
-        for (let y = 0; y < map.length; ++y)
-        {
-            scene_width = Math.max(scene_width,  map[y].length*GRID_SIZE);
-            for (let x = 0; x < map[y].length; ++x)
-            {
-                if (map[y][x] === 1)
-                {
-                    let block = this.addBlock(G.platforms, x*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2);
-                    if (y > 0 && map[y-1][x] === 1)
-                    {
-                        block.body.checkCollision.up = false;
-                    }
-                    if (x > 0 && map[y][x-1] === 1)
-                    {
-                        block.body.checkCollision.left = false;
-                    }
-                    if (x + 1 < map[y].length > 0 && map[y][x+1] === 1)
-                    {
-                        block.body.checkCollision.right = false;
-                    }
-                    if (y + 1 < map.length > 0 && map[y+1][x] === 1)
-                    {
-                        block.body.checkCollision.down = false;
-                    }
-                }
-            }
-        }
-
-        /*
-        let map = this.make.tilemap({ key: 'map' });
-        let tileset = map.addTilesetImage('spritemap', 'tiles', 16, 16);
-        let layer = map.createStaticLayer('CollisionLayer', tileset, 0, 0);
-        layer.setScale(4);
-        layer.setCollisionByProperty({ collides: true });
-        this.physics.add.collider(Player.sprite, layer);
-         */
 
         for (exit of room.exits)
         {
@@ -786,6 +801,7 @@ let GameScene = new Phaser.Class({
         let start_y = room.entrances[CurrentEntrance].y;
         let start_flip = room.entrances[CurrentEntrance].flip;
         Player.initialize(this, start_x, start_y, start_flip);
+        this.cameras.main.startFollow(Player.sprite, true, 1, 1, 0, +64);
 
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
@@ -799,10 +815,6 @@ let GameScene = new Phaser.Class({
         G.cursors.letter_up = this.input.keyboard.addKey("w");
         G.cursors.letter_down = this.input.keyboard.addKey("s");
 
-        //set up camera
-        let camera = this.cameras.main;
-        camera.startFollow(Player.sprite, true, 1, 1, 0, +64);
-        camera.setBounds(0, 0, scene_width, scene_height);
 
         //set up collider groups
         this.physics.add.collider(Player.sprite, G.platforms);
@@ -827,7 +839,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
-    // backgroundColor: '#70D070',
+    backgroundColor: '#050505',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
