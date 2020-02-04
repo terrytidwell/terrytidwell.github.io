@@ -358,7 +358,14 @@ let RoomDictionary =
             entrances: [
                 {x:6, y:5, flip: false},
                 {x:0, y:26, flip: true}
-            ]
+            ],
+            create : function (screen)
+            {
+                screen.addSkeleton(3,8);
+                screen.addSkeleton(5,19);
+                //screen.addSkeleton(4,17);
+                //screen.addSkeleton(8,23);
+            }
         },
 }
 
