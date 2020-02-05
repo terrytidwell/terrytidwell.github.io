@@ -24,18 +24,6 @@ let Player = {
         Player.sprite = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
         Player.sprite.originX = 0;
         Player.sprite.originY = 1;
-        Player.hitbox = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
-
-        Player.hitbox.originX = 0.5;
-        Player.hitbox.originY = 0.5;
-
-        Player.hitbox.body.setSize(Player.sprite.width * 1/4, Player.sprite.height * 7/8);
-        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width * 3/2;
-        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 30/8;
-
-        Player.hitbox.visible = false;
-        Player.hitbox.body.allowGravity = false;
-        Player.hitbox.body.immovable = true;
 
         Player.whip1 = screen.physics.add.sprite(Player.sprite.body.right, Player.sprite.body.top, 'whip1').setScale(4);
         Player.whip1.visible = false;
@@ -54,9 +42,6 @@ let Player = {
     update: function(screen)
     {
         let cursors = screen.myGameState.cursors;
-        Player.hitbox.body.setSize(Player.sprite.width * 1/4, Player.sprite.height * 7/8);
-        Player.hitbox.body.x = Player.sprite.body.left + Player.sprite.width * 3/2;
-        Player.hitbox.body.y = Player.sprite.body.bottom - Player.sprite.height * 30/8;
 
         Player.whip1.body.x = Player.sprite.body.right;
         Player.whip1.setFlipX(Player.sprite.flipX);
@@ -208,9 +193,18 @@ let Player = {
     },
 
     hitPlayer: function(player, source) {
-        if (source.shouldDamagePlayer && source.shouldDamagePlayer())
-        {
-            Player.playerDamage(this, player, source);
+        if (source.shouldDamagePlayer && source.shouldDamagePlayer()) {
+            let adjusted_height = Player.sprite.body.height * 3/4;
+            let adjusted_y = Player.sprite.body.y + (Player.sprite.body.height * 1/8);
+            let adjusted_width = Player.sprite.body.width * 1/2;
+            let adjusted_x = Player.sprite.body.x + (Player.sprite.body.width * 1/4);
+            if (source.body.x < adjusted_x + adjusted_width &&
+                source.body.x + source.body.width > adjusted_x &&
+                source.body.y < adjusted_y + adjusted_height &&
+                source.body.y + source.body.height > adjusted_y)
+            {
+                Player.playerDamage(this, player, source);
+            }
         }
     },
 
@@ -847,7 +841,7 @@ let GameScene = new Phaser.Class({
         this.physics.add.collider(Player.sprite, G.platforms);
         this.physics.add.collider(G.platform_hit, G.platforms);
         this.physics.add.overlap(G.whips, G.hittables, Player.whipHit, null, this);
-        this.physics.add.overlap(Player.hitbox, G.dangerous, Player.hitPlayer, null, this);
+        this.physics.add.overlap(Player.sprite, G.dangerous, Player.hitPlayer, null, this);
     },
 
     //--------------------------------------------------------------------------
