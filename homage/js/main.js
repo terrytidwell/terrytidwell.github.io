@@ -367,7 +367,7 @@ let RoomDictionary =
             map_key: 'Crypt1',
             tile_key: 'crypt_tiles',
             exits: [
-                {x:-2, y:24, w:1, h:3, dest:'great_hall', entrance_index:2}
+                {x:-2, y:24, w:1, h:3, dest:'Crypt2', entrance_index:0}
             ],
             entrances: [
                 {x:6, y:5, flip: false},
@@ -379,6 +379,22 @@ let RoomDictionary =
                 screen.addSkeleton(5,19);
                 //screen.addSkeleton(4,17);
                 //screen.addSkeleton(8,23);
+            }
+        },
+    'Crypt2':
+        {
+            map_key: 'Crypt2',
+            tile_key: 'crypt_tiles',
+            exits: [
+                {x:27, y:6, w:1, h:3, dest:'Crypt1', entrance_index:1},
+                {x:27, y:15, w:1, h:3, dest:'great_hall', entrance_index:2}
+            ],
+            entrances: [
+                {x:25, y:8, flip: false},
+                {x:25, y:17, flip: false}
+            ],
+            create : function (screen)
+            {
             }
         },
 }
@@ -442,6 +458,7 @@ let GameScene = new Phaser.Class({
         this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
         this.load.tilemapTiledJSON('Crypt1', 'assets/Crypt1.json');
+        this.load.tilemapTiledJSON('Crypt2', 'assets/Crypt2.json');
         this.load.image('crypt_tiles', 'assets/crypt_tiles.png');
     },
 
