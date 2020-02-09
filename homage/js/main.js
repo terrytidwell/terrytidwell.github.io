@@ -434,6 +434,8 @@ let  UIScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function ()
     {
+        this.input.addPointer(5);
+
         let UIScreen = this;
         this.cameras.main.setViewport(0,SCREEN_HEIGHT,SCREEN_WIDTH,CONTROL_HEIGHT) ;
         this.cameras.main.setBackgroundColor("#100000");
