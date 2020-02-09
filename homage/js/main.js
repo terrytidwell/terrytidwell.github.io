@@ -1,5 +1,6 @@
 const SCREEN_WIDTH = 832;
 const SCREEN_HEIGHT = 576;
+const CONTROL_HEIGHT = SCREEN_HEIGHT/2;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
@@ -414,6 +415,155 @@ function fix_object(object, width, height)
     object.body.setOffset(delta_x, delta_y);
 }
 
+let  UIScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function ()
+    {
+        Phaser.Scene.call(this, { key: 'UIScreen', active: true });
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function ()
+    {
+        //this.load.image('block', 'assets/block.png');
+    },
+
+    //--------------------------------------------------------------------------
+    create: function ()
+    {
+        let UIScreen = this;
+        this.cameras.main.setViewport(0,SCREEN_HEIGHT,SCREEN_WIDTH,CONTROL_HEIGHT) ;
+        this.cameras.main.setBackgroundColor("#100000");
+        let game_width = SCREEN_WIDTH;
+        let game_height = CONTROL_HEIGHT;
+
+        this.left = this.add.text(0,
+            game_height / 2,
+            "<<", { fontSize: '96px', fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.left.setInteractive();
+        this.left.alpha = 0.5;
+        this.left.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.left.isDown = true;
+            }
+        });
+        this.left.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.left.isDown = false;
+            }
+        });
+
+        this.down = this.add.text(
+            this.left.x + this.left.width,
+            game_height/2,
+            "VV", { fontSize: '96px', fill: '#FFF' })
+            .setOrigin(0, 0.5);
+        this.down.alpha = 0.5;
+        this.down.setInteractive();
+        this.down.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.down.isDown = true;
+            }
+        });
+        this.down.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.down.isDown = false;
+            }
+        });
+
+        this.right = this.add.text(this.down.x + this.down.width,
+            game_height / 2,
+            ">>", { fontSize: '96px', fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.right.setInteractive();
+        this.right.alpha = 0.5;
+        this.right.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.right.isDown = true;
+            }
+        });
+        this.right.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.right.isDown = false;
+            }
+        });
+
+        this.jump = this.add.text(game_width,
+        game_height / 2,
+        "BB", { fontSize: '96px', fill: '#FFF' })
+        .setOrigin(1 , 0.5);
+        this.jump.setInteractive();
+        this.jump.alpha = 0.5;
+        this.jump.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.up.isDown = true;
+            }
+        });
+        this.jump.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.up.isDown = false;
+            }
+        });
+        this.attack = this.add.text(this.jump.x - this.jump.width,
+            game_height / 2,
+            "AA", { fontSize: '96px', fill: '#FFF' })
+            .setOrigin(1 , 0.5);
+        this.attack.setInteractive();
+        this.attack.alpha = 0.5;
+        this.attack.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.letter_left.isDown = true;
+            }
+        });
+        this.attack.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+                let GameScene = UIScreen.scene.get('GameScene');
+                let cursors = GameScene.myGameState.cursors;
+                cursors.letter_left.isDown = false;
+            }
+        });
+
+
+    },
+
+    //--------------------------------------------------------------------------
+    update: function()
+    {
+    },
+});
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -682,6 +832,7 @@ let GameScene = new Phaser.Class({
             }
         }
         this.cameras.main.setBounds(0, 0, scene_width, scene_height);
+
     },
 
     addTileMap : function ()
@@ -840,6 +991,7 @@ let GameScene = new Phaser.Class({
         let start_flip = room.entrances[CurrentEntrance].flip;
         Player.initialize(this, start_x, start_y, start_flip);
         this.cameras.main.startFollow(Player.sprite, true, 1, 1, 0, +64);
+        this.cameras.main.setViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
 
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
@@ -847,12 +999,22 @@ let GameScene = new Phaser.Class({
         G.whips.add(Player.whip3);
 
         //set up input
+        G.cursors = {
+            left : { isDown : false },
+            right : { isDown : false },
+            up : { isDown : false },
+            down : { isDown : false },
+            letter_left : { isDown : false },
+            letter_right : { isDown : false },
+        };
+
+        /*
         G.cursors = this.input.keyboard.createCursorKeys();
         G.cursors.letter_left = this.input.keyboard.addKey("a");
         G.cursors.letter_right = this.input.keyboard.addKey("d");
         G.cursors.letter_up = this.input.keyboard.addKey("w");
         G.cursors.letter_down = this.input.keyboard.addKey("s");
-
+        */
 
         //set up collider groups
         this.physics.add.collider(Player.sprite, G.platforms);
@@ -887,7 +1049,7 @@ let config = {
         parent: 'phaser-example',
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: SCREEN_WIDTH,
-        height: SCREEN_HEIGHT
+        height: SCREEN_HEIGHT + CONTROL_HEIGHT,
     },
     physics: {
         default: 'arcade',
@@ -896,7 +1058,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene ]
+    scene: [ GameScene, UIScreen ]
 };
 
 let game = new Phaser.Game(config);
