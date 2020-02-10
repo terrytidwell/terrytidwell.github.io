@@ -1,12 +1,15 @@
 const SCREEN_WIDTH = 832;
 const SCREEN_HEIGHT = 576;
-const CONTROL_WIDTH = SCREEN_WIDTH * 2;
-const CONTROL_HEIGHT = SCREEN_HEIGHT;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
 let CurrentRoom = 'Crypt1';
 let CurrentEntrance = 0;
+const LAYOUT = {
+   MOBILE_VERTICAL : 0,
+   MOBILE_HORIZONTAL : 1,
+   DESKTOP : 2
+};
 
 let Player = {
     initialize : function(screen,x,y,flip)
@@ -423,7 +426,7 @@ let  UIScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'UIScreen', active: true });
+        Phaser.Scene.call(this, { key: 'UIScreen', active: false  });
     },
 
     //--------------------------------------------------------------------------
@@ -438,10 +441,10 @@ let  UIScreen = new Phaser.Class({
         this.input.addPointer(5);
 
         let UIScreen = this;
-        this.cameras.main.setViewport(0,0,CONTROL_WIDTH,CONTROL_HEIGHT) ;
+        this.cameras.main.setViewport(0,0,SCREEN_WIDTH,SCREEN_HEIGHT) ;
         this.cameras.main.setBackgroundColor("#100000");
-        let game_width = CONTROL_WIDTH;
-        let game_height = CONTROL_HEIGHT;
+        let game_width = SCREEN_WIDTH;
+        let game_height = SCREEN_HEIGHT;
 
         this.left = this.add.text(0,
             game_height / 2,
@@ -994,7 +997,7 @@ let GameScene = new Phaser.Class({
         let start_flip = room.entrances[CurrentEntrance].flip;
         Player.initialize(this, start_x, start_y, start_flip);
         this.cameras.main.startFollow(Player.sprite, true, 1, 1, 0, +64);
-        this.cameras.main.setViewport(SCREEN_WIDTH/2,0,SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.cameras.main.setViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
 
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
@@ -1002,6 +1005,7 @@ let GameScene = new Phaser.Class({
         G.whips.add(Player.whip3);
 
         //set up input
+        /*
         G.cursors = {
             left : { isDown : false },
             right : { isDown : false },
@@ -1010,14 +1014,15 @@ let GameScene = new Phaser.Class({
             letter_left : { isDown : false },
             letter_right : { isDown : false },
         };
+        */
 
-        /*
+        // /*
         G.cursors = this.input.keyboard.createCursorKeys();
         G.cursors.letter_left = this.input.keyboard.addKey("a");
         G.cursors.letter_right = this.input.keyboard.addKey("d");
         G.cursors.letter_up = this.input.keyboard.addKey("w");
         G.cursors.letter_down = this.input.keyboard.addKey("s");
-        */
+        // */
 
         //set up collider groups
         this.physics.add.collider(Player.sprite, G.platforms);
@@ -1051,8 +1056,8 @@ let config = {
         mode: Phaser.Scale.FIT,
         parent: 'phaser-example',
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: CONTROL_WIDTH,
-        height: CONTROL_HEIGHT,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
     },
     physics: {
         default: 'arcade',
@@ -1061,7 +1066,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ UIScreen, GameScene ]
+    scene: [ GameScene, UIScreen ]
 };
 
 let game = new Phaser.Game(config);
