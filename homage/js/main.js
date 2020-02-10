@@ -1,6 +1,7 @@
 const SCREEN_WIDTH = 832;
 const SCREEN_HEIGHT = 576;
-const CONTROL_HEIGHT = SCREEN_HEIGHT/2;
+const CONTROL_WIDTH = SCREEN_WIDTH * 2;
+const CONTROL_HEIGHT = SCREEN_HEIGHT;
 const GRID_SIZE = 64;
 const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
@@ -437,9 +438,9 @@ let  UIScreen = new Phaser.Class({
         this.input.addPointer(5);
 
         let UIScreen = this;
-        this.cameras.main.setViewport(0,SCREEN_HEIGHT,SCREEN_WIDTH,CONTROL_HEIGHT) ;
+        this.cameras.main.setViewport(0,0,CONTROL_WIDTH,CONTROL_HEIGHT) ;
         this.cameras.main.setBackgroundColor("#100000");
-        let game_width = SCREEN_WIDTH;
+        let game_width = CONTROL_WIDTH;
         let game_height = CONTROL_HEIGHT;
 
         this.left = this.add.text(0,
@@ -573,7 +574,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'GameScene', active: false });
+        Phaser.Scene.call(this, { key: 'GameScene', active: true });
     },
 
     //--------------------------------------------------------------------------
@@ -993,7 +994,7 @@ let GameScene = new Phaser.Class({
         let start_flip = room.entrances[CurrentEntrance].flip;
         Player.initialize(this, start_x, start_y, start_flip);
         this.cameras.main.startFollow(Player.sprite, true, 1, 1, 0, +64);
-        this.cameras.main.setViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.cameras.main.setViewport(SCREEN_WIDTH/2,0,SCREEN_WIDTH, SCREEN_HEIGHT);
 
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
@@ -1050,8 +1051,8 @@ let config = {
         mode: Phaser.Scale.FIT,
         parent: 'phaser-example',
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: SCREEN_WIDTH,
-        height: SCREEN_HEIGHT + CONTROL_HEIGHT,
+        width: CONTROL_WIDTH,
+        height: CONTROL_HEIGHT,
     },
     physics: {
         default: 'arcade',
@@ -1060,7 +1061,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene, UIScreen ]
+    scene: [ UIScreen, GameScene ]
 };
 
 let game = new Phaser.Game(config);
