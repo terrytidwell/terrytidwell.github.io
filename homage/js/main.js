@@ -10,6 +10,13 @@ const LAYOUT = {
    MOBILE_HORIZONTAL : 1,
    DESKTOP : 2
 };
+const LAYOUT_NAMES = [
+    "MOBILE_VERTICAL",
+    "MOBILE_HORIZONTAL",
+    "DESKTOP"
+];
+
+let currentLayout = LAYOUT.MOBILE_VERTICAL;
 
 let Player = {
     initialize : function(screen,x,y,flip)
@@ -419,6 +426,141 @@ function fix_object(object, width, height)
     object.body.setOffset(delta_x, delta_y);
 }
 
+let  StartScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'StartScreen', active: true});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        this.input.addPointer(5);
+        var self = this;
+
+        this.play_button = this.add.text(
+            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+            LAYOUT_NAMES[currentLayout], { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.play_button.alpha = 0.5;
+        this.play_button.setInteractive();
+        this.play_button.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.play_button.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.play_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                let start_width = SCREEN_WIDTH;
+                let start_height = SCREEN_HEIGHT;
+
+                if (currentLayout == LAYOUT.DESKTOP) {
+                    //nothing
+                } else if (currentLayout == LAYOUT.MOBILE_VERTICAL) {
+                    start_height = SCREEN_HEIGHT*2;
+                } else if (currentLayout == LAYOUT.MOBILE_HORIZONTAL) {
+                    start_width = SCREEN_WIDTH*2;
+                }
+
+                let config = {
+                    backgroundColor: '#050505',
+                    type: Phaser.AUTO,
+                    render: {
+                        pixelArt: true
+                    },
+                    scale: {
+                        mode: Phaser.Scale.FIT,
+                        parent: 'phaser-example',
+                        autoCenter: Phaser.Scale.CENTER_BOTH,
+                        width: start_width,
+                        height: start_height,
+                    },
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: { y: 20 * GRID_SIZE },
+                            debug: false
+                        }
+                    },
+                    scene: [ GameScene, UIScreen ]
+                };
+
+                new Phaser.Game(config);
+                this.sys.game.destroy(true);
+            }, this
+        );
+
+        this.previous = this.add.text(this.play_button.x - this.play_button.width / 2 - 12,
+            SCREEN_HEIGHT / 2,
+            "<<", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(1 , 0.5);
+        this.previous.setInteractive();
+        this.previous.alpha = 0.5;
+        this.previous.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.previous.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.previous.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                currentLayout-=1;
+                if (currentLayout < 0)
+                {
+                    currentLayout = LAYOUT_NAMES.length - 1;
+                }
+                this.play_button.setText(LAYOUT_NAMES[currentLayout]);
+                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
+                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
+            }, this
+        );
+
+        this.next = this.add.text(this.play_button.x + this.play_button.width / 2 + 12,
+            SCREEN_HEIGHT / 2,
+            ">>", { fontSize: '24px', fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.next.setInteractive();
+        this.next.alpha = 0.5;
+        this.next.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.next.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.next.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                currentLayout+=1;
+                if (currentLayout >= LAYOUT_NAMES.length)
+                {
+                    currentLayout = 0;
+                }
+                this.play_button.setText(LAYOUT_NAMES[currentLayout]);
+                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
+                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
+            }, this
+        );
+    },
+});
+
 let  UIScreen = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -426,7 +568,7 @@ let  UIScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'UIScreen', active: false  });
+        Phaser.Scene.call(this, { key: 'UIScreen', active: true  });
     },
 
     //--------------------------------------------------------------------------
@@ -435,16 +577,41 @@ let  UIScreen = new Phaser.Class({
         //this.load.image('block', 'assets/block.png');
     },
 
+    updateLayout : function ()
+    {
+        if (currentLayout == LAYOUT.DESKTOP) {
+            this.cameras.main.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            this.visible = false;
+        } else if (currentLayout == LAYOUT.MOBILE_VERTICAL) {
+            this.cameras.main.setViewport(0,SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT*2);
+            this.visible = true;
+        } else if (currentLayout == LAYOUT.MOBILE_HORIZONTAL) {
+            this.cameras.main.setViewport(0,0, SCREEN_WIDTH * 2, SCREEN_HEIGHT);
+            this.visible = true;
+        }
+    },
+
     //--------------------------------------------------------------------------
     create: function ()
     {
+        if (currentLayout === LAYOUT.DESKTOP)
+        {
+            return;
+        }
         this.input.addPointer(5);
 
         let UIScreen = this;
-        this.cameras.main.setViewport(0,0,SCREEN_WIDTH,SCREEN_HEIGHT) ;
-        this.cameras.main.setBackgroundColor("#100000");
+        this.updateLayout();
+        //this.cameras.main.setBackgroundColor("#100000");
         let game_width = SCREEN_WIDTH;
         let game_height = SCREEN_HEIGHT;
+        if (currentLayout == LAYOUT.DESKTOP) {
+            //nothing
+        } else if (currentLayout == LAYOUT.MOBILE_VERTICAL) {
+            //nothing
+        } else if (currentLayout == LAYOUT.MOBILE_HORIZONTAL) {
+            game_width = SCREEN_WIDTH * 2;
+        }
 
         this.left = this.add.text(0,
             game_height / 2,
@@ -456,7 +623,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 1;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.left.isDown = true;
             }
         });
@@ -464,7 +631,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 0.5
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.left.isDown = false;
             }
         });
@@ -480,7 +647,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 1;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.down.isDown = true;
             }
         });
@@ -488,7 +655,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 0.5;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.down.isDown = false;
             }
         });
@@ -503,7 +670,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 1;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.right.isDown = true;
             }
         });
@@ -511,7 +678,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 0.5;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.right.isDown = false;
             }
         });
@@ -526,7 +693,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 1;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.up.isDown = true;
             }
         });
@@ -534,7 +701,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 0.5;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.up.isDown = false;
             }
         });
@@ -548,7 +715,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 1;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.letter_left.isDown = true;
             }
         });
@@ -556,7 +723,7 @@ let  UIScreen = new Phaser.Class({
             {
                 this.alpha = 0.5;
                 let GameScene = UIScreen.scene.get('GameScene');
-                let cursors = GameScene.myGameState.cursors;
+                let cursors = GameScene.myGameState.mobile_cursors;
                 cursors.letter_left.isDown = false;
             }
         });
@@ -577,7 +744,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     initialize: function ()
     {
-        Phaser.Scene.call(this, { key: 'GameScene', active: true });
+        Phaser.Scene.call(this, { key: 'GameScene', active: false });
     },
 
     //--------------------------------------------------------------------------
@@ -858,10 +1025,23 @@ let GameScene = new Phaser.Class({
         this.cameras.main.setBounds(0, 0, map.widthInPixels * 4, map.heightInPixels * 4);
     },
 
+    updateLayout : function ()
+    {
+        if (currentLayout == LAYOUT.DESKTOP) {
+            this.cameras.main.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        } else if (currentLayout == LAYOUT.MOBILE_VERTICAL) {
+            this.cameras.main.setViewport(0,0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        } else if (currentLayout == LAYOUT.MOBILE_HORIZONTAL) {
+            this.cameras.main.setViewport(SCREEN_WIDTH/2,0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        }
+    },
+
+
     //--------------------------------------------------------------------------
     create: function ()
     {
         let room = RoomDictionary[CurrentRoom];
+        let self = this;
 
         this.myGameState = {
             platforms: null,
@@ -997,7 +1177,7 @@ let GameScene = new Phaser.Class({
         let start_flip = room.entrances[CurrentEntrance].flip;
         Player.initialize(this, start_x, start_y, start_flip);
         this.cameras.main.startFollow(Player.sprite, true, 1, 1, 0, +64);
-        this.cameras.main.setViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.updateLayout();
 
         G.whips = this.physics.add.group();
         G.whips.defaults.setAllowGravity = false;
@@ -1005,7 +1185,34 @@ let GameScene = new Phaser.Class({
         G.whips.add(Player.whip3);
 
         //set up input
-        /*
+
+        G.mobile_cursors = {
+            left : { isDown : false },
+            right : { isDown : false },
+            up : { isDown : false },
+            down : { isDown : false },
+            letter_left : { isDown : false },
+            letter_right : { isDown : false },
+        };
+
+        // /*
+        G.desktop_cursors = this.input.keyboard.createCursorKeys();
+        G.desktop_cursors.letter_left = this.input.keyboard.addKey("a");
+        G.desktop_cursors.letter_right = this.input.keyboard.addKey("d");
+        G.desktop_cursors.letter_up = this.input.keyboard.addKey("w");
+        G.desktop_cursors.letter_down = this.input.keyboard.addKey("s");
+        // */
+
+        //set up collider groups
+        this.physics.add.collider(Player.sprite, G.platforms);
+        this.physics.add.collider(G.platform_hit, G.platforms);
+        this.physics.add.overlap(G.whips, G.hittables, Player.whipHit, null, this);
+        this.physics.add.overlap(Player.sprite, G.dangerous, Player.hitPlayer, null, this);
+    },
+
+    mergeCursors : function() {
+        let G = this.myGameState;
+
         G.cursors = {
             left : { isDown : false },
             right : { isDown : false },
@@ -1014,21 +1221,13 @@ let GameScene = new Phaser.Class({
             letter_left : { isDown : false },
             letter_right : { isDown : false },
         };
-        */
 
-        // /*
-        G.cursors = this.input.keyboard.createCursorKeys();
-        G.cursors.letter_left = this.input.keyboard.addKey("a");
-        G.cursors.letter_right = this.input.keyboard.addKey("d");
-        G.cursors.letter_up = this.input.keyboard.addKey("w");
-        G.cursors.letter_down = this.input.keyboard.addKey("s");
-        // */
-
-        //set up collider groups
-        this.physics.add.collider(Player.sprite, G.platforms);
-        this.physics.add.collider(G.platform_hit, G.platforms);
-        this.physics.add.overlap(G.whips, G.hittables, Player.whipHit, null, this);
-        this.physics.add.overlap(Player.sprite, G.dangerous, Player.hitPlayer, null, this);
+        G.cursors.left.isDown = G.mobile_cursors.left.isDown || G.desktop_cursors.left.isDown;
+        G.cursors.right.isDown = G.mobile_cursors.right.isDown || G.desktop_cursors.right.isDown;
+        G.cursors.up.isDown = G.mobile_cursors.up.isDown || G.desktop_cursors.up.isDown;
+        G.cursors.down.isDown = G.mobile_cursors.down.isDown || G.desktop_cursors.down.isDown;
+        G.cursors.letter_left.isDown = G.mobile_cursors.letter_left.isDown || G.desktop_cursors.letter_left.isDown;
+        G.cursors.letter_right.isDown = G.mobile_cursors.letter_right.isDown || G.desktop_cursors.letter_right.isDown;
     },
 
     //--------------------------------------------------------------------------
@@ -1042,11 +1241,13 @@ let GameScene = new Phaser.Class({
             }
         }, this);
 
+        this.mergeCursors();
+
         Player.update(this);
     }
 });
 
-let config = {
+let launcher_config = {
     backgroundColor: '#050505',
     type: Phaser.AUTO,
     render: {
@@ -1066,7 +1267,8 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene, UIScreen ]
+    scene: [ StartScreen ]
 };
 
-let game = new Phaser.Game(config);
+let launcher_game = new Phaser.Game(launcher_config);
+
