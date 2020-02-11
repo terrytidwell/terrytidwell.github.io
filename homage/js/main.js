@@ -580,6 +580,7 @@ let  UIScene = new Phaser.Class({
     preload: function ()
     {
         this.load.image('d-pad', 'assets/shadedDark04.png');
+        this.load.image('fullscreen', 'assets/shadedDark30.png');
         this.load.image('a-button', 'assets/shadedDark36.png');
         this.load.image('b-button', 'assets/shadedDark37.png');
     },
@@ -601,15 +602,10 @@ let  UIScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function ()
     {
-        if (currentLayout === LAYOUT.DESKTOP)
-        {
-            return;
-        }
-
-        this.input.addPointer(5);
-
         let UIScene = this;
+        this.input.addPointer(5);
         this.updateLayout();
+
         //this.cameras.main.setBackgroundColor("#100000");
         let game_width = SCREEN_WIDTH;
         let game_height = SCREEN_HEIGHT;
@@ -620,6 +616,32 @@ let  UIScene = new Phaser.Class({
         } else if (currentLayout == LAYOUT.MOBILE_HORIZONTAL) {
             game_width = SCREEN_WIDTH * 2;
         }
+
+        let fullscreen = this.add.sprite(game_width-24, 24, 'fullscreen');
+        fullscreen.setInteractive();
+        fullscreen.alpha = 0.5;
+        fullscreen.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        fullscreen.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        fullscreen.on('pointerdown',function(pointer){
+            {
+                UIScene.scale.startFullscreen();
+            }
+        });
+
+        if (currentLayout === LAYOUT.DESKTOP)
+        {
+            return;
+        }
+
+
 
         let dpad = this.add.sprite(SCREEN_WIDTH/4, SCREEN_HEIGHT/2, 'd-pad').setScale(3);
         dpad.setInteractive();
