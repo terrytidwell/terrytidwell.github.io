@@ -316,7 +316,7 @@ let RoomDictionary =
                 [4,4,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             ],
             exits: [
-                {x:27, y:24, w:1, h:3, dest:'Crypt1', entrance_index:1},
+                {x:27, y:24, w:1, h:3, dest:'Crypt3', entrance_index:1},
                 {x:27, y:3, w:1, h:3, dest:'side_hall', entrance_index:0},
                 {x:-2, y:3, w:1, h:3, dest:'small_room2', entrance_index:0},
             ],
@@ -400,11 +400,31 @@ let RoomDictionary =
             tile_key: 'crypt_tiles',
             exits: [
                 {x:27, y:6, w:1, h:3, dest:'Crypt1', entrance_index:1},
-                {x:27, y:15, w:1, h:3, dest:'great_hall', entrance_index:2}
+                {x:27, y:15, w:1, h:3, dest:'Crypt3', entrance_index:0}
             ],
             entrances: [
                 {x:25, y:8, flip: false},
                 {x:25, y:17, flip: false}
+            ],
+            create : function (screen)
+            {
+                screen.addSkeleton(15,7);
+                screen.addSkeleton(10,7).setFlipX(true);
+                screen.addSkeleton(6,9).setFlipX(true);
+                screen.addSkeleton(10,14);
+            }
+        },
+    'Crypt3':
+        {
+            map_key: 'Crypt3',
+            tile_key: 'crypt_tiles',
+            exits: [
+                {x:-2, y:24, w:1, h:3, dest:'great_hall', entrance_index:2},
+                {x:-2, y:6, w:1, h:3, dest:'Crypt2', entrance_index:1}
+            ],
+            entrances: [
+                {x:0, y:8, flip: true},
+                {x:0, y:26, flip: true}
             ],
             create : function (screen)
             {
@@ -800,6 +820,7 @@ let GameScene = new Phaser.Class({
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
         this.load.tilemapTiledJSON('Crypt1', 'assets/Crypt1.json');
         this.load.tilemapTiledJSON('Crypt2', 'assets/Crypt2.json');
+        this.load.tilemapTiledJSON('Crypt3', 'assets/Crypt3.json');
         this.load.image('crypt_tiles', 'assets/crypt_tiles.png');
     },
 
