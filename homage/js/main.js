@@ -444,10 +444,12 @@ let  StartScreen = new Phaser.Class({
     create: function () {
         this.input.addPointer(5);
         let self = this;
+        let font_size = 48;
+        let font_size_str = '' + font_size + 'px';
 
         this.play_button = this.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-            LAYOUT_NAMES[currentLayout], { fontSize: '24px', fill: '#FFF' })
+            LAYOUT_NAMES[currentLayout], { fontSize: font_size_str, fill: '#FFF' })
             .setOrigin(0.5, 0.5);
         this.play_button.alpha = 0.5;
         this.play_button.setInteractive();
@@ -507,9 +509,17 @@ let  StartScreen = new Phaser.Class({
             }, this
         );
 
-        this.previous = this.add.text(this.play_button.x - this.play_button.width / 2 - 12,
+        let max_width = 0;
+        for (let i = 0; i < LAYOUT_NAMES.length; i++)
+        {
+            this.play_button.setText(LAYOUT_NAMES[i]);
+            max_width = Math.max(max_width, this.play_button.width);
+        }
+        this.play_button.setText(LAYOUT_NAMES[currentLayout]);
+
+        this.previous = this.add.text(SCREEN_WIDTH / 2 - max_width / 2 - font_size/2,
             SCREEN_HEIGHT / 2,
-            "<<", { fontSize: '24px', fill: '#FFF' })
+            "<<", { fontSize: font_size_str, fill: '#FFF' })
             .setOrigin(1 , 0.5);
         this.previous.setInteractive();
         this.previous.alpha = 0.5;
@@ -531,14 +541,12 @@ let  StartScreen = new Phaser.Class({
                     currentLayout = LAYOUT_NAMES.length - 1;
                 }
                 this.play_button.setText(LAYOUT_NAMES[currentLayout]);
-                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
-                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
             }, this
         );
 
-        this.next = this.add.text(this.play_button.x + this.play_button.width / 2 + 12,
+        this.next = this.add.text(SCREEN_WIDTH / 2 + max_width / 2 + font_size/2,
             SCREEN_HEIGHT / 2,
-            ">>", { fontSize: '24px', fill: '#FFF' })
+            ">>", { fontSize: font_size_str, fill: '#FFF' })
             .setOrigin(0 , 0.5);
         this.next.setInteractive();
         this.next.alpha = 0.5;
@@ -560,8 +568,6 @@ let  StartScreen = new Phaser.Class({
                     currentLayout = 0;
                 }
                 this.play_button.setText(LAYOUT_NAMES[currentLayout]);
-                this.previous.setX(this.play_button.x - this.play_button.width/2 - 12);
-                this.next.setX(this.play_button.x + this.play_button.width/2 + 12);
             }, this
         );
     },
@@ -888,7 +894,7 @@ let GameScene = new Phaser.Class({
     addSkeleton : function (x, y)
     {
         let G = this.myGameState;
-        let skeleton = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton1').setScale(4);
+        let skeleton = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
         let skeleton_guide_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
         let skeleton_guide_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
         G.updatables.add(skeleton);
@@ -897,38 +903,70 @@ let GameScene = new Phaser.Class({
         G.platform_hit.add(skeleton);
         G.platform_hit.add(skeleton_guide_left);
         G.platform_hit.add(skeleton_guide_right);
-        skeleton.anims.play('skeleton_walk', false);
-        skeleton.setData('state', 0);
+        //skeleton.anims.play('skeleton_walk', false);
+        const SKELETON_SLEEP = 2;
+        const SKELETON_WAKE = 3;
+        const SKELETON_WALK = 0;
+        const SKELETON_DEATH = 1;
+        skeleton.setData('state', SKELETON_SLEEP);
+
         skeleton.body.allowGravity = true;
-        skeleton_guide_left.body.allowGravity = true;
-        skeleton_guide_right.body.allowGravity = true;
+        skeleton_guide_left.body.allowGravity = false;
+        skeleton_guide_right.body.allowGravity = false;
         skeleton_guide_right.visible = false;
         skeleton_guide_left.visible = false;
-        skeleton.body.setVelocityX(-196/2);
+        skeleton.body.setVelocityX(0);
         skeleton.update = function()
         {
-            if (skeleton.getData('state') === 1)
-            {
-                skeleton.body.setVelocityX(0);
-            }
             skeleton_guide_left.body.x = skeleton.body.x - GRID_SIZE;
             skeleton_guide_right.body.x = skeleton.body.x + GRID_SIZE;
             skeleton_guide_left.body.y = skeleton.body.y + GRID_SIZE;
             skeleton_guide_right.body.y = skeleton.body.y + GRID_SIZE;
-            if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down)
-            {
-                skeleton.setFlipX(true);
-                skeleton.body.setVelocityX(196/2);
+
+            if (skeleton.getData('state') === SKELETON_SLEEP) {
+                let sx = (skeleton.body.left + skeleton.body.right)/2;
+                let sy = (skeleton.body.top + skeleton.body.bottom)/2;
+                let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
+                let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
+                let dx = px - sx;
+                let dy = py - sy;
+                let l = Math.sqrt(dx * dx + dy * dy);
+                let min_dist = Math.sqrt(SCREEN_HEIGHT * SCREEN_HEIGHT + SCREEN_WIDTH + SCREEN_WIDTH)/2;
+                if (l < min_dist) {
+                    skeleton.setData('state', SKELETON_WAKE);
+                    skeleton.on('animationcomplete-skeleton_wake', function() {
+                        skeleton.setData('state',SKELETON_WALK);
+                        skeleton.anims.play('skeleton_walk', false);
+                        skeleton_guide_left.body.allowGravity = true;
+                        skeleton_guide_right.body.allowGravity = true;
+                        if (!skeleton.flipX) {
+                            skeleton.body.setVelocityX(-196 / 2);
+                        } else {
+                            skeleton.body.setVelocityX(196 / 2);
+                        }
+                    });
+                    skeleton.anims.play('skeleton_wake', false);
+                }
             }
-            else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down)
-            {
-                skeleton.setFlipX(false);
-                skeleton.body.setVelocityX(-196/2);
+            else if (skeleton.getData('state') === SKELETON_DEATH) {
+                skeleton.body.setVelocityX(0);
+            }
+            else if (skeleton.getData('state') === SKELETON_WAKE) {
+                //do nothing
+            }
+            else if (skeleton.getData('state') === SKELETON_WALK) {
+                if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down) {
+                    skeleton.setFlipX(true);
+                    skeleton.body.setVelocityX(196 / 2);
+                } else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down) {
+                    skeleton.setFlipX(false);
+                    skeleton.body.setVelocityX(-196 / 2);
+                }
             }
         };
         skeleton.hit = function()
         {
-            if (skeleton.getData('state')===0)
+            if (skeleton.getData('state')===SKELETON_WALK)
             {
                 skeleton.body.setVelocityX(0);
                 skeleton.on('animationcomplete-skeleton_death', function() {
@@ -936,13 +974,14 @@ let GameScene = new Phaser.Class({
                     skeleton_guide_left.destroy();
                     skeleton_guide_right.destroy();
                 });
-                skeleton.setData('state', 1);
+                skeleton.setData('state', SKELETON_DEATH);
                 skeleton.anims.play('skeleton_death', false);
             }
         };
         skeleton.shouldDamagePlayer = function(player, source) {
-            return skeleton.getData("state") === 0;
+            return skeleton.getData("state") === SKELETON_WALK;
         };
+        return skeleton;
     },
 
     addExit : function (x, y, w, h, room, entrance_index) {
@@ -1147,6 +1186,16 @@ let GameScene = new Phaser.Class({
             repeat: 0
         });
         this.anims.create({
+            key: 'skeleton_wake',
+            frames: [
+                { key: 'skeleton_death2' },
+                { key: 'skeleton_death1' },
+                { key: 'skeleton1' }
+            ],
+            frameRate: 4,
+            repeat: 0
+        });
+        this.anims.create({
             key: 'bat_walk',
             frames: [
                 { key: 'bat1' },
@@ -1262,51 +1311,14 @@ let GameScene = new Phaser.Class({
 let launcher_config = {
     backgroundColor: '#050505',
     type: Phaser.AUTO,
-    render: {
-        pixelArt: true
-    },
     scale: {
         mode: Phaser.Scale.FIT,
         parent: 'phaser-example',
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
-    },
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 20 * GRID_SIZE },
-            debug: false
-        }
     },
     scene: [ StartScreen ]
 };
 
 let launcher_game = new Phaser.Game(launcher_config);
-/*
-let config = {
-    backgroundColor: '#050505',
-    type: Phaser.AUTO,
-    render: {
-        pixelArt: true
-    },
-    scale: {
-        mode: Phaser.Scale.FIT,
-        parent: 'phaser-example',
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: SCREEN_WIDTH,
-        height: SCREEN_HEIGHT,
-    },
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 20 * GRID_SIZE },
-            debug: false
-        }
-    },
-    scene: [ GameScene, UIScene ]
-};
-
-game = new Phaser.Game(config);
-
-*/
