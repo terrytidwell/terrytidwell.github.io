@@ -36,6 +36,7 @@ let Player = {
         Player.sprite = screen.physics.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'simon1').setScale(4).setFlipX(flip);
         Player.sprite.originX = 0;
         Player.sprite.originY = 1;
+        Player.sprite.body.setMaxVelocity(1100, 1100);
 
         Player.whip1 = screen.physics.add.sprite(Player.sprite.body.right, Player.sprite.body.top, 'whip1').setScale(4);
         Player.whip1.visible = false;
