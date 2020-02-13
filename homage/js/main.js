@@ -740,7 +740,7 @@ let  UIScene = new Phaser.Class({
             game_width = SCREEN_WIDTH * 2;
         }
 
-        let fullscreen = this.add.sprite(game_width-24, 24, 'fullscreen');
+        let fullscreen = this.add.sprite(game_width-GRID_SIZE/2, GRID_SIZE/2, 'fullscreen');
         fullscreen.setInteractive();
         fullscreen.alpha = 0.5;
         fullscreen.on('pointerover',function(pointer){
