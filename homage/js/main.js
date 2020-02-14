@@ -422,6 +422,8 @@ let RoomDictionary =
             ],
             create : function (screen)
             {
+                screen.addBat(11,13);
+                screen.addBat(11,3);
             }
         },
 }
@@ -905,6 +907,7 @@ let GameScene = new Phaser.Class({
         this.load.image('column_left', 'assets/column_left.png');
         this.load.image('column_right', 'assets/column_right.png');
         this.load.image('bricks', 'assets/bricks.png');
+        this.load.image('bat_resting', 'assets/bat_resting.png');
         this.load.image('bat1', 'assets/bat1.png');
         this.load.image('bat2', 'assets/bat2.png');
         this.load.image('bat3', 'assets/bat3.png');
@@ -990,20 +993,45 @@ let GameScene = new Phaser.Class({
     
     addBat: function(x,y) {
         let G = this.myGameState;
-        let bat = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bat1').setScale(4).setFlipX(true);
+        let bat = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE / 2, y * GRID_SIZE + GRID_SIZE / 2, 'bat_resting').setScale(4);
         G.dangerous.add(bat);
         G.hittables.add(bat);
-        this.tweens.add({
-            targets: bat,
-            y: 22 * GRID_SIZE + GRID_SIZE / 2,
-            ease: 'Sine.easeInOut',
-            duration: 1000,
-            repeat: -1,
-            yoyo: true
-        });
-        bat.setVelocityX(GRID_SIZE * 4);
+        G.updatables.add(bat);
+        let screen = this;
+
         bat.body.allowGravity = false;
-        bat.anims.play('bat_walk');
+        const BAT_RESTING=0;
+        const BAT_FLYING=1;
+        bat.setData("state",BAT_RESTING)
+
+        bat.update = function () {
+            if (bat.getData("state") === BAT_RESTING) {
+                let bx = (bat.body.left + bat.body.right) / 2;
+                let by = (bat.body.top + bat.body.bottom) / 2;
+                let px = (Player.sprite.body.left + Player.sprite.body.right) / 2;
+                let py = (Player.sprite.body.top + Player.sprite.body.bottom) / 2;
+                if (py > by && SCREEN_HEIGHT/2 > py - by)
+                {
+                    bat.setData("state", BAT_FLYING);
+                    bat.anims.play('bat_walk');
+                    screen.tweens.add({
+                        targets: bat,
+                        y: (y+2) * GRID_SIZE + GRID_SIZE / 2,
+                        ease: 'Sine.easeInOut',
+                        duration: 1000,
+                        repeat: -1,
+                        yoyo: true
+                    });
+                    if (px > bx) {
+                        bat.setVelocityX(GRID_SIZE * 4);
+                        bat.setFlipX(true);
+                    } else {
+                        bat.setVelocityX(-GRID_SIZE * 4);
+                        bat.setFlipX(false);
+                    }
+                }
+            }
+        };
         bat.hit = function () {
             bat.destroy();
             return true;
