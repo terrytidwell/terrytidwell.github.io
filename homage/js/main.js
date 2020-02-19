@@ -321,7 +321,7 @@ let RoomDictionary =
             ],
             create : function (screen)
             {
-                screen.addGhost(26 - 8,27 - 8);
+                //screen.addGhost(26 - 8,27 - 8);
                 screen.addSkeleton(14,24);
                 screen.addSkeleton(12,25);
                 screen.addSkeleton(10,10);
