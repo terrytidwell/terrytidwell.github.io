@@ -281,7 +281,7 @@ let RoomDictionary =
 {
     'great_hall':
         {
-            area: "Castle Foundation",
+            area: "Castle Foundations",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -333,7 +333,7 @@ let RoomDictionary =
         },
     'side_hall':
         {
-            area: "Castle Foundation",
+            area: "Castle Foundations",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -354,7 +354,7 @@ let RoomDictionary =
         },
     'small_room2':
         {
-            area: "Castle Foundation",
+            area: "Castle Foundations",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,1],
