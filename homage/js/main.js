@@ -5,6 +5,7 @@ const PNG_GRID_SIZE = 16;
 const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
 let CurrentRoom = 'Crypt1';
 let CurrentEntrance = 0;
+let CurrentArea = "";
 const LAYOUT = {
    MOBILE_VERTICAL : 0,
    MOBILE_HORIZONTAL : 1,
@@ -280,6 +281,7 @@ let RoomDictionary =
 {
     'great_hall':
         {
+            area: "Castle Foundation",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -331,6 +333,7 @@ let RoomDictionary =
         },
     'side_hall':
         {
+            area: "Castle Foundation",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -351,6 +354,7 @@ let RoomDictionary =
         },
     'small_room2':
         {
+            area: "Castle Foundation",
             map: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -371,6 +375,7 @@ let RoomDictionary =
         },
     'Crypt1':
         {
+            area: "The Crypt",
             map_key: 'Crypt1',
             tile_key: 'crypt_tiles',
             exits: [
@@ -390,6 +395,7 @@ let RoomDictionary =
         },
     'Crypt2':
         {
+            area: "The Crypt",
             map_key: 'Crypt2',
             tile_key: 'crypt_tiles',
             exits: [
@@ -410,6 +416,7 @@ let RoomDictionary =
         },
     'Crypt3':
         {
+            area: "The Crypt",
             map_key: 'Crypt3',
             tile_key: 'crypt_tiles',
             exits: [
@@ -460,7 +467,7 @@ let  StartScreen = new Phaser.Class({
     create: function () {
         this.input.addPointer(5);
         let self = this;
-        let font_size = 48;
+        let font_size = 36;
         let font_size_str = '' + font_size + 'px';
 
         let entrances = [];
@@ -508,7 +515,63 @@ let  StartScreen = new Phaser.Class({
             }
         }
         this.entrance_select.setText(entrances[current_entrance_index].name);
+        this.previous_entrance = this.add.text(SCREEN_WIDTH / 2 - max_width / 2 - font_size/2,
+            SCREEN_HEIGHT * 3/4,
+            "<<", { fontSize: font_size_str, fill: '#FFF' })
+            .setOrigin(1 , 0.5);
+        this.previous_entrance.setInteractive();
+        this.previous_entrance.alpha = 0.5;
+        this.previous_entrance.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.previous_entrance.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.previous_entrance.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                current_entrance_index-=1;
+                if (current_entrance_index < 0)
+                {
+                    current_entrance_index = entrances.length - 1;
+                }
+                this.entrance_select.setText(entrances[current_entrance_index].name);
+            }, this
+        );
 
+        this.next_entrance = this.add.text(SCREEN_WIDTH / 2 + max_width / 2 + font_size/2,
+            SCREEN_HEIGHT * 3/4,
+            ">>", { fontSize: font_size_str, fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.next_entrance.setInteractive();
+        this.next_entrance.alpha = 0.5;
+        this.next_entrance.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.next_entrance.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.next_entrance.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                current_entrance_index+=1;
+                if (current_entrance_index >= entrances.length)
+                {
+                    current_entrance_index = 0;
+                }
+                this.entrance_select.setText(entrances[current_entrance_index].name);
+            }, this
+        );
+
+        font_size = 48;
+        font_size_str = '' + font_size + 'px';
+        max_width = 0;
         this.play_button = this.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
             LAYOUT_NAMES[currentLayout], { fontSize: font_size_str, fill: '#FFF' })
@@ -635,59 +698,7 @@ let  StartScreen = new Phaser.Class({
             }, this
         );
 
-        this.previous_entrance = this.add.text(SCREEN_WIDTH / 2 - max_width / 2 - font_size/2,
-            SCREEN_HEIGHT * 3/4,
-            "<<", { fontSize: font_size_str, fill: '#FFF' })
-            .setOrigin(1 , 0.5);
-        this.previous_entrance.setInteractive();
-        this.previous_entrance.alpha = 0.5;
-        this.previous_entrance.on('pointerover',function(pointer){
-            {
-                this.alpha = 1;
-            }
-        });
-        this.previous_entrance.on('pointerout',function(pointer){
-            {
-                this.alpha = 0.5;
-            }
-        });
-        this.previous_entrance.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-            function(pointer, localX, localY, event) {
-                current_entrance_index-=1;
-                if (current_entrance_index < 0)
-                {
-                    current_entrance_index = entrances.length - 1;
-                }
-                this.entrance_select.setText(entrances[current_entrance_index].name);
-            }, this
-        );
 
-        this.next_entrance = this.add.text(SCREEN_WIDTH / 2 + max_width / 2 + font_size/2,
-            SCREEN_HEIGHT * 3/4,
-            ">>", { fontSize: font_size_str, fill: '#FFF' })
-            .setOrigin(0 , 0.5);
-        this.next_entrance.setInteractive();
-        this.next_entrance.alpha = 0.5;
-        this.next_entrance.on('pointerover',function(pointer){
-            {
-                this.alpha = 1;
-            }
-        });
-        this.next_entrance.on('pointerout',function(pointer){
-            {
-                this.alpha = 0.5;
-            }
-        });
-        this.next_entrance.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-            function(pointer, localX, localY, event) {
-                current_entrance_index+=1;
-                if (current_entrance_index >= entrances.length)
-                {
-                    current_entrance_index = 0;
-                }
-                this.entrance_select.setText(entrances[current_entrance_index].name);
-            }, this
-        );
     },
 });
 
@@ -1228,6 +1239,53 @@ let GameScene = new Phaser.Class({
         this.cameras.main.setBounds(0, 0, map.widthInPixels * 4, map.heightInPixels * 4);
     },
 
+    addMarque()
+    {
+        let UIScene = this.scene.get('UIScene');
+        let text = UIScene.add.text(
+            this.scale.width / 2, this.scale.height / 2 + 10,
+            CurrentArea, { fontSize: "48px", fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        text.alpha = 0;
+        let initial_delay = 0;
+        let growth_time = 3000;
+        let hang_time = 1000;
+        let fade_time = 1000;
+        let bg = UIScene.add.rectangle(this.scale.width / 2, this.scale.height / 2, SCREEN_WIDTH, SCREEN_HEIGHT/4, "#000",0.5);
+        UIScene.tweens.add({
+            targets: [text, bg],
+            alpha: 0,
+            ease: 'Sine.easeInOut',
+            delay: growth_time + initial_delay + hang_time,
+            duration: fade_time,
+            repeat: 0,
+            yoyo: false
+        });
+        UIScene.tweens.add({
+            targets: [text],
+            alpha: 1,
+            ease: 'Sine.easeInOut',
+            delay: initial_delay,
+            duration: growth_time,
+            repeat: 0,
+            yoyo: false
+        });
+        UIScene.tweens.add({
+            targets: text,
+            y: this.scale.height / 2,
+            ease: 'Sine.easeInOut',
+            delay: initial_delay,
+            duration: growth_time,
+            repeat: 0,
+            yoyo: false
+        });
+
+        UIScene.time.delayedCall(growth_time + initial_delay + hang_time + fade_time, function() {
+            text.destroy();
+            bg.destroy();
+            }, [], UIScene);
+    },
+
     updateLayout : function ()
     {
         if (currentLayout == LAYOUT.DESKTOP) {
@@ -1415,6 +1473,12 @@ let GameScene = new Phaser.Class({
         G.desktop_cursors.letter_up = this.input.keyboard.addKey("w");
         G.desktop_cursors.letter_down = this.input.keyboard.addKey("s");
         // */
+
+        if (CurrentArea !== room.area)
+        {
+            CurrentArea = room.area;
+            this.addMarque();
+        }
 
         //set up collider groups
         this.physics.add.collider(Player.sprite, G.platforms);
