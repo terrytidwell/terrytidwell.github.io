@@ -163,7 +163,8 @@ let Player = {
                     Player.sprite.setTexture('simon_ducking');
                     Player.ducking = true;
                     Player.sprite.setSize(16, 24);
-                    Player.sprite.setVelocityY(-512 - 96);
+                    //added a little extra vertical to jump over monsters (-32)
+                    Player.sprite.setVelocityY(-512 - 96 - 32);
                 }
                 else if (cursors.down.isDown) {
                     Player.sprite.anims.stop();
@@ -935,6 +936,7 @@ let GameScene = new Phaser.Class({
         this.load.tilemapTiledJSON('Crypt2', 'assets/Crypt2.json');
         this.load.tilemapTiledJSON('Crypt3', 'assets/Crypt3.json');
         this.load.image('crypt_tiles', 'assets/crypt_tiles.png');
+        this.load.audio('crypt_music', ['assets/Cellar.mp3']);
     },
 
     addBlock: function(group, x, y)
@@ -1284,6 +1286,10 @@ let GameScene = new Phaser.Class({
             text.destroy();
             bg.destroy();
             }, [], UIScene);
+        UIScene.sound.stopAll();
+        let bg_music = UIScene.sound.add('crypt_music', {loop: true });
+        UIScene.sound.pauseOnBlur = false;
+        UIScene.time.delayedCall(1000, function() {bg_music.play();}, [], UIScene);
     },
 
     updateLayout : function ()
