@@ -1244,56 +1244,115 @@ let GameScene = new Phaser.Class({
     addMarque()
     {
         let UIScene = this.scene.get('UIScene');
-        let text = UIScene.add.text(
+
+        if (!UIScene.marque) {
+            UIScene.marque = {
+                text: null,
+                text_bg: null,
+                tweens : [],
+                delayedDestory : null
+            };
+        }
+
+        let removeMarque = function () {
+            if (UIScene.marque.text && UIScene.marque.text.destroy) {
+                UIScene.marque.text.destroy();
+                UIScene.marque.text = null;
+            }
+            if (UIScene.marque.text_bg && UIScene.marque.text_bg.destroy) {
+                UIScene.marque.text_bg.destroy();
+                UIScene.marque.text_bg = null;
+            }
+            for (let i = 0; i < UIScene.marque.tweens.length; ++i) {
+                if (UIScene.marque.tweens[i] && UIScene.marque.tweens[i].stop) {
+                    UIScene.marque.tweens[i].stop();
+                }
+            }
+            UIScene.marque.tweens = [];
+            if(UIScene.marque.delayedDestory && UIScene.marque.delayedDestory.remove){
+                UIScene.marque.delayedDestory.remove();
+                UIScene.marque.delayedDestory = null;
+            }
+        };
+        removeMarque();
+
+        UIScene.marque.text = UIScene.add.text(
             this.scale.width / 2, this.scale.height / 2 + 10,
             CurrentArea, { fontSize: "48px", fill: '#FFF' })
             .setOrigin(0.5, 0.5);
-        text.alpha = 0;
+        UIScene.marque.text.alpha = 0;
         let initial_delay = 0;
         let growth_time = 3000;
         let hang_time = 1000;
         let fade_time = 1000;
-        let bg = UIScene.add.rectangle(this.scale.width / 2, this.scale.height / 2, SCREEN_WIDTH, SCREEN_HEIGHT/4, "#000",0.5);
-        UIScene.tweens.add({
-            targets: [text, bg],
+        UIScene.marque.text_bg = UIScene.add.rectangle(
+            this.scale.width / 2, this.scale.height / 2, SCREEN_WIDTH, SCREEN_HEIGHT/4, "#000",0.5);
+        UIScene.marque.tweens.push(
+            UIScene.tweens.add({
+            targets: [UIScene.marque.text, UIScene.marque.text_bg],
             alpha: 0,
             ease: 'Sine.easeInOut',
             delay: growth_time + initial_delay + hang_time,
             duration: fade_time,
             repeat: 0,
             yoyo: false
-        });
-        UIScene.tweens.add({
-            targets: [text],
+        }));
+        UIScene.marque.tweens.push(
+            UIScene.tweens.add({
+            targets: [UIScene.marque.text],
             alpha: 1,
             ease: 'Sine.easeInOut',
             delay: initial_delay,
             duration: growth_time,
             repeat: 0,
             yoyo: false
-        });
-        UIScene.tweens.add({
-            targets: text,
+        }));
+        UIScene.marque.tweens.push(
+            UIScene.tweens.add({
+            targets: UIScene.marque.text,
             y: this.scale.height / 2,
             ease: 'Sine.easeInOut',
             delay: initial_delay,
             duration: growth_time,
             repeat: 0,
             yoyo: false
-        });
+        }));
 
-        UIScene.time.delayedCall(growth_time + initial_delay + hang_time + fade_time, function() {
-            text.destroy();
-            bg.destroy();
+        UIScene.marque.delayedDestory =
+            UIScene.time.delayedCall(growth_time + initial_delay + hang_time + fade_time, function() {
+                UIScene.marque.delayedDestory = null;
+                removeMarque();
             }, [], UIScene);
-        UIScene.sound.stopAll();
-        let bg_music = UIScene.sound.add('crypt_music', {loop: true });
+
+
+        if (!UIScene.bg_music) {
+            UIScene.bg_music = {
+                music: null,
+                delayedStart: null
+            };
+        }
+
         UIScene.sound.pauseOnBlur = false;
-        UIScene.time.delayedCall(1000, function() {bg_music.play();}, [], UIScene);
+
+        if (UIScene.bg_music.music && UIScene.bg_music.music.stop) {
+            UIScene.bg_music.music.stop();
+            UIScene.bg_music.music = null;
+        }
+        if (UIScene.bg_music.delayedStart && UIScene.bg_music.delayedStart.remove) {
+            UIScene.bg_music.delayedStart.remove();
+            UIScene.bg_music.delayedStart = null;
+        }
+
+        UIScene.bg_music.music = UIScene.sound.add('crypt_music', {loop: true });
+        UIScene.bg_music.delayedStart =
+            UIScene.time.delayedCall(1000, function() {
+                if (UIScene.bg_music.music && UIScene.bg_music.music.play) {
+                    UIScene.bg_music.music.play();
+                }
+            }, [], UIScene);
     },
 
-    updateLayout : function ()
-    {
+    updateLayout : function () {
         if (currentLayout == LAYOUT.DESKTOP) {
             this.cameras.main.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         } else if (currentLayout == LAYOUT.MOBILE_VERTICAL) {
