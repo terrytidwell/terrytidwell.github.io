@@ -938,6 +938,7 @@ let GameScene = new Phaser.Class({
         this.load.image('skeleton_death1', 'assets/skeleton_death1.png');
         this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
+        this.load.image('bone1', 'assets/bone1.png');
         this.load.tilemapTiledJSON('Crypt1', 'assets/Crypt1.json');
         this.load.tilemapTiledJSON('Crypt2', 'assets/Crypt2.json');
         this.load.tilemapTiledJSON('Crypt3', 'assets/Crypt3.json');
@@ -1060,14 +1061,39 @@ let GameScene = new Phaser.Class({
         };
     },
 
-    addSkeleton : function (x, y)
+    addBone : function (x,y)
     {
         let G = this.myGameState;
-        let skeleton = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
-        let skeleton_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
-        let skeleton_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
-        let skeleton_guide_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
-        let skeleton_guide_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
+        let bone = this.physics.add.sprite(x, y, 'bone1').setScale(4);
+
+        G.updatables.add(bone);
+        G.hittables.add(bone);
+        G.dangerous.add(bone);
+        bone.body.allowGravity = true;
+        bone.update = function()
+        {
+            bone.rotation -= 0.125;
+        }
+        bone.hit = function()
+        {
+            bone.destroy();
+        };
+        bone.shouldDamagePlayer = function(player, source) {
+            return true;
+        };
+
+        return bone;
+    },
+
+    addSkeleton : function (x, y)
+    {
+        let screen = this;
+        let G = screen.myGameState;
+        let skeleton = screen.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
+        let skeleton_left = screen.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
+        let skeleton_right = screen.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
+        let skeleton_guide_left = screen.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
+        let skeleton_guide_right = screen.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
         G.updatables.add(skeleton);
         G.hittables.add(skeleton);
         G.dangerous.add(skeleton);
@@ -1096,9 +1122,13 @@ let GameScene = new Phaser.Class({
         let throw_update = function (animation, frame, gameObject) {
             let front = skeleton_left;
             let back = skeleton_right;
+            let bone_origin = skeleton.body.left;
+            let bone_speed = -192;
             if (skeleton.flipX) {
                 back = skeleton_left;
-                right = skeleton_right;
+                front = skeleton_right;
+                bone_origin = skeleton.body.right;
+                bone_speed = 192;
             }
             back.setFlipX(skeleton.flipX);
             front.setFlipX(skeleton.flipX);
@@ -1114,8 +1144,79 @@ let GameScene = new Phaser.Class({
                 back.visible = false;
                 front.visible = true;
                 front.setTexture('skeleton_throw3_front');
+                let bone = screen.addBone(bone_origin,skeleton.body.top);
+                bone.setVelocityX(bone_speed);
+                bone.setVelocityY(-512-256);
             }
         };
+
+        skeleton.change_state = function(new_state)
+        {
+            let old_state = skeleton.getData('state');
+            skeleton.exit_state(old_state);
+            skeleton.setData('state', new_state);
+            skeleton.enter_state(new_state);
+        };
+
+        skeleton.exit_state = function(old_state) {
+            switch (old_state) {
+                case SKELETON_THROW:
+                    skeleton_left.visible = false;
+                    skeleton_right.visible = false;
+                    break;
+                case SKELETON_WALK:
+                    skeleton.setVelocityX(0);
+                    skeleton_guide_left.body.allowGravity = false;
+                    skeleton_guide_right.body.allowGravity = false;
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        skeleton.enter_state = function(new_state)
+        {
+            switch(new_state) {
+                case SKELETON_THROW:
+                    let anim = skeleton.anims.play('skeleton_throw', true);
+                    throw_update(anim, {index : 1}, skeleton);
+                    skeleton.on('animationcomplete-skeleton_throw', function () {
+                        skeleton.change_state(SKELETON_WALK);
+                    });
+                    skeleton.on('animationupdate-skeleton_throw',throw_update);
+                    break;
+                case SKELETON_WALK:
+                    skeleton.anims.play('skeleton_walk', true);
+                    skeleton_guide_left.body.allowGravity = true;
+                    skeleton_guide_right.body.allowGravity = true;
+                    if (!skeleton.flipX) {
+                        skeleton.body.setVelocityX(-196 / 2);
+                    } else {
+                        skeleton.body.setVelocityX(196 / 2);
+                    }
+                    break;
+                case SKELETON_DEATH:
+                    skeleton.body.setVelocityX(0);
+                    skeleton.on('animationcomplete-skeleton_death', function() {
+                        skeleton.destroy();
+                        skeleton_guide_left.destroy();
+                        skeleton_left.destroy();
+                        skeleton_right.destroy();
+                        skeleton_guide_right.destroy();
+                    });
+                    skeleton.anims.play('skeleton_death', true);
+                    break;
+                case SKELETON_WAKE:
+                    skeleton.on('animationcomplete-skeleton_wake', function() {
+                        skeleton.change_state(SKELETON_THROW);
+                    });
+                    skeleton.anims.play('skeleton_wake', true);
+                    break;
+                default:
+                    break;
+            }
+        };
+
         skeleton.update = function()
         {
             skeleton_guide_left.body.x = skeleton.body.x - skeleton.body.width;
@@ -1127,56 +1228,31 @@ let GameScene = new Phaser.Class({
             skeleton_right.body.x = skeleton.body.x + skeleton.body.width;
             skeleton_right.body.y = skeleton.body.y;
 
-            if (skeleton.getData('state') === SKELETON_SLEEP) {
-                let sx = (skeleton.body.left + skeleton.body.right)/2;
-                let sy = (skeleton.body.top + skeleton.body.bottom)/2;
-                let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
-                let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
-                let dx = px - sx;
-                let dy = py - sy;
-                let l = Math.sqrt(dx * dx + dy * dy);
-                let min_dist = Math.sqrt(SCREEN_HEIGHT * SCREEN_HEIGHT + SCREEN_WIDTH + SCREEN_WIDTH)/2;
-                if (l < min_dist) {
-                    skeleton.setData('state', SKELETON_WAKE);
-                    skeleton.on('animationcomplete-skeleton_wake', function() {
-                        skeleton.setData('state',SKELETON_THROW);
-                        let anim = skeleton.anims.play('skeleton_throw', false);
-                        throw_update(anim, {index : 1}, skeleton);
-                        skeleton.on('animationcomplete-skeleton_throw', function () {
-                            skeleton_left.visible=false;
-                            skeleton_right.visible=false;
-                            skeleton.setData('state',SKELETON_WALK);
-                            skeleton.anims.play('skeleton_walk', false);
-                            skeleton_guide_left.body.allowGravity = true;
-                            skeleton_guide_right.body.allowGravity = true;
-                            if (!skeleton.flipX) {
-                                skeleton.body.setVelocityX(-196 / 2);
-                            } else {
-                                skeleton.body.setVelocityX(196 / 2);
-                            }
-                        });
-                        skeleton.on('animationupdate-skeleton_throw',throw_update);
-                    });
-                    skeleton.anims.play('skeleton_wake', false);
-                }
-            }
-            else if (skeleton.getData('state') === SKELETON_THROW) {
-                skeleton.body.setVelocityX(0);
-            }
-            else if (skeleton.getData('state') === SKELETON_DEATH) {
-                skeleton.body.setVelocityX(0);
-            }
-            else if (skeleton.getData('state') === SKELETON_WAKE) {
-                //do nothing
-            }
-            else if (skeleton.getData('state') === SKELETON_WALK) {
-                if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down) {
-                    skeleton.setFlipX(true);
-                    skeleton.body.setVelocityX(196 / 2);
-                } else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down) {
-                    skeleton.setFlipX(false);
-                    skeleton.body.setVelocityX(-196 / 2);
-                }
+            switch (skeleton.getData('state')) {
+                case SKELETON_SLEEP:
+                    let sx = (skeleton.body.left + skeleton.body.right)/2;
+                    let sy = (skeleton.body.top + skeleton.body.bottom)/2;
+                    let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
+                    let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
+                    let dx = px - sx;
+                    let dy = py - sy;
+                    let l = Math.sqrt(dx * dx + dy * dy);
+                    let min_dist = Math.sqrt(SCREEN_HEIGHT * SCREEN_HEIGHT + SCREEN_WIDTH + SCREEN_WIDTH)/2;
+                    if (l < min_dist) {
+                        skeleton.enter_state(SKELETON_WAKE);
+                    }
+                    break;
+                case SKELETON_WALK:
+                    if (skeleton.body.blocked.left || !skeleton_guide_left.body.blocked.down) {
+                        skeleton.setFlipX(true);
+                        skeleton.body.setVelocityX(196 / 2);
+                    } else if (skeleton.body.blocked.right || !skeleton_guide_right.body.blocked.down) {
+                        skeleton.setFlipX(false);
+                        skeleton.body.setVelocityX(-196 / 2);
+                    }
+                    break;
+                default:
+                    break;
             }
         };
         skeleton.hit = function()
@@ -1184,16 +1260,7 @@ let GameScene = new Phaser.Class({
             if (skeleton.getData('state')===SKELETON_WALK
             || skeleton.getData('state') === SKELETON_THROW)
             {
-                skeleton.body.setVelocityX(0);
-                skeleton.on('animationcomplete-skeleton_death', function() {
-                    skeleton.destroy();
-                    skeleton_guide_left.destroy();
-                    skeleton_left.destroy();
-                    skeleton_right.destroy();
-                    skeleton_guide_right.destroy();
-                });
-                skeleton.setData('state', SKELETON_DEATH);
-                skeleton.anims.play('skeleton_death', true);
+                skeleton.change_state(SKELETON_DEATH);
                 return true;
             }
             return false;
@@ -1438,6 +1505,7 @@ let GameScene = new Phaser.Class({
 				{ key: 'simon2' },
 				{ key: 'simon1' }
 			],
+            skipMissedFrames: false,
 			frameRate: 4,
             repeat: -1
 		});
@@ -1448,6 +1516,7 @@ let GameScene = new Phaser.Class({
                 { key: 'ducking_whip2' },
                 { key: 'ducking_whip3' }
             ],
+            skipMissedFrames: false,
             frameRate: 8,
             repeat: 0
         });
@@ -1458,6 +1527,7 @@ let GameScene = new Phaser.Class({
                 { key: 'standing_whip2' },
                 { key: 'standing_whip3' }
             ],
+            skipMissedFrames: false,
             frameRate: 8,
             repeat: 0
         });
@@ -1469,6 +1539,7 @@ let GameScene = new Phaser.Class({
                 { key: 'standing_whip2' },
                 { key: 'standing_whip3' }
             ],
+            skipMissedFrames: false,
             frameRate: 8,
             repeat: 0
         });
@@ -1479,6 +1550,7 @@ let GameScene = new Phaser.Class({
                 { key: 'ghost3' },
                 { key: 'ghost4' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: -1
         });
@@ -1488,6 +1560,7 @@ let GameScene = new Phaser.Class({
                 { key: 'skeleton1' },
                 { key: 'skeleton2' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: -1
         });
@@ -1498,6 +1571,7 @@ let GameScene = new Phaser.Class({
                 { key: 'skeleton_throw2' },
                 { key: 'skeleton_throw3' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: 0
         });
@@ -1512,6 +1586,7 @@ let GameScene = new Phaser.Class({
                 { key: 'ghost1' },
                 { key: 'ghost2' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: 0
         });
@@ -1522,6 +1597,7 @@ let GameScene = new Phaser.Class({
                 { key: 'skeleton_death2' },
                 { key: 'skeleton_death3' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: 0
         });
@@ -1532,6 +1608,7 @@ let GameScene = new Phaser.Class({
                 { key: 'skeleton_death1' },
                 { key: 'skeleton1' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: 0
         });
@@ -1542,6 +1619,7 @@ let GameScene = new Phaser.Class({
                 { key: 'bat2' },
                 { key: 'bat3' }
             ],
+            skipMissedFrames: false,
             frameRate: 4,
             repeat: -1
         });
