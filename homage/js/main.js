@@ -929,6 +929,12 @@ let GameScene = new Phaser.Class({
         this.load.image('ghost4', 'assets/ghost4.png');
         this.load.image('skeleton1', 'assets/skeleton1.png');
         this.load.image('skeleton2', 'assets/skeleton2.png');
+        this.load.image('skeleton_throw1', 'assets/skeleton_throw1.png');
+        this.load.image('skeleton_throw1_back', 'assets/skeleton_throw1_back.png');
+        this.load.image('skeleton_throw2', 'assets/skeleton_throw2.png');
+        this.load.image('skeleton_throw2_back', 'assets/skeleton_throw2_back.png');
+        this.load.image('skeleton_throw3', 'assets/skeleton_throw3.png');
+        this.load.image('skeleton_throw3_front', 'assets/skeleton_throw3_front.png');
         this.load.image('skeleton_death1', 'assets/skeleton_death1.png');
         this.load.image('skeleton_death2', 'assets/skeleton_death2.png');
         this.load.image('skeleton_death3', 'assets/skeleton_death3.png');
@@ -1058,6 +1064,8 @@ let GameScene = new Phaser.Class({
     {
         let G = this.myGameState;
         let skeleton = this.physics.add.sprite(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
+        let skeleton_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
+        let skeleton_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE, 'skeleton_death3').setScale(4);
         let skeleton_guide_left = this.physics.add.sprite((x-1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
         let skeleton_guide_right = this.physics.add.sprite((x+1) * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE, "block").setScale(4);
         G.updatables.add(skeleton);
@@ -1070,21 +1078,54 @@ let GameScene = new Phaser.Class({
         const SKELETON_SLEEP = 2;
         const SKELETON_WAKE = 3;
         const SKELETON_WALK = 0;
+        const SKELETON_THROW = 4;
         const SKELETON_DEATH = 1;
         skeleton.setData('state', SKELETON_SLEEP);
 
         skeleton.body.allowGravity = true;
+        skeleton_right.body.allowGravity = false;
+        skeleton_right.visible = false;
+        skeleton_left.body.allowGravity = false;
+        skeleton_left.visible = false;
         skeleton_guide_left.body.allowGravity = false;
         skeleton_guide_right.body.allowGravity = false;
         skeleton_guide_right.visible = false;
         skeleton_guide_left.visible = false;
         skeleton.body.setVelocityX(0);
+
+        let throw_update = function (animation, frame, gameObject) {
+            let front = skeleton_left;
+            let back = skeleton_right;
+            if (skeleton.flipX) {
+                back = skeleton_left;
+                right = skeleton_right;
+            }
+            back.setFlipX(skeleton.flipX);
+            front.setFlipX(skeleton.flipX);
+            if (frame.index === 1) {
+                back.visible = true;
+                front.visible = false;
+                back.setTexture('skeleton_throw1_back');
+            } else if (frame.index === 2) {
+                back.visible = true;
+                front.visible = false;
+                back.setTexture('skeleton_throw2_back');
+            } else if (frame.index === 3) {
+                back.visible = false;
+                front.visible = true;
+                front.setTexture('skeleton_throw3_front');
+            }
+        };
         skeleton.update = function()
         {
-            skeleton_guide_left.body.x = skeleton.body.x - GRID_SIZE;
-            skeleton_guide_right.body.x = skeleton.body.x + GRID_SIZE;
-            skeleton_guide_left.body.y = skeleton.body.y + GRID_SIZE;
-            skeleton_guide_right.body.y = skeleton.body.y + GRID_SIZE;
+            skeleton_guide_left.body.x = skeleton.body.x - skeleton.body.width;
+            skeleton_guide_right.body.x = skeleton.body.x + skeleton.body.width;
+            skeleton_guide_left.body.y = skeleton.body.y + skeleton.body.width;
+            skeleton_guide_right.body.y = skeleton.body.y + skeleton.body.width;
+            skeleton_left.body.x = skeleton.body.x - skeleton.body.width;
+            skeleton_left.body.y = skeleton.body.y;
+            skeleton_right.body.x = skeleton.body.x + skeleton.body.width;
+            skeleton_right.body.y = skeleton.body.y;
 
             if (skeleton.getData('state') === SKELETON_SLEEP) {
                 let sx = (skeleton.body.left + skeleton.body.right)/2;
@@ -1098,18 +1139,29 @@ let GameScene = new Phaser.Class({
                 if (l < min_dist) {
                     skeleton.setData('state', SKELETON_WAKE);
                     skeleton.on('animationcomplete-skeleton_wake', function() {
-                        skeleton.setData('state',SKELETON_WALK);
-                        skeleton.anims.play('skeleton_walk', false);
-                        skeleton_guide_left.body.allowGravity = true;
-                        skeleton_guide_right.body.allowGravity = true;
-                        if (!skeleton.flipX) {
-                            skeleton.body.setVelocityX(-196 / 2);
-                        } else {
-                            skeleton.body.setVelocityX(196 / 2);
-                        }
+                        skeleton.setData('state',SKELETON_THROW);
+                        let anim = skeleton.anims.play('skeleton_throw', false);
+                        throw_update(anim, {index : 1}, skeleton);
+                        skeleton.on('animationcomplete-skeleton_throw', function () {
+                            skeleton_left.visible=false;
+                            skeleton_right.visible=false;
+                            skeleton.setData('state',SKELETON_WALK);
+                            skeleton.anims.play('skeleton_walk', false);
+                            skeleton_guide_left.body.allowGravity = true;
+                            skeleton_guide_right.body.allowGravity = true;
+                            if (!skeleton.flipX) {
+                                skeleton.body.setVelocityX(-196 / 2);
+                            } else {
+                                skeleton.body.setVelocityX(196 / 2);
+                            }
+                        });
+                        skeleton.on('animationupdate-skeleton_throw',throw_update);
                     });
                     skeleton.anims.play('skeleton_wake', false);
                 }
+            }
+            else if (skeleton.getData('state') === SKELETON_THROW) {
+                skeleton.body.setVelocityX(0);
             }
             else if (skeleton.getData('state') === SKELETON_DEATH) {
                 skeleton.body.setVelocityX(0);
@@ -1129,22 +1181,25 @@ let GameScene = new Phaser.Class({
         };
         skeleton.hit = function()
         {
-            if (skeleton.getData('state')===SKELETON_WALK)
+            if (skeleton.getData('state')===SKELETON_WALK
+            || skeleton.getData('state') === SKELETON_THROW)
             {
                 skeleton.body.setVelocityX(0);
                 skeleton.on('animationcomplete-skeleton_death', function() {
                     skeleton.destroy();
                     skeleton_guide_left.destroy();
+                    skeleton_left.destroy();
+                    skeleton_right.destroy();
                     skeleton_guide_right.destroy();
                 });
                 skeleton.setData('state', SKELETON_DEATH);
-                skeleton.anims.play('skeleton_death', false);
+                skeleton.anims.play('skeleton_death', true);
                 return true;
             }
             return false;
         };
         skeleton.shouldDamagePlayer = function(player, source) {
-            return skeleton.getData("state") === SKELETON_WALK;
+            return skeleton.getData("state") === SKELETON_WALK || skeleton.getData('state') === SKELETON_THROW;
         };
         return skeleton;
     },
@@ -1435,6 +1490,16 @@ let GameScene = new Phaser.Class({
             ],
             frameRate: 4,
             repeat: -1
+        });
+        this.anims.create({
+            key: 'skeleton_throw',
+            frames: [
+                { key: 'skeleton_throw1' },
+                { key: 'skeleton_throw2' },
+                { key: 'skeleton_throw3' }
+            ],
+            frameRate: 4,
+            repeat: 0
         });
         this.anims.create({
             key: 'ghost_disappear',
