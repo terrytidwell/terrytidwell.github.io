@@ -1178,6 +1178,7 @@ let GameScene = new Phaser.Class({
         {
             switch(new_state) {
                 case SKELETON_THROW:
+                    skeleton.body.setVelocityX(0);
                     let anim = skeleton.anims.play('skeleton_throw', true);
                     throw_update(anim, {index : 1}, skeleton);
                     skeleton.on('animationcomplete-skeleton_throw', function () {
@@ -1207,12 +1208,14 @@ let GameScene = new Phaser.Class({
                     skeleton.anims.play('skeleton_death', true);
                     break;
                 case SKELETON_WAKE:
+                    skeleton.body.setVelocityX(0);
                     skeleton.on('animationcomplete-skeleton_wake', function() {
                         skeleton.change_state(SKELETON_THROW);
                     });
                     skeleton.anims.play('skeleton_wake', true);
                     break;
                 default:
+                    skeleton.body.setVelocityX(0);
                     break;
             }
         };
