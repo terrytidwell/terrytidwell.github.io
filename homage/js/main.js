@@ -52,6 +52,26 @@ let Player = {
         Player.whip3.body.allowGravity = false;
         Player.whip3.body.immovable = true;
         Player.whip3.body.setOffset(0, -1);
+
+        let attack_end = function () {
+            Player.attacking = false;
+            Player.whip1.visible = false;
+            Player.whip2.visible = false;
+            Player.whip3.visible = false;
+        };
+        let attack_update = function (animation, frame, gameObject) {
+            if (frame.index === 2) {
+                Player.whip1.visible = false;
+                Player.whip2.visible = true;
+            } else if (frame.index === 3) {
+                Player.whip2.visible = false;
+                Player.whip3.visible = true;
+            }
+        };
+        Player.sprite.on('animationcomplete-standing_whip', attack_end);
+        Player.sprite.on('animationcomplete-ducking_whip', attack_end);
+        Player.sprite.on('animationupdate-ducking_whip', attack_update);
+        Player.sprite.on('animationupdate-standing_whip', attack_update);
     },
     update: function(screen)
     {
@@ -92,25 +112,6 @@ let Player = {
         {
             Player.attacking = true;
             Player.ready_to_attack = false;
-            let attack_end = function () {
-                Player.attacking = false;
-                Player.whip1.visible = false;
-                Player.whip2.visible = false;
-                Player.whip3.visible = false;
-            };
-            let attack_update = function (animation, frame, gameObject) {
-                if (frame.index === 2) {
-                    Player.whip1.visible = false;
-                    Player.whip2.visible = true;
-                } else if (frame.index === 3) {
-                    Player.whip2.visible = false;
-                    Player.whip3.visible = true;
-                }
-            };
-            Player.sprite.on('animationcomplete-standing_whip', attack_end);
-            Player.sprite.on('animationcomplete-ducking_whip', attack_end);
-            Player.sprite.on('animationupdate-ducking_whip', attack_update);
-            Player.sprite.on('animationupdate-standing_whip', attack_update);
             if (!Player.ducking) {
                 Player.sprite.anims.play('standing_whip', false);
             } else {
@@ -999,7 +1000,7 @@ let GameScene = new Phaser.Class({
             }
             ghost.setData("state", 1);
             ghost.setVelocity(0,0);
-            ghost.on('animationcomplete-ghost_disappear', function(){
+            ghost.once('animationcomplete-ghost_disappear', function(){
                 ghost.setData("state", 0);
                 ghost.anims.play('ghost_walk', false);
             });
@@ -1107,6 +1108,7 @@ let GameScene = new Phaser.Class({
         const SKELETON_THROW = 4;
         const SKELETON_DEATH = 1;
         skeleton.setData('state', SKELETON_SLEEP);
+        skeleton.setData('ready_to_throw', true);
 
         skeleton.body.allowGravity = true;
         skeleton_right.body.allowGravity = false;
@@ -1118,6 +1120,7 @@ let GameScene = new Phaser.Class({
         skeleton_guide_right.visible = false;
         skeleton_guide_left.visible = false;
         skeleton.body.setVelocityX(0);
+        skeleton_throw_reset = null;
 
         let throw_update = function (animation, frame, gameObject) {
             let front = skeleton_left;
@@ -1163,6 +1166,10 @@ let GameScene = new Phaser.Class({
                 case SKELETON_THROW:
                     skeleton_left.visible = false;
                     skeleton_right.visible = false;
+                    skeleton_throw_reset = screen.time.delayedCall(500, function() {
+                        skeleton_throw_reset = null;
+                        skeleton.setData('ready_to_throw', true);
+                    }, [], screen)
                     break;
                 case SKELETON_WALK:
                     skeleton.setVelocityX(0);
@@ -1174,17 +1181,20 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        skeleton.on('animationupdate-skeleton_throw',throw_update);
+
         skeleton.enter_state = function(new_state)
         {
             switch(new_state) {
                 case SKELETON_THROW:
+                    skeleton.setData('ready_to_throw', false);
                     skeleton.body.setVelocityX(0);
                     let anim = skeleton.anims.play('skeleton_throw', true);
                     throw_update(anim, {index : 1}, skeleton);
-                    skeleton.on('animationcomplete-skeleton_throw', function () {
+                    skeleton.once('animationcomplete-skeleton_throw', function () {
                         skeleton.change_state(SKELETON_WALK);
                     });
-                    skeleton.on('animationupdate-skeleton_throw',throw_update);
+
                     break;
                 case SKELETON_WALK:
                     skeleton.anims.play('skeleton_walk', true);
@@ -1198,19 +1208,22 @@ let GameScene = new Phaser.Class({
                     break;
                 case SKELETON_DEATH:
                     skeleton.body.setVelocityX(0);
-                    skeleton.on('animationcomplete-skeleton_death', function() {
+                    skeleton.once('animationcomplete-skeleton_death', function() {
                         skeleton.destroy();
                         skeleton_guide_left.destroy();
                         skeleton_left.destroy();
                         skeleton_right.destroy();
                         skeleton_guide_right.destroy();
+                        if (skeleton_throw_reset) {
+                            skeleton_throw_reset.remove();
+                        }
                     });
                     skeleton.anims.play('skeleton_death', true);
                     break;
                 case SKELETON_WAKE:
                     skeleton.body.setVelocityX(0);
-                    skeleton.on('animationcomplete-skeleton_wake', function() {
-                        skeleton.change_state(SKELETON_THROW);
+                    skeleton.once('animationcomplete-skeleton_wake', function() {
+                        skeleton.change_state(SKELETON_WALK);
                     });
                     skeleton.anims.play('skeleton_wake', true);
                     break;
@@ -1218,6 +1231,19 @@ let GameScene = new Phaser.Class({
                     skeleton.body.setVelocityX(0);
                     break;
             }
+        };
+
+        skeleton.isPlayerClose = function()
+        {
+            let sx = (skeleton.body.left + skeleton.body.right) / 2;
+            let sy = (skeleton.body.top + skeleton.body.bottom) / 2;
+            let px = (Player.sprite.body.left + Player.sprite.body.right) / 2;
+            let py = (Player.sprite.body.top + Player.sprite.body.bottom) / 2;
+            let dx = px - sx;
+            let dy = py - sy;
+            let l = Math.sqrt(dx * dx + dy * dy);
+            let min_dist = Math.sqrt(SCREEN_HEIGHT * SCREEN_HEIGHT + SCREEN_WIDTH + SCREEN_WIDTH) / 2;
+            return l < min_dist;
         };
 
         skeleton.update = function()
@@ -1233,15 +1259,7 @@ let GameScene = new Phaser.Class({
 
             switch (skeleton.getData('state')) {
                 case SKELETON_SLEEP:
-                    let sx = (skeleton.body.left + skeleton.body.right)/2;
-                    let sy = (skeleton.body.top + skeleton.body.bottom)/2;
-                    let px = (Player.sprite.body.left + Player.sprite.body.right)/2;
-                    let py = (Player.sprite.body.top + Player.sprite.body.bottom)/2;
-                    let dx = px - sx;
-                    let dy = py - sy;
-                    let l = Math.sqrt(dx * dx + dy * dy);
-                    let min_dist = Math.sqrt(SCREEN_HEIGHT * SCREEN_HEIGHT + SCREEN_WIDTH + SCREEN_WIDTH)/2;
-                    if (l < min_dist) {
+                    if (skeleton.isPlayerClose()) {
                         skeleton.enter_state(SKELETON_WAKE);
                     }
                     break;
@@ -1253,6 +1271,14 @@ let GameScene = new Phaser.Class({
                         skeleton.setFlipX(false);
                         skeleton.body.setVelocityX(-196 / 2);
                     }
+                    if (skeleton.getData('ready_to_throw') && skeleton.isPlayerClose()) {
+                        if(skeleton.flipX && Player.sprite.body.x > skeleton.body.x) {
+                            skeleton.change_state(SKELETON_THROW);
+                        }
+                        else if (!skeleton.flipX && Player.sprite.body.x < skeleton.body.x) {
+                            skeleton.change_state(SKELETON_THROW);
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -1263,6 +1289,7 @@ let GameScene = new Phaser.Class({
             if (skeleton.getData('state')===SKELETON_WALK
             || skeleton.getData('state') === SKELETON_THROW)
             {
+                skeleton.anims.stop();
                 skeleton.change_state(SKELETON_DEATH);
                 return true;
             }
