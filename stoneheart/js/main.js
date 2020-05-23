@@ -18,6 +18,7 @@ let  StartScreen = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function () {
         this.load.spritesheet('blocks', 'assets/match3_character.png', { frameWidth: 32, frameHeight: 32,  margin: 1, spacing: 1});
+        this.load.image('corner', 'assets/corner.png');
     },
 
     //--------------------------------------------------------------------------
@@ -53,6 +54,38 @@ let  StartScreen = new Phaser.Class({
             }
         }
 
+        screen.me_border = [];
+        const CORNER_OFFSET_SMALLER = 4;
+        const CORNER_OFFSET_BIGGER = 27;
+        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border[1].flipX = true;
+        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border[2].flipY = true;
+        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border[3].flipX = true;
+        screen.me_border[3].flipY = true;
+        let toggle_border = function() {
+            screen.me_border[0].visible = !screen.me_border[0].visible;
+            screen.me_border[1].visible = !screen.me_border[1].visible;
+            screen.me_border[2].visible = !screen.me_border[2].visible;
+            screen.me_border[3].visible = !screen.me_border[3].visible;
+        };
+        toggle_border();
+
+        let align_border = function(x, y)
+        {
+            screen.me_border[0].x = x * GRID_SIZE + CORNER_OFFSET_SMALLER;
+            screen.me_border[0].y = y * GRID_SIZE + CORNER_OFFSET_BIGGER;
+            screen.me_border[1].x = x * GRID_SIZE + CORNER_OFFSET_BIGGER;
+            screen.me_border[1].y = y * GRID_SIZE + CORNER_OFFSET_BIGGER;
+            screen.me_border[2].x = x * GRID_SIZE + CORNER_OFFSET_SMALLER;
+            screen.me_border[2].y = y * GRID_SIZE + CORNER_OFFSET_SMALLER;
+            screen.me_border[3].x = x * GRID_SIZE + CORNER_OFFSET_BIGGER;
+            screen.me_border[3].y = y * GRID_SIZE + CORNER_OFFSET_SMALLER;
+        };
+        align_border(screen.me_x, screen.me_y);
+
         screen.grid[screen.me_x][screen.me_y].sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
         screen.time.addEvent({
             "delay": 750,
@@ -79,10 +112,20 @@ let  StartScreen = new Phaser.Class({
                 //no move
                 return;
             }
-            screen.grid[screen.me_x][screen.me_y].sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value);
+            let old_value = screen.grid[screen.me_x][screen.me_y].value;
+            let old_x = screen.me_x;
+            let old_y = screen.me_y;
             screen.me_x += delta_x;
             screen.me_y += delta_y;
+            let new_value = screen.grid[screen.me_x][screen.me_y].value;
+            if (screen.me_border[0].visible)
+            {
+                screen.grid[old_x][old_y].value = new_value;
+                screen.grid[screen.me_x][screen.me_y].value = old_value;
+            }
+            screen.grid[old_x][old_y].sprite.setTexture('blocks', screen.grid[old_x][old_y].value);
             screen.grid[screen.me_x][screen.me_y].sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
+            align_border(screen.me_x, screen.me_y);
         };
 
         screen.m_cursor_keys = screen.input.keyboard.createCursorKeys();
@@ -95,6 +138,8 @@ let  StartScreen = new Phaser.Class({
         screen.m_cursor_keys.right.on('down', function(event) {
             move_character(1,0)});
 
+        screen.space_key = screen.input.keyboard.addKey("a");
+        screen.space_key.on('down', toggle_border);
     },
 
     update: function () {
@@ -102,7 +147,7 @@ let  StartScreen = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#050505',
+    backgroundColor: '#ffffff',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
