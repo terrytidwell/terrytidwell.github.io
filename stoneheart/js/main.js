@@ -244,7 +244,7 @@ let  StartScreen = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#404040',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
