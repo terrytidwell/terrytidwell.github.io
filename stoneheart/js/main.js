@@ -1,8 +1,18 @@
 const GRID_SIZE = 32;
 const SCREEN_COLUMNS = 6;
 const SCREEN_ROWS = 6;
-const SCREEN_WIDTH = GRID_SIZE * SCREEN_COLUMNS;
-const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS;
+const SCREEN_WIDTH_OFFSET = GRID_SIZE;
+const SCREEN_HEIGHT_OFFSET = GRID_SIZE/2;
+const SCREEN_WIDTH = GRID_SIZE * SCREEN_COLUMNS + 2 * SCREEN_WIDTH_OFFSET;
+const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS + 2 * SCREEN_HEIGHT_OFFSET;
+const DEPTHS =
+{
+    BG : 0,
+    BLOCK: 10,
+    PLAYER_BLOCK: 20,
+    PLAYER: 30,
+    PLAYER_BORDER: 31
+};
 
 //const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
 
@@ -23,9 +33,11 @@ let  StartScreen = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
+        let MOVE_TIMER = 125;
         let screen = this;
         screen.input.addPointer(5);
         screen.me_state = 10;
+        screen.me_moving = false;
         screen.grid = [];
         screen.me_x = 0;
         screen.me_y = 0;
@@ -39,15 +51,38 @@ let  StartScreen = new Phaser.Class({
                 }
                 if (value != 5) {
                     screen.grid[x].push({
+                        x: x,
+                        y: y,
                         valid: true,
                         broken: false,
                         value:value,
                         sprite: screen.add.tileSprite(
-                            x * GRID_SIZE + GRID_SIZE/2,
-                            y * GRID_SIZE + GRID_SIZE/2, GRID_SIZE, GRID_SIZE, 'blocks',value)
+                            x * GRID_SIZE + GRID_SIZE/2 + SCREEN_WIDTH_OFFSET,
+                            y * GRID_SIZE + GRID_SIZE/2 + SCREEN_HEIGHT_OFFSET,
+                            GRID_SIZE, GRID_SIZE, 'blocks',value)
                     });
+                    screen.grid[x][y].sprite.setDepth(DEPTHS.BLOCK);
+                    screen.grid[x][y].sprite.setInteractive();
+                    screen.grid[x][y].sprite.setData('parent',screen.grid[x][y]);
+                    screen.grid[x][y].sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+                        function(pointer, localX, localY, event) {
+                            let parent = this.data.values.parent;
+                            let dx = parent.x - screen.me_x;
+                            let dy = parent.y - screen.me_y;
+                            let d_manhattan = Math.abs(dx) + Math.abs(dy);
+                            if (0 == d_manhattan) {
+                                try_selection();
+                            } else if (1 == d_manhattan)
+                            {
+                                move_character(dx, dy);
+                            }
+
+                        }, screen.grid[x][y].sprite
+                    );
                 } else {
                     screen.grid[x].push({
+                        x: x,
+                        y: y,
                         valid: false,
                         broken: false,
                         value: value,
@@ -57,14 +92,14 @@ let  StartScreen = new Phaser.Class({
         }
 
         screen.me_border = [];
-        const CORNER_OFFSET_SMALLER = 4;
-        const CORNER_OFFSET_BIGGER = 27;
-        screen.me_border.push(screen.add.sprite(0,0,'corner'));
-        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        const CORNER_OFFSET_SMALLER = 5;
+        const CORNER_OFFSET_BIGGER = 26;
+        screen.me_border.push(screen.add.sprite(0,0,'corner').setDepth(DEPTHS.PLAYER));
+        screen.me_border.push(screen.add.sprite(0,0,'corner').setDepth(DEPTHS.PLAYER));
         screen.me_border[1].flipX = true;
-        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border.push(screen.add.sprite(0,0,'corner').setDepth(DEPTHS.PLAYER));
         screen.me_border[2].flipY = true;
-        screen.me_border.push(screen.add.sprite(0,0,'corner'));
+        screen.me_border.push(screen.add.sprite(0,0,'corner').setDepth(DEPTHS.PLAYER));
         screen.me_border[3].flipX = true;
         screen.me_border[3].flipY = true;
         let set_border = function(bool) {
@@ -85,24 +120,23 @@ let  StartScreen = new Phaser.Class({
 
         screen.me_sprite = screen.add.tileSprite(
             0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
-            screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
+            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
 
         let align_border = function(x, y)
         {
-            screen.me_sprite.x = x * GRID_SIZE + GRID_SIZE/2;
-            screen.me_sprite.y = y * GRID_SIZE + GRID_SIZE/2;
+            screen.me_sprite.x = x * GRID_SIZE + GRID_SIZE/2 + SCREEN_WIDTH_OFFSET;
+            screen.me_sprite.y = y * GRID_SIZE + GRID_SIZE/2 + SCREEN_HEIGHT_OFFSET;
 
-            screen.me_border[0].x = x * GRID_SIZE + CORNER_OFFSET_SMALLER;
-            screen.me_border[0].y = y * GRID_SIZE + CORNER_OFFSET_BIGGER;
-            screen.me_border[1].x = x * GRID_SIZE + CORNER_OFFSET_BIGGER;
-            screen.me_border[1].y = y * GRID_SIZE + CORNER_OFFSET_BIGGER;
-            screen.me_border[2].x = x * GRID_SIZE + CORNER_OFFSET_SMALLER;
-            screen.me_border[2].y = y * GRID_SIZE + CORNER_OFFSET_SMALLER;
-            screen.me_border[3].x = x * GRID_SIZE + CORNER_OFFSET_BIGGER;
-            screen.me_border[3].y = y * GRID_SIZE + CORNER_OFFSET_SMALLER;
+            screen.me_border[0].x = x * GRID_SIZE + SCREEN_WIDTH_OFFSET + CORNER_OFFSET_SMALLER;
+            screen.me_border[0].y = y * GRID_SIZE + SCREEN_HEIGHT_OFFSET + CORNER_OFFSET_BIGGER;
+            screen.me_border[1].x = x * GRID_SIZE + SCREEN_WIDTH_OFFSET + CORNER_OFFSET_BIGGER;
+            screen.me_border[1].y = y * GRID_SIZE + SCREEN_HEIGHT_OFFSET + CORNER_OFFSET_BIGGER;
+            screen.me_border[2].x = x * GRID_SIZE + SCREEN_WIDTH_OFFSET + CORNER_OFFSET_SMALLER;
+            screen.me_border[2].y = y * GRID_SIZE + SCREEN_HEIGHT_OFFSET + CORNER_OFFSET_SMALLER;
+            screen.me_border[3].x = x * GRID_SIZE + SCREEN_WIDTH_OFFSET + CORNER_OFFSET_BIGGER;
+            screen.me_border[3].y = y * GRID_SIZE + SCREEN_HEIGHT_OFFSET + CORNER_OFFSET_SMALLER;
         };
         align_border(screen.me_x, screen.me_y);
-
 
         screen.time.addEvent({
             "delay": 750,
@@ -130,16 +164,20 @@ let  StartScreen = new Phaser.Class({
 
         let move_character = function(delta_x, delta_y)
         {
-            if (screen.me_x + delta_x < 0 ||
-                screen.me_x + delta_x > screen.grid.length - 1 ||
+            if (screen.me_moving || //i'm already mid move
+                screen.me_x + delta_x < 0 ||
+                screen.me_x + delta_x >= screen.grid.length  ||
                 screen.me_y + delta_y < 0 ||
-                screen.me_y + delta_y > screen.grid[screen.me_x + delta_x].length - 1 || //bounds check
+                screen.me_y + delta_y >= screen.grid[screen.me_x + delta_x].length || //bounds check
                 !screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].valid //valid block check
             )
             {
                 //no move
                 return;
             }
+
+            screen.me_moving = true;
+
             let old_value = screen.grid[screen.me_x][screen.me_y].value;
             let old_x = screen.me_x;
             let old_y = screen.me_y;
@@ -148,14 +186,45 @@ let  StartScreen = new Phaser.Class({
             let new_value = screen.grid[screen.me_x][screen.me_y].value;
             if (is_border_active())
             {
+                let old_sprite = screen.grid[old_x][old_y].sprite.setDepth(DEPTHS.PLAYER_BLOCK);
+                let new_sprite = screen.grid[screen.me_x][screen.me_y].sprite.setDepth(DEPTHS.BLOCK);
+                screen.tweens.add({
+                    targets: [old_sprite, screen.me_sprite, screen.me_border[0], screen.me_border[1], screen.me_border[2], screen.me_border[3]],
+                    x: '+=' + delta_x * GRID_SIZE,
+                    y: '+=' + delta_y * GRID_SIZE,
+                    ease: 'Power3',
+                    duration: MOVE_TIMER,
+                    repeat: 0
+                });
+                screen.tweens.add({
+                    targets: [new_sprite],
+                    x: '-=' + delta_x * GRID_SIZE,
+                    y: '-=' + delta_y * GRID_SIZE,
+                    ease: 'Power3',
+                    duration: MOVE_TIMER,
+                    repeat: 0
+                });
                 screen.grid[old_x][old_y].value = new_value;
                 screen.grid[screen.me_x][screen.me_y].value = old_value;
+                screen.grid[old_x][old_y].sprite = new_sprite;
+                new_sprite.setData('parent',screen.grid[old_x][old_y]);
+                screen.grid[screen.me_x][screen.me_y].sprite = old_sprite;
+                old_sprite.setData('parent',screen.grid[screen.me_x][screen.me_y]);
             }
-            set_block_texture(old_x,old_y);
-            set_block_texture(screen.me_x, screen.me_y);
-            screen.me_sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value + screen.me_state)
-            align_border(screen.me_x, screen.me_y);
-            clear_matching();
+            else
+            {
+                screen.me_sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
+                align_border(screen.me_x, screen.me_y);
+            }
+            screen.time.delayedCall(MOVE_TIMER, function() {
+                screen.me_moving = false;
+                set_block_texture(old_x,old_y);
+                set_block_texture(screen.me_x, screen.me_y);
+                align_border(screen.me_x, screen.me_y);
+                clear_matching();
+            }, [], screen);
+
+
         };
 
         let clear_matching = function() {
@@ -197,14 +266,30 @@ let  StartScreen = new Phaser.Class({
                     }
                 }
             }
+            let new_matches = false;
+            let delay = 0;
             for (let i = 0; i < to_delete.length; i++) {
-                let value = Math.floor(Math.random() * 5);
-                if (!screen.grid[to_delete[i][0]][to_delete[i][1]].broken) {
-                    screen.grid[to_delete[i][0]][to_delete[i][1]].broken = true;
-                    set_block_texture(to_delete[i][0],to_delete[i][1]);
+                //let value = Math.floor(Math.random() * 5);
+                let d_x = to_delete[i][0];
+                let d_y = to_delete[i][1];
+
+                if (!screen.grid[d_x][d_y].broken) {
+
+                    screen.grid[d_x][d_y].broken = true;
+                    screen.grid[to_delete[i][0]][to_delete[i][1]].valid = false;
+                    delay+=25;
+                    if (delay > MOVE_TIMER)
+                    {
+                        delay = MOVE_TIMER;
+                    }
+
+
+                    screen.time.delayedCall(delay, function() {
+                        set_block_texture(d_x,d_y);
+                        screen.cameras.main.shake(25,0.0125,true);
+                    }, [], screen);
                 }
 
-                screen.grid[to_delete[i][0]][to_delete[i][1]].valid = false;
                 if (to_delete[i][0] == screen.me_x && to_delete[i][1] == screen.me_y) {
                     set_border(false);
                 }
@@ -235,7 +320,7 @@ let  StartScreen = new Phaser.Class({
             toggle_border();
         }
 
-        screen.space_key = screen.input.keyboard.addKey("a");
+        screen.space_key = screen.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         screen.space_key.on('down', try_selection);
     },
 
