@@ -46,12 +46,19 @@ let  StartScreen = new Phaser.Class({
             return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_HEIGHT_OFFSET;
         }
 
+        screen.current_blocks_text = this.add.text(SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            "0", { fontSize: '40px', fill: '#FFF' })
+            .setOrigin(1 , 1).setVisible(false);
+
         screen.input.addPointer(5);
         screen.me_state = 10;
         screen.me_moving = false;
         screen.grid = [];
         screen.me_x = 0;
         screen.me_y = 0;
+        screen.current_blocks = 0;
+        screen.current_chain = 0;
         for (let x = 0; x < SCREEN_COLUMNS; x++) {
             screen.grid.push([]);
             for (let y = 0; y < SCREEN_ROWS; y++) {
@@ -247,8 +254,6 @@ let  StartScreen = new Phaser.Class({
             screen.time.delayedCall(MOVE_TIMER, function() {
                 screen.me_moving = false;
             }, [], screen);
-
-
         };
 
         screen.clear_matching = function() {
@@ -308,7 +313,17 @@ let  StartScreen = new Phaser.Class({
             }
 
             if (to_delete.length != 0) {
+                screen.current_chain++;
+                screen.current_blocks+=to_delete.length;
+                screen.current_blocks_text.setText(screen.current_blocks);
 
+                screen.time.delayedCall(MOVE_TIMER * (4+6), function () {
+                    screen.current_chain--;
+                    if (screen.current_chain == 0) {
+                        screen.current_blocks = 0;
+                        screen.current_blocks_text.setText(screen.current_blocks);
+                    }
+                }, [], screen);
                 let delay = 0;
 
                 for (let i = 0; i < to_delete.length; i++) {
