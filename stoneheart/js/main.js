@@ -49,7 +49,6 @@ let  StartScreen = new Phaser.Class({
         screen.input.addPointer(5);
         screen.me_state = 10;
         screen.me_moving = false;
-        screen.disable_matches = false;
         screen.grid = [];
         screen.me_x = 0;
         screen.me_y = 0;
@@ -134,6 +133,7 @@ let  StartScreen = new Phaser.Class({
             screen.me_border.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
             screen.me_border.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
         };
+
         screen.align_border(screen.me_x, screen.me_y);
 
         screen.time.addEvent({
@@ -162,6 +162,13 @@ let  StartScreen = new Phaser.Class({
         let set_sprite_movement = function(new_x, new_y)
         {
             let object=screen.grid[new_x][new_y];
+            let sprite=object.sprite;
+            let dx = Math.abs( (sprite.x - xPixel(new_x))/GRID_SIZE)
+                + Math.abs((sprite.y - yPixel(new_y))/GRID_SIZE);
+            if (dx == 0)
+            {
+                return;
+            }
             if (object.tweens)
             {
                 object.tweens.stop();
@@ -169,9 +176,7 @@ let  StartScreen = new Phaser.Class({
             }
             object.matchable = false;
 
-            let sprite=object.sprite;
-            let dx = Math.abs( (sprite.x - xPixel(new_x))/GRID_SIZE)
-                + Math.abs((sprite.y - yPixel(new_y))/GRID_SIZE);
+
             let delay = MOVE_TIMER * dx;
 
             object.tweens = screen.tweens.add({
@@ -184,7 +189,9 @@ let  StartScreen = new Phaser.Class({
             });
             object.tweens.setCallback('onComplete', function() {
                 this.tweens = null;
-                this.matchable = true;
+                if (!this.broken) {
+                    this.matchable = true;
+                }
             },[],object);
         };
 
@@ -203,7 +210,9 @@ let  StartScreen = new Phaser.Class({
                 screen.me_x + delta_x >= screen.grid.length  ||
                 screen.me_y + delta_y < 0 ||
                 screen.me_y + delta_y >= screen.grid[screen.me_x + delta_x].length || //bounds check
-                !screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].valid //valid block check
+                !screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].valid  || //valid block check
+                (is_border_active() && screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].broken)
+                //don't switch with broken
             )
             {
                 //no move
@@ -243,18 +252,12 @@ let  StartScreen = new Phaser.Class({
         };
 
         screen.clear_matching = function() {
-            if (screen.disable_matches)
-            {
-                return false;
-            }
-
             let to_delete = [];
-            let add_to_delete = function(x, y)
+            let add_to_delete = function(object)
             {
-                if (!screen.grid[x][y].broken)
+                if (!object.broken)
                 {
-                    screen.disable_matches = true;
-                    to_delete.push([x,y]);
+                    to_delete.push(object);
                 }
             }
             for (let i = 0; i < SCREEN_COLUMNS; i++) {
@@ -267,11 +270,11 @@ let  StartScreen = new Phaser.Class({
                         screen.grid[i][j].value == previous_value_ij) {
                         current_run_ij++;
                         if (current_run_ij == 3) {
-                            add_to_delete(i,j - 2);
-                            add_to_delete(i,j - 1);
+                            add_to_delete(screen.grid[i][j - 2]);
+                            add_to_delete(screen.grid[i][j - 1]);
                         }
                         if (current_run_ij >= 3) {
-                            add_to_delete(i,j);
+                            add_to_delete(screen.grid[i][j]);
                         }
                     }
                     else if (!screen.grid[i][j].matchable) {
@@ -282,15 +285,15 @@ let  StartScreen = new Phaser.Class({
                         previous_value_ij = screen.grid[i][j].value;
                         current_run_ij = 1;
                     }
-                    if (screen.grid[j][i].value == previous_value_ji) {
+                    if (screen.grid[j][i].matchable &&
+                        screen.grid[j][i].value == previous_value_ji) {
                         current_run_ji++;
                         if (current_run_ji == 3) {
-
-                            add_to_delete(j - 2,i);
-                            add_to_delete(j - 1,i);
+                            add_to_delete(screen.grid[j-2][i]);
+                            add_to_delete(screen.grid[j-1][i]);
                         }
                         if (current_run_ji >= 3) {
-                            add_to_delete(j,i);
+                            add_to_delete(screen.grid[j][i]);
                         }
                     }
                     else if (!screen.grid[j][i].matchable) {
@@ -306,46 +309,43 @@ let  StartScreen = new Phaser.Class({
 
             if (to_delete.length != 0) {
 
-                let deletions = [];
-                for (let i = 0; i < SCREEN_COLUMNS; i++)  {
-                    deletions.push([])
-                    for(let j = 0; j < SCREEN_ROWS; j++)
-                    {
-                        deletions[i].push(0);
-                    }
-                }
-
                 let delay = 0;
 
                 for (let i = 0; i < to_delete.length; i++) {
-                    //let value = Math.floor(Math.random() * 5);
-                    let d_x = to_delete[i][0];
-                    let d_y = to_delete[i][1];
+                    let grid_object = to_delete[i]
+                    let d_x = grid_object.x;
+                    let d_y = grid_object.y;
 
-
-                    if (!screen.grid[d_x][d_y].broken) {
-
-                        deletions[d_x][d_y] = 1;
-
-                        screen.grid[d_x][d_y].broken = true;
-                        screen.grid[to_delete[i][0]][to_delete[i][1]].matchable = false;
-                        delay += 25;
-                        if (delay > MOVE_TIMER * 4) {
-                            delay = MOVE_TIMER * 4;
-                        }
-
-                        let grid_object = screen.grid[d_x][d_y];
-                        screen.time.delayedCall(delay, function () {
-                            set_block_texture(grid_object.x, grid_object.y);
-                            screen.cameras.main.shake(25, 0.0125, true);
-                        }, [], screen);
+                    grid_object.broken = true;
+                    grid_object.matchable = false;
+                    delay += 50;
+                    if (delay > MOVE_TIMER * 4) {
+                        delay = MOVE_TIMER * 4;
                     }
-                    if (to_delete[i][0] == screen.me_x && to_delete[i][1] == screen.me_y) {
+
+                    screen.time.delayedCall(delay, function () {
+                        set_block_texture(grid_object.x, grid_object.y);
+                        screen.cameras.main.shake(25, 0.0125, true);
+                    }, [], screen);
+
+                    if (grid_object.x == screen.me_x && grid_object.y == screen.me_y) {
                         set_border(false);
                     }
                 }
 
                 screen.time.delayedCall(MOVE_TIMER * 4, function () {
+                    let deletions = [];
+                    for (let i = 0; i < SCREEN_COLUMNS; i++)  {
+                        deletions.push([])
+                        for(let j = 0; j < SCREEN_ROWS; j++)
+                        {
+                            deletions[i].push(0);
+                        }
+                    }
+                    for (let i = 0; i < to_delete.length; i++) {
+                        deletions[to_delete[i].x][to_delete[i].y] = 1;
+                    }
+
                     let max_offset = 0;
                     for (let i = 0; i < SCREEN_COLUMNS; i++) {
                         let offset = 0;
@@ -368,9 +368,13 @@ let  StartScreen = new Phaser.Class({
                             } else {
                                 if (offset > 0) {
                                     let object = screen.grid[i][j];
-                                    if (screen.me_x == i && screen.me_y == j)
-                                    {
-                                        screen.me_y += offset;
+                                    if (screen.me_x == i && screen.me_y == j) {
+                                        //I have two options here: move the player down
+                                        //or leave him where he is. Leaving him where he is
+                                        //is fine except that if he's holding something he
+                                        //will suddenly be holding a different block
+                                        // screen.me_y += offset;
+                                        set_border(false);
                                     }
                                     set_object_to_position(object, i, j + offset);
                                 }
@@ -383,10 +387,6 @@ let  StartScreen = new Phaser.Class({
                             }
                         }
                     }
-                    screen.time.delayedCall(MOVE_TIMER * (max_offset + 1), function () {
-                        screen.disable_matches = false;
-                    }, [], screen);
-
                 }, [], screen);
             }
 
