@@ -1,17 +1,18 @@
 const GRID_SIZE = 32;
 const SCREEN_COLUMNS = 6;
-const SCREEN_ROWS = 6;
+const SCREEN_ROWS = 5;
 const SCREEN_WIDTH_OFFSET = GRID_SIZE;
-const SCREEN_HEIGHT_OFFSET = GRID_SIZE/2;
+const SCREEN_HEIGHT_OFFSET = 3*GRID_SIZE;
 const SCREEN_WIDTH = GRID_SIZE * SCREEN_COLUMNS + 2 * SCREEN_WIDTH_OFFSET;
-const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS + 2 * SCREEN_HEIGHT_OFFSET;
+const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS + SCREEN_HEIGHT_OFFSET + GRID_SIZE/2;
 const DEPTHS =
 {
     BG : 0,
     BLOCK: 10,
     PLAYER_BLOCK: 20,
     PLAYER: 30,
-    PLAYER_BORDER: 31
+    PLAYER_BORDER: 31,
+    FG: 40
 };
 
 //const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
@@ -30,6 +31,8 @@ let  StartScreen = new Phaser.Class({
         this.load.spritesheet('blocks', 'assets/match3_character.png', { frameWidth: 32, frameHeight: 32,  margin: 1, spacing: 1});
         this.load.image('corner', 'assets/corner.png');
         this.load.image('frame', 'assets/frame.png');
+        this.load.image('squid', 'assets/squid.png');
+        this.load.image('tentacle', 'assets/tentacle.png');
     },
 
     //--------------------------------------------------------------------------
@@ -54,64 +57,120 @@ let  StartScreen = new Phaser.Class({
         screen.input.addPointer(5);
         screen.me_state = 10;
         screen.me_moving = false;
-        screen.grid = [];
         screen.me_x = 0;
         screen.me_y = 0;
         screen.current_blocks = 0;
         screen.current_chain = 0;
-        for (let x = 0; x < SCREEN_COLUMNS; x++) {
-            screen.grid.push([]);
-            for (let y = 0; y < SCREEN_ROWS; y++) {
-                let value = Math.floor(Math.random() * 5);
-                if (x == screen.me_x && y == screen.me_y && value == 5)
-                {
-                    value--;
-                }
-                if (value != 5) {
-                    screen.grid[x].push({
-                        x: x,
-                        y: y,
-                        valid: true,
-                        broken: false,
-                        value:value,
-                        matchable: true,
-                        sprite: screen.add.tileSprite(
-                            xPixel(x),
-                            yPixel(y),
-                            GRID_SIZE, GRID_SIZE, 'blocks',value),
-                        tweens: null
-                    });
-                    screen.grid[x][y].sprite.setDepth(DEPTHS.BLOCK);
-                    screen.grid[x][y].sprite.setInteractive();
-                    screen.grid[x][y].sprite.setData('parent',screen.grid[x][y]);
-                    screen.grid[x][y].sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
-                        function(pointer, localX, localY, event) {
-                            let parent = this.data.values.parent;
-                            let dx = parent.x - screen.me_x;
-                            let dy = parent.y - screen.me_y;
-                            let d_manhattan = Math.abs(dx) + Math.abs(dy);
-                            if (0 == d_manhattan) {
-                                try_selection();
-                            } else if (1 == d_manhattan)
-                            {
-                                move_character(dx, dy);
-                            }
 
-                        }, screen.grid[x][y].sprite
-                    );
-                } else {
-                    screen.grid[x].push({
-                        x: x,
-                        y: y,
-                        matchable: false,
-                        valid: false,
-                        broken: false,
-                        value: value,
-                        sprite: null,
-                        tweens: null});
+        let make_board = function(columns, rows, generator)
+        {
+            let grid = [];
+            for (let x = 0; x < columns; x++)
+            {
+                grid.push([]);
+                for (let y = 0; y < rows; y++)
+                {
+                    grid[x].push(generator(x, y, grid));
                 }
             }
+            return grid;
+        };
+
+        let random_tile_generator = function(x, y, grid)
+        {
+            let value = Math.floor(Math.random() * 5);
+            if (x == screen.me_x && y == screen.me_y && value == 5)
+            {
+                value--;
+            }
+            if (value != 5) {
+                let new_tile = {
+                    x: x,
+                    y: y,
+                    valid: true,
+                    broken: false,
+                    value:value,
+                    matchable: true,
+                    sprite: screen.add.tileSprite(
+                        xPixel(x),
+                        yPixel(y),
+                        GRID_SIZE, GRID_SIZE, 'blocks',value),
+                    tweens: null
+                };
+                new_tile.sprite.setDepth(DEPTHS.BLOCK);
+                new_tile.sprite.setInteractive();
+                new_tile.sprite.setData('parent',new_tile);
+                new_tile.sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+                    function(pointer, localX, localY, event) {
+                        let parent = this.data.values.parent;
+                        let dx = parent.x - screen.me_x;
+                        let dy = parent.y - screen.me_y;
+                        let d_manhattan = Math.abs(dx) + Math.abs(dy);
+                        if (0 == d_manhattan) {
+                            try_selection();
+                        } else if (1 == d_manhattan)
+                        {
+                            move_character(dx, dy);
+                        }
+
+                    }, new_tile.sprite
+                );
+                return new_tile;
+            } else {
+                return {
+                    x: x,
+                    y: y,
+                    matchable: false,
+                    valid: false,
+                    broken: false,
+                    value: value,
+                    sprite: null,
+                    tweens: null};
+            }
+        };
+
+        screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, random_tile_generator);
+
+        let add_squid = function() {
+            let squid = screen.add.sprite(SCREEN_WIDTH / 2, xPixel(-1.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
+
+            let left_tentacle = screen.add.sprite(xPixel(.5),
+                yPixel(0), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
+            let right_tentacle = screen.add.sprite(xPixel(4.5),
+                yPixel(0), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
+            right_tentacle.flipX = true;
+            let squid_tween = screen.tweens.add({
+                targets: [squid, left_tentacle, right_tentacle],
+                //x: xPixel(1),
+                y: '+=5',
+                ease: 'Sine',
+                duration: 4000,
+                repeat: -1,
+                yoyo: true,
+            });
+
+            let add_tentacle = function () {
+                let tentacle = screen.add.sprite(xPixel(Math.floor(Math.random() * SCREEN_COLUMNS)),
+                    yPixel(10), 'tentacle').setDepth(DEPTHS.FG);
+                let tentacle_tween = screen.tweens.add({
+                    targets: tentacle,
+                    //x: xPixel(1),
+                    y: yPixel(3),
+                    ease: 'Quad',
+                    duration: 4000,
+                    repeat: -1,
+                    yoyo: true,
+                });
+                tentacle_tween.setCallback('onRepeat', function () {
+                    this.x = xPixel(Math.floor(Math.random() * 6));
+                    this.flipX = [true, false][Math.floor(Math.random() * 2)];
+                    //screen.cameras.main.shake(5000, 0.003, true);
+                }, [], tentacle)
+            };
+            add_tentacle();
+            screen.time.delayedCall(2000, add_tentacle);
         }
+        add_squid();
 
         screen.me_border = screen.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
         let set_border = function(bool) {
@@ -155,6 +214,110 @@ let  StartScreen = new Phaser.Class({
                 screen.align_border(screen.me_x, screen.me_y);
             }
         });
+
+        let handle_broken_blocks_puzzle_mode = function(new_matching_blocks)
+        {
+            let delay = 0;
+            for (let i = 0; i < new_matching_blocks.length; i++) {
+                let grid_object = new_matching_blocks[i]
+
+                grid_object.broken = true;
+                grid_object.valid = false;
+                delay += 50;
+                if (delay > MOVE_TIMER * 4) {
+                    delay = MOVE_TIMER * 4;
+                }
+
+                screen.time.delayedCall(delay, function () {
+                    set_block_texture(grid_object.x, grid_object.y);
+                    screen.cameras.main.shake(25, 0.0125, true);
+                }, [], screen);
+
+                if (grid_object.x == screen.me_x && grid_object.y == screen.me_y) {
+                    set_border(false);
+                }
+            }
+        };
+
+        let handle_broken_blocks_arcade_mode = function(new_matching_blocks)
+        {
+            let delay = 0;
+            for (let i = 0; i < new_matching_blocks.length; i++) {
+                let grid_object = new_matching_blocks[i]
+
+                grid_object.broken = true;
+                grid_object.matchable = false;
+                delay += 50;
+                if (delay > MOVE_TIMER * 4) {
+                    delay = MOVE_TIMER * 4;
+                }
+
+                screen.time.delayedCall(delay, function () {
+                    set_block_texture(grid_object.x, grid_object.y);
+                    screen.cameras.main.shake(25, 0.0125, true);
+                }, [], screen);
+
+                if (grid_object.x == screen.me_x && grid_object.y == screen.me_y) {
+                    set_border(false);
+                }
+            }
+
+            screen.time.delayedCall(MOVE_TIMER * 4, function () {
+                let deletions = [];
+                for (let i = 0; i < SCREEN_COLUMNS; i++)  {
+                    deletions.push([])
+                    for(let j = 0; j < SCREEN_ROWS; j++)
+                    {
+                        deletions[i].push(0);
+                    }
+                }
+                for (let i = 0; i < new_matching_blocks.length; i++) {
+                    deletions[new_matching_blocks[i].x][new_matching_blocks[i].y] = 1;
+                }
+
+                let max_offset = 0;
+                for (let i = 0; i < SCREEN_COLUMNS; i++) {
+                    let offset = 0;
+                    let deleted_grid_objects = [];
+                    for (let j = SCREEN_ROWS - 1; j >= 0; j--) {
+                        if (deletions[i][j] == 1) {
+                            offset++;
+                            if (offset > max_offset) {
+                                max_offset = offset;
+                            }
+
+                            let object_new_matching_blocks = screen.grid[i][j];
+                            object_new_matching_blocks.sprite.y = -offset * GRID_SIZE + GRID_SIZE / 2 + SCREEN_HEIGHT_OFFSET;
+                            object_new_matching_blocks.broken = false;
+                            object_new_matching_blocks.valid = true;
+                            object_new_matching_blocks.matchable = false;
+                            object_new_matching_blocks.value = Math.floor(Math.random() * 5);
+                            set_block_texture(i,j);
+                            deleted_grid_objects.push(object_new_matching_blocks);
+                        } else {
+                            if (offset > 0) {
+                                let object = screen.grid[i][j];
+                                if (screen.me_x == i && screen.me_y == j) {
+                                    //I have two options here: move the player down
+                                    //or leave him where he is. Leaving him where he is
+                                    //is fine except that if he's holding something he
+                                    //will suddenly be holding a different block
+                                    // screen.me_y += offset;
+                                    set_border(false);
+                                }
+                                set_object_to_position(object, i, j + offset);
+                            }
+                        }
+
+                    }
+                    if (offset > 0) {
+                        for (let k = 0; k < offset; k++) {
+                            set_object_to_position(deleted_grid_objects[k], i, offset-1-k);
+                        }
+                    }
+                }
+            }, [], screen);
+        }
 
         let set_block_texture = function(x,y)
         {
@@ -232,11 +395,12 @@ let  StartScreen = new Phaser.Class({
             let old_y = screen.me_y;
             screen.me_x += delta_x;
             screen.me_y += delta_y;
-            let new_value = screen.grid[screen.me_x][screen.me_y].value;
+
+            let old_object = screen.grid[old_x][old_y];
+            let new_object = screen.grid[screen.me_x][screen.me_y];
+
             if (is_border_active())
             {
-                let old_object = screen.grid[old_x][old_y];
-                let new_object = screen.grid[screen.me_x][screen.me_y];
                 old_object.sprite.setDepth(DEPTHS.PLAYER_BLOCK);
                 new_object.sprite.setDepth(DEPTHS.BLOCK);
                 set_object_to_position(new_object, old_x, old_y);
@@ -244,8 +408,6 @@ let  StartScreen = new Phaser.Class({
             }
             else
             {
-                let old_object = screen.grid[old_x][old_y];
-                let new_object = screen.grid[screen.me_x][screen.me_y];
                 old_object.sprite.setDepth(DEPTHS.BLOCK);
                 new_object.sprite.setDepth(DEPTHS.PLAYER_BLOCK);
                 screen.me_sprite.setTexture('blocks', screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
@@ -257,48 +419,50 @@ let  StartScreen = new Phaser.Class({
         };
 
         screen.clear_matching = function() {
-            let to_delete = [];
-            let add_to_delete = function(object)
+            let new_matching_blocks = [];
+            let add_new_matching_blocks = function(object)
             {
                 if (!object.broken)
                 {
-                    to_delete.push(object);
+                    new_matching_blocks.push(object);
                 }
             }
             for (let i = 0; i < SCREEN_COLUMNS; i++) {
                 let current_run_ij = 1
                 let previous_value_ij = -1;
-                let current_run_ji = 1
-                let previous_value_ji = -1;
                 for (let j = 0; j < SCREEN_ROWS; j++) {
                     if (screen.grid[i][j].matchable &&
                         screen.grid[i][j].value == previous_value_ij) {
                         current_run_ij++;
                         if (current_run_ij == 3) {
-                            add_to_delete(screen.grid[i][j - 2]);
-                            add_to_delete(screen.grid[i][j - 1]);
+                            add_new_matching_blocks(screen.grid[i][j - 2]);
+                            add_new_matching_blocks(screen.grid[i][j - 1]);
                         }
                         if (current_run_ij >= 3) {
-                            add_to_delete(screen.grid[i][j]);
+                            add_new_matching_blocks(screen.grid[i][j]);
                         }
-                    }
-                    else if (!screen.grid[i][j].matchable) {
+                    } else if (!screen.grid[i][j].matchable) {
                         previous_value_ij = -1;
                         current_run_ij = 1;
-                    }
-                    else {
+                    } else {
                         previous_value_ij = screen.grid[i][j].value;
                         current_run_ij = 1;
                     }
+                }
+            }
+            for (let i = 0; i < SCREEN_ROWS; i++) {
+                let current_run_ji = 1
+                let previous_value_ji = -1;
+                for (let j = 0; j < SCREEN_COLUMNS; j++) {
                     if (screen.grid[j][i].matchable &&
                         screen.grid[j][i].value == previous_value_ji) {
                         current_run_ji++;
                         if (current_run_ji == 3) {
-                            add_to_delete(screen.grid[j-2][i]);
-                            add_to_delete(screen.grid[j-1][i]);
+                            add_new_matching_blocks(screen.grid[j-2][i]);
+                            add_new_matching_blocks(screen.grid[j-1][i]);
                         }
                         if (current_run_ji >= 3) {
-                            add_to_delete(screen.grid[j][i]);
+                            add_new_matching_blocks(screen.grid[j][i]);
                         }
                     }
                     else if (!screen.grid[j][i].matchable) {
@@ -312,9 +476,9 @@ let  StartScreen = new Phaser.Class({
                 }
             }
 
-            if (to_delete.length != 0) {
+            if (new_matching_blocks.length != 0) {
                 screen.current_chain++;
-                screen.current_blocks+=to_delete.length;
+                screen.current_blocks+=new_matching_blocks.length;
                 screen.current_blocks_text.setText(screen.current_blocks);
 
                 screen.time.delayedCall(MOVE_TIMER * (4+6), function () {
@@ -324,88 +488,11 @@ let  StartScreen = new Phaser.Class({
                         screen.current_blocks_text.setText(screen.current_blocks);
                     }
                 }, [], screen);
-                let delay = 0;
 
-                for (let i = 0; i < to_delete.length; i++) {
-                    let grid_object = to_delete[i]
-                    let d_x = grid_object.x;
-                    let d_y = grid_object.y;
-
-                    grid_object.broken = true;
-                    grid_object.matchable = false;
-                    delay += 50;
-                    if (delay > MOVE_TIMER * 4) {
-                        delay = MOVE_TIMER * 4;
-                    }
-
-                    screen.time.delayedCall(delay, function () {
-                        set_block_texture(grid_object.x, grid_object.y);
-                        screen.cameras.main.shake(25, 0.0125, true);
-                    }, [], screen);
-
-                    if (grid_object.x == screen.me_x && grid_object.y == screen.me_y) {
-                        set_border(false);
-                    }
-                }
-
-                screen.time.delayedCall(MOVE_TIMER * 4, function () {
-                    let deletions = [];
-                    for (let i = 0; i < SCREEN_COLUMNS; i++)  {
-                        deletions.push([])
-                        for(let j = 0; j < SCREEN_ROWS; j++)
-                        {
-                            deletions[i].push(0);
-                        }
-                    }
-                    for (let i = 0; i < to_delete.length; i++) {
-                        deletions[to_delete[i].x][to_delete[i].y] = 1;
-                    }
-
-                    let max_offset = 0;
-                    for (let i = 0; i < SCREEN_COLUMNS; i++) {
-                        let offset = 0;
-                        let deleted_grid_objects = [];
-                        for (let j = SCREEN_ROWS - 1; j >= 0; j--) {
-                            if (deletions[i][j] == 1) {
-                                offset++;
-                                if (offset > max_offset) {
-                                    max_offset = offset;
-                                }
-
-                                let object_to_delete = screen.grid[i][j];
-                                object_to_delete.sprite.y = -offset * GRID_SIZE + GRID_SIZE / 2 + SCREEN_HEIGHT_OFFSET;
-                                object_to_delete.broken = false;
-                                object_to_delete.valid = true;
-                                object_to_delete.matchable = false;
-                                object_to_delete.value = Math.floor(Math.random() * 5);
-                                set_block_texture(i,j);
-                                deleted_grid_objects.push(object_to_delete);
-                            } else {
-                                if (offset > 0) {
-                                    let object = screen.grid[i][j];
-                                    if (screen.me_x == i && screen.me_y == j) {
-                                        //I have two options here: move the player down
-                                        //or leave him where he is. Leaving him where he is
-                                        //is fine except that if he's holding something he
-                                        //will suddenly be holding a different block
-                                        // screen.me_y += offset;
-                                        set_border(false);
-                                    }
-                                    set_object_to_position(object, i, j + offset);
-                                }
-                            }
-
-                        }
-                        if (offset > 0) {
-                            for (let k = 0; k < offset; k++) {
-                                set_object_to_position(deleted_grid_objects[k], i, offset-1-k);
-                            }
-                        }
-                    }
-                }, [], screen);
+                handle_broken_blocks_arcade_mode(new_matching_blocks);
             }
 
-            return to_delete.length != 0;
+            return new_matching_blocks.length != 0;
         };
 
         screen.m_cursor_keys = screen.input.keyboard.createCursorKeys();
