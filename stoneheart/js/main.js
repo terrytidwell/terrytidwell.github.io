@@ -253,7 +253,11 @@ let StartScreen = new Phaser.Class({
                                     //or leave him where he is. Leaving him where he is
                                     //is fine except that if he's holding something he
                                     //will suddenly be holding a different block
+
+                                    //option 1:
                                     // screen.me_y += offset;
+
+                                    //option 2:
                                     set_border(false);
                                 }
                                 set_object_to_position(object, i, j + offset);
