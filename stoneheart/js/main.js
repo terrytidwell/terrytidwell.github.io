@@ -15,9 +15,13 @@ const DEPTHS =
     FG: 40
 };
 
-//const PNG_TO_GRID_SCALE = GRID_SIZE/PNG_GRID_SIZE;
+let Util = {
+   manhattan: function(x1, x2, y1, y2) {
+       return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+   }
+} ;
 
-let  StartScreen = new Phaser.Class({
+let StartScreen = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
@@ -37,30 +41,23 @@ let  StartScreen = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
-        let MOVE_TIMER = 125;
         let screen = this;
+
+        let MOVE_TIMER = 125;
+
+        //----------------------------------------------------------------------
+        // HELPER FUNCTIONS
+        //----------------------------------------------------------------------
 
         let xPixel = function(x)
         {
             return x * GRID_SIZE + GRID_SIZE/2 + SCREEN_WIDTH_OFFSET;
         }
+
         let yPixel = function(y)
         {
             return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_HEIGHT_OFFSET;
         }
-
-        screen.current_blocks_text = this.add.text(SCREEN_WIDTH,
-            SCREEN_HEIGHT,
-            "0", { fontSize: '40px', fill: '#FFF' })
-            .setOrigin(1 , 1).setVisible(false);
-
-        screen.input.addPointer(5);
-        screen.me_state = 10;
-        screen.me_moving = false;
-        screen.me_x = 0;
-        screen.me_y = 0;
-        screen.current_blocks = 0;
-        screen.current_chain = 0;
 
         let make_board = function(columns, rows, generator)
         {
@@ -78,7 +75,7 @@ let  StartScreen = new Phaser.Class({
 
         let random_tile_generator = function(x, y, grid)
         {
-            let value = Math.floor(Math.random() * 5);
+            let value = Phaser.Math.Between(0,4);
             if (x == screen.me_x && y == screen.me_y && value == 5)
             {
                 value--;
@@ -89,7 +86,7 @@ let  StartScreen = new Phaser.Class({
                     y: y,
                     valid: true,
                     broken: false,
-                    value:value,
+                    value: value,
                     matchable: true,
                     sprite: screen.add.tileSprite(
                         xPixel(x),
@@ -103,14 +100,13 @@ let  StartScreen = new Phaser.Class({
                 new_tile.sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                     function(pointer, localX, localY, event) {
                         let parent = this.data.values.parent;
-                        let dx = parent.x - screen.me_x;
-                        let dy = parent.y - screen.me_y;
-                        let d_manhattan = Math.abs(dx) + Math.abs(dy);
+                        let d_manhattan =
+                            Util.manhattan(parent.x, screen.me_x, parent.y, screen.me_y);
                         if (0 == d_manhattan) {
                             try_selection();
                         } else if (1 == d_manhattan)
                         {
-                            move_character(dx, dy);
+                            move_character(parent.x - screen.me_x, parent.y - screen.me_y);
                         }
 
                     }, new_tile.sprite
@@ -123,13 +119,11 @@ let  StartScreen = new Phaser.Class({
                     matchable: false,
                     valid: false,
                     broken: false,
-                    value: value,
+                    value: -1,
                     sprite: null,
                     tweens: null};
             }
         };
-
-        screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, random_tile_generator);
 
         let add_squid = function() {
             let squid = screen.add.sprite(SCREEN_WIDTH / 2, xPixel(-1.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
@@ -150,8 +144,9 @@ let  StartScreen = new Phaser.Class({
             });
 
             let add_tentacle = function () {
-                let tentacle = screen.add.sprite(xPixel(Math.floor(Math.random() * SCREEN_COLUMNS)),
+                let tentacle = screen.physics.add.sprite(xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1)),
                     yPixel(10), 'tentacle').setDepth(DEPTHS.FG);
+                screen.player_dangers.add(tentacle);
                 let tentacle_tween = screen.tweens.add({
                     targets: tentacle,
                     //x: xPixel(1),
@@ -162,58 +157,25 @@ let  StartScreen = new Phaser.Class({
                     yoyo: true,
                 });
                 tentacle_tween.setCallback('onRepeat', function () {
-                    this.x = xPixel(Math.floor(Math.random() * 6));
-                    this.flipX = [true, false][Math.floor(Math.random() * 2)];
-                    //screen.cameras.main.shake(5000, 0.003, true);
+                    this.x = xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1));
+                    this.flipX = [true, false][Phaser.Math.Between(0, 1)];
                 }, [], tentacle)
             };
             add_tentacle();
             screen.time.delayedCall(2000, add_tentacle);
-        }
-        add_squid();
+        };
 
-        screen.me_border = screen.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
         let set_border = function(bool) {
             screen.me_border.visible = bool;
-        }
+        };
 
         let toggle_border = function() {
             set_border(!screen.me_border.visible);
         };
-        set_border(false);
 
         let is_border_active = function() {
             return screen.me_border.visible;
-        }
-
-        screen.me_sprite = screen.add.tileSprite(
-            0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
-            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
-
-        screen.align_border = function(x, y)
-        {
-            screen.me_sprite.setTexture('blocks',
-                screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
-            screen.me_sprite.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
-            screen.me_sprite.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
-            screen.me_border.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
-            screen.me_border.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
         };
-
-        screen.align_border(screen.me_x, screen.me_y);
-
-        screen.time.addEvent({
-            "delay": 750,
-            "loop": true,
-            "callback": function () {
-                if (screen.me_state == 10) {
-                    screen.me_state = 15;
-                } else {
-                    screen.me_state = 10;
-                }
-                screen.align_border(screen.me_x, screen.me_y);
-            }
-        });
 
         let handle_broken_blocks_puzzle_mode = function(new_matching_blocks)
         {
@@ -263,28 +225,17 @@ let  StartScreen = new Phaser.Class({
             }
 
             screen.time.delayedCall(MOVE_TIMER * 4, function () {
-                let deletions = [];
-                for (let i = 0; i < SCREEN_COLUMNS; i++)  {
-                    deletions.push([])
-                    for(let j = 0; j < SCREEN_ROWS; j++)
-                    {
-                        deletions[i].push(0);
-                    }
-                }
+                let deletions = make_board(SCREEN_COLUMNS, SCREEN_ROWS,function() {return false; });
                 for (let i = 0; i < new_matching_blocks.length; i++) {
-                    deletions[new_matching_blocks[i].x][new_matching_blocks[i].y] = 1;
+                    deletions[new_matching_blocks[i].x][new_matching_blocks[i].y] = true;
                 }
 
-                let max_offset = 0;
                 for (let i = 0; i < SCREEN_COLUMNS; i++) {
                     let offset = 0;
                     let deleted_grid_objects = [];
                     for (let j = SCREEN_ROWS - 1; j >= 0; j--) {
-                        if (deletions[i][j] == 1) {
+                        if (deletions[i][j]) {
                             offset++;
-                            if (offset > max_offset) {
-                                max_offset = offset;
-                            }
 
                             let object_new_matching_blocks = screen.grid[i][j];
                             object_new_matching_blocks.sprite.y = -offset * GRID_SIZE + GRID_SIZE / 2 + SCREEN_HEIGHT_OFFSET;
@@ -333,8 +284,9 @@ let  StartScreen = new Phaser.Class({
         {
             let object=screen.grid[new_x][new_y];
             let sprite=object.sprite;
-            let dx = Math.abs( (sprite.x - xPixel(new_x))/GRID_SIZE)
-                + Math.abs((sprite.y - yPixel(new_y))/GRID_SIZE);
+            let dx = Util.manhattan( sprite.x, xPixel(new_x), sprite.y, yPixel(new_y));
+            //go from pixel space to grid space
+            dx /= GRID_SIZE;
             if (dx == 0)
             {
                 return;
@@ -345,7 +297,6 @@ let  StartScreen = new Phaser.Class({
                 object.tweens = null;
             }
             object.matchable = false;
-
 
             let delay = MOVE_TIMER * dx;
 
@@ -382,7 +333,7 @@ let  StartScreen = new Phaser.Class({
                 screen.me_y + delta_y >= screen.grid[screen.me_x + delta_x].length || //bounds check
                 !screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].valid  || //valid block check
                 (is_border_active() && screen.grid[screen.me_x + delta_x][screen.me_y + delta_y].broken)
-                //don't switch with broken
+            //don't switch with broken
             )
             {
                 //no move
@@ -418,63 +369,47 @@ let  StartScreen = new Phaser.Class({
             }, [], screen);
         };
 
-        screen.clear_matching = function() {
+        let find_new_matches = function () {
             let new_matching_blocks = [];
-            let add_new_matching_blocks = function(object)
+
+            let matches = function(x, y, square_to_match)
             {
-                if (!object.broken)
-                {
-                    new_matching_blocks.push(object);
-                }
+                //this square to match is a candidate match
+                return !square_to_match.broken && square_to_match.matchable &&
+                    //the other square is in bounds
+                    x >= 0 && x < SCREEN_COLUMNS && y >= 0 && y < SCREEN_ROWS && //bounds check
+                    //the other square is a match
+                    screen.grid[x][y].matchable && screen.grid[x][y].value == square_to_match.value;
             }
+
             for (let i = 0; i < SCREEN_COLUMNS; i++) {
-                let current_run_ij = 1
-                let previous_value_ij = -1;
                 for (let j = 0; j < SCREEN_ROWS; j++) {
-                    if (screen.grid[i][j].matchable &&
-                        screen.grid[i][j].value == previous_value_ij) {
-                        current_run_ij++;
-                        if (current_run_ij == 3) {
-                            add_new_matching_blocks(screen.grid[i][j - 2]);
-                            add_new_matching_blocks(screen.grid[i][j - 1]);
-                        }
-                        if (current_run_ij >= 3) {
-                            add_new_matching_blocks(screen.grid[i][j]);
-                        }
-                    } else if (!screen.grid[i][j].matchable) {
-                        previous_value_ij = -1;
-                        current_run_ij = 1;
-                    } else {
-                        previous_value_ij = screen.grid[i][j].value;
-                        current_run_ij = 1;
+                    let candidate = screen.grid[i][j];
+                    let x_o__ = matches(i - 2, j, candidate);
+                    let _xo__ = matches(i - 1, j, candidate);
+                    let __ox_ = matches(i + 1, j, candidate);
+                    let __o_x = matches(i + 2, j, candidate);
+                    let y_o__ = matches(i, j - 2, candidate);
+                    let _yo__ = matches(i, j - 1, candidate);
+                    let __oy_ = matches(i, j + 1, candidate);
+                    let __o_y = matches(i, j + 2, candidate);
+                    if ((x_o__ && _xo__) ||
+                        (_xo__ && __ox_) ||
+                        (__ox_ && __o_x) ||
+                        (y_o__ && _yo__) ||
+                        (_yo__ && __oy_) ||
+                        (__oy_ && __o_y))
+                    {
+                        new_matching_blocks.push(candidate);
                     }
                 }
             }
-            for (let i = 0; i < SCREEN_ROWS; i++) {
-                let current_run_ji = 1
-                let previous_value_ji = -1;
-                for (let j = 0; j < SCREEN_COLUMNS; j++) {
-                    if (screen.grid[j][i].matchable &&
-                        screen.grid[j][i].value == previous_value_ji) {
-                        current_run_ji++;
-                        if (current_run_ji == 3) {
-                            add_new_matching_blocks(screen.grid[j-2][i]);
-                            add_new_matching_blocks(screen.grid[j-1][i]);
-                        }
-                        if (current_run_ji >= 3) {
-                            add_new_matching_blocks(screen.grid[j][i]);
-                        }
-                    }
-                    else if (!screen.grid[j][i].matchable) {
-                        previous_value_ji = -1;
-                        current_run_ji = 1;
-                    }
-                    else {
-                        previous_value_ji = screen.grid[j][i].value;
-                        current_run_ji = 1;
-                    }
-                }
-            }
+
+            return new_matching_blocks;
+        }
+
+        screen.clear_matching = function() {
+            let new_matching_blocks = find_new_matches();
 
             if (new_matching_blocks.length != 0) {
                 screen.current_chain++;
@@ -495,16 +430,6 @@ let  StartScreen = new Phaser.Class({
             return new_matching_blocks.length != 0;
         };
 
-        screen.m_cursor_keys = screen.input.keyboard.createCursorKeys();
-        screen.m_cursor_keys.down.on('down', function(event) {
-            move_character(0,1)});
-        screen.m_cursor_keys.up.on('down', function(event) {
-            move_character(0,-1)});
-        screen.m_cursor_keys.left.on('down', function(event) {
-            move_character(-1,0)});
-        screen.m_cursor_keys.right.on('down', function(event) {
-            move_character(1,0)});
-
         let try_selection = function()
         {
             if (!is_border_active() && screen.grid[screen.me_x][screen.me_y].broken)
@@ -515,6 +440,90 @@ let  StartScreen = new Phaser.Class({
             toggle_border();
         };
 
+        screen.align_border = function(x, y)
+        {
+            screen.me_sprite.setTexture('blocks',
+                screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
+            screen.me_sprite.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
+            screen.me_sprite.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
+            screen.me_border.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
+            screen.me_border.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
+        };
+
+        //----------------------------------------------------------------------
+        // SETUP GAME OBJECTS
+        //----------------------------------------------------------------------
+
+        //set up combo text
+        screen.current_blocks_text = this.add.text(SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            "0", { fontSize: '40px', fill: '#FFF' })
+            .setOrigin(1 , 1).setVisible(false);
+
+        //set up grid of blocks
+        screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, random_tile_generator);
+
+        //set up player
+        screen.me_hit = false;
+        screen.me_state = 10;
+        screen.me_moving = false;
+        screen.me_x = 0;
+        screen.me_y = 0;
+        screen.current_blocks = 0;
+        screen.current_chain = 0;
+        screen.player_dangers = this.physics.add.group();
+
+        screen.me_border = screen.physics.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
+        set_border(false);
+
+        screen.me_sprite = screen.add.tileSprite(
+            0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
+            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
+
+        screen.me_heartbeat = screen.time.addEvent({
+            "delay": MOVE_TIMER * 6,
+            "loop": true,
+            "callback": function () {
+                if (screen.me_state == 10) {
+                    screen.me_state = 15;
+                } else {
+                    screen.me_state = 10;
+                }
+            }
+        });
+
+        this.physics.add.overlap(screen.me_border, screen.player_dangers,
+            function() {
+                if (!screen.me_hit)
+                {
+                    screen.me_hit = true;
+                    screen.me_sprite.alpha = 0.5;
+                    screen.me_heartbeat.delay = MOVE_TIMER;
+                    screen.time.delayedCall(MOVE_TIMER * 10, function(){
+                        screen.me_sprite.alpha = 1;
+                        screen.me_heartbeat.delay = MOVE_TIMER * 6;
+                    });
+                    screen.time.delayedCall(MOVE_TIMER * 11, function(){ screen.me_hit = false; });
+                    screen.cameras.main.shake(125, 0.0125, true);
+                }
+            }, null, screen);
+
+        //set up enemy
+        add_squid();
+
+        //----------------------------------------------------------------------
+        // SETUP GAME INPUT
+        //----------------------------------------------------------------------
+        screen.input.addPointer(5);
+        screen.m_cursor_keys = screen.input.keyboard.createCursorKeys();
+        screen.m_cursor_keys.down.on('down', function(event) {
+            move_character(0,1)});
+        screen.m_cursor_keys.up.on('down', function(event) {
+            move_character(0,-1)});
+        screen.m_cursor_keys.left.on('down', function(event) {
+            move_character(-1,0)});
+        screen.m_cursor_keys.right.on('down', function(event) {
+            move_character(1,0)});
         screen.space_key = screen.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         screen.space_key.on('down', try_selection);
     },
@@ -542,7 +551,7 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 20 * GRID_SIZE },
+            gravity: { y: 0 },
             debug: false
         }
     },
