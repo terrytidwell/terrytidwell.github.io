@@ -15,19 +15,130 @@ const DEPTHS =
     FG: 40
 };
 
+let g_current_level = 0;
+let g_current_level_names = [
+    "Puzzle Sample",
+    "The Kraken"
+];
+
 let Util = {
    manhattan: function(x1, x2, y1, y2) {
        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
    }
 } ;
 
-let StartScreen = new Phaser.Class({
+let  StartScene= new Phaser.Class({
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'StartScene', active: true});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        this.input.addPointer(5);
+
+        let font_size = 16;
+        let font_size_str = '' + font_size + 'px';
+        let max_width = 0;
+        this.play_button = this.add.text(
+            SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+            g_current_level_names[g_current_level], { fontSize: font_size_str, fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        this.play_button.alpha = 0.5;
+        this.play_button.setInteractive();
+        this.play_button.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.play_button.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.play_button.on('pointerup',
+            function() {
+                this.scene.start('GameScene');
+                this.scene.stop('StartScene');
+            }, this
+        );
+
+        for (let i = 0; i < g_current_level_names.length; i++)
+        {
+            this.play_button.setText(g_current_level_names[i]);
+            max_width = Math.max(max_width, this.play_button.width);
+        }
+        this.play_button.setText(g_current_level_names[g_current_level]);
+
+        this.previous = this.add.text(SCREEN_WIDTH / 2 - max_width / 2 - font_size/2,
+            SCREEN_HEIGHT / 2,
+            "<<", { fontSize: font_size_str, fill: '#FFF' })
+            .setOrigin(1 , 0.5);
+        this.previous.setInteractive();
+        this.previous.alpha = 0.5;
+        this.previous.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.previous.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.previous.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                g_current_level-=1;
+                if (g_current_level < 0)
+                {
+                    g_current_level = g_current_level_names.length - 1;
+                }
+                this.play_button.setText(g_current_level_names[g_current_level]);
+            }, this
+        );
+
+        this.next = this.add.text(SCREEN_WIDTH / 2 + max_width / 2 + font_size/2,
+            SCREEN_HEIGHT / 2,
+            ">>", { fontSize: font_size_str, fill: '#FFF' })
+            .setOrigin(0 , 0.5);
+        this.next.setInteractive();
+        this.next.alpha = 0.5;
+        this.next.on('pointerover',function(pointer){
+            {
+                this.alpha = 1;
+            }
+        });
+        this.next.on('pointerout',function(pointer){
+            {
+                this.alpha = 0.5;
+            }
+        });
+        this.next.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            function(pointer, localX, localY, event) {
+                g_current_level+=1;
+                if (g_current_level >= g_current_level_names.length)
+                {
+                    g_current_level = 0;
+                }
+                this.play_button.setText(g_current_level_names[g_current_level]);
+            }, this
+        );
+    },
+});
+
+let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'StartScreen', active: true});
+        Phaser.Scene.call(this, {key: 'GameScene', active: false});
     },
 
     //--------------------------------------------------------------------------
@@ -75,7 +186,23 @@ let StartScreen = new Phaser.Class({
 
         let random_tile_generator = function(x, y, grid)
         {
-            let value = Phaser.Math.Between(0,4);
+            return tile_generator(x, y, grid, Phaser.Math.Between(0,4));
+        };
+
+        let puzzle_tile_generator = function(x, y, grid)
+        {
+            let puzzle = [
+                [5, 3, 2, 4, 5, 5],
+                [5, 2, 1, 4, 5, 5],
+                [5, 4, 1, 1, 5, 5],
+                [5, 3, 1, 2, 5, 5],
+                [5, 1, 4, 4, 3, 5],
+            ];
+            return tile_generator(x, y, grid, puzzle[y][x]);
+        }
+
+        let tile_generator = function(x, y, grid, value)
+        {
             if (x == screen.me_x && y == screen.me_y && value == 5)
             {
                 value--;
@@ -272,7 +399,7 @@ let StartScreen = new Phaser.Class({
                     }
                 }
             }, [], screen);
-        }
+        };
 
         let set_block_texture = function(x,y)
         {
@@ -428,7 +555,8 @@ let StartScreen = new Phaser.Class({
                     }
                 }, [], screen);
 
-                handle_broken_blocks_arcade_mode(new_matching_blocks);
+                //handle_broken_blocks_arcade_mode(new_matching_blocks);
+                screen.handle_broken_blocks_mode(new_matching_blocks);
             }
 
             return new_matching_blocks.length != 0;
@@ -464,9 +592,6 @@ let StartScreen = new Phaser.Class({
             "0", { fontSize: '40px', fill: '#FFF' })
             .setOrigin(1 , 1).setVisible(false);
 
-        //set up grid of blocks
-        screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, random_tile_generator);
-
         //set up player
         screen.me_hit = false;
         screen.me_state = 10;
@@ -480,10 +605,6 @@ let StartScreen = new Phaser.Class({
         screen.me_border = screen.physics.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
         set_border(false);
 
-        screen.me_sprite = screen.add.tileSprite(
-            0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
-            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
-
         screen.me_heartbeat = screen.time.addEvent({
             "delay": MOVE_TIMER * 6,
             "loop": true,
@@ -495,6 +616,26 @@ let StartScreen = new Phaser.Class({
                 }
             }
         });
+
+        //set up level
+        if (g_current_level == 0)
+        {
+            screen.me_x = 1;
+            screen.me_y = 1;
+            screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, puzzle_tile_generator);
+            screen.handle_broken_blocks_mode = handle_broken_blocks_puzzle_mode;
+        }
+        else
+        {
+            screen.grid = make_board(SCREEN_COLUMNS, SCREEN_ROWS, random_tile_generator);
+            screen.handle_broken_blocks_mode = handle_broken_blocks_arcade_mode;
+            add_squid();
+        }
+
+        screen.me_sprite = screen.add.tileSprite(
+            0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
+            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
+
 
         this.physics.add.overlap(screen.me_border, screen.player_dangers,
             function() {
@@ -513,7 +654,6 @@ let StartScreen = new Phaser.Class({
             }, null, screen);
 
         //set up enemy
-        add_squid();
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
@@ -559,7 +699,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ StartScreen ]
+    scene: [ StartScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
