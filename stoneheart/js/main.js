@@ -327,9 +327,17 @@ let GameScene = new Phaser.Class({
                     }
                 });
                 timeline.play();
+
             };
             screen.time.delayedCall(0, trigger_lightning);
-            screen.time.delayedCall(3000, trigger_lightning);
+
+            let continuous_lightning = function()
+            {
+                trigger_lightning();
+                let delay = 1000 * Phaser.Math.Between(7, 15);
+                screen.time.delayedCall(delay, trigger_lightning);
+            };
+            screen.time.delayedCall(3000, continuous_lightning);
 
             let tint_squid = function(color){
                 left_tentacle.setTint(color);
