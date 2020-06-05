@@ -15,7 +15,7 @@ const DEPTHS =
     FG: 40
 };
 
-let g_current_level = 0;
+let g_current_level = 1;
 let g_current_level_names = [
     "Puzzle Sample",
     "The Kraken"
@@ -288,8 +288,66 @@ let GameScene = new Phaser.Class({
                     this.flipX = [true, false][Phaser.Math.Between(0, 1)];
                 }, [], tentacle)
             };
-            add_tentacle();
-            screen.time.delayedCall(2000, add_tentacle);
+            screen.time.delayedCall(6000, add_tentacle);
+            screen.time.delayedCall(8000, add_tentacle);
+
+            let trigger_lightning = function () {
+                screen.cameras.main.shake(500, 0.005);
+                let timeline = screen.tweens.createTimeline();
+                timeline.add({
+                    targets: {counter: 0},
+                    props: {counter: 255},
+                    duration: 250,
+                    onUpdate: function (tween) {
+                        let value = Math.floor(tween.getValue());
+
+                        screen.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(value, value, value));
+                    }
+                });
+                timeline.add({
+                    targets: {counter: 255},
+                    props: {counter: 196},
+                    duration: 50,
+                    repeat: 3,
+                    yoyo: true,
+                    onUpdate: function (tween) {
+                        let value = Math.floor(tween.getValue());
+
+                        screen.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(value, value, value));
+                    }
+                });
+                timeline.add({
+                    targets: {counter: 255},
+                    props: {counter: 0},
+                    duration: 1000,
+                    onUpdate: function (tween) {
+                        let value = Math.floor(tween.getValue());
+
+                        screen.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(value, value, value));
+                    }
+                });
+                timeline.play();
+            };
+            screen.time.delayedCall(0, trigger_lightning);
+            screen.time.delayedCall(3000, trigger_lightning);
+
+            let tint_squid = function(color){
+                left_tentacle.setTint(color);
+                right_tentacle.setTint(color);
+                squid.setTint(color);
+            }
+            tint_squid("#000000")
+            screen.tweens.add({
+                targets: { counter: 0 },
+                props: { counter: 255 },
+                duration: 4000,
+                delay: 2000,
+                onUpdate: function (tween)
+                {
+                    let value = Math.floor(tween.getValue());
+                    tint_squid(Phaser.Display.Color.GetColor(value, value, value));
+                }
+            })
         };
 
         let set_border = function(bool) {
@@ -653,8 +711,6 @@ let GameScene = new Phaser.Class({
                 }
             }, null, screen);
 
-        //set up enemy
-
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
@@ -680,7 +736,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#404040',
+    backgroundColor: '#000000',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
