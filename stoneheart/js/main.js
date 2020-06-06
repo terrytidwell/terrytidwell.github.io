@@ -12,7 +12,8 @@ const DEPTHS =
     PLAYER_BLOCK: 20,
     PLAYER: 30,
     PLAYER_BORDER: 31,
-    FG: 40
+    FG: 40,
+    UI: 50
 };
 
 let g_current_level = 1;
@@ -253,22 +254,14 @@ let GameScene = new Phaser.Class({
         };
 
         let add_squid = function() {
-            let squid = screen.add.sprite(SCREEN_WIDTH / 2, xPixel(-1.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
+            let squid = screen.add.sprite(SCREEN_WIDTH / 2,
+                yPixel(2.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
 
             let left_tentacle = screen.add.sprite(xPixel(.5),
-                yPixel(0), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
+                yPixel(5), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
             let right_tentacle = screen.add.sprite(xPixel(4.5),
-                yPixel(0), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
+                yPixel(5), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
             right_tentacle.flipX = true;
-            let squid_tween = screen.tweens.add({
-                targets: [squid, left_tentacle, right_tentacle],
-                //x: xPixel(1),
-                y: '+=5',
-                ease: 'Sine',
-                duration: 4000,
-                repeat: -1,
-                yoyo: true,
-            });
 
             let add_tentacle = function () {
                 let tentacle = screen.physics.add.sprite(xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1)),
@@ -339,11 +332,58 @@ let GameScene = new Phaser.Class({
             };
             screen.time.delayedCall(3000, continuous_lightning);
 
+            let life_bar_max_hp = 500;
+            let life_bar_current_hp = life_bar_max_hp;
+            let life_bar_bg_hp = life_bar_max_hp;
+            let life_bar_full_width = xPixel(SCREEN_COLUMNS - 1) - xPixel(0);
+            let life_bar_bg = screen.add.rectangle(
+                xPixel(2.5),
+                yPixel(-3),
+                life_bar_full_width,
+                1,
+                0xffffff
+            );
+            let life_bar = screen.add.rectangle(
+                xPixel(2.5),
+                yPixel(-3),
+                life_bar_full_width,
+                1,
+                0xff0000
+            );
+            life_bar_bg.width = 0;
+            life_bar.width = 0;
+            let attack = function(value) {
+                if (life_bar_current_hp <= value) {
+                    life_bar_current_hp = 0;
+                } else {
+                    life_bar_current_hp -= value;
+                }
+                life_bar.width = life_bar_full_width * (life_bar_current_hp / life_bar_max_hp);
+            };
+            let pre_attack = function(value) {
+                if (life_bar_bg_hp <= value) {
+                    life_bar_bg_hp = 0;
+                } else {
+                    life_bar_bg_hp -= value;
+                }
+                life_bar_bg.width = life_bar_full_width * (life_bar_bg_hp / life_bar_max_hp);
+            };
+            screen.tweens.add({
+                targets: [life_bar, life_bar_bg],
+                width: life_bar_full_width,
+                duration: 1000,
+                delay: 6000,
+                onComplete: function (tween) {
+                    screen.events.on('blocksMatched', pre_attack, life_bar);
+                    screen.events.on('blocksAdded', attack, life_bar);
+                }
+            });
+
             let tint_squid = function(color){
                 left_tentacle.setTint(color);
                 right_tentacle.setTint(color);
                 squid.setTint(color);
-            }
+            };
             tint_squid("#000000")
             screen.tweens.add({
                 targets: { counter: 0 },
@@ -355,7 +395,34 @@ let GameScene = new Phaser.Class({
                     let value = Math.floor(tween.getValue());
                     tint_squid(Phaser.Display.Color.GetColor(value, value, value));
                 }
-            })
+            });
+
+            let timeline = screen.tweens.createTimeline();
+            timeline.add({
+                targets: [squid],
+                y: yPixel(-3.5),
+                ease: 'Sine',
+                duration: 6000,
+            });
+
+            timeline.add({
+                targets: [squid, left_tentacle, right_tentacle],
+                //x: xPixel(1),
+                y: '+=5',
+                ease: 'Sine',
+                duration: 4000,
+                repeat: -1,
+                yoyo: true,
+            });
+            timeline.play();
+
+            screen.tweens.add({
+                targets: [left_tentacle, right_tentacle],
+                y: yPixel(0),
+                ease: 'Sine',
+                duration: 3000,
+            });
+
         };
 
         let set_border = function(bool) {
@@ -610,14 +677,17 @@ let GameScene = new Phaser.Class({
 
             if (new_matching_blocks.length != 0) {
                 screen.current_chain++;
+                screen.events.emit('blocksAdded', new_matching_blocks.length);
                 screen.current_blocks+=new_matching_blocks.length;
                 screen.current_blocks_text.setText(screen.current_blocks);
 
                 screen.time.delayedCall(MOVE_TIMER * (4+6), function () {
                     screen.current_chain--;
                     if (screen.current_chain == 0) {
+                        screen.events.emit('blocksMatched', screen.current_blocks);
                         screen.current_blocks = 0;
                         screen.current_blocks_text.setText(screen.current_blocks);
+
                     }
                 }, [], screen);
 
@@ -655,8 +725,8 @@ let GameScene = new Phaser.Class({
         //set up combo text
         screen.current_blocks_text = this.add.text(SCREEN_WIDTH,
             SCREEN_HEIGHT,
-            "0", { fontSize: '40px', fill: '#FFF' })
-            .setOrigin(1 , 1).setVisible(false);
+            "0", { fontSize: '32px', fill: '#FFF' })
+            .setOrigin(1 , 1).setVisible(true).setDepth(DEPTHS.UI);
 
         //set up player
         screen.me_hit = false;
