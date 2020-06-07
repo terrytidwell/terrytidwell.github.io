@@ -262,7 +262,47 @@ let GameScene = new Phaser.Class({
             let right_tentacle = screen.add.sprite(xPixel(4.5),
                 yPixel(5), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
             right_tentacle.flipX = true;
+            let water = []
+            for (let i = 0; i < SCREEN_ROWS * 4; i++) {
+                water.push(screen.add.rectangle(
+                    SCREEN_WIDTH / 2,
+                    yPixel(2.5 + i/4),
+                    SCREEN_WIDTH + GRID_SIZE,
+                    GRID_SIZE * (SCREEN_ROWS + 1),
+                    0x000040,
+                    .4).setDepth(DEPTHS.BG + 1));
+            }
+                screen.tweens.add({
+                targets: water,
+                //x: xPixel(1),
+                y: '-=5',
+                ease: 'Sine',
+                duration: 3000,
+                repeat: -1,
+                yoyo: true,
+            });
 
+            for (let i = 0; i < 4; i++) {
+                water.push(screen.add.rectangle(
+                    SCREEN_WIDTH / 2,
+                    yPixel(SCREEN_ROWS + i/4),
+                    SCREEN_WIDTH + GRID_SIZE,
+                    GRID_SIZE,
+                    0x000040,
+                    .4).setDepth(DEPTHS.FG + 1));
+            }
+            screen.tweens.add({
+                targets: water,
+                //x: xPixel(1),
+                y: '-=5',
+                ease: 'Sine',
+                duration: 3000,
+                repeat: -1,
+                yoyo: true,
+            });
+
+
+            /*
             let add_tentacle = function () {
                 let tentacle = screen.physics.add.sprite(xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1)),
                     yPixel(10), 'tentacle').setDepth(DEPTHS.FG);
@@ -283,6 +323,80 @@ let GameScene = new Phaser.Class({
             };
             screen.time.delayedCall(6000, add_tentacle);
             screen.time.delayedCall(8000, add_tentacle);
+             */
+            let add_tentacle = function () {
+
+                let tentacle_shadow = screen.add.sprite(xPixel(0),
+                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG).setTint(0x000000).setAlpha(0.1);
+                tentacle_shadow.setScale(3);
+                let tentacle = screen.physics.add.sprite(xPixel(0),
+                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG).setVisible(false);
+                tentacle.setScale(3);
+                screen.player_dangers.add(tentacle);
+                tentacle.setData('dangerous',false);
+                tentacle.setData('shouldHit',function() {
+                    return tentacle.data.values.dangerous;
+                } );
+
+                let reset = function() {
+                    let target = Phaser.Math.Between(0, SCREEN_COLUMNS - 1);
+                    let flip = [true, false][Phaser.Math.Between(0, 1)];
+                    tentacle_shadow.flipX = flip;
+                    tentacle_shadow.setScale(3);
+                    tentacle_shadow.setAlpha(0.1);
+                    tentacle_shadow.setX(xPixel(target));
+                    tentacle_shadow.setY(yPixel(3));
+
+                    tentacle.flipX = flip;
+                    tentacle.setData('dangerous',false);
+                    tentacle.setScale(3).setVisible(false);
+                    tentacle.setY(yPixel(3));
+                    tentacle.setX(xPixel(target));
+
+                    screen.tweens.add({
+                        targets: tentacle_shadow,
+                        scale: 1,
+                        ease: 'Quad',
+                        duration: 2000,
+                        onComplete: function () {
+                            tentacle.visible = true;
+                        }
+                    });
+                    screen.tweens.add({
+                        targets: tentacle_shadow,
+                        alpha: 0.5,
+                        ease: 'Quad',
+                        duration: 2000
+                    });
+                    screen.tweens.add({
+                        targets: tentacle,
+                        scale: 1,
+                        ease: 'Expo',
+                        duration: 250,
+                        delay: 2000,
+                        onComplete: function () {
+                            tentacle.setData('dangerous',true);
+                            screen.cameras.main.shake(250, 0.015, true);
+                        }
+                    })
+                    screen.tweens.add({
+                        targets: [tentacle, tentacle_shadow],
+                        y: yPixel(10),
+                        ease: 'Quad.easeIn',
+                        duration: 4000,
+                        delay: 2750,
+                        onComplete : function()
+                        {
+                            reset();
+                        }
+                    });
+                };
+                reset();
+            }
+            screen.time.delayedCall(8000, add_tentacle);
+            screen.time.delayedCall(10000, add_tentacle);
+            //screen.time.delayedCall(12000, add_tentacle);
+
 
             let trigger_lightning = function () {
                 screen.cameras.main.shake(500, 0.005);
@@ -328,31 +442,48 @@ let GameScene = new Phaser.Class({
             {
                 trigger_lightning();
                 let delay = 1000 * Phaser.Math.Between(7, 15);
-                screen.time.delayedCall(delay, trigger_lightning);
+                screen.time.delayedCall(delay, continuous_lightning);
             };
             screen.time.delayedCall(3000, continuous_lightning);
 
-            let life_bar_max_hp = 500;
+            let life_bar_max_hp = 250;
             let life_bar_current_hp = life_bar_max_hp;
-            let life_bar_bg_hp = life_bar_max_hp;
             let life_bar_full_width = xPixel(SCREEN_COLUMNS - 1) - xPixel(0);
             let life_bar_bg = screen.add.rectangle(
                 xPixel(2.5),
                 yPixel(-3),
                 life_bar_full_width,
                 1,
-                0xffffff
+                0xFFFFFF,
+                1,
             );
             let life_bar = screen.add.rectangle(
                 xPixel(2.5),
                 yPixel(-3),
                 life_bar_full_width,
                 1,
-                0xff0000
+                0xff0000,
+                1
             );
             life_bar_bg.width = 0;
             life_bar.width = 0;
+            life_bar_bg.tween = null;
+
             let attack = function(value) {
+                if (life_bar_bg.tween)
+                {
+                    life_bar_bg.tween.stop();
+                }
+                life_bar_bg.tween = screen.tweens.add({
+                    targets: life_bar_bg,
+                    width : life_bar.width,
+                    duration: 500,
+                    onComplete : function () {
+                        life_bar_bg.tween = null
+                    }
+                })
+            };
+            let pre_attack = function(value) {
                 if (life_bar_current_hp <= value) {
                     life_bar_current_hp = 0;
                 } else {
@@ -360,22 +491,14 @@ let GameScene = new Phaser.Class({
                 }
                 life_bar.width = life_bar_full_width * (life_bar_current_hp / life_bar_max_hp);
             };
-            let pre_attack = function(value) {
-                if (life_bar_bg_hp <= value) {
-                    life_bar_bg_hp = 0;
-                } else {
-                    life_bar_bg_hp -= value;
-                }
-                life_bar_bg.width = life_bar_full_width * (life_bar_bg_hp / life_bar_max_hp);
-            };
             screen.tweens.add({
                 targets: [life_bar, life_bar_bg],
                 width: life_bar_full_width,
                 duration: 1000,
                 delay: 6000,
                 onComplete: function (tween) {
-                    screen.events.on('blocksMatched', pre_attack, life_bar);
-                    screen.events.on('blocksAdded', attack, life_bar);
+                    screen.events.on('blocksMatched', attack, life_bar);
+                    screen.events.on('blocksAdded', pre_attack, life_bar);
                 }
             });
 
@@ -774,7 +897,11 @@ let GameScene = new Phaser.Class({
 
 
         this.physics.add.overlap(screen.me_border, screen.player_dangers,
-            function() {
+            function(player, source) {
+                if (!source.data.values.shouldHit(player, source))
+                {
+                    return;
+                }
                 if (!screen.me_hit)
                 {
                     screen.me_hit = true;
