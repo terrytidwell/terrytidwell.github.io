@@ -302,35 +302,13 @@ let GameScene = new Phaser.Class({
             });
 
 
-            /*
-            let add_tentacle = function () {
-                let tentacle = screen.physics.add.sprite(xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1)),
-                    yPixel(10), 'tentacle').setDepth(DEPTHS.FG);
-                screen.player_dangers.add(tentacle);
-                let tentacle_tween = screen.tweens.add({
-                    targets: tentacle,
-                    //x: xPixel(1),
-                    y: yPixel(3),
-                    ease: 'Quad',
-                    duration: 4000,
-                    repeat: -1,
-                    yoyo: true,
-                });
-                tentacle_tween.setCallback('onRepeat', function () {
-                    this.x = xPixel(Phaser.Math.Between(0, SCREEN_COLUMNS - 1));
-                    this.flipX = [true, false][Phaser.Math.Between(0, 1)];
-                }, [], tentacle)
-            };
-            screen.time.delayedCall(6000, add_tentacle);
-            screen.time.delayedCall(8000, add_tentacle);
-             */
             let add_tentacle = function () {
 
                 let tentacle_shadow = screen.add.sprite(xPixel(0),
-                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG).setTint(0x000000).setAlpha(0.1);
+                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG+1).setTint(0x000000).setAlpha(0.1);
                 tentacle_shadow.setScale(3);
                 let tentacle = screen.physics.add.sprite(xPixel(0),
-                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG).setVisible(false);
+                    yPixel(3), 'tentacle').setDepth(DEPTHS.FG+1).setVisible(false);
                 tentacle.setScale(3);
                 screen.player_dangers.add(tentacle);
                 tentacle.setData('dangerous',false);
@@ -378,7 +356,7 @@ let GameScene = new Phaser.Class({
                             tentacle.setData('dangerous',true);
                             screen.cameras.main.shake(250, 0.015, true);
                         }
-                    })
+                    });
                     screen.tweens.add({
                         targets: [tentacle, tentacle_shadow],
                         y: yPixel(10),
@@ -523,7 +501,7 @@ let GameScene = new Phaser.Class({
             let timeline = screen.tweens.createTimeline();
             timeline.add({
                 targets: [squid],
-                y: yPixel(-3.5),
+                y: yPixel(-3.25),
                 ease: 'Sine',
                 duration: 6000,
             });
