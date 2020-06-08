@@ -217,10 +217,8 @@ let GameScene = new Phaser.Class({
                     broken: false,
                     value: value,
                     matchable: true,
-                    sprite: screen.add.tileSprite(
-                        xPixel(x),
-                        yPixel(y),
-                        GRID_SIZE, GRID_SIZE, 'blocks',value),
+                    sprite: screen.add.sprite(
+                        xPixel(x), yPixel(y), 'blocks',value),
                     tweens: null
                 };
                 new_tile.sprite.setDepth(DEPTHS.BLOCK);
@@ -851,11 +849,24 @@ let GameScene = new Phaser.Class({
         screen.player_dangers = this.physics.add.group();
 
 
+        this.anims.create({
+            key: 'heartbreak',
+            frames: [
+                { key: 'heart', frame: 1 },
+                { key: 'heart', frame: 2 },
+                { key: 'heart', frame: 3 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0
+        });
         for (let i = 0; i < screen.me_hp; i++)
         {
             screen.me_hearts.push(
-                screen.add.tileSprite(i*20 + 10, SCREEN_HEIGHT - 10,
-                    18, 18, 'heart', 0).setDepth(DEPTHS.UI));
+                screen.add.sprite(i*20 + 10, SCREEN_HEIGHT - 10,
+                    'heart', 0).setDepth(DEPTHS.UI));
+            //Player.sprite.anims.play('heartbreak', false);
+            //Player.sprite.on('animationcomplete-heartbreak', attack_end);
         }
 
         screen.me_border = screen.physics.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
@@ -888,9 +899,10 @@ let GameScene = new Phaser.Class({
             add_squid();
         }
 
-        screen.me_sprite = screen.add.tileSprite(
-            0, 0, GRID_SIZE, GRID_SIZE, 'blocks',
-            screen.grid[screen.me_x][screen.me_y].value + screen.me_state).setDepth(DEPTHS.PLAYER);
+        screen.me_sprite = screen.add.sprite(
+            0, 0, 'blocks',
+            screen.grid[screen.me_x][screen.me_y].value + screen.me_state)
+            .setDepth(DEPTHS.PLAYER);
 
 
         this.physics.add.overlap(screen.me_border, screen.player_dangers,
@@ -901,6 +913,15 @@ let GameScene = new Phaser.Class({
                 }
                 if (!screen.me_hit)
                 {
+                    if (screen.me_hp > 0)
+                    {
+                        screen.me_hp--;
+                        let heart = screen.me_hearts[screen.me_hp];
+                        heart.anims.play('heartbreak', false);
+                        heart.on('animationcomplete-heartbreak', function() {
+                            heart.setVisible(false);
+                        });
+                    }
                     screen.me_hit = true;
                     screen.me_sprite.alpha = 0.5;
                     screen.me_heartbeat.delay = MOVE_TIMER;
