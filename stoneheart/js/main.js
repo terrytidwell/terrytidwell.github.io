@@ -145,6 +145,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function () {
         this.load.spritesheet('blocks', 'assets/match3_character.png', { frameWidth: 32, frameHeight: 32,  margin: 1, spacing: 1});
+        this.load.spritesheet('heart', 'assets/heart.png', { frameWidth: 18, frameHeight: 18 });
         this.load.image('corner', 'assets/corner.png');
         this.load.image('frame', 'assets/frame.png');
         this.load.image('squid', 'assets/squid.png');
@@ -843,9 +844,19 @@ let GameScene = new Phaser.Class({
         screen.me_moving = false;
         screen.me_x = 0;
         screen.me_y = 0;
+        screen.me_hp = 3;
+        screen.me_hearts = [];
         screen.current_blocks = 0;
         screen.current_chain = 0;
         screen.player_dangers = this.physics.add.group();
+
+
+        for (let i = 0; i < screen.me_hp; i++)
+        {
+            screen.me_hearts.push(
+                screen.add.tileSprite(i*20 + 10, SCREEN_HEIGHT - 10,
+                    18, 18, 'heart', 0).setDepth(DEPTHS.UI));
+        }
 
         screen.me_border = screen.physics.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
         set_border(false);
