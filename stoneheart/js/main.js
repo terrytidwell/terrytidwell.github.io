@@ -256,7 +256,6 @@ let GameScene = new Phaser.Class({
         let add_squid = function() {
             let squid = screen.add.sprite(SCREEN_WIDTH / 2,
                 yPixel(2.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
-
             let left_tentacle = screen.add.sprite(xPixel(.5),
                 yPixel(5), 'tentacle').setScale(1.5).setDepth(DEPTHS.BG);
             let right_tentacle = screen.add.sprite(xPixel(4.5),
@@ -468,6 +467,15 @@ let GameScene = new Phaser.Class({
                     life_bar_current_hp -= value;
                 }
                 life_bar.width = life_bar_full_width * (life_bar_current_hp / life_bar_max_hp);
+                screen.tweens.add({
+                    targets: { counter: 0 },
+                    props: { counter: 255 },
+                    duration: 250,
+                    onUpdate: function(tween) {
+                        let value = Math.floor(tween.getValue());
+                        tint_squid(Phaser.Display.Color.GetColor(255, value, value));
+                    }
+                });
             };
             screen.tweens.add({
                 targets: [life_bar, life_bar_bg],
@@ -485,7 +493,7 @@ let GameScene = new Phaser.Class({
                 right_tentacle.setTint(color);
                 squid.setTint(color);
             };
-            tint_squid("#000000")
+            tint_squid(0x000000)
             screen.tweens.add({
                 targets: { counter: 0 },
                 props: { counter: 255 },
