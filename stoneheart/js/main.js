@@ -150,6 +150,7 @@ let GameScene = new Phaser.Class({
         this.load.image('frame', 'assets/frame.png');
         this.load.image('squid', 'assets/squid.png');
         this.load.image('tentacle', 'assets/tentacle.png');
+        this.load.image('rain', 'assets/rain.png');
     },
 
     //--------------------------------------------------------------------------
@@ -186,9 +187,20 @@ let GameScene = new Phaser.Class({
             return grid;
         };
 
-        let random_tile_generator = function(x, y, grid)
-        {
-            return tile_generator(x, y, grid, Phaser.Math.Between(0,4));
+        let random_tile_generator = function(x, y, grid) {
+            let value = Phaser.Math.Between(0, 4);
+            let illegal_value_x = -1;
+            let illegal_value_y = -1;
+            if (x >= 2 && grid[x-2][y].value === grid[x-1][y].value) {
+                illegal_value_x = grid[x-2][y].value;
+            }
+            if (y >= 2 && grid[x][y-2].value === grid[x][y-1].value) {
+                illegal_value_y = grid[x][y-2].value;
+            }
+            while (value === illegal_value_x || value === illegal_value_y) {
+                value = Phaser.Math.Between(0, 4);
+            }
+            return tile_generator(x, y, grid, value);
         };
 
         let puzzle_tile_generator = function(x, y, grid)
@@ -253,6 +265,27 @@ let GameScene = new Phaser.Class({
         };
 
         let add_squid = function() {
+            particles = screen.add.particles('rain');
+
+            particles.createEmitter({
+                alpha: { start: 1, end: 0 },
+                //scale: { start: 0.5, end: 2.5 },
+                tint: 0x000080,
+                //speed: 100,
+                speedY : 350,
+                speedX : -200,
+                //accelerationY: 300,
+                angle: 0, // { min: -85, max: -95 },
+                scale: .25,
+                rotate: 20, //{ min: -180, max: 180 },
+                lifespan: { min: 1000, max: 1500 },
+                //blendMode: 'ADD',
+                frequency: 25,
+                //maxParticles: 10,
+                x: { min: -100, max: SCREEN_WIDTH + 100},
+                y: 0
+            });
+            particles.setDepth(DEPTHS.FG + 2);
             let squid = screen.add.sprite(SCREEN_WIDTH / 2,
                 yPixel(2.5), 'squid').setScale(2).setDepth(DEPTHS.BG);
             let left_tentacle = screen.add.sprite(xPixel(.5),
@@ -469,7 +502,7 @@ let GameScene = new Phaser.Class({
                 screen.tweens.add({
                     targets: { counter: 0 },
                     props: { counter: 255 },
-                    duration: 250,
+                    duration: 500,
                     onUpdate: function(tween) {
                         let value = Math.floor(tween.getValue());
                         tint_squid(Phaser.Display.Color.GetColor(255, value, value));
@@ -834,7 +867,7 @@ let GameScene = new Phaser.Class({
         screen.current_blocks_text = this.add.text(SCREEN_WIDTH,
             SCREEN_HEIGHT,
             "0", { fontSize: '32px', fill: '#FFF' })
-            .setOrigin(1 , 1).setVisible(true).setDepth(DEPTHS.UI);
+            .setOrigin(1 , 1).setVisible(false).setDepth(DEPTHS.UI);
 
         //set up player
         screen.me_hit = false;
@@ -860,13 +893,12 @@ let GameScene = new Phaser.Class({
             frameRate: 8,
             repeat: 0
         });
+
         for (let i = 0; i < screen.me_hp; i++)
         {
             screen.me_hearts.push(
                 screen.add.sprite(i*20 + 10, SCREEN_HEIGHT - 10,
                     'heart', 0).setDepth(DEPTHS.UI));
-            //Player.sprite.anims.play('heartbreak', false);
-            //Player.sprite.on('animationcomplete-heartbreak', attack_end);
         }
 
         screen.me_border = screen.physics.add.sprite(0,0,'frame').setDepth(DEPTHS.PLAYER);
