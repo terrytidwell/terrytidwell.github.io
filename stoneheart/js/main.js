@@ -26,7 +26,7 @@ let Util = {
    manhattan: function(x1, x2, y1, y2) {
        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
    }
-} ;
+};
 
 let  StartScene= new Phaser.Class({
     Extends: Phaser.Scene,
@@ -945,6 +945,29 @@ let GameScene = new Phaser.Class({
                 }
                 if (!screen.me_hit)
                 {
+                    let spokes = 8;
+                    for (i = 0; i < spokes; i++) {
+                        let vector = new Phaser.Math.Vector2(.5, 0);
+                        let angle = 360/spokes * i;
+                        vector.rotate(Phaser.Math.DegToRad(angle));
+
+                        let reaction = screen.add.rectangle(
+                            xPixel(screen.me_x + vector.x),
+                            yPixel(screen.me_y + vector.y),
+                            GRID_SIZE / 4,
+                            GRID_SIZE / 4,
+                            0xffffff,
+                            1
+                        ).setDepth(DEPTHS.PLAYER + 1).setAngle(angle);
+                        screen.tweens.add({
+                            targets: reaction,
+                            scaleX: 2,
+                            scaleY: 0,
+                            //height: 0,
+                            alpha: 0,
+                            duration: 250
+                        });
+                    }
                     if (screen.me_hp > 0)
                     {
                         screen.me_hp--;
