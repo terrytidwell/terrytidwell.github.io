@@ -17,16 +17,132 @@ const DEPTHS =
 };
 
 let g_current_level = 1;
-let g_current_level_names = [
-    "Puzzle Sample",
-    "The Kraken"
+let g_levels = [{
+        name: "Puzzle Sample",
+        scene: "GameScene"
+    },
+    {
+        name: "The Kraken",
+        scene: "GameScene"
+    },
+    {
+        name: "Dialogue Test",
+        scene: "DialogueScene"
+    },
 ];
 
-let Util = {
-   manhattan: function(x1, x2, y1, y2) {
-       return Math.abs(x1 - x2) + Math.abs(y1 - y2);
-   }
-};
+let  DialogueScene= new Phaser.Class({
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'DialogueScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+        this.load.spritesheet('flameprince', 'assets/FlamePrince.png', { frameWidth: 32, frameHeight: 32});
+        this.load.spritesheet('golemn', 'assets/Golemn2.png', { frameWidth: 32, frameHeight: 32});
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let screen = this;
+        screen.input.addPointer(5);
+
+        screen.anims.create({
+            key: 'smolder',
+            frames: [
+                { key: 'flameprince', frame: 1 },
+                { key: 'flameprince', frame: 2 },
+                { key: 'flameprince', frame: 3 },
+                { key: 'flameprince', frame: 4 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 3,
+            repeat: -1,
+        });
+
+        screen.anims.create({
+            key: 'blink',
+            frames: [
+                { key: 'flameprince', frame: 6 },
+                { key: 'flameprince', frame: 6 },
+                { key: 'flameprince', frame: 6 },
+                { key: 'flameprince', frame: 6 },
+                { key: 'flameprince', frame: 6 },
+                { key: 'flameprince', frame: 5 },
+                { key: 'flameprince', frame: 6 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 3,
+            repeat: -1,
+        });
+        screen.anims.create({
+            key: 'talk',
+            frames: [
+                { key: 'flameprince', frame: 7 },
+                { key: 'flameprince', frame: 8 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 4,
+            repeat: -1,
+        });
+
+        let flame_guy = screen.add.sprite(GRID_SIZE, GRID_SIZE, 'flameprince', 0)
+            .setScale(2).setDepth(DEPTHS.PLAYER);
+        flame_guy.anims.play('smolder');
+        let flame_guy_eyes = screen.add.sprite(GRID_SIZE, GRID_SIZE, 'flameprince', 0)
+            .setScale(2).setDepth(DEPTHS.PLAYER+1);
+        flame_guy_eyes.anims.play('blink');
+        let flame_guy_mouth = screen.add.sprite(GRID_SIZE, GRID_SIZE, 'flameprince', 0)
+            .setScale(2).setDepth(DEPTHS.PLAYER+1);
+        flame_guy_mouth.anims.play('talk');
+
+        let flame_on = function(visible)
+        {
+            flame_guy.setVisible(visible);
+            flame_guy_eyes.setVisible(visible);
+            flame_guy_mouth.setVisible(visible);
+        }
+
+        screen.anims.create({
+            key: 'golemn_talk',
+            frames: [
+                { key: 'golemn', frame: 0 },
+                { key: 'golemn', frame: 1 },
+                { key: 'golemn', frame: 0 },
+                { key: 'golemn', frame: 1 },
+                { key: 'golemn', frame: 4 },
+                { key: 'golemn', frame: 1 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 4,
+            repeat: -1,
+        });
+
+        let golemn = screen.add.sprite(SCREEN_WIDTH - GRID_SIZE, GRID_SIZE, 'golemn', 0)
+            .setScale(2).setDepth(DEPTHS.PLAYER).setFlipX(true);
+        golemn.anims.play('golemn_talk');
+
+        let rock_on = function(visible)
+        {
+            golemn.setVisible(visible);
+        }
+        rock_on(false);
+
+        screen.time.addEvent({
+            "delay": 4000,
+            "loop": true,
+            "callback": function () {
+                let bool = golemn.visible;
+                rock_on(!bool);
+                flame_on(bool);
+            }
+        });
+
+    }
+});
 
 let  StartScene= new Phaser.Class({
     Extends: Phaser.Scene,
@@ -49,7 +165,7 @@ let  StartScene= new Phaser.Class({
         let max_width = 0;
         this.play_button = this.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-            g_current_level_names[g_current_level], { fontSize: font_size_str, fill: '#FFF' })
+            g_levels[g_current_level].name, { fontSize: font_size_str, fill: '#FFF' })
             .setOrigin(0.5, 0.5);
         this.play_button.alpha = 0.5;
         this.play_button.setInteractive();
@@ -65,17 +181,17 @@ let  StartScene= new Phaser.Class({
         });
         this.play_button.on('pointerup',
             function() {
-                this.scene.start('GameScene');
-                this.scene.stop('StartScene');
+                this.scene.switch(g_levels[g_current_level].scene);
+                //this.scene.stop();
             }, this
         );
 
-        for (let i = 0; i < g_current_level_names.length; i++)
+        for (let i = 0; i < g_levels.length; i++)
         {
-            this.play_button.setText(g_current_level_names[i]);
+            this.play_button.setText(g_levels[i].name);
             max_width = Math.max(max_width, this.play_button.width);
         }
-        this.play_button.setText(g_current_level_names[g_current_level]);
+        this.play_button.setText(g_levels[g_current_level].name);
 
         this.previous = this.add.text(SCREEN_WIDTH / 2 - max_width / 2 - font_size/2,
             SCREEN_HEIGHT / 2,
@@ -98,9 +214,9 @@ let  StartScene= new Phaser.Class({
                 g_current_level-=1;
                 if (g_current_level < 0)
                 {
-                    g_current_level = g_current_level_names.length - 1;
+                    g_current_level = g_levels.length - 1;
                 }
-                this.play_button.setText(g_current_level_names[g_current_level]);
+                this.play_button.setText(g_levels[g_current_level].name);
             }, this
         );
 
@@ -123,11 +239,11 @@ let  StartScene= new Phaser.Class({
         this.next.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
             function(pointer, localX, localY, event) {
                 g_current_level+=1;
-                if (g_current_level >= g_current_level_names.length)
+                if (g_current_level >= g_levels.length)
                 {
                     g_current_level = 0;
                 }
-                this.play_button.setText(g_current_level_names[g_current_level]);
+                this.play_button.setText(g_levels[g_current_level].name);
             }, this
         );
     },
@@ -151,6 +267,7 @@ let GameScene = new Phaser.Class({
         this.load.image('squid', 'assets/squid.png');
         this.load.image('tentacle', 'assets/tentacle.png');
         this.load.image('rain', 'assets/rain.png');
+        this.load.image('settings', 'assets/settings-white-18dp.svg');
     },
 
     //--------------------------------------------------------------------------
@@ -240,7 +357,7 @@ let GameScene = new Phaser.Class({
                     function(pointer, localX, localY, event) {
                         let parent = this.data.values.parent;
                         let d_manhattan =
-                            Util.manhattan(parent.x, screen.me_x, parent.y, screen.me_y);
+                            Phaser.Math.Distance.Snake(parent.x, parent.y, screen.me_x , screen.me_y);
                         if (0 == d_manhattan) {
                             try_selection();
                         } else if (1 == d_manhattan)
@@ -689,7 +806,7 @@ let GameScene = new Phaser.Class({
         {
             let object=screen.grid[new_x][new_y];
             let sprite=object.sprite;
-            let dx = Util.manhattan( sprite.x, xPixel(new_x), sprite.y, yPixel(new_y));
+            let dx = Phaser.Math.Distance.Snake( sprite.x, sprite.y, xPixel(new_x), yPixel(new_y));
             //go from pixel space to grid space
             dx /= GRID_SIZE;
             if (dx == 0)
@@ -989,6 +1106,22 @@ let GameScene = new Phaser.Class({
                 }
             }, null, screen);
 
+        let settings = this.add.image(
+            Math.round(SCREEN_WIDTH - GRID_SIZE/4),
+            Math.round(SCREEN_HEIGHT - GRID_SIZE/4), 'settings')
+            .setDepth(DEPTHS.UI).setAlpha(0.5);
+        settings.setInteractive();
+        settings.on('pointerover', function(pointer){
+            {
+                settings.alpha = 1;
+            }
+        });
+        settings.on('pointerout', function(pointer){
+            {
+                settings.alpha = 0.5;
+            }
+        });
+
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
@@ -1033,7 +1166,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ StartScene, GameScene ]
+    scene: [ StartScene, DialogueScene, GameScene,  ]
 };
 
 game = new Phaser.Game(config);
