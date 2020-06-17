@@ -1,9 +1,10 @@
 const GRID_SIZE = 32;
 const SCREEN_COLUMNS = 10;
 const SCREEN_ROWS = 10;
-const SCREEN_VERTICAL_BORDRER = 1;
+const SCREEN_VERTICAL_BORDER = 1;
 const SCREEN_WIDTH = GRID_SIZE * SCREEN_COLUMNS;
-const SCREEN_HEIGHT = GRID_SIZE * (SCREEN_ROWS + SCREEN_VERTICAL_BORDRER * 2);
+const SCREEN_HEIGHT = GRID_SIZE * (SCREEN_ROWS + SCREEN_VERTICAL_BORDER * 2);
+const BG_BORDER = 3;
 const DEPTHS =
 {
     BG : 0,
@@ -37,7 +38,8 @@ let GameScene = new Phaser.Class({
             PINK_GRID: 2,
             PINK_SQUID: 3,
             EYES: 4,
-            ORANGE_SQUID: 5
+            ORANGE_SQUID: 5,
+            BG_GRID: 6
         };
 
         let COLORS = {
@@ -55,8 +57,15 @@ let GameScene = new Phaser.Class({
 
         let yPixel = function(y)
         {
-            return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_VERTICAL_BORDRER * GRID_SIZE;
+            return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_VERTICAL_BORDER * GRID_SIZE;
         };
+
+        scene.add.tileSprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
+            SCREEN_HEIGHT + (2 * BG_BORDER * GRID_SIZE),
+            'tiles',
+            TILES.BG_GRID
+        );
 
         let create_random_square = function(x,y,grid)
         {
@@ -122,17 +131,10 @@ let GameScene = new Phaser.Class({
 
         let square_is_legal_move = function(x, y)
         {
-            let pinkie, orangie;
-            for (pinkie of pink_squad)
+            let squid;
+            for (squid of squids)
             {
-                if (pinkie.data.values.x === x && pinkie.data.values.y === y)
-                {
-                    return false;
-                }
-            }
-            for (orangie of orange_squad)
-            {
-                if (orangie.data.values.x === x && orangie.data.values.y === y)
+                if (squid.data.values.x === x && squid.data.values.y === y)
                 {
                     return false;
                 }
@@ -199,7 +201,8 @@ let GameScene = new Phaser.Class({
             }
         };
 
-        let pink_squad = [];
+        let squids = [];
+        //let pink_squad = [];
         for (let x = 0; x < 4; x++)
         {
             let squid = scene.add.sprite(xPixel(x),yPixel(0),'tiles',TILES.PINK_SQUID);
@@ -229,20 +232,23 @@ let GameScene = new Phaser.Class({
                 });
 
 
-            pink_squad.push(squid);
-
+            //pink_squad.push(squid);
+            squids.push(squid);
         }
-        let orange_squad = [];
+        //let orange_squad = [];
         for (let x = SCREEN_COLUMNS - 1; x > SCREEN_COLUMNS - 5; x--)
         {
             let squid = scene.add.sprite(xPixel(x),yPixel(SCREEN_ROWS - 1),
                 'tiles',TILES.ORANGE_SQUID);
-            orange_squad.push(squid);
+            //orange_squad.push(squid);
             squid.setDepth(DEPTHS.SQUAD);
             squid.setData('x',x);
             squid.setData('y',0);
+            squids.push(squid)
         }
 
+        let border = BG_BORDER*GRID_SIZE;
+        scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
         /*
         scene.tweens.add({
             targets: selector_array,
@@ -297,7 +303,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
