@@ -210,16 +210,6 @@ let GameScene = new Phaser.Class({
             squid.setInteractive();
             squid.setData('x',x);
             squid.setData('y',0);
-            /*
-            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
-                function(pointer, localX, localY, event) {
-                    squid.setAlpha(0.5);
-                });
-            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT,
-                function(pointer, localX, localY, event) {
-                    squid.setAlpha(1);
-                });
-            */
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
                     clear_selection();
@@ -249,15 +239,6 @@ let GameScene = new Phaser.Class({
 
         let border = BG_BORDER*GRID_SIZE;
         scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
-        /*
-        scene.tweens.add({
-            targets: selector_array,
-            alpha: 0.5,
-            yoyo: true,
-            repeat: -1,
-            duration: 1500
-        });
-         */
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
