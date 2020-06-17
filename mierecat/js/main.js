@@ -7,10 +7,9 @@ const SCREEN_HEIGHT = GRID_SIZE * (SCREEN_ROWS + SCREEN_VERTICAL_BORDRER * 2);
 const DEPTHS =
 {
     BG : 0,
-    BLOCK: 10,
-    PLAYER_BLOCK: 20,
-    PLAYER: 30,
-    PLAYER_BORDER: 31,
+    GRID: 10,
+    GRID_SELECT: 20,
+    SQUAD: 30,
     FG: 40,
     UI: 50
 };
@@ -67,8 +66,41 @@ let GameScene = new Phaser.Class({
                 TILES.ORANGE_GRID,
                 TILES.PINK_GRID][Phaser.Math.Between(0, 4)];
             let sprite = scene.add.sprite(xPixel(x),yPixel(y),'tiles', value);
+
             sprite.setData("value", value);
+            sprite.setDepth(DEPTHS.GRID);
+
             return sprite;
+        };
+
+        scene.events.on('selector_clicked', function(x,y){
+            console.log("Selection: " + x + " " + y);
+        })
+
+        let create_selector = function(x, y, grid)
+        {
+            let select_sprite = scene.add.rectangle(xPixel(x), yPixel(y),
+                GRID_SIZE, GRID_SIZE, COLORS.PINK)
+                .setDepth(DEPTHS.GRID_SELECT)
+                .setVisible(false)
+                .setAlpha(0.60);
+            select_sprite.setData("x", x);
+            select_sprite.setData("y", y);
+            select_sprite.setInteractive();
+            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
+                select_sprite.setAlpha(0.8);
+            });
+            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
+                select_sprite.setAlpha(0.60);
+            });
+            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+                if (select_sprite.visible) {
+                    scene.events.emit('selector_clicked',
+                        select_sprite.data.values.x,
+                        select_sprite.data.values.y);
+                }
+            });
+            return select_sprite;
         };
 
         let create_grid = function(generator)
@@ -84,31 +116,45 @@ let GameScene = new Phaser.Class({
             }
             return grid;
         };
-        let game_grid = create_grid(create_random_square);
 
-        let square_legal = function(x, y)
+        let game_grid = create_grid(create_random_square);
+        let selector_grid = create_grid(create_selector);
+
+        let square_is_legal_move = function(x, y)
         {
+            let pinkie, orangie;
+            for (pinkie of pink_squad)
+            {
+                if (pinkie.data.values.x === x && pinkie.data.values.y === y)
+                {
+                    return false;
+                }
+            }
+            for (orangie of orange_squad)
+            {
+                if (orangie.data.values.x === x && orangie.data.values.y === y)
+                {
+                    return false;
+                }
+            }
             return x >= 0 && x < SCREEN_COLUMNS &&
                 y >= 0 && y < SCREEN_ROWS;
         };
 
-        let clear_tint = function()
+        let clear_selection = function()
         {
-            for (let i = 0; i < game_grid.length; i++)
-            {
-                for (let j = 0; j < game_grid[i].length; j++)
-                {
-                    game_grid[i][j].setTint(0xffffff);
+            for (let i = 0; i < selector_grid.length; i++) {
+                for (let j = 0; j < selector_grid[i].length; j++) {
+                    selector_grid[i][j].setVisible(false);
                 }
             }
         };
 
-        let calculate_reachable_squares_and_color = function(x, y, moves_left)
+        let calculate_reachable_squares = function(x, y, moves_left, slow_grid)
         {
             let INFINITY = moves_left + 1;
             let reach_map = create_grid(function(){return INFINITY;});
-            reach_map[x][y] = 0;
-            let squares_to_expand = [{x: x, y: y, moves_used: 0}];
+            let squares_to_expand = [{x, y: y, moves_used: 0}];
             let MOVES = [ [0, 1], [0, -1], [1, 0], [-1, 0] ];
             while (squares_to_expand.length !== 0)
             {
@@ -118,9 +164,9 @@ let GameScene = new Phaser.Class({
                 {
                     let dx = move[0];
                     let dy = move[1];
-                    if (square_legal(square.x+dx,square.y+dy)) {
+                    if (square_is_legal_move(square.x+dx,square.y+dy)) {
                         let moves_needed = 1;
-                        if (game_grid[square.x+dx][square.y+dy].data.values.value === TILES.ORANGE_GRID)
+                        if (game_grid[square.x+dx][square.y+dy].data.values.value === slow_grid)
                         {
                             moves_needed = 2;
                         }
@@ -138,13 +184,17 @@ let GameScene = new Phaser.Class({
                     }
                 }
             }
-            for (let i = 0; i < reach_map.length; i++)
-            {
-                for (let j = 0; j < reach_map[i].length; j++)
-                {
-                    if (reach_map[i][j] < INFINITY) {
-                        game_grid[i][j].setTint(COLORS.PINK);
-                    }
+            return reach_map;
+        };
+
+        let activate_selection = function(map, filter)
+        {
+            for (let i = 0; i < map.length; i++) {
+                for (let j = 0; j < map[i].length; j++) {
+                    let value = map[i][j];
+                    if (value < filter) {
+                        selector_grid[i][j].setVisible(true);
+                     }
                 }
             }
         };
@@ -153,6 +203,7 @@ let GameScene = new Phaser.Class({
         for (let x = 0; x < 4; x++)
         {
             let squid = scene.add.sprite(xPixel(x),yPixel(0),'tiles',TILES.PINK_SQUID);
+            squid.setDepth(DEPTHS.SQUAD);
             squid.setInteractive();
             squid.setData('x',x);
             squid.setData('y',0);
@@ -168,12 +219,15 @@ let GameScene = new Phaser.Class({
             */
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
-                    clear_tint();
-                    calculate_reachable_squares_and_color(
+                    clear_selection();
+                    let map = calculate_reachable_squares(
                         squid.data.values.x,
                         squid.data.values.y,
-                        6);
+                        6,
+                        TILES.ORANGE_GRID);
+                    activate_selection(map, 7);
                 });
+
 
             pink_squad.push(squid);
 
@@ -181,16 +235,31 @@ let GameScene = new Phaser.Class({
         let orange_squad = [];
         for (let x = SCREEN_COLUMNS - 1; x > SCREEN_COLUMNS - 5; x--)
         {
-            orange_squad.push(scene.add.sprite(xPixel(x),yPixel(SCREEN_ROWS - 1),
-                'tiles',TILES.ORANGE_SQUID));
+            let squid = scene.add.sprite(xPixel(x),yPixel(SCREEN_ROWS - 1),
+                'tiles',TILES.ORANGE_SQUID);
+            orange_squad.push(squid);
+            squid.setDepth(DEPTHS.SQUAD);
+            squid.setData('x',x);
+            squid.setData('y',0);
         }
+
+        /*
+        scene.tweens.add({
+            targets: selector_array,
+            alpha: 0.5,
+            yoyo: true,
+            repeat: -1,
+            duration: 1500
+        });
+         */
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
+
+        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         /*
-        screen.m_cursor_keys = screen.input.keyboard.createCursorKeys();
         screen.m_cursor_keys.down.on('down', function(event) {
             move_character(0,1)});
         screen.m_cursor_keys.up.on('down', function(event) {
@@ -201,12 +270,29 @@ let GameScene = new Phaser.Class({
             move_character(1,0)});
             */
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, clear_tint);
+        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, clear_selection);
         //screen.space_key.on('down', try_selection);
     },
 
     update: function () {
         let scene = this;
+
+        if (scene.m_cursor_keys.left.isDown)
+        {
+            scene.cameras.main.scrollX -= 8;
+        }
+        if (scene.m_cursor_keys.right.isDown)
+        {
+            scene.cameras.main.scrollX += 8;
+        }
+        if (scene.m_cursor_keys.up.isDown)
+        {
+            scene.cameras.main.scrollY -= 8;
+        }
+        if (scene.m_cursor_keys.down.isDown)
+        {
+            scene.cameras.main.scrollY += 8;
+        }
     }
 });
 
