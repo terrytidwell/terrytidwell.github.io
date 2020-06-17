@@ -265,16 +265,10 @@ let GameScene = new Phaser.Class({
         scene.input.addPointer(5);
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
-        /*
-        screen.m_cursor_keys.down.on('down', function(event) {
-            move_character(0,1)});
-        screen.m_cursor_keys.up.on('down', function(event) {
-            move_character(0,-1)});
-        screen.m_cursor_keys.left.on('down', function(event) {
-            move_character(-1,0)});
-        screen.m_cursor_keys.right.on('down', function(event) {
-            move_character(1,0)});
-            */
+        scene.m_cursor_keys.letter_left = scene.input.keyboard.addKey("a");
+        scene.m_cursor_keys.letter_right = scene.input.keyboard.addKey("d");
+        scene.m_cursor_keys.letter_up = scene.input.keyboard.addKey("w");
+        scene.m_cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         esc_key.on(Phaser.Input.Keyboard.Events.DOWN, clear_selection);
         //screen.space_key.on('down', try_selection);
@@ -283,19 +277,23 @@ let GameScene = new Phaser.Class({
     update: function () {
         let scene = this;
 
-        if (scene.m_cursor_keys.left.isDown)
+        if (scene.m_cursor_keys.left.isDown
+            || scene.m_cursor_keys.letter_left.isDown)
         {
             scene.cameras.main.scrollX -= 8;
         }
-        if (scene.m_cursor_keys.right.isDown)
+        if (scene.m_cursor_keys.right.isDown
+            || scene.m_cursor_keys.letter_right.isDown)
         {
             scene.cameras.main.scrollX += 8;
         }
-        if (scene.m_cursor_keys.up.isDown)
+        if (scene.m_cursor_keys.up.isDown
+            || scene.m_cursor_keys.letter_up.isDown)
         {
             scene.cameras.main.scrollY -= 8;
         }
-        if (scene.m_cursor_keys.down.isDown)
+        if (scene.m_cursor_keys.down.isDown
+            || scene.m_cursor_keys.letter_down.isDown)
         {
             scene.cameras.main.scrollY += 8;
         }
