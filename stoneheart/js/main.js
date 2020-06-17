@@ -1166,7 +1166,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ StartScene, DialogueScene, GameScene,  ]
+    scene: [ StartScene, DialogueScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
