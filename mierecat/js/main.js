@@ -95,7 +95,7 @@ let GameScene = new Phaser.Class({
         {
             let select_sprite = scene.add.rectangle(xPixel(x), yPixel(y),
                 GRID_SIZE, GRID_SIZE, COLORS.PINK)
-                .setDepth(DEPTHS.GRID_SELECT)
+                .setDepth(DEPTHS.UI)
                 .setVisible(false)
                 .setAlpha(0.60);
             select_sprite.setData("x", x);
