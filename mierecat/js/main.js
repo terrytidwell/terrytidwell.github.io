@@ -15,6 +15,11 @@ const DEPTHS =
     UI: 50
 };
 
+let g_game_settings = {
+    move: 6,
+    swim: 9
+}
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -194,7 +199,7 @@ let GameScene = new Phaser.Class({
             for (let i = 0; i < map.length; i++) {
                 for (let j = 0; j < map[i].length; j++) {
                     let value = map[i][j];
-                    if (value < filter) {
+                    if (filter(value)) {
                         selector_grid[i][j].setVisible(true);
                      }
                 }
@@ -213,18 +218,16 @@ let GameScene = new Phaser.Class({
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
                     clear_selection();
-                    let map = calculate_reachable_squares(
-                        squid.data.values.x,
-                        squid.data.values.y,
-                        6,
-                        TILES.ORANGE_GRID);
-                    activate_selection(map, 7);
+                    let map = squid.data.values.current_move_map;
+                    activate_selection(map, function (value){
+                        return value < g_game_settings.move;
+                    });
                 });
-
 
             //pink_squad.push(squid);
             squids.push(squid);
         }
+
         //let orange_squad = [];
         for (let x = SCREEN_COLUMNS - 1; x > SCREEN_COLUMNS - 5; x--)
         {
@@ -236,6 +239,18 @@ let GameScene = new Phaser.Class({
             squid.setData('y',0);
             squids.push(squid)
         }
+
+        let recalculate_moves = function() {
+            for (let squid of squids) {
+                let map = calculate_reachable_squares(
+                    squid.data.values.x,
+                    squid.data.values.y,
+                    g_game_settings.move,
+                    TILES.ORANGE_GRID);
+                squid.setData('current_move_map',map);
+            }
+        }
+        recalculate_moves();
 
         let border = BG_BORDER*GRID_SIZE;
         scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
