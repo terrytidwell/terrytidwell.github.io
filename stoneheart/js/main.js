@@ -968,8 +968,11 @@ let GameScene = new Phaser.Class({
 
         screen.align_border = function(x, y)
         {
+
             screen.me_sprite.setTexture('blocks',
                 screen.grid[screen.me_x][screen.me_y].value + screen.me_state);
+            screen.me_sprite_shadow.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
+            screen.me_sprite_shadow.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
             screen.me_sprite.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
             screen.me_sprite.y = screen.grid[screen.me_x][screen.me_y].sprite.y;
             screen.me_border.x = screen.grid[screen.me_x][screen.me_y].sprite.x;
@@ -1052,6 +1055,9 @@ let GameScene = new Phaser.Class({
             0, 0, 'blocks',
             screen.grid[screen.me_x][screen.me_y].value + screen.me_state)
             .setDepth(DEPTHS.PLAYER);
+        screen.me_sprite_shadow = screen.add.sprite(
+            0,0, 'blocks', 10).setDepth(DEPTHS.PLAYER + 1)
+            .setVisible(false).setTintFill(0xffffff);
 
 
         this.physics.add.overlap(screen.me_border, screen.player_dangers,
@@ -1062,7 +1068,21 @@ let GameScene = new Phaser.Class({
                 }
                 if (!screen.me_hit)
                 {
-                    let spokes = 8;
+                    screen.me_sprite_shadow.setVisible(true);
+                    screen.tweens.add({
+                        targets: screen.me_sprite_shadow,
+                        scaleX: 3,
+                        scaleY: 3,
+                        alpha: 0,
+                        duration: 250,
+                        onComplete: function() {
+                            screen.me_sprite_shadow.scaleX = 1;
+                            screen.me_sprite_shadow.scaleY = 1;
+                            screen.me_sprite_shadow.alpha = 1;
+                            screen.me_sprite_shadow.setVisible(false);
+                        }
+                    });
+                    let spokes = 0;
                     for (i = 0; i < spokes; i++) {
                         let vector = new Phaser.Math.Vector2(.5, 0);
                         let angle = 360/spokes * i;
