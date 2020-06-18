@@ -89,7 +89,7 @@ let GameScene = new Phaser.Class({
 
         scene.events.on('selector_clicked', function(x,y){
             console.log("Selection: " + x + " " + y);
-        })
+        });
 
         let create_selector = function(x, y, grid)
         {
@@ -206,6 +206,38 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let current_unit = null;
+        let select_squid = function(squid) {
+            current_unit = squid;
+        }
+        scene.events.on('selector_clicked', function(x,y) {
+            if (current_unit)
+            {
+                current_unit.setData('x',x);
+                current_unit.setData('y',y);
+                current_unit.x = xPixel(x);
+                current_unit.y = yPixel(y);
+                track_camera(x,y);
+                clear_selection();
+                recalculate_moves();
+            }
+        });
+
+        let track_camera = function(x,y)
+        {
+            let d = Phaser.Math.Distance.Between(
+                scene.cameras.main.x,
+                scene.cameras.main.y,
+                xPixel(x),
+                yPixel(y));
+            scene.cameras.main.pan(
+                xPixel(x),
+                yPixel(y),
+                d*2,
+                'Linear',
+                true);
+        }
+
         let squids = [];
         //let pink_squad = [];
         for (let x = 0; x < 4; x++)
@@ -217,6 +249,8 @@ let GameScene = new Phaser.Class({
             squid.setData('y',0);
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
+                    select_squid(squid);
+                    track_camera(squid.data.values.x,squid.data.values.y);
                     clear_selection();
                     let map = squid.data.values.current_move_map;
                     activate_selection(map, function (value){
@@ -234,9 +268,10 @@ let GameScene = new Phaser.Class({
             let squid = scene.add.sprite(xPixel(x),yPixel(SCREEN_ROWS - 1),
                 'tiles',TILES.ORANGE_SQUID);
             //orange_squad.push(squid);
+
             squid.setDepth(DEPTHS.SQUAD);
             squid.setData('x',x);
-            squid.setData('y',0);
+            squid.setData('y',SCREEN_ROWS - 1);
             squids.push(squid)
         }
 
@@ -266,7 +301,10 @@ let GameScene = new Phaser.Class({
         scene.m_cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.m_cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, clear_selection);
+        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, function() {
+            clear_selection();
+            select_squid(null);
+        });
         //screen.space_key.on('down', try_selection);
     },
 
