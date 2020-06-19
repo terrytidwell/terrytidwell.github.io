@@ -15,11 +15,71 @@ const DEPTHS =
     UI: 50
 };
 
+let COLORS = {
+    ORANGE: 0xd5a306,
+    PINK: 0xef758a,
+    ORANGE_TEXT: "#d5a306",
+    PINK_TEXT: "#ef758a"
+};
+
 let g_game_settings = {
     move: 4,
     swim: 6,
     shoot_distance: 6
 };
+
+let TitleScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'TitleScene', active: true});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+        this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 32, frameHeight: 32});
+        this.load.image('splat', 'assets/splat2.png');
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        scene.add.image(SCREEN_WIDTH/4,
+            SCREEN_HEIGHT/4,
+            'splat').setTint(COLORS.ORANGE);
+        scene.add.image(SCREEN_WIDTH/4 *3,
+            SCREEN_HEIGHT/2,
+            'splat').setTint(COLORS.PINK).setAngle(70).setScale(0.9);
+        let play = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2,
+            "Play",
+            { font: GRID_SIZE * 2 + 'px project_paintball', color: COLORS.PINK_TEXT})
+            .setOrigin(0.5, 0.5)
+            .setStroke('#ffffff', 3);
+        play.setInteractive();
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
+
+            play.scaleX = 1.2;
+            play.scaleY = 1.2;
+        });
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
+            play.scaleX = 1;
+            play.scaleY = 1;
+        });
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+            scene.scene.start('UIScene');
+            scene.scene.start('GameScene');
+            scene.scene.stop('TitleScene');
+        });
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
 
 let UIScene = new Phaser.Class({
 
@@ -27,7 +87,7 @@ let UIScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'UIScene', active: true});
+        Phaser.Scene.call(this, {key: 'UIScene', active: false});
     },
 
     //--------------------------------------------------------------------------
@@ -41,14 +101,14 @@ let UIScene = new Phaser.Class({
             0,
             0,
             "0%",
-            { font: GRID_SIZE + 'px project_paintball', color: "#ef758a"})
+            { font: GRID_SIZE + 'px project_paintball', color: COLORS.PINK_TEXT})
             .setOrigin(0,0)
             .setStroke('#ffffff', 3);
         scene.orange_score = scene.add.text(
             SCREEN_WIDTH,
             0,
             "0%",
-            { font: GRID_SIZE + 'px project_paintball', color: "#d5a306"})
+            { font: GRID_SIZE + 'px project_paintball', color: COLORS.ORANGE_TEXT})
             .setOrigin(1,0)
             .setStroke('#ffffff', 3);
     },
@@ -64,12 +124,11 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'GameScene', active: true});
+        Phaser.Scene.call(this, {key: 'GameScene', active: false});
     },
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 32, frameHeight: 32});
     },
 
     //--------------------------------------------------------------------------
@@ -83,11 +142,6 @@ let GameScene = new Phaser.Class({
             EYES: 4,
             ORANGE_SQUID: 5,
             BG_GRID: 6
-        };
-
-        let COLORS = {
-            ORANGE: 0xd5a306,
-            PINK: 0xef758a
         };
 
         let SELECTION_ACTIONS = {
@@ -605,22 +659,6 @@ let GameScene = new Phaser.Class({
             squids.push(squid);
         }
 
-        /*
-        //let orange_squad = [];
-        for (let x = SCREEN_COLUMNS - 1; x > SCREEN_COLUMNS - 5; x--)
-        {
-            let squid = scene.add.sprite(xPixel(x),yPixel(SCREEN_ROWS - 1),
-                'tiles',TILES.ORANGE_SQUID);
-            //orange_squad.push(squid);
-
-            squid.setDepth(DEPTHS.SQUAD);
-            squid.setData('x',x);
-            squid.setData('y',SCREEN_ROWS - 1);
-            squid.setData('color', COLORS.ORANGE);
-            squids.push(squid)
-        }
-         */
-
         let recalculate_moves = function() {
             for (let squid of squids) {
                 let map = calculate_reachable_squares(
@@ -706,7 +744,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
     type: Phaser.AUTO,
     render: {
         //pixelArt: true
@@ -725,7 +763,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene, UIScene ]
+    scene: [ TitleScene, GameScene, UIScene ]
 };
 
 game = new Phaser.Game(config);
