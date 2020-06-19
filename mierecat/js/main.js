@@ -16,8 +16,9 @@ const DEPTHS =
 };
 
 let g_game_settings = {
-    move: 6,
-    swim: 9
+    move: 4,
+    swim: 6,
+    shoot_distance: 6
 }
 
 let GameScene = new Phaser.Class({
@@ -50,7 +51,12 @@ let GameScene = new Phaser.Class({
         let COLORS = {
             ORANGE: 0xd5a306,
             PINK: 0xef758a
-        }
+        };
+
+        let SELECTION_ACTIONS = {
+            MOVE: 0,
+            SHOOT: 1
+        };
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
@@ -134,6 +140,12 @@ let GameScene = new Phaser.Class({
         let game_grid = create_grid(create_random_square);
         let selector_grid = create_grid(create_selector);
 
+        let square_is_legal = function(x, y)
+        {
+            return x >= 0 && x < SCREEN_COLUMNS &&
+                y >= 0 && y < SCREEN_ROWS;
+        }
+
         let square_is_legal_move = function(x, y, my_color)
         {
             let squid;
@@ -145,8 +157,7 @@ let GameScene = new Phaser.Class({
                     return false;
                 }
             }
-            return x >= 0 && x < SCREEN_COLUMNS &&
-                y >= 0 && y < SCREEN_ROWS;
+            return square_is_legal(x, y)
         };
 
         let clear_selection = function()
@@ -167,13 +178,13 @@ let GameScene = new Phaser.Class({
             }
             let INFINITY = moves_left + 1;
             let reach_map = create_grid(function(){return INFINITY;});
-            let squares_to_expand = [{x, y: y, moves_used: 0}];
+            let squares_to_expand = [{x: x, y: y, moves_used: 0}];
+            reach_map[x][y] = 0;
             let MOVES = [ [0, 1], [0, -1], [1, 0], [-1, 0] ];
             while (squares_to_expand.length !== 0)
             {
                 let square = squares_to_expand.pop();
-                let move;
-                for ( move of MOVES )
+                for ( let move of MOVES )
                 {
                     let dx = move[0];
                     let dy = move[1];
@@ -210,6 +221,28 @@ let GameScene = new Phaser.Class({
             return reach_map;
         };
 
+        let calculate_shootable_squares = function(x, y, shoot_distance)
+        {
+            let INFINITY = shoot_distance + 1;
+            let reach_map = create_grid( function(){return INFINITY;});
+            for (let i = 1; i <= shoot_distance; i++)
+            {
+                if (square_is_legal(x+i, y)) {
+                    reach_map[x+i][y] = 0;
+                }
+                if (square_is_legal(x-i, y)) {
+                    reach_map[x-i][y] = 0;
+                }
+                if (square_is_legal(x, y+i)) {
+                    reach_map[x][y+i] = 0;
+                }
+                if (square_is_legal(x, y-i)) {
+                    reach_map[x][y-i] = 0;
+                }
+            }
+            return reach_map;
+        }
+
         let activate_selection = function(map, filter)
         {
             for (let i = 0; i < map.length; i++) {
@@ -233,14 +266,68 @@ let GameScene = new Phaser.Class({
         scene.events.on('selector_clicked', function(x,y) {
             if (current_unit)
             {
-                current_unit.setData('x',x);
-                current_unit.setData('y',y);
-                current_unit.x = xPixel(x);
-                current_unit.y = yPixel(y);
-                current_unit.data.values.move();
-                track_camera(x,y);
-                clear_selection();
-                recalculate_moves();
+                switch (current_unit.data.values.selection_action) {
+                    case SELECTION_ACTIONS.MOVE:
+                        current_unit.setData('x', x);
+                        current_unit.setData('y', y);
+                        current_unit.x = xPixel(x);
+                        current_unit.y = yPixel(y);
+                        current_unit.data.values.move();
+                        track_camera(x, y);
+                        clear_selection();
+                        recalculate_moves();
+                        break;
+                    case SELECTION_ACTIONS.SHOOT:
+                        let dx = x - current_unit.data.values.x;
+                        let dy = y - current_unit.data.values.y;
+                        let vector = new Phaser.Math.Vector2(dx, dy);
+                        vector.normalize();
+                        vector.scale(g_game_settings.shoot_distance);
+                        let line = new Phaser.Geom.Line(0, 0, vector.x, vector.y);
+                        let points = Phaser.Geom.Line.BresenhamPoints(line);
+
+                        let tile_target = TILES.PINK_GRID;
+                        if (current_unit.data.values.color === COLORS.ORANGE) {
+                            tile_target = TILES.ORANGE_GRID;
+
+                        }
+
+                        for (let point of points)
+                        {
+                            let px = point.x + current_unit.data.values.x;
+                            let py = point.y + current_unit.data.values.y;
+                            if (square_is_legal(px,py))
+                            {
+                                let tile = game_grid[px][py];
+                                tile.setTexture('tiles',tile_target);
+                                tile.setData('value',tile_target);
+                            }
+                        };
+/*
+                        let dmanhattan = Math.abs(dx) + Math.abs(dy);
+                        dx /= dmanhattan;
+                        dy /= dmanhattan;
+
+                        let tile_target = TILES.PINK_GRID;
+                        if (current_unit.data.values.color === COLORS.ORANGE) {
+                            tile_target = TILES.ORANGE_GRID;
+                        }
+                        track_camera(
+                            current_unit.data.values.x + g_game_settings.shoot_distance/2 * dx,
+                            current_unit.data.values.y + g_game_settings.shoot_distance/2 * dy
+                        )
+                        for (i = 0; i <= g_game_settings.shoot_distance; i++)
+                        {
+                            let px = Math.floor(current_unit.data.values.x + i * dx);
+                            let py = Math.floor(current_unit.data.values.y + i * dy);
+
+                        }
+
+ */
+                        clear_selection();
+                        recalculate_moves();
+                        break;
+                }
             }
         });
 
@@ -279,7 +366,7 @@ let GameScene = new Phaser.Class({
             let rect = scene.add.circle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
                 GRID_SIZE/4,
-                COLORS.PINK, 1)
+                squid.data.values.color, 1)
                 .setDepth(DEPTHS.UI+1);
             rect.setAlpha(0.75);
             rect.setInteractive();
@@ -353,7 +440,7 @@ let GameScene = new Phaser.Class({
             let rect = scene.add.rectangle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
                 width, GRID_SIZE/2,
-                COLORS.PINK, 1)
+                squid.data.values.color, 1)
                 .setDepth(DEPTHS.UI+1);
             if (akimbo) {
                 rect.setAngle(angle);
@@ -403,15 +490,24 @@ let GameScene = new Phaser.Class({
         };
 
         let squids = [];
-        //let pink_squad = [];
-        for (let x = 0; x < 4; x++)
+        for (let start_position of [
+            {x: 0, y: 0, color: COLORS.PINK},
+            {x: 1, y: 0, color: COLORS.PINK},
+            {x: 2, y: 0, color: COLORS.PINK},
+            {x: 3, y: 0, color: COLORS.PINK},
+            {x: SCREEN_COLUMNS - 1, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 4, y: SCREEN_ROWS - 1, color: COLORS.ORANGE}
+        ])
         {
-            let squid = scene.add.sprite(xPixel(x),yPixel(0),'tiles',TILES.PINK_SQUID);
+            let my_tile = COLORS.PINK === start_position.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
+            let squid = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',my_tile);
             squid.setDepth(DEPTHS.SQUAD);
             squid.setInteractive();
-            squid.setData('x',x);
-            squid.setData('y',0);
-            squid.setData('color', COLORS.PINK);
+            squid.setData('x',start_position.x);
+            squid.setData('y',start_position.y);
+            squid.setData('color', start_position.color);
             squid.setData('closeFunctions', []);
             squid.setData('openFunctions', []);
             squid.setData('moveFunctions', []);
@@ -429,13 +525,24 @@ let GameScene = new Phaser.Class({
             {
                 squid.data.values.close();
                 let map = squid.data.values.current_move_map;
+                squid.setData('selection_action',SELECTION_ACTIONS.MOVE)
                 activate_selection(map, function (value){
-                    return value < g_game_settings.move;
+                    return value <= g_game_settings.move;
+                });
+            };
+
+            let activateShot = function()
+            {
+                squid.data.values.close();
+                let map = squid.data.values.current_shoot_map;
+                squid.setData('selection_action',SELECTION_ACTIONS.SHOOT)
+                activate_selection(map, function (value){
+                    return value <= g_game_settings.shoot_distance;
                 });
             };
 
             add_menu_item(squid, 360 / 7 * 3, 'Move', activateMove);
-            add_menu_item(squid, 360 / 7 * 0.5, 'Attack', function() {});
+            add_menu_item(squid, 360 / 7 * 0.5, 'Attack', activateShot);
             add_menu_item(squid, 360 / 7 * 4.5, 'Cheer', function() {});
             add_menu_close(squid, 360 / 7 * 6);
 
@@ -445,18 +552,13 @@ let GameScene = new Phaser.Class({
                     squid.data.values.open();
                     track_camera(squid.data.values.x,squid.data.values.y);
                     clear_selection();
-                    /*
-                    let map = squid.data.values.current_move_map;
-                    activate_selection(map, function (value){
-                        return value < g_game_settings.move;
-                    });
-                    */
                 });
 
             //pink_squad.push(squid);
             squids.push(squid);
         }
 
+        /*
         //let orange_squad = [];
         for (let x = SCREEN_COLUMNS - 1; x > SCREEN_COLUMNS - 5; x--)
         {
@@ -470,6 +572,7 @@ let GameScene = new Phaser.Class({
             squid.setData('color', COLORS.ORANGE);
             squids.push(squid)
         }
+         */
 
         let recalculate_moves = function() {
             for (let squid of squids) {
@@ -477,8 +580,13 @@ let GameScene = new Phaser.Class({
                     squid.data.values.x,
                     squid.data.values.y,
                     g_game_settings.move,
-                    COLORS.PINK);
+                    squid.data.values.color);
                 squid.setData('current_move_map',map);
+                map = calculate_shootable_squares(
+                    squid.data.values.x,
+                    squid.data.values.y,
+                    g_game_settings.shoot_distance);
+                squid.setData('current_shoot_map', map);
             }
         }
         recalculate_moves();
