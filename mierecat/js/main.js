@@ -419,17 +419,33 @@ let GameScene = new Phaser.Class({
 
         let track_camera = function(x,y)
         {
-            let d = Phaser.Math.Distance.Between(
-                scene.cameras.main.x,
-                scene.cameras.main.y,
-                xPixel(x),
-                yPixel(y));
-            scene.cameras.main.pan(
+            console.log("Move camera from (" + scene.cameras.main.scrollX + ", "
+                + scene.cameras.main.scrollY + ") to (" + xPixel(x) + ", "
+                + yPixel(y) + ")");
+            let camera = scene.cameras.main.pan(
                 xPixel(x),
                 yPixel(y),
-                d*2,
+                1000,
                 'Linear',
                 true);
+            console.log("Calculated camera move of (" + camera.panEffect.current.x + ", "
+                + camera.panEffect.current.y + ") to (" + camera.panEffect.destination.x + ", "
+                + camera.panEffect.destination.y + ")");
+            let d = Phaser.Math.Distance.Between(
+                scene.cameras.main.scrollX,
+                scene.cameras.main.scrollY,
+                camera.panEffect.current.x,
+                camera.panEffect.current.y
+            );
+            camera = scene.cameras.main.pan(
+                xPixel(x),
+                yPixel(y),
+                d * 2,
+                'Quad.EaseInEaseOut',
+                true);
+
+
+
         };
 
         let add_menu_close = function(squid,angle)
@@ -699,6 +715,26 @@ let GameScene = new Phaser.Class({
         let border = BG_BORDER*GRID_SIZE;
         scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
 
+        let zone = scene.add.zone(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border)
+            .setOrigin(0)
+            .setInteractive();
+
+        zone.on(Phaser.Input.Events.POINTER_MOVE, function (pointer) {
+            if (pointer.isDown) {
+                let deltaY = pointer.prevPosition.y - pointer.position.y;
+                scene.cameras.main.scrollY  = scene.cameras.main.scrollY + deltaY;
+                let deltaX = pointer.prevPosition.x - pointer.position.x;
+                scene.cameras.main.scrollX  = scene.cameras.main.scrollX + deltaX;
+            } else {
+                scene.cameras.main.scrollY = Math.floor(scene.cameras.main.scrollY);
+                scene.cameras.main.scrollX = Math.floor(scene.cameras.main.scrollX);
+            }
+        });
+        zone.on(Phaser.Input.Events.POINTER_UP, function (pointer) {
+            scene.cameras.main.scrollY = Math.floor(scene.cameras.main.scrollY);
+            scene.cameras.main.scrollX = Math.floor(scene.cameras.main.scrollX);
+        });
+
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
@@ -714,7 +750,6 @@ let GameScene = new Phaser.Class({
             clear_selection();
             select_squid(null);
         });
-        //screen.space_key.on('down', try_selection);
     },
 
     update: function () {
