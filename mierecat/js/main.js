@@ -726,13 +726,13 @@ let GameScene = new Phaser.Class({
                 let deltaX = pointer.prevPosition.x - pointer.position.x;
                 scene.cameras.main.scrollX  = scene.cameras.main.scrollX + deltaX;
             } else {
-                scene.cameras.main.scrollY = Math.floor(scene.cameras.main.scrollY);
-                scene.cameras.main.scrollX = Math.floor(scene.cameras.main.scrollX);
+                scene.cameras.main.scrollY = Math.round(scene.cameras.main.scrollY);
+                scene.cameras.main.scrollX = Math.round(scene.cameras.main.scrollX);
             }
         });
         zone.on(Phaser.Input.Events.POINTER_UP, function (pointer) {
-            scene.cameras.main.scrollY = Math.floor(scene.cameras.main.scrollY);
-            scene.cameras.main.scrollX = Math.floor(scene.cameras.main.scrollX);
+            scene.cameras.main.scrollY = Math.round(scene.cameras.main.scrollY);
+            scene.cameras.main.scrollX = Math.round(scene.cameras.main.scrollX);
         });
 
         //----------------------------------------------------------------------
