@@ -12,7 +12,8 @@ const DEPTHS =
     GRID_SELECT: 20,
     SQUAD: 30,
     FG: 40,
-    UI: 50
+    UI: 50,
+    HUD: 60
 };
 
 let COLORS = {
@@ -28,6 +29,15 @@ let g_game_settings = {
     shoot_distance: 6
 };
 
+let Util = {
+    fixCenterText : function(text)
+    {
+        if (text.width % 2 === 1) {
+            text.x = Math.round(text.x) + 0.5;
+        }
+    }
+}
+
 let TitleScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -39,7 +49,7 @@ let TitleScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 32, frameHeight: 32});
+        this.load.spritesheet('tiles', 'assets/tiles2.png', { frameWidth: 32, frameHeight: 32, spacing: 1});
         this.load.image('splat', 'assets/splat2.png');
     },
 
@@ -59,6 +69,7 @@ let TitleScene = new Phaser.Class({
             { font: GRID_SIZE * 2 + 'px project_paintball', color: COLORS.PINK_TEXT})
             .setOrigin(0.5, 0.5)
             .setStroke('#ffffff', 3);
+        Util.fixCenterText(play);
         play.setInteractive();
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
 
@@ -336,7 +347,9 @@ let GameScene = new Phaser.Class({
                 for (let j = 0; j < map[i].length; j++) {
                     let value = map[i][j];
                     if (filter(value)) {
-                        selector_grid[i][j].setVisible(true);
+                        selector_grid[i][j]
+                            .setVisible(true)
+                            .setFillStyle(current_unit.data.values.color, 0.6);
                      }
                 }
             }
@@ -380,7 +393,7 @@ let GameScene = new Phaser.Class({
                         track_camera(x, y);
                         clear_selection();
                         select_squid(null);
-                        recalculate_moves();
+                        recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SHOOT:
                         let dx = x - current_unit.data.values.x;
@@ -411,7 +424,7 @@ let GameScene = new Phaser.Class({
 
                         select_squid(null);
                         clear_selection();
-                        recalculate_moves();
+                        recalculate_game_state();
                         break;
                 }
             }
@@ -419,18 +432,17 @@ let GameScene = new Phaser.Class({
 
         let track_camera = function(x,y)
         {
-            console.log("Move camera from (" + scene.cameras.main.scrollX + ", "
-                + scene.cameras.main.scrollY + ") to (" + xPixel(x) + ", "
-                + yPixel(y) + ")");
+            //ok... so this code
+            //the first camera pan simple is used to calculate the actual move to be made
+            //after scheduling this pan the value camera.panEffect.current is a vector2 that
+            //has the ACTUAL camera destination
+            //
+            //cameras.main.scrollX and scrollY have the actual start point so we need to
+            //use those two variables to determine how far the camera should move, and thus
+            //how long our pan should be
             let camera = scene.cameras.main.pan(
                 xPixel(x),
-                yPixel(y),
-                1000,
-                'Linear',
-                true);
-            console.log("Calculated camera move of (" + camera.panEffect.current.x + ", "
-                + camera.panEffect.current.y + ") to (" + camera.panEffect.destination.x + ", "
-                + camera.panEffect.destination.y + ")");
+                yPixel(y));
             let d = Phaser.Math.Distance.Between(
                 scene.cameras.main.scrollX,
                 scene.cameras.main.scrollY,
@@ -443,9 +455,6 @@ let GameScene = new Phaser.Class({
                 d * 2,
                 'Quad.EaseInEaseOut',
                 true);
-
-
-
         };
 
         let add_menu_close = function(squid,angle)
@@ -513,7 +522,165 @@ let GameScene = new Phaser.Class({
                     object.setVisible(true);
                 }
             });
+        };
+
+        let add_hud = function(squid) {
+            let bubble = scene.add.circle(
+                0, SCREEN_HEIGHT,
+                GRID_SIZE * 2,
+                0xFFFFFF, 1)
+                .setScrollFactor(0)
+                .setDepth(DEPTHS.HUD+1);
+            let bubble_outline = scene.add.circle(
+                0, SCREEN_HEIGHT,
+                GRID_SIZE * 2.25,
+                squid.data.values.color, 1)
+                .setScrollFactor(0)
+                .setDepth(DEPTHS.HUD);
+            let my_tile = COLORS.PINK === squid.data.values.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
+            let my_text = COLORS.PINK === squid.data.values.color ? COLORS.PINK_TEXT : COLORS.ORANGE_TEXT;
+            let portrait = scene.add.sprite(
+                0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
+                'tiles',my_tile)
+                .setScale(2)
+                .setScrollFactor(0)
+                .setDepth(DEPTHS.HUD+2);
+            let text_height = GRID_SIZE/2;
+            let life = scene.add.text(
+                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height,
+                'HP: 100/100', {font: text_height + 'px project_paintball', color: my_text})
+                .setScrollFactor(0)
+                .setOrigin(0.5)
+                .setDepth(DEPTHS.HUD+3)
+                .setStroke("#FFFFFF", 3);
+            Util.fixCenterText(life);
+
+            let ink = scene.add.text(
+                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height,
+                'INK: 100/100', {font: text_height + 'px project_paintball', color: my_text})
+                .setScrollFactor(0)
+                .setOrigin(0.5)
+                .setDepth(DEPTHS.HUD+3)
+                .setStroke("#FFFFFF", 3);
+            Util.fixCenterText(ink);
+
+            let pts = scene.add.text(
+                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2,
+                'PTS: 100/100', {font: text_height + 'px project_paintball', color: my_text})
+                .setScrollFactor(0)
+                .setOrigin(0.5)
+                .setDepth(DEPTHS.HUD+3)
+                .setStroke("#FFFFFF", 3);
+            Util.fixCenterText(pts);
+
+
+            let objects = [bubble, bubble_outline, portrait, life, ink, pts];
+
+            let deselect = function() {
+                for (let object of objects) {
+                    object.setVisible(false);
+                }
+            };
+            deselect();
+
+            squid.data.values.openFunctions.push(function() {
+                for (let object of objects) {
+                    object.setVisible(true);
+                }
+            });
+            squid.data.values.deselectFunctions.push(deselect);
         }
+
+        let add_health_bar = function(label, squid,angle) {
+            let x = squid.data.values.x;
+            let y = squid.data.values.y;
+            angle %= 360;
+            let text_correction = 0;
+            if (angle >= 90 && angle < 270)
+            {
+                text_correction = 180;
+            }
+
+            let text = scene.add.text(xPixel(x),yPixel(y),
+                label, { font: GRID_SIZE/2 + 'px Splatfont2', color: "#ffffff"});
+            text.setOrigin(0.5, 0.5);
+            let width = text.width * 1.25;
+
+            let inner_radius = text.width+GRID_SIZE;
+            let vector = new Phaser.Math.Vector2(inner_radius, 0);
+            let vector2 = new Phaser.Math.Vector2(inner_radius+ text.width/2+GRID_SIZE/2, 0);
+            vector.rotate(Phaser.Math.DegToRad(angle));
+            vector2.rotate(Phaser.Math.DegToRad(angle));
+
+            text.x = text.x + vector.x;
+            text.y = text.y + vector.y;
+            text.setAngle(angle + text_correction);
+            text.setDepth(DEPTHS.UI+3);
+
+            let circle = scene.add.circle(
+                xPixel(x) + vector.x,yPixel(y) + vector.y,
+                width/2,
+                squid.data.values.color, 1)
+                .setDepth(DEPTHS.UI+2);
+
+            circle.setAlpha(0.75);
+            let bg = scene.add.circle(
+                xPixel(x) + vector.x,yPixel(y) + vector.y,
+                width/2+1,
+                0xFFFFFF, 1)
+                .setDepth(DEPTHS.UI+1);
+
+            let bar = scene.add.rectangle(
+                xPixel(x) + vector2.x,
+                yPixel(y) + vector2.y,
+                GRID_SIZE,
+                GRID_SIZE/4,
+                squid.data.values.color, 1)
+                .setDepth(DEPTHS.UI)
+                .setAngle(angle);
+            let bar_bg = scene.add.rectangle(
+                xPixel(x) + vector2.x,
+                yPixel(y) + vector2.y,
+                GRID_SIZE + 2,
+                GRID_SIZE/4 + 2,
+                0xFFFFFF, 1)
+                .setDepth(DEPTHS.UI-1)
+                .setAngle(angle);
+            let objects = [text, circle, bg];
+            let objects2 = [bar, bar_bg];
+
+            let move = function() {
+                for (let object of objects) {
+                    object.x = Math.round(xPixel(squid.data.values.x) + vector.x);
+                    object.y = Math.round(yPixel(squid.data.values.y) + vector.y);
+                }
+                for (let object of objects2) {
+                    object.x = Math.round(xPixel(squid.data.values.x) + vector2.x);
+                    object.y = Math.round(yPixel(squid.data.values.y) + vector2.y);
+                }
+            };
+            move();
+
+            scene.tweens.add({
+                yoyo: true,
+                duration: 1000,
+                targets: bar,
+                width: 0,
+                repeat: -1
+            })
+
+            let open = function() {
+                for (let object of objects) {
+                    object.setVisible(false);
+                }
+                for (let object of objects2) {
+                    object.setVisible(false);
+                }
+            };
+
+            squid.data.values.openFunctions.push(open);
+            squid.data.values.moveFunctions.push(move);
+        };
 
         let add_menu_item = function(squid,angle,label,click,akimbo=true) {
             let x = squid.data.values.x;
@@ -610,7 +777,7 @@ let GameScene = new Phaser.Class({
             squid.setData('x',start_position.x);
             squid.setData('y',start_position.y);
             squid.setData('color', start_position.color);
-            squid.setData('')
+            squid.setData('health', 100);
             squid.setData('deselectFunctions', [
                 function() {
                     if(squid.data.values.animation) {
@@ -658,6 +825,15 @@ let GameScene = new Phaser.Class({
             let angle_fix = COLORS.PINK === start_position.color ? 1 : -1;
             let angle_start = COLORS.PINK === start_position.color ? 0 : 360+180;
 
+            add_hud(squid);
+            if (squids.length === 0 || squids.length === 4) {
+                /*
+                add_health_bar('HP', squid, angle_start + 360 / 13 * 11.5 * angle_fix);
+                add_health_bar('NK', squid, angle_start + 360 / 13 * 12.5 * angle_fix);
+                add_health_bar('SP', squid, angle_start + 360 / 13 * 13.5 * angle_fix);
+                 */
+            }
+
             add_menu_item(squid, angle_start + 360 / 7 * 3 * angle_fix, 'Move', activateMove);
             add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot);
             add_menu_item(squid, angle_start + 360 / 7 * 4.5 * angle_fix, 'Cheer', function() {});
@@ -675,7 +851,7 @@ let GameScene = new Phaser.Class({
             squids.push(squid);
         }
 
-        let recalculate_moves = function() {
+        let recalculate_game_state = function() {
             for (let squid of squids) {
                 let map = calculate_reachable_squares(
                     squid.data.values.x,
@@ -710,7 +886,7 @@ let GameScene = new Phaser.Class({
                 ui.orange_score.setText(Math.floor(orange_score * 100 / total) + "%");
             }
         }
-        recalculate_moves();
+        recalculate_game_state();
 
         let border = BG_BORDER*GRID_SIZE;
         scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
