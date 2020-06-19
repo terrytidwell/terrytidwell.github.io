@@ -541,10 +541,13 @@ let GameScene = new Phaser.Class({
                 });
             };
 
-            add_menu_item(squid, 360 / 7 * 3, 'Move', activateMove);
-            add_menu_item(squid, 360 / 7 * 0.5, 'Attack', activateShot);
-            add_menu_item(squid, 360 / 7 * 4.5, 'Cheer', function() {});
-            add_menu_close(squid, 360 / 7 * 6);
+            let angle_fix = COLORS.PINK === start_position.color ? 1 : -1;
+            let angle_start = COLORS.PINK === start_position.color ? 0 : 360+180;
+
+            add_menu_item(squid, angle_start + 360 / 7 * 3 * angle_fix, 'Move', activateMove);
+            add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot);
+            add_menu_item(squid, angle_start + 360 / 7 * 4.5 * angle_fix, 'Cheer', function() {});
+            add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
