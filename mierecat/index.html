@@ -4,7 +4,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
 <title>Squid Tactics</title>
-<script type="text/javascript" src="../libs/phaser3/phaser.min.js"></script>
 <style>
 body {
 padding: 0px;
@@ -12,9 +11,24 @@ padding: 0px;
 margin: 0px;
 background: #000000;
 }
+@font-face {
+    font-family: Splatfont2;
+    src: url('assets/Splatfont2.ttf');
+    font-weight: 400;
+    font-weight: normal;
+}
+@font-face {
+    font-family: project_paintball;
+    src: url('assets/project_paintball.otf');
+    font-weight: 400;
+    font-weight: normal;
+}
 </style>
 
 <body>
+<div style="font-family:Splatfont2; position: absolute; left:-1000px; visibility:hidden;">.</div>
+<div style="font-family:project_paintball; position: absolute; left:-1000px; visibility:hidden;">.</div>
+<script type="text/javascript" src="../libs/phaser3/phaser.min.js"></script>
 <div id="phaser-example"></div>
 <script src="js/main.js"></script>
 </body>
