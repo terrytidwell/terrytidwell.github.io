@@ -416,8 +416,11 @@ let GameScene = new Phaser.Class({
 
             if (!violation)
             {
-                alert("Victory!");
-                scene.scene.pause('GameScreen');
+                for (col of grid_squares) {
+                    for (square of col) {
+                        reveal_hint(square.data.values.x, square.data.values.y);
+                    }
+                }
             }
         };
 
@@ -718,7 +721,7 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 0 },
+            gravity: { y: 30 },
             debug: false
         }
     },
