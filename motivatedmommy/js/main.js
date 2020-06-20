@@ -41,6 +41,13 @@ let GameScene = new Phaser.Class({
             SOUTH: 6,
             WEST: 7,
             X: 8,
+            getPrev: function(current) {
+                if (STATE.isShip(current))
+                {
+                    current = 2;
+                }
+                return (current + 2) % 3
+            },
             getNext: function(current) {
                 if (STATE.isShip(current))
                 {
@@ -436,11 +443,50 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let square_action = function(square, func)
+        {
+            if (square.data.values.locked) {
+                return;
+            }
+            let x = square.data.values.x;
+            let y = square.data.values.y;
+            let shapes = square.data.values.shapes[square.data.values.state]
+            for (let shape of shapes) {
+                shape.setVisible(false);
+            }
+            square.setData('state', func(square.data.values.state));
+            fix_square(x, y);
+            fix_square(x-1, y);
+            fix_square(x+1, y);
+            fix_square(x, y-1);
+            fix_square(x, y+1);
+            shapes = square.data.values.shapes[square.data.values.state];
+            for (shape of shapes) {
+                shape.setVisible(true);
+            }
+            checkConstraints();
+        };
+
+        let events = [];
+        let do_square = function(square)
+        {
+            events.push(square);
+            square_action(square,STATE.getNext);
+        }
+
+        let undo_square = function()
+        {
+            if (events.length === 0) {
+                return
+            }
+            let square = events.pop();
+            square_action(square, STATE.getPrev);
+        }
+
         for (let x = 0; x < SCREEN_COLUMNS; x++)
         {
             grid_squares.push([]);
-            for (let y = 0; y < SCREEN_ROWS; y++)
-            {
+            for (let y = 0; y < SCREEN_ROWS; y++) {
                 let square = scene.add.rectangle(
                     xPixel(x),
                     yPixel(y),
@@ -448,7 +494,7 @@ let GameScene = new Phaser.Class({
                     GRID_SIZE,
                     COLORS.BORDER,
                     0
-                ).setStrokeStyle(2, COLORS.BORDER,1).setDepth(DEPTHS.GRID);
+                ).setStrokeStyle(2, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
                 grid_squares[x].push(square);
                 square.setInteractive();
                 square.setData('x', x);
@@ -457,38 +503,21 @@ let GameScene = new Phaser.Class({
                 square.setData('state', STATE.EMPTY);
                 square.setData('shapes', STATE.createShapes(x, y));
 
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
                     if (square.data.values.locked) {
                         return;
                     }
                     square.setFillStyle(0x000000, 0.15);
                 });
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
                     if (square.data.values.locked) {
                         return;
                     }
                     square.setFillStyle(0x000000, 0);
                 });
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
-                    if (square.data.values.locked) {
-                        return;
-                    }
-                    let shapes = square.data.values.shapes[square.data.values.state]
-                    for (let shape of shapes) {
-                        shape.setVisible(false);
-                    }
-                    square.setData('state', STATE.getNext(square.data.values.state));
-                    fix_square(x, y);
-                    fix_square(x-1, y);
-                    fix_square(x+1, y);
-                    fix_square(x, y-1);
-                    fix_square(x, y+1);
-                    shapes = square.data.values.shapes[square.data.values.state];
-                    for (shape of shapes) {
-                        shape.setVisible(true);
-                    }
-                    checkConstraints();
-                })
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
+                    do_square(square);
+                });
             }
         };
         let setColumns = function(array) {
@@ -582,6 +611,9 @@ let GameScene = new Phaser.Class({
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
+
+        let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, undo_square);
     },
 
     update: function () {
