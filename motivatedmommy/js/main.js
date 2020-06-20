@@ -159,6 +159,9 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
+        this.load.image('undo', 'assets/undo-black-36dp.svg');
+        this.load.image('clue', 'assets/search-black-36dp.svg');
+        this.load.image('info', 'assets/help-black-36dp.svg');
     },
 
     //--------------------------------------------------------------------------
@@ -206,7 +209,42 @@ let GameScene = new Phaser.Class({
                 return false;
             }
             return STATE.isShip(grid_squares[x][y].data.values.state);
-        }
+        };
+
+        let is_hidden_ship = function(x, y)
+        {
+            if (x < 0 || x >= SCREEN_COLUMNS ||
+                y < 0 || y >= SCREEN_ROWS) {
+                return false;
+            }
+            return grid_squares[x][y].data.values.hidden_ship;
+        };
+
+        let get_proper_ship_state = function(x,y,func)
+        {
+            let state = STATE.CIRCLE;
+            let counter = 0;
+            if (func(x,y+1)) {
+                state = STATE.NORTH;
+                counter++;
+            }
+            if (func(x,y-1)) {
+                state = STATE.SOUTH;
+                counter++;
+            }
+            if (func(x+1,y)) {
+                state = STATE.WEST;
+                counter++;
+            }
+            if (func(x-1,y)) {
+                state = STATE.EAST;
+                counter++;
+            }
+            if (counter > 1) {
+                state = STATE.SHIP
+            }
+            return state;
+        };
 
         let fix_square = function(x, y)
         {
@@ -221,27 +259,7 @@ let GameScene = new Phaser.Class({
                 return;
             }
 
-            let state = STATE.CIRCLE;
-            let counter = 0;
-            if (is_ship(x,y+1)) {
-                state = STATE.NORTH;
-                counter++;
-            }
-            if (is_ship(x,y-1)) {
-                state = STATE.SOUTH;
-                counter++;
-            }
-            if (is_ship(x+1,y)) {
-                state = STATE.WEST;
-                counter++;
-            }
-            if (is_ship(x-1,y)) {
-                state = STATE.EAST;
-                counter++;
-            }
-            if (counter > 1) {
-                state = STATE.SHIP
-            }
+            let state = get_proper_ship_state(x, y, is_ship);
             let shapes = square.data.values.shapes[square.data.values.state];
             for (shape of shapes) {
                 shape.setVisible(false);
@@ -496,6 +514,7 @@ let GameScene = new Phaser.Class({
                     square.setData('y', y);
                     square.setData('locked', false);
                     square.setData('state', STATE.EMPTY);
+                    square.setData('hidden_ship', false);
                     square.setData('shapes', create_shape(x, y));
 
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
@@ -570,6 +589,58 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let load_puzzle = function(puzzle) {
+            let column_sums = [];
+            for (let i = 0; i < SCREEN_COLUMNS; i++) {
+                column_sums.push(0)
+            }
+            let row_sums = [];
+            for (let i = 0; i < SCREEN_ROWS; i++) {
+                row_sums.push(0)
+            }
+            for(let i = 0; i < puzzle.length && i < SCREEN_COLUMNS * SCREEN_ROWS; i++)
+            {
+                let y = Math.floor(i / SCREEN_COLUMNS);
+                let x = i % SCREEN_COLUMNS;
+                if (puzzle[i] === 1) {
+                    grid_squares[x][y].setData('hidden_ship', true);
+                    row_sums[y]++;
+                    column_sums[x]++;
+                }
+            }
+            setColumns(column_sums);
+            setRows(row_sums);
+        };
+
+        let reveal_hint = function(x, y) {
+            let square = grid_squares[x][y];
+            if (square.data.values.hidden_ship) {
+                addHint(x,y, get_proper_ship_state(x, y, is_hidden_ship));
+            } else {
+                addHint(x,y,STATE.WATER);
+            }
+        };
+
+        let reveal_random_hint = function() {
+            let candidate_squares = [];
+            for (col of grid_squares) {
+                for (square of col) {
+                    if (!square.data.values.locked)
+                    {
+                        candidate_squares.push(square);
+                    }
+                }
+            }
+            if (candidate_squares.length === 0)
+            {
+                return;
+            }
+            let reveal =
+                candidate_squares[Phaser.Math.Between(0, candidate_squares.length-1)];
+            reveal_hint(reveal.data.values.x, reveal.data.values.y);
+            checkConstraints();
+        }
+
         //----------------------------------------------------------------------
         // CODE TO SETUP GAME
         //----------------------------------------------------------------------
@@ -577,11 +648,23 @@ let GameScene = new Phaser.Class({
         prepare_empty_grid();
         prepare_hint_ships();
 
-        addHint(7,3,STATE.WATER);
-        addHint(3,4,STATE.CIRCLE);
-        addHint(3,6,STATE.NORTH);
-        setColumns([3,2,1,3,0,4,0,3,1,3]);
-        setRows([1,7,1,4,1,0,1,1,3,1]);
+        let puzzle = [
+            0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            1, 1, 1, 0, 0, 1, 0, 1, 1, 1,
+            0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 1, 0, 0
+        ];
+
+        load_puzzle(puzzle);
+        reveal_hint(7,3);
+        reveal_hint(3,4);
+        reveal_hint(3,6);
 
         checkConstraints();
 
@@ -590,8 +673,29 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
 
+        let make_button = function(image,func) {
+            image.setAlpha(0.5);
+            image.setInteractive();
+            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
+                image.setAlpha(1);
+            });
+            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
+                image.setAlpha(0.5);
+            });
+            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
+        }
+
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         esc_key.on(Phaser.Input.Keyboard.Events.DOWN, undo_square);
+        make_button(
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+3),'undo'),
+            undo_square);
+        make_button(
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'clue'),
+            reveal_random_hint);
+        make_button(
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+5),'info'),
+            function(){});
     },
 
     update: function () {
