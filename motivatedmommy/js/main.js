@@ -14,6 +14,140 @@ const DEPTHS =
     UI: 50
 };
 
+let STATE = {
+    EMPTY: 0,
+    WATER: 1,
+    SHIP: 2,
+    CIRCLE: 3,
+    NORTH: 4,
+    EAST: 5,
+    SOUTH: 6,
+    WEST: 7,
+    X: 8,
+    getPrev: function(current) {
+        if (STATE.isShip(current))
+        {
+            current = 2;
+        }
+        return (current + 2) % 3
+    },
+    getNext: function(current) {
+        if (STATE.isShip(current))
+        {
+            current = 2;
+        }
+        return (current + 1) % 3;
+    },
+    isShip: function(current) {
+        return current >= 2 && current <= 7;
+    },
+    createShapes: function(scene, x, y) {
+        let shapes = [];
+
+        //EMPTY
+        shapes.push([])
+
+        //WATER
+        let water = [];
+        let y_offsets = [-GRID_SIZE/4,0,GRID_SIZE/4];
+        for ( let y_offset of y_offsets) {
+            water.push(
+                scene.add.line(
+                    x,
+                    y,
+                    0,
+                    y_offset,
+                    GRID_SIZE / 4 * 3,
+                    y_offset,
+                    COLORS.GUESS,
+                    1
+                ).setVisible(false)
+                    .setStrokeStyle(1, COLORS.GUESS, 1)
+                    .setDepth(DEPTHS.GUESS));
+        }
+        shapes.push(water);
+
+        //SHIP
+        let fill_square = scene.add.rectangle(
+            x,
+            y,
+            GRID_SIZE * 3/4,
+            GRID_SIZE * 3/4,
+            COLORS.GUESS,
+            1
+        ).setVisible(false)
+            .setDepth(DEPTHS.GUESS);
+        shapes.push([fill_square]);
+
+        //CIRCLE
+        let circle = scene.add.circle(
+            x,
+            y,
+            GRID_SIZE/8 * 3,
+            COLORS.GUESS,
+            1).setVisible(false)
+            .setDepth(DEPTHS.GUESS);
+        shapes.push([circle]);
+
+        let make_cardinal = function(
+            angle_start, angle_end,
+            dx, dy)
+        {
+            let cardinal = [];
+            cardinal.push(
+                scene.add.arc(
+                    x,
+                    y,
+                    GRID_SIZE/8 * 3,
+                    angle_start,
+                    angle_end,
+                    false,
+                    COLORS.GUESS,
+                    1
+                ).setVisible(false)
+                    .setDepth(DEPTHS.GUESS));
+            let x_adjust = dx === 0 ? 4 : 8;
+            let y_adjust = dy === 0 ? 4 : 8;
+
+            cardinal.push(scene.add.rectangle(
+                x + dx * (GRID_SIZE/4 - GRID_SIZE/16),
+                y + dy * (GRID_SIZE/4 - GRID_SIZE/16),
+                GRID_SIZE/x_adjust * 3,
+                GRID_SIZE/y_adjust * 3,
+                COLORS.GUESS,
+                1
+            ).setVisible(false)
+                .setDepth(DEPTHS.GUESS));
+            shapes.push(cardinal);
+        }
+
+        //STATE.NORTH:
+        make_cardinal(180,0,0,1);
+
+        //STATE.EAST:
+        make_cardinal(270,90,-1, 0);
+
+        //STATE.SOUTH:
+        make_cardinal(0,180,0,-1);
+
+        //STATE.WEST:
+        make_cardinal(90,270,1, 0);
+
+        return shapes;
+    }
+};
+
+let COLORS = {
+    BORDER: 0x000000,
+    BORDER_TEXT: "#000000",
+    CLUE: 0x000000,
+    CLUE_TEXT: "#000000",
+    GUESS: 0xC0C0C0,
+    GUESS_TEXT: "#C0C0C0",
+    VIOLATION: 0x800000,
+    VIOLATION_TEXT: "#800000"
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -29,214 +163,41 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
+
+        //----------------------------------------------------------------------
+        // STATE VARIABLES
+        //----------------------------------------------------------------------
+
         let scene = this;
-        let NEIGHBORS = [[0,1],[0,-1],[1,0],[-1,0]];
-        let STATE = {
-            EMPTY: 0,
-            WATER: 1,
-            SHIP: 2,
-            CIRCLE: 3,
-            NORTH: 4,
-            EAST: 5,
-            SOUTH: 6,
-            WEST: 7,
-            X: 8,
-            getPrev: function(current) {
-                if (STATE.isShip(current))
-                {
-                    current = 2;
-                }
-                return (current + 2) % 3
-            },
-            getNext: function(current) {
-                if (STATE.isShip(current))
-                {
-                    current = 2;
-                }
-                return (current + 1) % 3;
-            },
-            needCustom: function(current) {
-                return current >= 4;
-            },
-            isShip: function(current) {
-                return current >= 2 && current <= 7;
-            },
-            createShapes: function(x, y) {
-                let shapes = [];
 
-                //EMPTY
-                shapes.push([])
+        //board
+        let grid_squares = [];
 
-                //WATER
-                let water = [];
-                let y_offsets = [-GRID_SIZE/4,0,GRID_SIZE/4];
-                for ( let y_offset of y_offsets) {
-                    water.push(
-                        scene.add.line(
-                            xPixel(x),
-                            yPixel(y),
-                            0,
-                            y_offset,
-                            GRID_SIZE / 4 * 3,
-                            y_offset,
-                            COLORS.GUESS,
-                            1
-                        ).setVisible(false)
-                        .setStrokeStyle(1, COLORS.GUESS, 1)
-                        .setDepth(DEPTHS.GUESS));
-                }
-                shapes.push(water);
+        //row and column clues
+        let column_clues = [];
+        let row_clues = [];
 
-                //SHIP
-                let fill_square = scene.add.rectangle(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE * 3/4,
-                    GRID_SIZE * 3/4,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                .setDepth(DEPTHS.GUESS);
-                shapes.push([fill_square]);
+        //hidden ship clues
+        let ship_shapes = [];
 
-                //CIRCLE
-                let circle = scene.add.circle(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    COLORS.GUESS,
-                    1).setVisible(false)
-                    .setDepth(DEPTHS.GUESS);
-                shapes.push([circle]);
-
-                //STATE.NORTH:
-                let north = [];
-                north.push(
-                    scene.add.arc(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    180,
-                    0,
-                    false,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                .setDepth(DEPTHS.GUESS));
-                north.push(scene.add.rectangle(
-                    xPixel(x),
-                    yPixel(y) + GRID_SIZE/4 - GRID_SIZE/16,
-                    GRID_SIZE/4 * 3,
-                    GRID_SIZE/8 * 3,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                .setDepth(DEPTHS.GUESS));
-                shapes.push(north);
-
-                //STATE.EAST:
-                let east = [];
-                east.push(scene.add.arc(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    270,
-                    90,
-                    false,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                    .setDepth(DEPTHS.GUESS));
-                east.push(scene.add.rectangle(
-                    xPixel(x) - GRID_SIZE/4 + GRID_SIZE/16,
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    GRID_SIZE/4 * 3,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                    .setDepth(DEPTHS.GUESS));
-                shapes.push(east);
-
-                //STATE.SOUTH:
-                let south = [];
-                south.push(scene.add.arc(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    0,
-                    180,
-                    false,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                    .setDepth(DEPTHS.GUESS));
-                south.push(scene.add.rectangle(
-                    xPixel(x),
-                    yPixel(y) - GRID_SIZE/4 + GRID_SIZE/16,
-                    GRID_SIZE/4 * 3,
-                    GRID_SIZE/8 * 3,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                    .setDepth(DEPTHS.GUESS));
-                shapes.push(south);
-
-                //STATE.WEST:
-                let west = [];
-                west.push(scene.add.arc(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    90,
-                    270,
-                    false,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                .setDepth(DEPTHS.GUESS));
-                west.push(scene.add.rectangle(
-                    xPixel(x) + GRID_SIZE/4 - GRID_SIZE/16,
-                    yPixel(y),
-                    GRID_SIZE/8 * 3,
-                    GRID_SIZE/4 * 3,
-                    COLORS.GUESS,
-                    1
-                ).setVisible(false)
-                .setDepth(DEPTHS.GUESS));
-                shapes.push(west);
-
-                return shapes;
-            }
-        };
-        let COLORS = {
-            BORDER: 0x000000,
-            BORDER_TEXT: "#000000",
-            CLUE: 0x000000,
-            CLUE_TEXT: "#000000",
-            GUESS: 0xC0C0C0,
-            GUESS_TEXT: "#C0C0C0",
-            VIOLATION: 0x800000,
-            VIOLATION_TEXT: "#800000"
-        };
+        //do/undo log
+        let events = [];
 
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
 
-        let xPixel = function(x)
-        {
+        let xPixel = function(x) {
             return x * GRID_SIZE + GRID_SIZE/2 + SCREEN_BORDER * GRID_SIZE;
         };
 
-        let yPixel = function(y)
-        {
+        let yPixel = function(y) {
             return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_BORDER * GRID_SIZE;
         };
 
-        let grid_squares = [];
-        let column_clues = [];
-        let row_clues = [];
+        let create_shape = function(x, y) {
+            return STATE.createShapes(scene, xPixel(x), yPixel(y));
+        };
 
         let is_ship = function(x, y)
         {
@@ -292,7 +253,6 @@ let GameScene = new Phaser.Class({
             }
         };
 
-
         let addHint = function(x, y, state)
         {
             let square = grid_squares[x][y];
@@ -313,15 +273,6 @@ let GameScene = new Phaser.Class({
                 }
             }
         }
-
-        scene.add.rectangle(
-            xPixel(SCREEN_COLUMNS / 2 - 0.5),
-            yPixel( SCREEN_ROWS / 2 - 0.5),
-            SCREEN_COLUMNS * GRID_SIZE,
-            SCREEN_ROWS * GRID_SIZE,
-            0xffffff,
-            0
-        ).setStrokeStyle(4,COLORS.BORDER,1).setDepth(DEPTHS.BG);
 
         let findShip = function(x, y, width, height) {
             for (let i = x - 1; i <= x + width; i++)
@@ -407,13 +358,22 @@ let GameScene = new Phaser.Class({
             for (let i = 0; i < 4; i++)
             {
                 let expected_ships = i + 1;
+                let ship_length = 4 - i;
                 let actual_ships = found_ships[i];
                 if (actual_ships < expected_ships)
                 {
                     violation = true;
-                    for (let shape of ship_shapes[i]) {
-                        for (let s of shape) {
-                            s.setFillStyle(COLORS.GUESS, 1);
+                    let number_to_fill_in = ship_length * actual_ships;
+                    let number_filled = 0;
+                    for (let segment of ship_shapes[i]) {
+                        let color = COLORS.GUESS;
+                        if (number_filled < number_to_fill_in)
+                        {
+                            number_filled++;
+                            color = COLORS.CLUE;
+                        }
+                        for (let subshape of segment) {
+                            subshape.setFillStyle(color, 1);
                         }
                     }
                 }
@@ -467,12 +427,11 @@ let GameScene = new Phaser.Class({
             checkConstraints();
         };
 
-        let events = [];
         let do_square = function(square)
         {
             events.push(square);
             square_action(square,STATE.getNext);
-        }
+        };
 
         let undo_square = function()
         {
@@ -481,45 +440,8 @@ let GameScene = new Phaser.Class({
             }
             let square = events.pop();
             square_action(square, STATE.getPrev);
-        }
-
-        for (let x = 0; x < SCREEN_COLUMNS; x++)
-        {
-            grid_squares.push([]);
-            for (let y = 0; y < SCREEN_ROWS; y++) {
-                let square = scene.add.rectangle(
-                    xPixel(x),
-                    yPixel(y),
-                    GRID_SIZE,
-                    GRID_SIZE,
-                    COLORS.BORDER,
-                    0
-                ).setStrokeStyle(2, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
-                grid_squares[x].push(square);
-                square.setInteractive();
-                square.setData('x', x);
-                square.setData('y', y);
-                square.setData('locked', false);
-                square.setData('state', STATE.EMPTY);
-                square.setData('shapes', STATE.createShapes(x, y));
-
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
-                    if (square.data.values.locked) {
-                        return;
-                    }
-                    square.setFillStyle(0x000000, 0.15);
-                });
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
-                    if (square.data.values.locked) {
-                        return;
-                    }
-                    square.setFillStyle(0x000000, 0);
-                });
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
-                    do_square(square);
-                });
-            }
         };
+
         let setColumns = function(array) {
             for (let x = 0; x < SCREEN_COLUMNS; x++) {
                 let column_clue = scene.add.text(
@@ -547,63 +469,119 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let prepare_empty_grid = function() {
+            scene.add.rectangle(
+                xPixel(SCREEN_COLUMNS / 2 - 0.5),
+                yPixel(SCREEN_ROWS / 2 - 0.5),
+                SCREEN_COLUMNS * GRID_SIZE,
+                SCREEN_ROWS * GRID_SIZE,
+                0xffffff,
+                0
+            ).setStrokeStyle(4, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
+
+            for (let x = 0; x < SCREEN_COLUMNS; x++) {
+                grid_squares.push([]);
+                for (let y = 0; y < SCREEN_ROWS; y++) {
+                    let square = scene.add.rectangle(
+                        xPixel(x),
+                        yPixel(y),
+                        GRID_SIZE,
+                        GRID_SIZE,
+                        COLORS.BORDER,
+                        0
+                    ).setStrokeStyle(2, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
+                    grid_squares[x].push(square);
+                    square.setInteractive();
+                    square.setData('x', x);
+                    square.setData('y', y);
+                    square.setData('locked', false);
+                    square.setData('state', STATE.EMPTY);
+                    square.setData('shapes', create_shape(x, y));
+
+                    square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
+                        if (square.data.values.locked) {
+                            return;
+                        }
+                        square.setFillStyle(0x000000, 0.15);
+                    });
+                    square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
+                        if (square.data.values.locked) {
+                            return;
+                        }
+                        square.setFillStyle(0x000000, 0);
+                    });
+                    square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
+                        do_square(square);
+                    });
+                }
+            }
+        };
+
+        let prepare_hint_ships = function() {
+            scene.add.text(
+                xPixel(-.5),
+                yPixel(SCREEN_ROWS + 1),
+                "Hidden:",
+                { fontSize: '' + GRID_SIZE/2 + 'px', fill: '#c0c0c0' })
+                .setOrigin(0, 0.5);
+
+            let four_shapes = [];
+            four_shapes.push(create_shape(0, SCREEN_ROWS + 2)[STATE.WEST]);
+            four_shapes.push(create_shape(1, SCREEN_ROWS + 2)[STATE.SHIP]);
+            four_shapes.push(create_shape(2, SCREEN_ROWS + 2)[STATE.SHIP]);
+            four_shapes.push(create_shape(3, SCREEN_ROWS + 2)[STATE.EAST]);
+
+            ship_shapes.push(four_shapes);
+
+            let three_shapes = [];
+            three_shapes.push(create_shape(0, SCREEN_ROWS + 3)[STATE.WEST]);
+            three_shapes.push(create_shape(1, SCREEN_ROWS + 3)[STATE.SHIP]);
+            three_shapes.push(create_shape(2, SCREEN_ROWS + 3)[STATE.EAST]);
+            three_shapes.push(create_shape(4, SCREEN_ROWS + 3)[STATE.WEST]);
+            three_shapes.push(create_shape(5, SCREEN_ROWS + 3)[STATE.SHIP]);
+            three_shapes.push(create_shape(6, SCREEN_ROWS + 3)[STATE.EAST]);
+
+            ship_shapes.push(three_shapes);
+
+            let two_shapes = [];
+            two_shapes.push(create_shape(0, SCREEN_ROWS + 4)[STATE.WEST]);
+            two_shapes.push(create_shape(1, SCREEN_ROWS + 4)[STATE.EAST]);
+            two_shapes.push(create_shape(3, SCREEN_ROWS + 4)[STATE.WEST]);
+            two_shapes.push(create_shape(4, SCREEN_ROWS + 4)[STATE.EAST]);
+            two_shapes.push(create_shape(6, SCREEN_ROWS + 4)[STATE.WEST]);
+            two_shapes.push(create_shape(7, SCREEN_ROWS + 4)[STATE.EAST]);
+
+            ship_shapes.push(two_shapes);
+
+            let one_shapes = [];
+            one_shapes.push(create_shape(0, SCREEN_ROWS + 5)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(2, SCREEN_ROWS + 5)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(4, SCREEN_ROWS + 5)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(6, SCREEN_ROWS + 5)[STATE.CIRCLE]);
+
+            ship_shapes.push(one_shapes);
+
+            for (let ships of ship_shapes) {
+                for (let shape of ships) {
+                    for (let s of shape) {
+                        s.setVisible(true);
+                    }
+                }
+            }
+        };
+
+        //----------------------------------------------------------------------
+        // CODE TO SETUP GAME
+        //----------------------------------------------------------------------
+
+        prepare_empty_grid();
+        prepare_hint_ships();
+
         addHint(7,3,STATE.WATER);
         addHint(3,4,STATE.CIRCLE);
         addHint(3,6,STATE.NORTH);
         setColumns([3,2,1,3,0,4,0,3,1,3]);
         setRows([1,7,1,4,1,0,1,1,3,1]);
-
-        scene.add.text(
-            xPixel(-.5),
-            yPixel(SCREEN_ROWS + 1),
-            "Hidden:",
-            { fontSize: '' + GRID_SIZE/2 + 'px', fill: '#c0c0c0' })
-            .setOrigin(0, 0.5);
-
-        let ship_shapes = []
-        let four_shapes = [];
-        four_shapes.push(STATE.createShapes(0, SCREEN_ROWS + 2)[STATE.WEST]);
-        four_shapes.push(STATE.createShapes(1, SCREEN_ROWS + 2)[STATE.SHIP]);
-        four_shapes.push(STATE.createShapes(2, SCREEN_ROWS + 2)[STATE.SHIP]);
-        four_shapes.push(STATE.createShapes(3, SCREEN_ROWS + 2)[STATE.EAST]);
-
-        ship_shapes.push(four_shapes);
-
-        let three_shapes = [];
-        three_shapes.push(STATE.createShapes(0, SCREEN_ROWS + 3)[STATE.WEST]);
-        three_shapes.push(STATE.createShapes(1, SCREEN_ROWS + 3)[STATE.SHIP]);
-        three_shapes.push(STATE.createShapes(2, SCREEN_ROWS + 3)[STATE.EAST]);
-        three_shapes.push(STATE.createShapes(4, SCREEN_ROWS + 3)[STATE.WEST]);
-        three_shapes.push(STATE.createShapes(5, SCREEN_ROWS + 3)[STATE.SHIP]);
-        three_shapes.push(STATE.createShapes(6, SCREEN_ROWS + 3)[STATE.EAST]);
-
-        ship_shapes.push(three_shapes);
-
-        let two_shapes = [];
-        two_shapes.push(STATE.createShapes(0, SCREEN_ROWS + 4)[STATE.WEST]);
-        two_shapes.push(STATE.createShapes(1, SCREEN_ROWS + 4)[STATE.EAST]);
-        two_shapes.push(STATE.createShapes(3, SCREEN_ROWS + 4)[STATE.WEST]);
-        two_shapes.push(STATE.createShapes(4, SCREEN_ROWS + 4)[STATE.EAST]);
-        two_shapes.push(STATE.createShapes(6, SCREEN_ROWS + 4)[STATE.WEST]);
-        two_shapes.push(STATE.createShapes(7, SCREEN_ROWS + 4)[STATE.EAST]);
-
-        ship_shapes.push(two_shapes);
-
-        let one_shapes = [];
-        one_shapes.push(STATE.createShapes(0, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-        one_shapes.push(STATE.createShapes(2, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-        one_shapes.push(STATE.createShapes(4, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-        one_shapes.push(STATE.createShapes(6, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-
-        ship_shapes.push(one_shapes);
-
-        for (let ships of ship_shapes) {
-            for (let shape of ships) {
-                for (let s of shape) {
-                    s.setVisible(true);
-                }
-            }
-        }
 
         checkConstraints();
 
