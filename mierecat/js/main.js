@@ -696,7 +696,7 @@ let GameScene = new Phaser.Class({
             text.setOrigin(0.5, 0.5);
             let width = text.width * 1.25;
 
-            let vector = new Phaser.Math.Vector2(text.width/2+GRID_SIZE/4*3, 0);
+            let vector = new Phaser.Math.Vector2(width/2+GRID_SIZE/4*3, 0);
             vector.rotate(Phaser.Math.DegToRad(angle));
 
             text.x = text.x + vector.x;
@@ -836,7 +836,7 @@ let GameScene = new Phaser.Class({
 
             add_menu_item(squid, angle_start + 360 / 7 * 3 * angle_fix, 'Move', activateMove);
             add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot);
-            add_menu_item(squid, angle_start + 360 / 7 * 4.5 * angle_fix, 'Cheer', function() {});
+            add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', function() {});
             add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
