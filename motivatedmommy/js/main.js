@@ -651,23 +651,13 @@ let GameScene = new Phaser.Class({
         prepare_empty_grid();
         prepare_hint_ships();
 
-        let puzzle = [
-            0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-            1, 1, 1, 0, 0, 1, 0, 1, 1, 1,
-            0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-            1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-            1, 0, 0, 0, 0, 0, 0, 1, 0, 1,
-            0, 0, 0, 0, 0, 0, 0, 1, 0, 0
-        ];
+        let puzzle = create_new_puzzle();
 
-        load_puzzle(puzzle);
-        reveal_hint(7,3);
-        reveal_hint(3,4);
-        reveal_hint(3,6);
+        load_puzzle(puzzle.board);
+        for (let hint of puzzle.hints)
+        {
+            reveal_hint(hint[0],hint[1]);
+        }
 
         checkConstraints();
 
