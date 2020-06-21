@@ -26,7 +26,9 @@ let COLORS = {
 let g_game_settings = {
     move: 4,
     swim: 6,
-    shoot_distance: 6
+    shoot_distance: 6,
+    shoot_damage: -10,
+    booyah_damage: 5
 };
 
 let Util = {
@@ -49,7 +51,7 @@ let TitleScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.spritesheet('tiles', 'assets/tiles2.png', { frameWidth: 32, frameHeight: 32, spacing: 1});
+        this.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 32, frameHeight: 32, spacing: 1});
         this.load.image('splat', 'assets/splat2.png');
     },
 
@@ -152,12 +154,15 @@ let GameScene = new Phaser.Class({
             PINK_SQUID: 3,
             EYES: 4,
             ORANGE_SQUID: 5,
-            BG_GRID: 6
+            BG_GRID: 6,
+            PINK_SELECTOR: 7,
+            ORANGE_SELECTOR: 8
         };
 
         let SELECTION_ACTIONS = {
             MOVE: 0,
-            SHOOT: 1
+            SHOOT: 1,
+            BOOYAH: 2
         };
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
@@ -197,19 +202,27 @@ let GameScene = new Phaser.Class({
 
         let create_selector = function(x, y, grid)
         {
-            let select_sprite = scene.add.rectangle(xPixel(x), yPixel(y),
+            let select_sprite = scene.add.sprite(xPixel(x), yPixel(y),
+                'tiles', TILES.PINK_SELECTOR)
+                .setDepth(DEPTHS.UI + 1)
+                .setVisible(false)
+                .setAlpha(0.6);
+            let select_sprite_bg = scene.add.rectangle(xPixel(x), yPixel(y),
                 GRID_SIZE, GRID_SIZE, COLORS.PINK)
                 .setDepth(DEPTHS.UI)
                 .setVisible(false)
-                .setAlpha(0.60);
+                .setAlpha(0.6);
             select_sprite.setData("x", x);
             select_sprite.setData("y", y);
             select_sprite.setInteractive();
+            select_sprite.setData("bg",select_sprite_bg);
             select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
                 select_sprite.setAlpha(0.8);
+                select_sprite_bg.setAlpha(0.8);
             });
             select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
-                select_sprite.setAlpha(0.60);
+                select_sprite.setAlpha(0.6);
+                select_sprite_bg.setAlpha(0.6);
             });
             select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
                 if (select_sprite.visible) {
@@ -220,6 +233,18 @@ let GameScene = new Phaser.Class({
             });
             return select_sprite;
         };
+
+        let clear_selection = function()
+        {
+            for (let i = 0; i < selector_grid.length; i++) {
+                for (let j = 0; j < selector_grid[i].length; j++) {
+                    selector_grid[i][j].setVisible(false);
+                    selector_grid[i][j].data.values.bg.setVisible(false);
+                }
+            }
+        };
+
+
 
         let create_grid = function(generator)
         {
@@ -258,11 +283,21 @@ let GameScene = new Phaser.Class({
             return square_is_legal(x, y)
         };
 
-        let clear_selection = function()
+        let activate_selection = function(map, filter)
         {
-            for (let i = 0; i < selector_grid.length; i++) {
-                for (let j = 0; j < selector_grid[i].length; j++) {
-                    selector_grid[i][j].setVisible(false);
+            for (let i = 0; i < map.length; i++) {
+                for (let j = 0; j < map[i].length; j++) {
+                    let value = map[i][j];
+                    if (filter(value)) {
+                        let square = selector_grid[i][j];
+
+                        square.setVisible(true);
+                        square.data.values.bg.setVisible(true);
+                        square.data.values.bg.setFillStyle(current_unit.data.values.color, 0.6);
+                        let sprite_texture = current_unit.data.values.color === COLORS.PINK ?
+                            TILES.PINK_SELECTOR : TILES.ORANGE_SELECTOR;
+                        square.setTexture('tiles', sprite_texture);
+                    }
                 }
             }
         };
@@ -339,20 +374,6 @@ let GameScene = new Phaser.Class({
                 }
             }
             return reach_map;
-        }
-
-        let activate_selection = function(map, filter)
-        {
-            for (let i = 0; i < map.length; i++) {
-                for (let j = 0; j < map[i].length; j++) {
-                    let value = map[i][j];
-                    if (filter(value)) {
-                        selector_grid[i][j]
-                            .setVisible(true)
-                            .setFillStyle(current_unit.data.values.color, 0.6);
-                     }
-                }
-            }
         };
 
         let current_unit = null;
@@ -407,7 +428,6 @@ let GameScene = new Phaser.Class({
                         let tile_target = TILES.PINK_GRID;
                         if (current_unit.data.values.color === COLORS.ORANGE) {
                             tile_target = TILES.ORANGE_GRID;
-
                         }
 
                         for (let point of points)
@@ -419,9 +439,44 @@ let GameScene = new Phaser.Class({
                                 let tile = game_grid[px][py];
                                 tile.setTexture('tiles',tile_target);
                                 tile.setData('value',tile_target);
+                                for (let squid of squids)
+                                {
+                                    if(squid.data.values.color !== current_unit.data.values.color &&
+                                        squid.data.values.x === px &&
+                                        squid.data.values.y === py)
+                                    {
+                                        squid.data.values.health =
+                                            Phaser.Math.Clamp(
+                                                squid.data.values.health + g_game_settings.shoot_damage,
+                                                0, 100);
+                                        squid.data.values.onDamage();
+                                    }
+                                }
                             }
                         };
 
+                        select_squid(null);
+                        clear_selection();
+                        recalculate_game_state();
+                        break;
+                    case SELECTION_ACTIONS.BOOYAH:
+                        current_unit.data.values.health =
+                            Phaser.Math.Clamp(
+                                current_unit.data.values.health + g_game_settings.booyah_damage,
+                                0, 100);
+                        current_unit.data.values.onDamage();
+                        for (let squid of squids)
+                        {
+                            if(squid !== current_unit &&
+                                squid.data.values.color === current_unit.data.values.color)
+                            {
+                                squid.data.values.health =
+                                    Phaser.Math.Clamp(
+                                        squid.data.values.health + g_game_settings.booyah_damage,
+                                        0, 100);
+                                squid.data.values.onDamage();
+                            }
+                        }
                         select_squid(null);
                         clear_selection();
                         recalculate_game_state();
@@ -554,6 +609,11 @@ let GameScene = new Phaser.Class({
                 .setDepth(DEPTHS.HUD+3)
                 .setStroke("#FFFFFF", 3);
             Util.fixCenterText(life);
+            function onDamage() {
+                life.setText("HP: " + squid.data.values.health + "/100");
+                Util.fixCenterText(life);
+            }
+            squid.setData('onDamage', onDamage);
 
             let ink = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height,
@@ -760,14 +820,14 @@ let GameScene = new Phaser.Class({
 
         let squids = [];
         for (let start_position of [
-            {x: 0, y: 0, color: COLORS.PINK},
-            {x: 1, y: 0, color: COLORS.PINK},
-            {x: 2, y: 0, color: COLORS.PINK},
-            {x: 3, y: 0, color: COLORS.PINK},
-            {x: SCREEN_COLUMNS - 1, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 1, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 4, y: SCREEN_ROWS - 1, color: COLORS.ORANGE}
+            {x: 1, y: 1, color: COLORS.PINK},
+            {x: 2, y: 1, color: COLORS.PINK},
+            {x: 1, y: 2, color: COLORS.PINK},
+            {x: 2, y: 2, color: COLORS.PINK},
+            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 2, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 2, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 3, color: COLORS.ORANGE},
+            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 3, color: COLORS.ORANGE}
         ])
         {
             let my_tile = COLORS.PINK === start_position.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
@@ -816,10 +876,19 @@ let GameScene = new Phaser.Class({
             {
                 squid.data.values.close();
                 let map = squid.data.values.current_shoot_map;
-                squid.setData('selection_action',SELECTION_ACTIONS.SHOOT)
+                squid.setData('selection_action',SELECTION_ACTIONS.SHOOT);
                 activate_selection(map, function (value){
                     return value <= g_game_settings.shoot_distance;
                 });
+            };
+
+            let activateBooyah = function()
+            {
+                squid.data.values.close();
+                squid.setData('selection_action',SELECTION_ACTIONS.BOOYAH);
+                scene.events.emit('selector_clicked',
+                    squid.data.values.x,
+                    squid.data.values.y);
             };
 
             let angle_fix = COLORS.PINK === start_position.color ? 1 : -1;
@@ -836,7 +905,7 @@ let GameScene = new Phaser.Class({
 
             add_menu_item(squid, angle_start + 360 / 7 * 3 * angle_fix, 'Move', activateMove);
             add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot);
-            add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', function() {});
+            add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', activateBooyah);
             add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
