@@ -230,6 +230,8 @@ let GameScene = new Phaser.Class({
                 INPUTS.prompt_keys[INPUTS.current_prompt].setVisible(false);
                 players[player_index].play('attack');
                 scene.time.delayedCall(2000,display_prompt);
+            } else {
+                damage(player_index);
             }
         }
 
