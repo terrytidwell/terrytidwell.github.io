@@ -123,7 +123,7 @@ let GameScene = new Phaser.Class({
         });
 
         let attack_update = function (animation, frame, gameObject) {
-            if (frame.index === 2) {
+            if (frame.index === 3) {
                 damage((gameObject.data.values.index + 1) % 2);
             }
         };
@@ -139,6 +139,9 @@ let GameScene = new Phaser.Class({
         {
             players[index].play('hit')
                 .once("animationcomplete-hit", function() {
+                    if (INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
+                        players[index].setData('ready',true);
+                    }
                     players[index].play('idle');
                 });
             health[index] = Phaser.Math.Clamp(health[index] - 10, 0, 100);
@@ -184,10 +187,12 @@ let GameScene = new Phaser.Class({
         players[0].on('animationcomplete-attack', function() {
             players[0].play('idle');
         });
+        players[0].setData('ready',false);
         players[1].on('animationupdate-attack', attack_update);
         players[1].on('animationcomplete-attack', function() {
             players[1].play('idle');
         });
+        players[1].setData('ready',false);
 
         scene.add.rectangle(life_x - life_x_offset + pinstripe/2, life_y,
             life_w + pinstripe, life_h + pinstripe, 0xffff00,0)
@@ -225,12 +230,21 @@ let GameScene = new Phaser.Class({
 
         let handle_key_press = function(player_index, input)
         {
+            if (!players[player_index].data.values.ready)
+            {
+                return;
+            }
+
             if (INPUTS.current_prompt === input &&
                 INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
                 INPUTS.prompt_keys[INPUTS.current_prompt].setVisible(false);
                 players[player_index].play('attack');
                 scene.time.delayedCall(2000,display_prompt);
+                for (let player of players) {
+                    player.setData('ready', false);
+                }
             } else {
+                players[player_index].setData('ready', false);
                 damage(player_index);
             }
         }
@@ -243,6 +257,9 @@ let GameScene = new Phaser.Class({
             }
             INPUTS.current_prompt = INPUTS.random();
             let prompt = INPUTS.prompt_keys[INPUTS.current_prompt];
+            for (let player of players) {
+                player.setData('ready', true);
+            }
             prompt.setVisible(true);
             prompt.alpha = 0;
             prompt.setScale(3);
