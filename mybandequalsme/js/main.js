@@ -12,7 +12,7 @@ let TitleScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.spritesheet('fighter_idle', 'assets/fighter_idle.png', { frameWidth: 128, frameHeight: 128});
+        this.load.spritesheet('fighter', 'assets/fighter.png', { frameWidth: 128, frameHeight: 128});
         this.load.audio('qtclash', ['assets/qtclash.mp3']);
     },
 
@@ -69,10 +69,10 @@ let GameScene = new Phaser.Class({
         scene.anims.create({
             key: 'idle',
             frames: [
-                { key: 'fighter_idle', frame: 0 },
-                { key: 'fighter_idle', frame: 1 },
-                { key: 'fighter_idle', frame: 2 },
-                { key: 'fighter_idle', frame: 3 }
+                { key: 'fighter', frame: 0 },
+                { key: 'fighter', frame: 1 },
+                { key: 'fighter', frame: 2 },
+                { key: 'fighter', frame: 3 }
             ],
             skipMissedFrames: false,
             frameRate: 4,
@@ -81,56 +81,96 @@ let GameScene = new Phaser.Class({
         scene.anims.create({
             key: 'hit',
             frames: [
-                { key: 'fighter_idle', frame: 4 },
-                { key: 'fighter_idle', frame: 5 },
-                { key: 'fighter_idle', frame: 6 },
-                { key: 'fighter_idle', frame: 7 }
+                { key: 'fighter', frame: 4 },
+                { key: 'fighter', frame: 5 },
+                { key: 'fighter', frame: 6 },
+                { key: 'fighter', frame: 7 }
             ],
             skipMissedFrames: false,
             frameRate: 8,
             repeat: 0
         });
+        scene.anims.create({
+            key: 'attack',
+            frames: [
+                { key: 'fighter', frame: 8 },
+                { key: 'fighter', frame: 9 },
+                { key: 'fighter', frame: 10 },
+                { key: 'fighter', frame: 11 },
+                { key: 'fighter', frame: 12 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0,
+        });
 
-        let damage = function()
-        {
-            players[0].play('hit')
-                .on("animationcomplete-hit", function() {
-                    players[0].play('idle');
-                });
-            health[0] = Phaser.Math.Clamp(health[0] - 10, 0, 100);
-            scene.cameras.main.shake(250, 0.015, true);
-            //left bar target = scaleX
-            //rigth bar target = width
-            scene.tweens.add({
-                targets: life[0],
-                scaleX: health[0]/100,
-                duration: 200
-            });
-            scene.tweens.add({
-                targets: life_bg[0],
-                scaleX: health[0]/100,
-                delay: 500,
-                duration: 100
-            });
-        }
+        let attack_update = function (animation, frame, gameObject) {
+            console.log(frame.index);
+            if (frame.index === 2) {
+                damage((gameObject.data.values.index + 1) % 2);
+            }
+        };
 
-        players.push(
-            scene.add.sprite(SCREEN_WIDTH/2 - 192, SCREEN_HEIGHT, 'fighter_idle', 0)
-                .setOrigin(0.5, 1)
-                .setScale(4)
-                .play('idle'));
-        players.push(
-            scene.add.sprite(SCREEN_WIDTH/2 + 192, SCREEN_HEIGHT, 'fighter_idle', 0)
-                .setOrigin(0.5, 1)
-                .setScale(4)
-                .setFlipX(true)
-                .play('idle'));
         let life_x = SCREEN_WIDTH/2;
         let life_x_offset = 32;
         let life_y = 64;
         let life_w = SCREEN_WIDTH/2 - 128;
         let life_h = 32;
         let pinstripe = 4;
+
+        let damage = function(index)
+        {
+            players[index].play('hit')
+                .once("animationcomplete-hit", function() {
+                    players[index].play('idle');
+                });
+            health[index] = Phaser.Math.Clamp(health[index] - 10, 0, 100);
+            scene.cameras.main.shake(250, 0.015, true);
+            //left bar target = scaleX
+            //rigth bar target = width
+            let tween1 = {
+                targets: life[index],
+                duration: 200
+            };
+            let tween2 = {
+                targets: life_bg[index],
+                delay: 500,
+                duration: 100
+            };
+            if (index === 0)
+            {
+                tween1.scaleX = health[index]/100;
+                tween2.scaleX = health[index]/100;
+            } else
+            {
+                tween1.width = life_w * health[index]/100;
+                tween2.width = life_w * health[index]/100;
+            }
+            scene.tweens.add(tween1);
+            scene.tweens.add(tween2);
+        };
+
+        players.push(
+            scene.add.sprite(SCREEN_WIDTH/2 - 192, SCREEN_HEIGHT, 'fighter', 0)
+                .setOrigin(0.5, 1)
+                .setScale(4)
+                .play('idle')
+                .setData('index', 0));
+        players.push(
+            scene.add.sprite(SCREEN_WIDTH/2 + 192, SCREEN_HEIGHT, 'fighter', 0)
+                .setOrigin(0.5, 1)
+                .setScale(4)
+                .setFlipX(true)
+                .play('idle')
+                .setData('index', 1));
+        players[0].on('animationupdate-attack', attack_update);
+        players[0].on('animationcomplete-attack', function() {
+            players[0].play('idle');
+        });
+        players[1].on('animationupdate-attack', attack_update);
+        players[1].on('animationcomplete-attack', function() {
+            players[1].play('idle');
+        });
 
         scene.add.rectangle(life_x - life_x_offset + pinstripe/2, life_y,
             life_w + pinstripe, life_h + pinstripe, 0xffff00,0)
@@ -160,7 +200,9 @@ let GameScene = new Phaser.Class({
             .setOrigin(0,0.5))
 
         scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        scene.space_key.on('down', damage);
+        scene.space_key.on('down', function() {
+            players[Phaser.Math.Between(0,1)].play('attack');
+        });
 
         scene.sound.pauseOnBlur = false;
         scene.sound.add('qtclash', {loop: true }).play();
