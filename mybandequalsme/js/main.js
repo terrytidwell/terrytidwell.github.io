@@ -14,6 +14,10 @@ let TitleScene = new Phaser.Class({
     preload: function () {
         this.load.spritesheet('fighter', 'assets/fighter.png', { frameWidth: 128, frameHeight: 128});
         this.load.audio('qtclash', ['assets/qtclash.mp3']);
+        this.load.image('up', 'assets/up.png');
+        this.load.image('down', 'assets/down.png');
+        this.load.image('left', 'assets/left.png');
+        this.load.image('right', 'assets/right.png');
     },
 
     //--------------------------------------------------------------------------
@@ -36,7 +40,7 @@ let TitleScene = new Phaser.Class({
             play.scaleY = 1;
         });
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
-            scene.scene.start('UIScene');
+            scene.scene.stop('TitleScene');
             scene.scene.start('GameScene');
         });
     },
@@ -63,6 +67,20 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+        let INPUTS = {
+            UP: 0,
+            DOWN: 1,
+            LEFT: 2,
+            RIGHT: 3,
+            MAX: 4,
+            random: function () {
+                return Phaser.Math.Between(0,3)
+            },
+            prompt_keys_labels: ['up', 'down', 'left', 'right'],
+            prompt_keys: [],
+            current_prompt: 0
+        };
+        
         let health = [100,100];
         let players = [];
 
@@ -105,7 +123,6 @@ let GameScene = new Phaser.Class({
         });
 
         let attack_update = function (animation, frame, gameObject) {
-            console.log(frame.index);
             if (frame.index === 2) {
                 damage((gameObject.data.values.index + 1) % 2);
             }
@@ -199,13 +216,79 @@ let GameScene = new Phaser.Class({
                 life_w, life_h, 0xffff00)
             .setOrigin(0,0.5))
 
-        scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        scene.space_key.on('down', function() {
-            players[Phaser.Math.Between(0,1)].play('attack');
-        });
+        for (let label of INPUTS.prompt_keys_labels) {
+            INPUTS.prompt_keys.push(
+                scene.add.sprite(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, label)
+                    .setVisible(false)
+            );
+        }
+
+        let handle_key_press = function(player_index, input)
+        {
+            if (INPUTS.current_prompt === input &&
+                INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
+                INPUTS.prompt_keys[INPUTS.current_prompt].setVisible(false);
+                players[player_index].play('attack');
+                scene.time.delayedCall(2000,display_prompt);
+            }
+        }
+
+        let display_prompt = function()
+        {
+            for (let prompt of INPUTS.prompt_keys)
+            {
+                prompt.setVisible(false);
+            }
+            INPUTS.current_prompt = INPUTS.random();
+            let prompt = INPUTS.prompt_keys[INPUTS.current_prompt];
+            prompt.setVisible(true);
+            prompt.alpha = 0;
+            prompt.setScale(3);
+            scene.tweens.add({
+               targets: prompt,
+               scaleX: 1,
+               scaleY: 1,
+               alpha: 1,
+                duration: 250,
+               onComplete() {
+                   scene.cameras.main.shake(250, 0.015, true);
+               }
+            });
+        };
+        scene.time.delayedCall(2000,display_prompt);
+
+
+        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
+        scene.m_cursor_keys.down
+            .on(Phaser.Input.Keyboard.Events.DOWN,
+            function(event) {handle_key_press(1,INPUTS.DOWN)});
+        scene.m_cursor_keys.up
+            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
+            handle_key_press(1,INPUTS.UP)});
+        scene.m_cursor_keys.left
+            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
+            handle_key_press(1,INPUTS.LEFT)});
+        scene.m_cursor_keys.right
+            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
+            handle_key_press(1,INPUTS.RIGHT)});
+
+        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W)
+            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
+            handle_key_press(0,INPUTS.UP)});
+        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
+            handle_key_press(0,INPUTS.LEFT)});
+        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
+            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
+            handle_key_press(0,INPUTS.DOWN)});
+        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
+            handle_key_press(0,INPUTS.RIGHT)});
 
         scene.sound.pauseOnBlur = false;
         scene.sound.add('qtclash', {loop: true }).play();
+
+
     },
 
     //--------------------------------------------------------------------------
