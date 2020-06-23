@@ -1,5 +1,8 @@
 const SCREEN_WIDTH = 1024;
 const SCREEN_HEIGHT = 512;
+const GAME_CONSTANTS = {
+    damage_on_attack: 10
+};
 
 let TitleScene = new Phaser.Class({
 
@@ -13,6 +16,7 @@ let TitleScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function () {
         this.load.spritesheet('fighter', 'assets/fighter.png', { frameWidth: 128, frameHeight: 128});
+        this.load.spritesheet('bg', 'assets/bg.png', { frameWidth: 512, frameHeight: 216});
         this.load.audio('qtclash', ['assets/qtclash.mp3']);
         this.load.image('up', 'assets/up.png');
         this.load.image('down', 'assets/down.png');
@@ -144,7 +148,8 @@ let GameScene = new Phaser.Class({
                     }
                     players[index].play('idle');
                 });
-            health[index] = Phaser.Math.Clamp(health[index] - 10, 0, 100);
+            health[index] = Phaser.Math.Clamp(
+                health[index] -  GAME_CONSTANTS.damage_on_attack, 0, 100);
             scene.cameras.main.shake(250, 0.015, true);
             //left bar target = scaleX
             //rigth bar target = width
@@ -169,6 +174,12 @@ let GameScene = new Phaser.Class({
             scene.tweens.add(tween1);
             scene.tweens.add(tween2);
         };
+
+        for (let i = 2; i >= 0; i--) {
+            scene.add.image(SCREEN_WIDTH / 2, SCREEN_HEIGHT + 64, 'bg', i)
+            .setOrigin(0.5, 1)
+            .setScale(4);
+        }
 
         players.push(
             scene.add.sprite(SCREEN_WIDTH/2 - 192, SCREEN_HEIGHT, 'fighter', 0)
@@ -275,7 +286,6 @@ let GameScene = new Phaser.Class({
             });
         };
         scene.time.delayedCall(2000,display_prompt);
-
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.m_cursor_keys.down
