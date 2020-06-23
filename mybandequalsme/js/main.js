@@ -15,7 +15,8 @@ let TitleScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.spritesheet('fighter', 'assets/fighter.png', { frameWidth: 128, frameHeight: 128});
+        this.load.spritesheet('ryu', 'assets/ryu.png', { frameWidth: 128, frameHeight: 128});
+        this.load.spritesheet('cammy', 'assets/cammy.png', { frameWidth: 128, frameHeight: 128});
         this.load.spritesheet('bg', 'assets/bg.png', { frameWidth: 512, frameHeight: 216});
         this.load.audio('qtclash', ['assets/qtclash.mp3']);
         this.load.image('up', 'assets/up.png');
@@ -96,37 +97,95 @@ let GameScene = new Phaser.Class({
         let bg_music = null;
 
         scene.anims.create({
-            key: 'idle',
+            key: 'ryu_idle',
             frames: [
-                { key: 'fighter', frame: 0 },
-                { key: 'fighter', frame: 1 },
-                { key: 'fighter', frame: 2 },
-                { key: 'fighter', frame: 3 }
+                { key: 'ryu', frame: 0 },
+                { key: 'ryu', frame: 1 },
+                { key: 'ryu', frame: 2 },
+                { key: 'ryu', frame: 3 }
             ],
             skipMissedFrames: false,
             frameRate: 4,
             repeat: -1
         });
         scene.anims.create({
-            key: 'hit',
+            key: 'ryu_hit',
             frames: [
-                { key: 'fighter', frame: 4 },
-                { key: 'fighter', frame: 5 },
-                { key: 'fighter', frame: 6 },
-                { key: 'fighter', frame: 7 }
+                { key: 'ryu', frame: 4 },
+                { key: 'ryu', frame: 5 },
+                { key: 'ryu', frame: 6 },
+                { key: 'ryu', frame: 7 }
             ],
             skipMissedFrames: false,
             frameRate: 8,
             repeat: 0
         });
         scene.anims.create({
-            key: 'attack',
+            key: 'ryu_pre_attack',
             frames: [
-                { key: 'fighter', frame: 8 },
-                { key: 'fighter', frame: 9 },
-                { key: 'fighter', frame: 10 },
-                { key: 'fighter', frame: 11 },
-                { key: 'fighter', frame: 12 },
+                { key: 'ryu', frame: 8 },
+                { key: 'ryu', frame: 9 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0,
+        });
+        scene.anims.create({
+            key: 'ryu_post_attack',
+            frames: [
+                { key: 'ryu', frame: 10 },
+                { key: 'ryu', frame: 11 },
+                { key: 'ryu', frame: 12 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0,
+        });
+
+        scene.anims.create({
+            key: 'cammy_idle',
+            frames: [
+                { key: 'cammy', frame: 0 },
+                { key: 'cammy', frame: 1 },
+                { key: 'cammy', frame: 2 },
+                { key: 'cammy', frame: 3 },
+                { key: 'cammy', frame: 4 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 4,
+            yoyo: true,
+            repeat: -1
+        });
+        scene.anims.create({
+            key: 'cammy_hit',
+            frames: [
+                { key: 'cammy', frame: 12 },
+                { key: 'cammy', frame: 13 },
+                { key: 'cammy', frame: 14 },
+                { key: 'cammy', frame: 15 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0
+        });
+        scene.anims.create({
+            key: 'cammy_pre_attack',
+            frames: [
+                { key: 'cammy', frame: 5 },
+                { key: 'cammy', frame: 6 },
+                { key: 'cammy', frame: 7 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0,
+        });
+        scene.anims.create({
+            key: 'cammy_post_attack',
+            frames: [
+                { key: 'cammy', frame: 8 },
+                { key: 'cammy', frame: 9 },
+                { key: 'cammy', frame: 10 },
+                { key: 'cammy', frame: 11 }
             ],
             skipMissedFrames: false,
             frameRate: 8,
@@ -187,12 +246,6 @@ let GameScene = new Phaser.Class({
                 }
             });
             timeline.play();
-        }
-
-        let attack_update = function (animation, frame, gameObject) {
-            if (frame.index === 3) {
-                damage((gameObject.data.values.index + 1) % 2);
-            }
         };
 
         let life_x = SCREEN_WIDTH/2;
@@ -204,12 +257,12 @@ let GameScene = new Phaser.Class({
 
         let damage = function(index)
         {
-            players[index].play('hit')
-                .once("animationcomplete-hit", function() {
+            players[index].play(players[index].data.values.name + '_hit')
+                .once("animationcomplete-" + players[index].data.values.name + "_hit", function() {
                     if (INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
                         players[index].setData('ready',true);
                     }
-                    players[index].play('idle');
+                    players[index].play(players[index].data.values.name + '_idle');
                 });
             health[index] = Phaser.Math.Clamp(
                 health[index] -  GAME_CONSTANTS.damage_on_attack, 0, 100);
@@ -252,56 +305,44 @@ let GameScene = new Phaser.Class({
             .setScale(4);
         }
 
-        players.push(
-            scene.add.sprite(SCREEN_WIDTH/2 - 192, SCREEN_HEIGHT, 'fighter', 0)
-                .setOrigin(0.5, 1)
-                .setScale(4)
-                .play('idle')
-                .setData('index', 0));
-        players.push(
-            scene.add.sprite(SCREEN_WIDTH/2 + 192, SCREEN_HEIGHT, 'fighter', 0)
-                .setOrigin(0.5, 1)
-                .setScale(4)
-                .setFlipX(true)
-                .play('idle')
-                .setData('index', 1));
-        players[0].on('animationupdate-attack', attack_update);
-        players[0].on('animationcomplete-attack', function() {
-            players[0].play('idle');
-        });
-        players[0].setData('ready',false);
-        players[1].on('animationupdate-attack', attack_update);
-        players[1].on('animationcomplete-attack', function() {
-            players[1].play('idle');
-        });
-        players[1].setData('ready',false);
-
-        scene.add.rectangle(life_x - life_x_offset + pinstripe/2, life_y,
-            life_w + pinstripe, life_h + pinstripe, 0xffff00,0)
-            .setOrigin(1,0.5)
-            .setStrokeStyle(pinstripe,0xffffff,1);
-        scene.add.rectangle(life_x + life_x_offset - pinstripe/2, life_y,
-            life_w + pinstripe, life_h + pinstripe, 0xffff00,0)
-            .setOrigin(0,0.5)
-            .setStrokeStyle(pinstripe,0xffffff,1);
         let life_bg = [];
-        life_bg.push(
-            scene.add.rectangle(life_x - life_x_offset, life_y,
-                life_w, life_h, 0xff0000)
-                .setOrigin(1,0.5));
-        life_bg.push(
-            scene.add.rectangle(life_x + life_x_offset, life_y,
-                life_w, life_h, 0xff0000)
-                .setOrigin(0,0.5));
         let life = [];
-        life.push(
-            scene.add.rectangle(life_x - life_x_offset, life_y,
-                life_w, life_h, 0xffff00)
-            .setOrigin(1,0.5));
-        life.push(
-            scene.add.rectangle(life_x + life_x_offset, life_y,
-                life_w, life_h, 0xffff00)
-            .setOrigin(0,0.5))
+
+        for (let i = 0; i < 2; i++) {
+            let name = ['ryu','ryu'][i];
+            let flipX = [false, true][i];
+            let xOffset = [-1, 1][i];
+            let xOrigin = [1, 0][i];
+            players.push(
+                scene.add.sprite(SCREEN_WIDTH/2 + xOffset * 128, SCREEN_HEIGHT, name, 0)
+                    .setOrigin(0.5, 1)
+                    .setScale(4)
+                    .setFlipX(flipX)
+                    .setData('index', i)
+                    .setData('name', name)
+                    .play(name +'_idle'));
+            players[i].on('animationcomplete-' + name + '_pre_attack', function() {
+                players[i].play(name + '_post_attack');
+                damage((players[i].data.values.index + 1) % 2);
+            });
+            players[i].on('animationcomplete-' + name + '_post_attack', function() {
+                players[i].play(name + '_idle');
+            });
+            players[i].setData('ready',false);
+
+            scene.add.rectangle(life_x + (xOffset * life_x_offset) + (-xOffset * pinstripe/2), life_y,
+                life_w + pinstripe, life_h + pinstripe, 0xffff00,0)
+                .setOrigin(xOrigin,0.5)
+                .setStrokeStyle(pinstripe,0xffffff,1);
+            life_bg.push(
+                scene.add.rectangle(life_x + (xOffset * life_x_offset), life_y,
+                    life_w, life_h, 0xff0000)
+                    .setOrigin(xOrigin,0.5));
+            life.push(
+                scene.add.rectangle(life_x + (xOffset * life_x_offset), life_y,
+                    life_w, life_h, 0xffff00)
+                    .setOrigin(xOrigin,0.5));
+        }
 
         for (let label of INPUTS.prompt_keys_labels) {
             INPUTS.prompt_keys.push(
@@ -320,7 +361,7 @@ let GameScene = new Phaser.Class({
             if (INPUTS.current_prompt === input &&
                 INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
                 INPUTS.prompt_keys[INPUTS.current_prompt].setVisible(false);
-                players[player_index].play('attack');
+                players[player_index].play(players[player_index].data.values.name + '_pre_attack');
                 scene.time.delayedCall(2000,display_prompt);
                 for (let player of players) {
                     player.setData('ready', false);
