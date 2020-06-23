@@ -399,7 +399,6 @@ let GameScene = new Phaser.Class({
             let dpad_input = function (pointer, index) {
                 let dx = pointer.worldX - dpad.x;
                 let dy = pointer.worldY - dpad.y;
-                //dpad.alpha = 1;
                 if (dx > dy && dy > -dx) {
                     handle_key_press(index, INPUTS.RIGHT);
                 } else if (dx < dy && dy < -dx) {
@@ -412,6 +411,12 @@ let GameScene = new Phaser.Class({
                     //nothing
                 }
             };
+            dpad.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
+               dpad.alpha = 1;
+            });
+            dpad.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
+                dpad.alpha = .85;
+            });
             dpad.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
                 dpad_input(pointer, i);
             });
