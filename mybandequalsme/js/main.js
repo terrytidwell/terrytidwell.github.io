@@ -180,8 +180,8 @@ let GameScene = new Phaser.Class({
                     scene.cameras.main.shake(250, 0.015, true);
                     scene.time.delayedCall(1000, function() {
                         bg_music.stop();
-                        //scene.scene.start('TitleScene');
-                        //scene.scene.stop('GameScene');
+                        scene.scene.start('TitleScene');
+                        scene.scene.stop('GameScene');
                     })
                 }
             });
@@ -311,6 +311,10 @@ let GameScene = new Phaser.Class({
 
         let handle_key_press = function(player_index, input)
         {
+            if (!players[player_index].active)
+            {
+                return;
+            }
             if (!players[player_index].data.values.ready)
             {
                 return;
@@ -328,7 +332,7 @@ let GameScene = new Phaser.Class({
                 players[player_index].setData('ready', false);
                 damage(player_index);
             }
-        }
+        };
 
         let display_prompt = function()
         {
