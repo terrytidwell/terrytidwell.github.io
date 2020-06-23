@@ -311,10 +311,6 @@ let GameScene = new Phaser.Class({
 
         let handle_key_press = function(player_index, input)
         {
-            if (!players[player_index].active)
-            {
-                return;
-            }
             if (!players[player_index].data.values.ready)
             {
                 return;
@@ -364,32 +360,41 @@ let GameScene = new Phaser.Class({
         };
         scene.time.delayedCall(2000,display_prompt);
 
-        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
-        scene.m_cursor_keys.down
-            .on(Phaser.Input.Keyboard.Events.DOWN,
-            function(event) {handle_key_press(1,INPUTS.DOWN)});
-        scene.m_cursor_keys.up
-            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
-            handle_key_press(1,INPUTS.UP)});
-        scene.m_cursor_keys.left
-            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
-            handle_key_press(1,INPUTS.LEFT)});
-        scene.m_cursor_keys.right
-            .on(Phaser.Input.Keyboard.Events.DOWN, function(event) {
-            handle_key_press(1,INPUTS.RIGHT)});
+        let shutdown_handler = [];
 
-        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W)
-            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
-            handle_key_press(0,INPUTS.UP)});
-        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
-            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
-            handle_key_press(0,INPUTS.LEFT)});
-        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S)
-            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
-            handle_key_press(0,INPUTS.DOWN)});
-        scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-            .on(Phaser.Input.Keyboard.Events.DOWN, function() {
-            handle_key_press(0,INPUTS.RIGHT)});
+        let bind_key = function(key, handler)
+        {
+            key.on(Phaser.Input.Keyboard.Events.DOWN, handler);
+
+            shutdown_handler.push(function() {
+                key.off(Phaser.Input.Keyboard.Events.DOWN);
+            })
+        }
+
+        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
+        bind_key(scene.m_cursor_keys.down,
+            function(event) {handle_key_press(1,INPUTS.DOWN)});
+        bind_key(scene.m_cursor_keys.up,
+            function(event) {handle_key_press(1,INPUTS.UP)});
+        bind_key(scene.m_cursor_keys.left,
+            function(event) {handle_key_press(1,INPUTS.LEFT)});
+        bind_key(scene.m_cursor_keys.right,
+            function(event) {handle_key_press(1,INPUTS.RIGHT)});
+        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+            function() {handle_key_press(0,INPUTS.UP)});
+        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+            function() {handle_key_press(0,INPUTS.LEFT)});
+        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+            function() {handle_key_press(0,INPUTS.DOWN)});
+        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+            function() {handle_key_press(0,INPUTS.RIGHT)});
+
+        scene.events.once('shutdown', function() {
+            for (let handler of shutdown_handler)
+            {
+                handler();
+            }
+        })
 
         scene.sound.pauseOnBlur = false;
         bg_music = scene.sound.add('qtclash', {loop: true });
