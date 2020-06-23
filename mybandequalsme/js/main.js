@@ -390,6 +390,8 @@ let GameScene = new Phaser.Class({
         bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
             function() {handle_key_press(0,INPUTS.RIGHT)});
 
+
+        scene.input.addPointer(5);
         let locations = [ [128, SCREEN_HEIGHT - 128], [SCREEN_WIDTH - 128, SCREEN_HEIGHT - 128]];
         for(let i = 0; i < locations.length; i++) {
             let dpad = this.add.sprite(locations[i][0], locations[i][1], 'd-pad')
