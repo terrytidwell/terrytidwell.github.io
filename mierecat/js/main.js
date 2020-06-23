@@ -152,11 +152,13 @@ let GameScene = new Phaser.Class({
             ORANGE_GRID: 1,
             PINK_GRID: 2,
             PINK_SQUID: 3,
-            EYES: 4,
-            ORANGE_SQUID: 5,
-            BG_GRID: 6,
-            PINK_SELECTOR: 7,
-            ORANGE_SELECTOR: 8
+            ORANGE_SQUID: 4,
+            OPEN_EYES: 5,
+            X_EYES: 6,
+            CLOSED_EYES: 7,
+            BG_GRID: 8,
+            PINK_SELECTOR: 9,
+            ORANGE_SELECTOR: 10
         };
 
         let SELECTION_ACTIONS = {
@@ -391,7 +393,7 @@ let GameScene = new Phaser.Class({
             if (squid) {
                 squid.setData("animation",
                     scene.tweens.add({
-                    targets: squid,
+                    targets: squid.data.values.animate_list,
                     y: "-=" + GRID_SIZE / 4,
                     scaleY: 0.9,
                     duration: 250,
@@ -600,6 +602,12 @@ let GameScene = new Phaser.Class({
                 .setScale(2)
                 .setScrollFactor(0)
                 .setDepth(DEPTHS.HUD+2);
+            let portrait_eyes = scene.add.sprite(
+                0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
+                'tiles',TILES.OPEN_EYES)
+                .setScale(2)
+                .setScrollFactor(0)
+                .setDepth(DEPTHS.HUD+3);
             let text_height = GRID_SIZE/2;
             let life = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height,
@@ -612,6 +620,10 @@ let GameScene = new Phaser.Class({
             function onDamage() {
                 life.setText("HP: " + squid.data.values.health + "/100");
                 Util.fixCenterText(life);
+                squid.data.values.eyes.setTexture('tiles',TILES.X_EYES);
+                scene.time.delayedCall(1000, function() {
+                    squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
+                });
             }
             squid.setData('onDamage', onDamage);
 
@@ -634,7 +646,7 @@ let GameScene = new Phaser.Class({
             Util.fixCenterText(pts);
 
 
-            let objects = [bubble, bubble_outline, portrait, life, ink, pts];
+            let objects = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
 
             let deselect = function() {
                 for (let object of objects) {
@@ -832,25 +844,35 @@ let GameScene = new Phaser.Class({
         {
             let my_tile = COLORS.PINK === start_position.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
             let squid = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',my_tile);
+            let squid_eyes = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',TILES.OPEN_EYES);
             squid.setDepth(DEPTHS.SQUAD);
+            squid_eyes.setDepth(DEPTHS.SQUAD + 1);
             squid.setInteractive();
             squid.setData('x',start_position.x);
+            squid.setData('eyes', squid_eyes);
             squid.setData('y',start_position.y);
             squid.setData('color', start_position.color);
             squid.setData('health', 100);
+            squid.setData('animate_list', [squid, squid_eyes]);
             squid.setData('deselectFunctions', [
                 function() {
                     if(squid.data.values.animation) {
                         squid.data.values.animation.stop();
                     }
-                    squid.x = xPixel(squid.data.values.x);
-                    squid.y = yPixel(squid.data.values.y);
-                    squid.scaleY = 1;
+                    for (let animated of squid.data.values.animate_list)
+                    {
+                        animated.x = xPixel(squid.data.values.x);
+                        animated.y = yPixel(squid.data.values.y);
+                        animated.scaleY = 1;
+                    }
                 }
             ]);
             squid.setData('openFunctions', []);
             squid.setData('closeFunctions', []);
-            squid.setData('moveFunctions', []);
+            squid.setData('moveFunctions', [function(){
+                squid_eyes.x = xPixel(squid.data.values.x);
+                squid_eyes.y = yPixel(squid.data.values.y);
+            }]);
             let execute = function(func_array) {
                 for (let func of func_array)
                 {
