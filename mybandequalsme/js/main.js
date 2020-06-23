@@ -22,6 +22,7 @@ let TitleScene = new Phaser.Class({
         this.load.image('down', 'assets/down.png');
         this.load.image('left', 'assets/left.png');
         this.load.image('right', 'assets/right.png');
+        this.load.image('d-pad', 'assets/shadedDark04.png');
     },
 
     //--------------------------------------------------------------------------
@@ -389,12 +390,39 @@ let GameScene = new Phaser.Class({
         bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
             function() {handle_key_press(0,INPUTS.RIGHT)});
 
+        let locations = [ [128, SCREEN_HEIGHT - 128], [SCREEN_WIDTH - 128, SCREEN_HEIGHT - 128]];
+        for(let i = 0; i < locations.length; i++) {
+            let dpad = this.add.sprite(locations[i][0], locations[i][1], 'd-pad')
+                .setScale(2);
+                dpad.alpha = 0.85;
+            dpad.setInteractive();
+            let dpad_input = function (pointer, index) {
+                let dx = pointer.worldX - dpad.x;
+                let dy = pointer.worldY - dpad.y;
+                //dpad.alpha = 1;
+                if (dx > dy && dy > -dx) {
+                    handle_key_press(index, INPUTS.RIGHT);
+                } else if (dx < dy && dy < -dx) {
+                    handle_key_press(index, INPUTS.LEFT);
+                } else if (dx < dy && dy > -dx) {
+                    handle_key_press(index, INPUTS.DOWN);
+                } else if (dx > dy && dy < -dx) {
+                    handle_key_press(index, INPUTS.UP);
+                } else {
+                    //nothing
+                }
+            };
+            dpad.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function (pointer) {
+                dpad_input(pointer, i);
+            });
+        }
+
         scene.events.once('shutdown', function() {
             for (let handler of shutdown_handler)
             {
                 handler();
             }
-        })
+        });
 
         scene.sound.pauseOnBlur = false;
         bg_music = scene.sound.add('qtclash', {loop: true });
