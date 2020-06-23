@@ -1,7 +1,7 @@
 const SCREEN_WIDTH = 1024;
 const SCREEN_HEIGHT = 512;
 const GAME_CONSTANTS = {
-    damage_on_attack: 10
+    damage_on_attack: 20
 };
 
 let TitleScene = new Phaser.Class({
@@ -32,8 +32,7 @@ let TitleScene = new Phaser.Class({
             SCREEN_HEIGHT/2,
             "click to continue...",
             { font: 32 + 'px Arial', color: '#ffffff'})
-            .setOrigin(0.5, 0.5)
-            .setStroke('#ffffff', 3);
+            .setOrigin(0.5, 0.5);
         play.setInteractive();
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
             play.scaleX = 1.2;
@@ -44,8 +43,8 @@ let TitleScene = new Phaser.Class({
             play.scaleY = 1;
         });
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
-            scene.scene.stop('TitleScene');
             scene.scene.start('GameScene');
+            scene.scene.stop('TitleScene');
         });
     },
 
@@ -84,9 +83,16 @@ let GameScene = new Phaser.Class({
             prompt_keys: [],
             current_prompt: 0
         };
-        
+
+        let STATES =  {
+            ACTIVE: 0,
+            OVER: 1
+        };
+
+        let game_state = STATES.ACTIVE;
         let health = [100,100];
         let players = [];
+        let bg_music = null;
 
         scene.anims.create({
             key: 'idle',
@@ -126,6 +132,62 @@ let GameScene = new Phaser.Class({
             repeat: 0,
         });
 
+        let celebration = function(winner) {
+            winner++;
+            let ko = scene.add.text(
+                SCREEN_WIDTH/2,
+                SCREEN_HEIGHT/2,
+                "K.O.",
+                { font: SCREEN_HEIGHT/2 + 'px Arial Black', color: '#ff0000'})
+                .setOrigin(0.5, 0.5)
+                .setStroke("#000000", SCREEN_HEIGHT/16)
+                .setScale(3)
+                .setAlpha(0);
+            let winner_text = scene.add.text(
+                SCREEN_WIDTH/2,
+                SCREEN_HEIGHT/2,
+                "Player " + winner + " wins",
+                { font: SCREEN_HEIGHT/8 + 'px Arial Black', color: '#ff0000'})
+                .setOrigin(0.5, 0.5)
+                .setStroke("#000000", SCREEN_HEIGHT/16)
+                .setScale(3)
+                .setAlpha(0);
+            let timeline = scene.tweens.createTimeline();
+            timeline.add({
+                targets: ko,
+                scaleX: 1,
+                scaleY: 1,
+                alpha: 1,
+                duration: 250,
+                onComplete: function() {
+                    scene.cameras.main.shake(250, 0.015, true);
+                }
+            });
+            timeline.add({
+                targets: ko,
+                scale: 2,
+                alpha: 0,
+                duration: 100,
+                delay: 500
+            });
+            timeline.add({
+                targets: winner_text,
+                scaleX: 1,
+                scaleY: 1,
+                alpha: 1,
+                duration: 250,
+                onComplete: function() {
+                    scene.cameras.main.shake(250, 0.015, true);
+                    scene.time.delayedCall(1000, function() {
+                        bg_music.stop();
+                        //scene.scene.start('TitleScene');
+                        //scene.scene.stop('GameScene');
+                    })
+                }
+            });
+            timeline.play();
+        }
+
         let attack_update = function (animation, frame, gameObject) {
             if (frame.index === 3) {
                 damage((gameObject.data.values.index + 1) % 2);
@@ -151,6 +213,14 @@ let GameScene = new Phaser.Class({
             health[index] = Phaser.Math.Clamp(
                 health[index] -  GAME_CONSTANTS.damage_on_attack, 0, 100);
             scene.cameras.main.shake(250, 0.015, true);
+            if (health[index] === 0)
+            {
+                game_state = STATES.OVER;
+                for(let player of players) {
+                    player.anims.pause();
+                }
+                celebration((index + 1) % 2);
+            }
             //left bar target = scaleX
             //rigth bar target = width
             let tween1 = {
@@ -262,6 +332,9 @@ let GameScene = new Phaser.Class({
 
         let display_prompt = function()
         {
+            if (game_state === STATES.OVER) {
+                return;
+            }
             for (let prompt of INPUTS.prompt_keys)
             {
                 prompt.setVisible(false);
@@ -279,7 +352,7 @@ let GameScene = new Phaser.Class({
                scaleX: 1,
                scaleY: 1,
                alpha: 1,
-                duration: 250,
+               duration: 250,
                onComplete() {
                    scene.cameras.main.shake(250, 0.015, true);
                }
@@ -315,9 +388,8 @@ let GameScene = new Phaser.Class({
             handle_key_press(0,INPUTS.RIGHT)});
 
         scene.sound.pauseOnBlur = false;
-        scene.sound.add('qtclash', {loop: true }).play();
-
-
+        bg_music = scene.sound.add('qtclash', {loop: true });
+        bg_music.play();
     },
 
     //--------------------------------------------------------------------------
