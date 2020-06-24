@@ -27,7 +27,7 @@ let g_game_settings = {
     move: 4,
     swim: 6,
     shoot_distance: 6,
-    shoot_damage: -10,
+    shoot_damage: -85,
     booyah_damage: 5,
     actions_per_turn: 2
 };
