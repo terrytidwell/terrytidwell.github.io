@@ -183,6 +183,7 @@ let GameScene = new Phaser.Class({
         let squids = [];
         let next_squid_index = 0;
         let next_action_index = 0;
+        let animation_queue = [];
 
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
@@ -197,6 +198,54 @@ let GameScene = new Phaser.Class({
         {
             return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_VERTICAL_BORDER * GRID_SIZE;
         };
+
+        let anim_round_start = function() {
+            let texts = []
+            texts.push(
+                scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - GRID_SIZE,
+                    "ROUND 1",
+                    { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
+                    .setOrigin(0.5)
+                    .setStroke("#FFFFFF", GRID_SIZE*2/4)
+                    .setScrollFactor(0)
+                    .setOrigin(0.5)
+                    .setDepth(DEPTHS.HUD)
+                    .setScale(3)
+                    .setAlpha(0));
+            texts.push(
+                scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + GRID_SIZE,
+                    "START",
+                    { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
+                    .setOrigin(0.5)
+                    .setStroke("#FFFFFF", GRID_SIZE*2/4)
+                    .setScrollFactor(0)
+                    .setOrigin(0.5)
+                    .setDepth(DEPTHS.HUD)
+                    .setScale(3)
+                    .setAlpha(0));
+            let timeline = scene.tweens.createTimeline();
+            timeline.add({
+                targets: texts,
+                scale: 1,
+                alpha: 1,
+                duration: 250,
+                onComplete: function() {
+                    scene.cameras.main.shake(250, 0.015, true);
+                }
+            });
+            timeline.add({
+                targets: texts,
+                scale: 2,
+                alpha: 0,
+                delay: 500,
+                duration: 100,
+                onComplete: function() {
+                    recalculate_game_state();
+                }
+            });
+            timeline.play();
+        };
+        animation_queue.push(anim_round_start);
 
         scene.add.tileSprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
@@ -337,7 +386,7 @@ let GameScene = new Phaser.Class({
             let MOVES = [ [0, 1], [0, -1], [1, 0], [-1, 0] ];
             while (squares_to_expand.length !== 0)
             {
-                let square = squares_to_expand.pop();
+                let square = squares_to_expand.shift();
                 for ( let move of MOVES )
                 {
                     let dx = move[0];
@@ -1072,7 +1121,12 @@ let GameScene = new Phaser.Class({
                 ui.pink_score.setText(Math.floor(pink_score * 100 / total) + "%");
                 ui.orange_score.setText(Math.floor(orange_score * 100 / total) + "%");
             }
-            if(!current_active_unit)
+            if (animation_queue.length !== 0)
+            {
+                //do an animation!
+                let animation = animation_queue.pop();
+                animation();
+            } else if(!current_active_unit)
             {
                 console.log('squid: ' + next_squid_index + ' action:'+ next_action_index);
                 let squid = squids[next_squid_index];
