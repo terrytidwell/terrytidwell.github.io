@@ -76,7 +76,7 @@ let TitleScene = new Phaser.Class({
             "Play",
             { font: GRID_SIZE * 2 + 'px project_paintball', color: COLORS.PINK_TEXT})
             .setOrigin(0.5, 0.5)
-            .setStroke('#ffffff', 3);
+            .setStroke('#ffffff', GRID_SIZE/8);
         Util.fixCenterText(play);
         play.setInteractive();
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
@@ -122,14 +122,14 @@ let UIScene = new Phaser.Class({
             "0%",
             { font: GRID_SIZE + 'px project_paintball', color: COLORS.PINK_TEXT})
             .setOrigin(0,0)
-            .setStroke('#ffffff', 3);
+            .setStroke('#ffffff', GRID_SIZE/8);
         scene.orange_score = scene.add.text(
             SCREEN_WIDTH,
             0,
             "0%",
             { font: GRID_SIZE + 'px project_paintball', color: COLORS.ORANGE_TEXT})
             .setOrigin(1,0)
-            .setStroke('#ffffff', 3);
+            .setStroke('#ffffff', GRID_SIZE/8);
     },
 
     //--------------------------------------------------------------------------
@@ -400,16 +400,17 @@ let GameScene = new Phaser.Class({
         let highlight_squid = function(squid) {
             if (current_highlight === squid)
             {
+                return;
             }
             if (current_highlight)
             {
                 current_highlight.data.values.unhighlight();
             }
-            current_highlight = squid;
-            if (current_highlight)
+            if (squid)
             {
-                current_highlight.data.values.highlight();
+                squid.data.values.highlight();
             }
+            current_highlight = squid;
         }
 
         let set_current_active_unit = function(squid) {
@@ -422,11 +423,10 @@ let GameScene = new Phaser.Class({
             {
                 current_active_unit.data.values.inactivate();
             }
-            current_active_unit = squid;
-            if (current_active_unit) {
-                current_active_unit.data.values.activate();
+            if (squid) {
+                squid.data.values.activate();
             }
-
+            current_active_unit = squid;
         }
         scene.events.on('selector_clicked', function(x,y) {
             if (current_active_unit)
@@ -572,7 +572,7 @@ let GameScene = new Phaser.Class({
             });
             let bg = scene.add.circle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
-                GRID_SIZE/4+1,
+                GRID_SIZE/4+GRID_SIZE/32,
                 0xFFFFFF, 1)
                 .setDepth(DEPTHS.UI);
 
@@ -604,39 +604,51 @@ let GameScene = new Phaser.Class({
 
         let add_hud = function(squid) {
             let bubble = scene.add.circle(
-                0, SCREEN_HEIGHT,
+                0 - GRID_SIZE*3, SCREEN_HEIGHT + GRID_SIZE*3,
                 GRID_SIZE * 2,
                 0xFFFFFF, 1)
                 .setScrollFactor(0)
-                .setDepth(DEPTHS.HUD+1);
+                .setDepth(DEPTHS.HUD+1)
+                .setData('visible',[0, SCREEN_HEIGHT])
+                .setData('invisible',[0 - GRID_SIZE*3, SCREEN_HEIGHT + GRID_SIZE*3]);
             let bubble_outline = scene.add.circle(
-                0, SCREEN_HEIGHT,
+                0 - GRID_SIZE*3, SCREEN_HEIGHT + GRID_SIZE*3,
                 GRID_SIZE * 2.25,
                 squid.data.values.color, 1)
                 .setScrollFactor(0)
-                .setDepth(DEPTHS.HUD);
+                .setDepth(DEPTHS.HUD)
+                .setData('visible',[0, SCREEN_HEIGHT])
+                .setData('invisible',[0 - GRID_SIZE*3, SCREEN_HEIGHT + GRID_SIZE*3]);
             let my_tile = COLORS.PINK === squid.data.values.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
             let my_text = COLORS.PINK === squid.data.values.color ? COLORS.PINK_TEXT : COLORS.ORANGE_TEXT;
             let portrait = scene.add.sprite(
-                0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
+                0 + GRID_SIZE/2 - GRID_SIZE*3, SCREEN_HEIGHT - GRID_SIZE/2 + GRID_SIZE*3,
                 'tiles',my_tile)
                 .setScale(4)
                 .setScrollFactor(0)
-                .setDepth(DEPTHS.HUD+2);
+                .setDepth(DEPTHS.HUD+2)
+                .setData('visible',[0 + GRID_SIZE/2, SCREEN_HEIGHT - GRID_SIZE/2])
+                .setData('invisible',[0 + GRID_SIZE/2 - GRID_SIZE*3, SCREEN_HEIGHT - GRID_SIZE/2 + GRID_SIZE*3]);;
             let portrait_eyes = scene.add.sprite(
-                0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
+                0 + GRID_SIZE/2 - GRID_SIZE*3, SCREEN_HEIGHT - GRID_SIZE/2 + GRID_SIZE*3,
                 'tiles',TILES.OPEN_EYES)
                 .setScale(4)
                 .setScrollFactor(0)
-                .setDepth(DEPTHS.HUD+3);
+                .setDepth(DEPTHS.HUD+3)
+                .setData('visible',[0 + GRID_SIZE/2, SCREEN_HEIGHT - GRID_SIZE/2])
+                .setData('invisible',[0 + GRID_SIZE/2 - GRID_SIZE*3, SCREEN_HEIGHT - GRID_SIZE/2 + GRID_SIZE*3]);;;
             let text_height = GRID_SIZE/2;
+
             let life = scene.add.text(
-                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height,
+                SCREEN_WIDTH/2,
+                SCREEN_HEIGHT-text_height/2-2*text_height + 4*text_height,
                 'HP: 100/100', {font: text_height + 'px project_paintball', color: my_text})
                 .setScrollFactor(0)
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+3)
-                .setStroke("#FFFFFF", 3);
+                .setStroke("#FFFFFF", GRID_SIZE/8)
+                .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height])
+                .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height + 4*text_height])
             Util.fixCenterText(life);
             function onDamage() {
                 life.setText("HP: " + squid.data.values.health + "/100");
@@ -649,37 +661,72 @@ let GameScene = new Phaser.Class({
             squid.setData('onDamage', onDamage);
 
             let ink = scene.add.text(
-                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height,
+                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height,
                 'INK: 100/100', {font: text_height + 'px project_paintball', color: my_text})
                 .setScrollFactor(0)
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+3)
-                .setStroke("#FFFFFF", 3);
+                .setStroke("#FFFFFF", GRID_SIZE/8)
+                .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height])
+                .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height])
+
             Util.fixCenterText(ink);
 
             let pts = scene.add.text(
-                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2,
+                SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height,
                 'PTS: 100/100', {font: text_height + 'px project_paintball', color: my_text})
                 .setScrollFactor(0)
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+3)
-                .setStroke("#FFFFFF", 3);
+                .setStroke("#FFFFFF", GRID_SIZE/8)
+                .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2])
+                .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height]);
             Util.fixCenterText(pts);
 
-
-            let objects = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
+            let objects = [];
+            let tween_targets = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
 
             let unhighlight = function() {
                 for (let object of objects) {
                     object.setVisible(false);
                 }
+                for (let target of tween_targets){
+                    scene.tweens.add({
+                        targets: target,
+                        x: target.data.values.invisible[0],
+                        y: target.data.values.invisible[1],
+                        alpha: 0,
+                        duration: 125,
+                        ease: 'Linear',
+                        onComplete: function() {
+                            target.setVisible(false);
+                        }
+                    });
+                }
             };
-            unhighlight();
+            for (let object of objects) {
+                object.setVisible(false);
+            }
+            for (let object of tween_targets) {
+                object.setVisible(false);
+            }
 
             squid.data.values.highlightFunctions.push(function() {
                 for (let object of objects) {
                     object.setVisible(true);
-
+                }
+                let delay = current_highlight === null ? 0 : 125;
+                for (let target of tween_targets) {
+                    target.setVisible(true);
+                    scene.tweens.add({
+                        delay: delay,
+                        targets: target,
+                        x: target.data.values.visible[0],
+                        y: target.data.values.visible[1],
+                        alpha: 1,
+                        duration: 125,
+                        ease: 'Linear'
+                    })
                 }
             });
             squid.data.values.unhighlightFunctions.push(unhighlight);
@@ -819,7 +866,7 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, click);
             let bg = scene.add.rectangle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
-                width+2, GRID_SIZE/2+2,
+                width+GRID_SIZE/16, GRID_SIZE/2+GRID_SIZE/16,
                 0xFFFFFF, 1)
                 .setDepth(DEPTHS.UI);
             if (akimbo) {
@@ -902,6 +949,7 @@ let GameScene = new Phaser.Class({
                 squid.data.values.highlight();
                 squid.setDepth(DEPTHS.SQUAD+2);
                 squid_eyes.setDepth(DEPTHS.SQUAD+3);
+                squid.data.values.open();
             });
             squid.setData('inactivate', function() {
                 if(squid.data.values.animation) {
