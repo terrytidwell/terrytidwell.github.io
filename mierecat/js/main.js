@@ -1,4 +1,4 @@
-const GRID_SIZE = 32;
+const GRID_SIZE = 64;
 const SCREEN_COLUMNS = 10;
 const SCREEN_ROWS = 10;
 const SCREEN_VERTICAL_BORDER = 1;
@@ -28,7 +28,8 @@ let g_game_settings = {
     swim: 6,
     shoot_distance: 6,
     shoot_damage: -10,
-    booyah_damage: 5
+    booyah_damage: 5,
+    actions_per_turn: 2
 };
 
 let Util = {
@@ -60,10 +61,15 @@ let TitleScene = new Phaser.Class({
         let scene = this;
         scene.add.image(SCREEN_WIDTH/4,
             SCREEN_HEIGHT/4,
-            'splat').setTint(COLORS.ORANGE);
+            'splat')
+            .setTint(COLORS.ORANGE)
+            .setScale(2);
         scene.add.image(SCREEN_WIDTH/4 *3,
             SCREEN_HEIGHT/2,
-            'splat').setTint(COLORS.PINK).setAngle(70).setScale(0.9);
+            'splat')
+            .setTint(COLORS.PINK)
+            .setAngle(70)
+            .setScale(1.8);
         let play = scene.add.text(
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2,
@@ -82,7 +88,7 @@ let TitleScene = new Phaser.Class({
             play.scaleX = 1;
             play.scaleY = 1;
         });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
             scene.scene.start('UIScene');
             scene.scene.start('GameScene');
             scene.scene.stop('TitleScene');
@@ -166,6 +172,18 @@ let GameScene = new Phaser.Class({
             SHOOT: 1,
             BOOYAH: 2
         };
+
+        //----------------------------------------------------------------------
+        // STATE VARIABLES
+        //----------------------------------------------------------------------
+        let current_active_unit = null;
+        let current_highlight = null;
+        let game_grid = null;
+        let selector_grid = null;
+        let squids = [];
+        let next_squid_index = 0;
+        let next_action_index = 0;
+
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
@@ -184,8 +202,9 @@ let GameScene = new Phaser.Class({
             SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
             SCREEN_HEIGHT + (2 * BG_BORDER * GRID_SIZE),
             'tiles',
-            TILES.BG_GRID
-        );
+            TILES.BG_GRID)
+            .setDepth(DEPTHS.BG)
+            .setScale(2);
 
         let create_random_square = function(x,y,grid)
         {
@@ -198,6 +217,7 @@ let GameScene = new Phaser.Class({
 
             sprite.setData("value", value);
             sprite.setDepth(DEPTHS.GRID);
+            sprite.setScale(2);
 
             return sprite;
         };
@@ -208,7 +228,8 @@ let GameScene = new Phaser.Class({
                 'tiles', TILES.PINK_SELECTOR)
                 .setDepth(DEPTHS.UI + 1)
                 .setVisible(false)
-                .setAlpha(0.6);
+                .setAlpha(0.6)
+                .setScale(2);
             let select_sprite_bg = scene.add.rectangle(xPixel(x), yPixel(y),
                 GRID_SIZE, GRID_SIZE, COLORS.PINK)
                 .setDepth(DEPTHS.UI)
@@ -226,7 +247,7 @@ let GameScene = new Phaser.Class({
                 select_sprite.setAlpha(0.6);
                 select_sprite_bg.setAlpha(0.6);
             });
-            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
                 if (select_sprite.visible) {
                     scene.events.emit('selector_clicked',
                         select_sprite.data.values.x,
@@ -246,8 +267,6 @@ let GameScene = new Phaser.Class({
             }
         };
 
-
-
         let create_grid = function(generator)
         {
             let grid = [];
@@ -262,8 +281,8 @@ let GameScene = new Phaser.Class({
             return grid;
         };
 
-        let game_grid = create_grid(create_random_square);
-        let selector_grid = create_grid(create_selector);
+        game_grid = create_grid(create_random_square);
+        selector_grid = create_grid(create_selector);
 
         let square_is_legal = function(x, y)
         {
@@ -295,8 +314,8 @@ let GameScene = new Phaser.Class({
 
                         square.setVisible(true);
                         square.data.values.bg.setVisible(true);
-                        square.data.values.bg.setFillStyle(current_unit.data.values.color, 0.6);
-                        let sprite_texture = current_unit.data.values.color === COLORS.PINK ?
+                        square.data.values.bg.setFillStyle(current_active_unit.data.values.color, 0.6);
+                        let sprite_texture = current_active_unit.data.values.color === COLORS.PINK ?
                             TILES.PINK_SELECTOR : TILES.ORANGE_SELECTOR;
                         square.setTexture('tiles', sprite_texture);
                     }
@@ -378,49 +397,55 @@ let GameScene = new Phaser.Class({
             return reach_map;
         };
 
-        let current_unit = null;
-        let select_squid = function(squid) {
-            if (current_unit === squid)
+        let highlight_squid = function(squid) {
+            if (current_highlight === squid)
+            {
+            }
+            if (current_highlight)
+            {
+                current_highlight.data.values.unhighlight();
+            }
+            current_highlight = squid;
+            if (current_highlight)
+            {
+                current_highlight.data.values.highlight();
+            }
+        }
+
+        let set_current_active_unit = function(squid) {
+            highlight_squid(squid);
+            if (current_active_unit === squid)
             {
                 return;
             }
-            if (current_unit)
+            if (current_active_unit)
             {
-                current_unit.data.values.close();
-                current_unit.data.values.deselect();
+                current_active_unit.data.values.inactivate();
             }
-            current_unit = squid;
-            if (squid) {
-                squid.setData("animation",
-                    scene.tweens.add({
-                    targets: squid.data.values.animate_list,
-                    y: "-=" + GRID_SIZE / 4,
-                    scaleY: 0.9,
-                    duration: 250,
-                    ease: "Quad.easeOut",
-                    yoyo: true,
-                    repeat: -1}));
+            current_active_unit = squid;
+            if (current_active_unit) {
+                current_active_unit.data.values.activate();
             }
+
         }
         scene.events.on('selector_clicked', function(x,y) {
-            if (current_unit)
+            if (current_active_unit)
             {
-                switch (current_unit.data.values.selection_action) {
+                switch (current_active_unit.data.values.selection_action) {
                     case SELECTION_ACTIONS.MOVE:
-                        current_unit.setData('x', x);
-                        current_unit.setData('y', y);
-                        current_unit.x = xPixel(x);
-                        current_unit.y = yPixel(y);
-                        current_unit.data.values.move();
+                        current_active_unit.setData('x', x);
+                        current_active_unit.setData('y', y);
+                        current_active_unit.x = xPixel(x);
+                        current_active_unit.y = yPixel(y);
+                        current_active_unit.data.values.move();
 
                         track_camera(x, y);
-                        clear_selection();
-                        select_squid(null);
+                        set_current_active_unit(null);
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SHOOT:
-                        let dx = x - current_unit.data.values.x;
-                        let dy = y - current_unit.data.values.y;
+                        let dx = x - current_active_unit.data.values.x;
+                        let dy = y - current_active_unit.data.values.y;
                         let vector = new Phaser.Math.Vector2(dx, dy);
                         vector.normalize();
                         vector.scale(g_game_settings.shoot_distance);
@@ -428,14 +453,14 @@ let GameScene = new Phaser.Class({
                         let points = Phaser.Geom.Line.BresenhamPoints(line);
 
                         let tile_target = TILES.PINK_GRID;
-                        if (current_unit.data.values.color === COLORS.ORANGE) {
+                        if (current_active_unit.data.values.color === COLORS.ORANGE) {
                             tile_target = TILES.ORANGE_GRID;
                         }
 
                         for (let point of points)
                         {
-                            let px = point.x + current_unit.data.values.x;
-                            let py = point.y + current_unit.data.values.y;
+                            let px = point.x + current_active_unit.data.values.x;
+                            let py = point.y + current_active_unit.data.values.y;
                             if (square_is_legal(px,py))
                             {
                                 let tile = game_grid[px][py];
@@ -443,7 +468,7 @@ let GameScene = new Phaser.Class({
                                 tile.setData('value',tile_target);
                                 for (let squid of squids)
                                 {
-                                    if(squid.data.values.color !== current_unit.data.values.color &&
+                                    if(squid.data.values.color !== current_active_unit.data.values.color &&
                                         squid.data.values.x === px &&
                                         squid.data.values.y === py)
                                     {
@@ -457,20 +482,19 @@ let GameScene = new Phaser.Class({
                             }
                         };
 
-                        select_squid(null);
-                        clear_selection();
+                        set_current_active_unit(null);
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.BOOYAH:
-                        current_unit.data.values.health =
+                        current_active_unit.data.values.health =
                             Phaser.Math.Clamp(
-                                current_unit.data.values.health + g_game_settings.booyah_damage,
+                                current_active_unit.data.values.health + g_game_settings.booyah_damage,
                                 0, 100);
-                        current_unit.data.values.onDamage();
+                        current_active_unit.data.values.onDamage();
                         for (let squid of squids)
                         {
-                            if(squid !== current_unit &&
-                                squid.data.values.color === current_unit.data.values.color)
+                            if(squid !== current_active_unit &&
+                                squid.data.values.color === current_active_unit.data.values.color)
                             {
                                 squid.data.values.health =
                                     Phaser.Math.Clamp(
@@ -479,8 +503,7 @@ let GameScene = new Phaser.Class({
                                 squid.data.values.onDamage();
                             }
                         }
-                        select_squid(null);
-                        clear_selection();
+                        set_current_active_unit(null);
                         recalculate_game_state();
                         break;
                 }
@@ -509,7 +532,7 @@ let GameScene = new Phaser.Class({
             camera = scene.cameras.main.pan(
                 xPixel(x),
                 yPixel(y),
-                d * 2,
+                d,
                 'Quad.EaseInEaseOut',
                 true);
         };
@@ -544,10 +567,8 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
                 rect.setAlpha(0.75);
             });
-            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
-                clear_selection();
-                select_squid(null);
-                squid.data.values.close();
+            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
+                highlight_squid(null);
             });
             let bg = scene.add.circle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
@@ -599,13 +620,13 @@ let GameScene = new Phaser.Class({
             let portrait = scene.add.sprite(
                 0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
                 'tiles',my_tile)
-                .setScale(2)
+                .setScale(4)
                 .setScrollFactor(0)
                 .setDepth(DEPTHS.HUD+2);
             let portrait_eyes = scene.add.sprite(
                 0 + GRID_SIZE/2, SCREEN_HEIGHT-GRID_SIZE/2,
                 'tiles',TILES.OPEN_EYES)
-                .setScale(2)
+                .setScale(4)
                 .setScrollFactor(0)
                 .setDepth(DEPTHS.HUD+3);
             let text_height = GRID_SIZE/2;
@@ -648,19 +669,20 @@ let GameScene = new Phaser.Class({
 
             let objects = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
 
-            let deselect = function() {
+            let unhighlight = function() {
                 for (let object of objects) {
                     object.setVisible(false);
                 }
             };
-            deselect();
+            unhighlight();
 
-            squid.data.values.openFunctions.push(function() {
+            squid.data.values.highlightFunctions.push(function() {
                 for (let object of objects) {
                     object.setVisible(true);
+
                 }
             });
-            squid.data.values.deselectFunctions.push(deselect);
+            squid.data.values.unhighlightFunctions.push(unhighlight);
         }
 
         let add_health_bar = function(label, squid,angle) {
@@ -794,7 +816,7 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
                 rect.setAlpha(0.75);
             });
-            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, click);
+            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, click);
             let bg = scene.add.rectangle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
                 width+2, GRID_SIZE/2+2,
@@ -830,7 +852,6 @@ let GameScene = new Phaser.Class({
             });
         };
 
-        let squids = [];
         for (let start_position of [
             {x: 1, y: 1, color: COLORS.PINK},
             {x: 2, y: 1, color: COLORS.PINK},
@@ -845,8 +866,10 @@ let GameScene = new Phaser.Class({
             let my_tile = COLORS.PINK === start_position.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
             let squid = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',my_tile);
             let squid_eyes = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',TILES.OPEN_EYES);
+            squid.setScale(2);
             squid.setDepth(DEPTHS.SQUAD);
             squid_eyes.setDepth(DEPTHS.SQUAD + 1);
+            squid_eyes.setScale(2);
             squid.setInteractive();
             squid.setData('x',start_position.x);
             squid.setData('eyes', squid_eyes);
@@ -854,19 +877,45 @@ let GameScene = new Phaser.Class({
             squid.setData('color', start_position.color);
             squid.setData('health', 100);
             squid.setData('animate_list', [squid, squid_eyes]);
-            squid.setData('deselectFunctions', [
-                function() {
-                    if(squid.data.values.animation) {
-                        squid.data.values.animation.stop();
-                    }
-                    for (let animated of squid.data.values.animate_list)
-                    {
-                        animated.x = xPixel(squid.data.values.x);
-                        animated.y = yPixel(squid.data.values.y);
-                        animated.scaleY = 1;
-                    }
+            squid.setData('unhighlightFunctions', [ function() {
+                clear_selection();
+                squid.data.values.close();
+            }]);
+            squid.setData('highlightFunctions', [ function() {
+                track_camera(squid.data.values.x,squid.data.values.y);
+                if (current_active_unit === squid)
+                {
+                    squid.data.values.open();
                 }
-            ]);
+            }]);
+            squid.setData('activate', function() {
+                squid.setData("animation",
+                    scene.tweens.add({
+                        targets: squid.data.values.animate_list,
+                        y: yPixel(squid.data.values.y - .25),
+                        scaleY: 1.8,
+                        duration: 250,
+                        ease: "Quad.easeOut",
+                        yoyo: true,
+                        repeat: -1
+                    }));
+                squid.data.values.highlight();
+                squid.setDepth(DEPTHS.SQUAD+2);
+                squid_eyes.setDepth(DEPTHS.SQUAD+3);
+            });
+            squid.setData('inactivate', function() {
+                if(squid.data.values.animation) {
+                    squid.data.values.animation.stop();
+                }
+                for (let animated of squid.data.values.animate_list)
+                {
+                    animated.x = xPixel(squid.data.values.x);
+                    animated.y = yPixel(squid.data.values.y);
+                    animated.scaleY = 2;
+                }
+                squid.setDepth(DEPTHS.SQUAD);
+                squid_eyes.setDepth(DEPTHS.SQUAD+1);
+            });
             squid.setData('openFunctions', []);
             squid.setData('closeFunctions', []);
             squid.setData('moveFunctions', [function(){
@@ -879,7 +928,8 @@ let GameScene = new Phaser.Class({
                     func();
                 }
             };
-            squid.setData('deselect', function() { execute(squid.data.values.deselectFunctions); })
+            squid.setData('highlight', function() { execute(squid.data.values.highlightFunctions); });
+            squid.setData('unhighlight', function() { execute(squid.data.values.unhighlightFunctions); });
             squid.setData('open', function() { execute(squid.data.values.openFunctions); });
             squid.setData('close', function() { execute(squid.data.values.closeFunctions); });
             squid.setData('move', function() { execute(squid.data.values.moveFunctions); });
@@ -930,17 +980,15 @@ let GameScene = new Phaser.Class({
             add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', activateBooyah);
             add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
-            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
+            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
                 function(pointer, localX, localY, event) {
-                    select_squid(squid);
-                    squid.data.values.open();
-                    track_camera(squid.data.values.x,squid.data.values.y);
-                    clear_selection();
+                    highlight_squid(squid);
                 });
 
             //pink_squad.push(squid);
             squids.push(squid);
-        }
+        };
+        Phaser.Actions.Shuffle(squids);
 
         let recalculate_game_state = function() {
             for (let squid of squids) {
@@ -975,6 +1023,23 @@ let GameScene = new Phaser.Class({
             {
                 ui.pink_score.setText(Math.floor(pink_score * 100 / total) + "%");
                 ui.orange_score.setText(Math.floor(orange_score * 100 / total) + "%");
+            }
+            if(!current_active_unit)
+            {
+                console.log('squid: ' + next_squid_index + ' action:'+ next_action_index);
+                let squid = squids[next_squid_index];
+                scene.time.delayedCall(500, function() {
+                    if (!current_active_unit)
+                    {
+                        set_current_active_unit(squid);
+                    }
+                });
+                next_action_index++;
+                if (next_action_index >= g_game_settings.actions_per_turn)
+                {
+                    next_action_index=0;
+                    next_squid_index = (next_squid_index + 1) % squids.length;
+                }
             }
         }
         recalculate_game_state();
@@ -1014,8 +1079,7 @@ let GameScene = new Phaser.Class({
         scene.m_cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         esc_key.on(Phaser.Input.Keyboard.Events.DOWN, function() {
-            clear_selection();
-            select_squid(null);
+            highlight_squid(null);
         });
     },
 
