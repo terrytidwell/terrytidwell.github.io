@@ -1118,7 +1118,7 @@ let GameScene = new Phaser.Class({
             squid.setData('color', color);
             squid.setData('health', 100);
             squid.setData('ink', 100);
-            squid.setData('points',100);
+            squid.setData('points',0);
             squid.setData('isAlive', function() {
                 return squid.data.values.health > 0;
             });
