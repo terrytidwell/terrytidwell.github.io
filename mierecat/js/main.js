@@ -19,6 +19,8 @@ const DEPTHS =
 let COLORS = {
     ORANGE: 0xd5a306,
     PINK: 0xef758a,
+    NEUTRAL: 0xcec7b6,
+    GRID_BORDER: 0x827c6c,
     ORANGE_TEXT: "#d5a306",
     PINK_TEXT: "#ef758a"
 };
@@ -31,15 +33,6 @@ let g_game_settings = {
     booyah_damage: 5,
     actions_per_turn: 2
 };
-
-let Util = {
-    fixCenterText : function(text)
-    {
-        if (text.width % 2 === 1) {
-            text.x = Math.round(text.x) + 0.5;
-        }
-    }
-}
 
 let TitleScene = new Phaser.Class({
 
@@ -77,7 +70,6 @@ let TitleScene = new Phaser.Class({
             { font: GRID_SIZE * 2 + 'px project_paintball', color: COLORS.PINK_TEXT})
             .setOrigin(0.5, 0.5)
             .setStroke('#ffffff', GRID_SIZE/8);
-        Util.fixCenterText(play);
         play.setInteractive();
         play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
 
@@ -88,7 +80,7 @@ let TitleScene = new Phaser.Class({
             play.scaleX = 1;
             play.scaleY = 1;
         });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
             scene.scene.start('UIScene');
             scene.scene.start('GameScene');
             scene.scene.stop('TitleScene');
@@ -185,16 +177,8 @@ let GameScene = new Phaser.Class({
         let next_action_index = 0;
         let current_round = 1;
         let animation_queue = [];
-        let spawn_points = [
-            {x: 1, y: 1, color: COLORS.PINK},
-            {x: 2, y: 1, color: COLORS.PINK},
-            {x: 1, y: 2, color: COLORS.PINK},
-            {x: 2, y: 2, color: COLORS.PINK},
-            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 2, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 2, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 2, y: SCREEN_ROWS - 3, color: COLORS.ORANGE},
-            {x: SCREEN_COLUMNS - 3, y: SCREEN_ROWS - 3, color: COLORS.ORANGE}
-        ];
+        let spawn_portals = [];
+        let spawn_points = [];
 
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
@@ -211,32 +195,20 @@ let GameScene = new Phaser.Class({
         };
 
         let anim_round_start = function() {
-            let texts = []
-            texts.push(
-                scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - GRID_SIZE,
-                    "ROUND " + current_round,
-                    { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
-                    .setOrigin(0.5)
-                    .setStroke("#FFFFFF", GRID_SIZE*2/4)
-                    .setScrollFactor(0)
-                    .setOrigin(0.5)
-                    .setDepth(DEPTHS.HUD)
-                    .setScale(3)
-                    .setAlpha(0));
-            texts.push(
-                scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + GRID_SIZE,
-                    "START",
-                    { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
-                    .setOrigin(0.5)
-                    .setStroke("#FFFFFF", GRID_SIZE*2/4)
-                    .setScrollFactor(0)
-                    .setOrigin(0.5)
-                    .setDepth(DEPTHS.HUD)
-                    .setScale(3)
-                    .setAlpha(0));
+            let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                ["ROUND " + current_round, "START"],
+                { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
+                .setOrigin(0.5)
+                .setStroke("#FFFFFF", GRID_SIZE*2/4)
+                .setScrollFactor(0)
+                .setOrigin(0.5)
+                .setDepth(DEPTHS.HUD)
+                .setScale(3)
+                .setAlpha(0)
+                .setAlign('center');
             let timeline = scene.tweens.createTimeline();
             timeline.add({
-                targets: texts,
+                targets: text,
                 scale: 1,
                 alpha: 1,
                 duration: 500,
@@ -245,7 +217,7 @@ let GameScene = new Phaser.Class({
                 }
             });
             timeline.add({
-                targets: texts,
+                targets: text,
                 scale: 2,
                 alpha: 0,
                 delay: 1000,
@@ -256,15 +228,6 @@ let GameScene = new Phaser.Class({
             });
             timeline.play();
         };
-        animation_queue.push(anim_round_start);
-
-        scene.add.tileSprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
-            SCREEN_HEIGHT + (2 * BG_BORDER * GRID_SIZE),
-            'tiles',
-            TILES.BG_GRID)
-            .setDepth(DEPTHS.BG)
-            .setScale(2);
 
         let create_random_square = function(x,y,grid)
         {
@@ -275,12 +238,47 @@ let GameScene = new Phaser.Class({
                 TILES.PINK_GRID][Phaser.Math.Between(0, 4)];
             let sprite = scene.add.sprite(xPixel(x),yPixel(y),'tiles', value);
 
+            sprite.setData("changeable", true);
             sprite.setData("value", value);
             sprite.setDepth(DEPTHS.GRID);
             sprite.setScale(2);
 
             return sprite;
         };
+
+        let create_spawn_portal = function(x,y,color) {
+            let border = GRID_SIZE/32;
+            let radius = GRID_SIZE - border * 2;
+            let spawn_portal_bg = scene.add.circle(
+                xPixel(x + .5),
+                yPixel(x + .5),
+                GRID_SIZE,
+                COLORS.GRID_BORDER,
+                1
+            ).setDepth(DEPTHS.GRID+1);
+            let spawn_portal = scene.add.circle(
+                xPixel(x + .5),
+                yPixel(x + .5),
+                radius,
+                color,
+                1
+            ).setDepth(DEPTHS.GRID+2);
+            let spawn_portal_fg = scene.add.circle(
+                xPixel(x + .5),
+                yPixel(x + .5),
+                GRID_SIZE/4,
+                COLORS.GRID_BORDER,
+                1
+            ).setDepth(DEPTHS.GRID+3);
+            let my_tile = color === COLORS.PINK ? TILES.PINK_GRID : TILES.ORANGE_GRID;
+            for (let p of [[x,y],[x+1,y],[x,y+1],[x+1,y+1]]) {
+                game_grid[p[0]][p[1]].setTexture('tiles', my_tile);
+                game_grid[p[0]][p[1]].setData('value', my_tile);
+                game_grid[p[0]][p[1]].setData('changeable', false);
+                spawn_points.push({x: p[0], y: p[1], color})
+            }
+            return spawn_portal;
+        }
 
         let create_selector = function(x, y, grid)
         {
@@ -307,7 +305,7 @@ let GameScene = new Phaser.Class({
                 select_sprite.setAlpha(0.6);
                 select_sprite_bg.setAlpha(0.6);
             });
-            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
+            select_sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
                 if (select_sprite.visible) {
                     scene.events.emit('selector_clicked',
                         select_sprite.data.values.x,
@@ -341,28 +339,46 @@ let GameScene = new Phaser.Class({
             return grid;
         };
 
-        game_grid = create_grid(create_random_square);
-        selector_grid = create_grid(create_selector);
-
         let square_is_legal = function(x, y)
         {
             return x >= 0 && x < SCREEN_COLUMNS &&
                 y >= 0 && y < SCREEN_ROWS;
         }
 
-        let square_is_legal_move = function(x, y, my_color)
+        let square_is_squid_free = function(x, y, color)
         {
-            let squid;
-            for (squid of squids)
-            {
+            for (let squid of squids) {
                 if (squid.data.values.isAlive() &&
-                    squid.data.values.color !== my_color &&
-                    squid.data.values.x === x && squid.data.values.y === y)
-                {
+                    squid.data.values.color === color &&
+                    squid.data.values.x === x && squid.data.values.y === y) {
                     return false;
                 }
             }
-            return square_is_legal(x, y)
+            return true;
+        }
+
+        let square_is_legal_move = function(x, y, my_color)
+        {
+            //is an enemy squid here?
+            let enemy_color = my_color === COLORS.PINK ? COLORS.ORANGE : COLORS.PINK;
+            if(!square_is_squid_free(x, y, enemy_color))
+            {
+                return false;
+            }
+            //is the square part of the playing area?
+            if (!square_is_legal(x, y))
+            {
+                return false;
+            }
+            //is the square exclusive to the other team?
+            let exclusive_tile = my_color === COLORS.PINK ?
+                TILES.PINK_GRID : TILES.ORANGE_GRID;
+            if (!game_grid[x][y].data.values.changeable &&
+                game_grid[x][y].data.values.value !== exclusive_tile)
+            {
+                return false;
+            }
+            return true;
         };
 
         let activate_selection = function(map, filter)
@@ -492,7 +508,8 @@ let GameScene = new Phaser.Class({
             }
             current_active_unit = squid;
         }
-        scene.events.on('selector_clicked', function(x,y) {
+
+        let on_selector_clicked = function(x, y) {
             if (current_active_unit)
             {
                 switch (current_active_unit.data.values.selection_action) {
@@ -516,10 +533,8 @@ let GameScene = new Phaser.Class({
                         let line = new Phaser.Geom.Line(0, 0, vector.x, vector.y);
                         let points = Phaser.Geom.Line.BresenhamPoints(line);
 
-                        let tile_target = TILES.PINK_GRID;
-                        if (current_active_unit.data.values.color === COLORS.ORANGE) {
-                            tile_target = TILES.ORANGE_GRID;
-                        }
+                        let tile_target = current_active_unit.data.values.color === COLORS.PINK ?
+                            TILES.PINK_GRID : TILES.ORANGE_GRID;
 
                         let shot_squids = [];
                         for (let point of points)
@@ -529,8 +544,10 @@ let GameScene = new Phaser.Class({
                             if (square_is_legal(px,py))
                             {
                                 let tile = game_grid[px][py];
-                                tile.setTexture('tiles',tile_target);
-                                tile.setData('value',tile_target);
+                                if (tile.data.values.changeable) {
+                                    tile.setTexture('tiles', tile_target);
+                                    tile.setData('value', tile_target);
+                                }
                                 for (let squid of squids)
                                 {
                                     if( squid.data.values.isAlive() &&
@@ -567,7 +584,7 @@ let GameScene = new Phaser.Class({
                         break;
                 }
             }
-        });
+        };
 
         let track_camera = function(x,y,callback=function(){})
         {
@@ -627,7 +644,7 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
                 rect.setAlpha(0.75);
             });
-            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function(){
+            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
                 highlight_squid(null);
             });
             let bg = scene.add.circle(
@@ -709,7 +726,6 @@ let GameScene = new Phaser.Class({
                 .setStroke("#FFFFFF", GRID_SIZE/8)
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height + 4*text_height])
-            Util.fixCenterText(life);
 
             function onDamage(damage) {
                 let new_life = Phaser.Math.Clamp(squid.data.values.health + damage, 0, 100);
@@ -831,8 +847,6 @@ let GameScene = new Phaser.Class({
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height])
 
-            Util.fixCenterText(ink);
-
             let pts = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height,
                 'PTS: 100/100', {font: text_height + 'px project_paintball', color: my_text})
@@ -842,7 +856,6 @@ let GameScene = new Phaser.Class({
                 .setStroke("#FFFFFF", GRID_SIZE/8)
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height]);
-            Util.fixCenterText(pts);
 
             let objects = [];
             let tween_targets = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
@@ -1061,27 +1074,26 @@ let GameScene = new Phaser.Class({
             });
         };
 
-        for (let start_position of spawn_points)
-        {
-            let my_tile = COLORS.PINK === start_position.color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
-            let my_text = COLORS.PINK === start_position.color ? COLORS.PINK_TEXT : COLORS.ORANGE_TEXT;
-            let squid = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',my_tile);
-            let squid_eyes = scene.add.sprite(xPixel(start_position.x),yPixel(start_position.y),'tiles',TILES.OPEN_EYES);
+        let add_squid = function(x,y,color) {
+            let my_tile = COLORS.PINK === color ? TILES.PINK_SQUID : TILES.ORANGE_SQUID;
+            let my_text = COLORS.PINK === color ? COLORS.PINK_TEXT : COLORS.ORANGE_TEXT;
+            let squid = scene.add.sprite(xPixel(x),yPixel(y),'tiles',my_tile);
+            let squid_eyes = scene.add.sprite(xPixel(x),yPixel(y),'tiles',TILES.OPEN_EYES);
             squid.setScale(2);
             squid.setDepth(DEPTHS.SQUAD);
             squid_eyes.setDepth(DEPTHS.SQUAD + 1);
             squid_eyes.setScale(2);
             squid.setInteractive();
-            squid.setData('x',start_position.x);
+            squid.setData('x',x);
             squid.setData('eyes', squid_eyes);
-            squid.setData('y',start_position.y);
-            squid.setData('color', start_position.color);
+            squid.setData('y',y);
+            squid.setData('color', color);
             squid.setData('health', 100);
             squid.setData('isAlive', function() {
                 return squid.data.values.health > 0;
             });
             squid.setData('animate_list', [squid, squid_eyes]);
-            let health_text = scene.add.text(xPixel(start_position.x),yPixel(start_position.y),"+0",
+            let health_text = scene.add.text(xPixel(x),yPixel(y),"+0",
                 {font: GRID_SIZE/4*3 + 'px project_paintball', color: my_text})
                 .setOrigin(0.5)
                 .setStroke("#FFFFFF", GRID_SIZE/8)
@@ -1195,8 +1207,8 @@ let GameScene = new Phaser.Class({
                     squid.data.values.y);
             };
 
-            let angle_fix = COLORS.PINK === start_position.color ? 1 : -1;
-            let angle_start = COLORS.PINK === start_position.color ? 0 : 360+180;
+            let angle_fix = COLORS.PINK === color ? 1 : -1;
+            let angle_start = COLORS.PINK === color ? 0 : 360+180;
 
             add_hud(squid);
             if (squids.length === 0 || squids.length === 4) {
@@ -1225,7 +1237,6 @@ let GameScene = new Phaser.Class({
             //pink_squad.push(squid);
             squids.push(squid);
         };
-        Phaser.Actions.Shuffle(squids);
 
         let anim_respawn = function(squid, x, y) {
             squid.setData('x', x);
@@ -1247,7 +1258,7 @@ let GameScene = new Phaser.Class({
         let find_start_point = function(squid) {
             for(let start_location of spawn_points) {
                 if (start_location.color === squid.data.values.color &&
-                    square_is_legal_move(start_location.x, start_location.y, 0x000000))
+                    square_is_squid_free(start_location.x, start_location.y, squid.data.values.color))
                 {
                     anim_respawn(squid, start_location.x, start_location.y);
                     return;
@@ -1330,15 +1341,38 @@ let GameScene = new Phaser.Class({
                 }
             }
         }
+
+        scene.add.tileSprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
+            SCREEN_HEIGHT + (2 * BG_BORDER * GRID_SIZE),
+            'tiles',
+            TILES.BG_GRID)
+            .setDepth(DEPTHS.BG)
+            .setScale(2);
+        game_grid = create_grid(create_random_square);
+        selector_grid = create_grid(create_selector);
+        create_spawn_portal(1,1,COLORS.PINK);
+        create_spawn_portal(SCREEN_COLUMNS - 3, SCREEN_COLUMNS - 3, COLORS.ORANGE);
+        for (let start_position of spawn_points) {
+            add_squid(start_position.x, start_position.y, start_position.color)
+        }
+
+        //prepare for game start
+        Phaser.Actions.Shuffle(squids);
+        animation_queue.push(anim_round_start);
         recalculate_game_state();
 
         let border = BG_BORDER*GRID_SIZE;
         scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
 
+        //----------------------------------------------------------------------
+        // SETUP GAME INPUT
+        //----------------------------------------------------------------------
+        scene.input.addPointer(5);
+
         let zone = scene.add.zone(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border)
             .setOrigin(0)
             .setInteractive();
-
         zone.on(Phaser.Input.Events.POINTER_MOVE, function (pointer) {
             if (pointer.isDown) {
                 let deltaY = pointer.prevPosition.y - pointer.position.y;
@@ -1355,11 +1389,8 @@ let GameScene = new Phaser.Class({
             scene.cameras.main.scrollX = Math.round(scene.cameras.main.scrollX);
         });
 
-        //----------------------------------------------------------------------
-        // SETUP GAME INPUT
-        //----------------------------------------------------------------------
-        scene.input.addPointer(5);
-
+        //SCENE EVENTS
+        scene.events.on('selector_clicked', on_selector_clicked);
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.m_cursor_keys.letter_left = scene.input.keyboard.addKey("a");
         scene.m_cursor_keys.letter_right = scene.input.keyboard.addKey("d");
