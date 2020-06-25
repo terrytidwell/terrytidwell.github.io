@@ -195,6 +195,10 @@ let GameScene = new Phaser.Class({
         };
 
         let anim_round_start = function() {
+            //if not first round, schedule the actions needed
+            if (current_round !== 1) {
+                round_begin();
+            }
             let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
                 ["ROUND " + current_round, "START"],
                 { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
@@ -1301,6 +1305,7 @@ let GameScene = new Phaser.Class({
                 //do an animation!
                 let animation = animation_queue.pop();
                 animation();
+                return;
             } else if(!current_active_unit)
             {
                 while(!current_active_unit) {
@@ -1334,7 +1339,6 @@ let GameScene = new Phaser.Class({
                         next_squid_index = (next_squid_index + 1) % squids.length;
                         if (next_squid_index === 0) {
                             current_round++;
-                            round_begin();
                             animation_queue.push(anim_round_start);
                         }
                     }
