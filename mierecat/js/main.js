@@ -765,23 +765,8 @@ let GameScene = new Phaser.Class({
                             .setAlpha(1)
                             .setAngle(Phaser.Math.Between(-20,20));
 
-                        scene.tweens.add({
-                            targets: squid.data.values.health_text,
-                            alpha: 0,
-                            duration: full_reaction,
-                            y: yPixel(squid.data.values.y - .5),
-                            onComplete: function() {
-                                squid.data.values.health_text.y =
-                                    yPixel(squid.data.values.y);
-                                squid.setDepth(old_depth);
-                                squid.data.values.eyes.setDepth(old_eye_depth);
-                                squid.setData('health', new_life);
-                                squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
-                            }
-                        });
-
                         squid.data.values.eyes.setTexture('tiles', eye_tile);
-                        scene.tweens.add(animation);
+
                         scene.tweens.add({
                             targets: {counter: squid.data.values.health},
                             props: {counter: new_life},
@@ -793,6 +778,8 @@ let GameScene = new Phaser.Class({
                             },
                             onComplete: function () {
                                 scene.time.delayedCall(remainder_time, function() {
+                                    squid.setData('health', new_life);
+                                    recalculate_game_state();
                                     if (new_life === 0) {
                                         scene.tweens.add({
                                             targets: squid.data.values.eyes,
@@ -806,10 +793,28 @@ let GameScene = new Phaser.Class({
                                             }
                                         })
                                     }
-                                    recalculate_game_state();
                                 });
                             }
-                        })
+                        });
+
+                        scene.tweens.add(animation);
+
+                        scene.tweens.add({
+                            targets: squid.data.values.health_text,
+                            alpha: 0,
+                            duration: full_reaction,
+                            y: yPixel(squid.data.values.y - .5),
+                            onComplete: function() {
+                                squid.data.values.health_text.y =
+                                    yPixel(squid.data.values.y);
+                                squid.setDepth(old_depth);
+                                squid.data.values.eyes.setDepth(old_eye_depth);
+                                squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
+                            }
+                        });
+
+
+
                     });
                 };
                 animation_queue.push(reaction);
