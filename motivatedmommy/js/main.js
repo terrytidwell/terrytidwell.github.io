@@ -62,7 +62,7 @@ let STATE = {
                     COLORS.GUESS,
                     1
                 ).setVisible(false)
-                    .setStrokeStyle(1, COLORS.GUESS, 1)
+                    .setStrokeStyle(GRID_SIZE/32, COLORS.GUESS, 1)
                     .setDepth(DEPTHS.GUESS));
         }
         shapes.push(water);
@@ -498,7 +498,7 @@ let GameScene = new Phaser.Class({
                 SCREEN_ROWS * GRID_SIZE,
                 0xffffff,
                 0
-            ).setStrokeStyle(4, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
+            ).setStrokeStyle(GRID_SIZE/16, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
 
             for (let x = 0; x < SCREEN_COLUMNS; x++) {
                 grid_squares.push([]);
@@ -510,7 +510,7 @@ let GameScene = new Phaser.Class({
                         GRID_SIZE,
                         COLORS.BORDER,
                         0
-                    ).setStrokeStyle(2, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
+                    ).setStrokeStyle(GRID_SIZE/32, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
                     grid_squares[x].push(square);
                     square.setInteractive();
                     square.setData('x', x);
@@ -541,7 +541,7 @@ let GameScene = new Phaser.Class({
 
         let prepare_hint_ships = function() {
             let offset = SCREEN_ROWS+0.5;
-            
+
             let four_shapes = [];
             four_shapes.push(create_shape(0, offset)[STATE.WEST]);
             four_shapes.push(create_shape(1, offset)[STATE.SHIP]);
