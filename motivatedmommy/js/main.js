@@ -1,4 +1,4 @@
-const GRID_SIZE = 32;
+const GRID_SIZE = 64;
 const SCREEN_COLUMNS = 10;
 const SCREEN_ROWS = 10;
 const SCREEN_BORDER = .5;
@@ -159,9 +159,9 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.image('undo', 'assets/undo-black-36dp.svg');
-        this.load.image('clue', 'assets/search-black-36dp.svg');
-        this.load.image('info', 'assets/help-black-36dp.svg');
+        this.load.svg('undo', 'assets/undo-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        this.load.svg('clue', 'assets/search-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        this.load.svg('info', 'assets/help-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
     },
 
     //--------------------------------------------------------------------------
@@ -195,7 +195,7 @@ let GameScene = new Phaser.Class({
         };
 
         let yPixel = function(y) {
-            return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_BORDER * GRID_SIZE;
+            return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_BORDER * GRID_SIZE + GRID_SIZE;
         };
 
         let create_shape = function(x, y) {
@@ -467,7 +467,7 @@ let GameScene = new Phaser.Class({
             for (let x = 0; x < SCREEN_COLUMNS; x++) {
                 let column_clue = scene.add.text(
                     xPixel(x),
-                    yPixel(SCREEN_ROWS),
+                    yPixel(-1),
                     "" + array[x],
                     {fontSize: '' + GRID_SIZE + 'px', fill: '#c0c0c0'})
                     .setOrigin(0.5, 0.5);
@@ -540,46 +540,41 @@ let GameScene = new Phaser.Class({
         };
 
         let prepare_hint_ships = function() {
-            scene.add.text(
-                xPixel(-.5),
-                yPixel(SCREEN_ROWS + 1),
-                "Hidden:",
-                { fontSize: '' + GRID_SIZE/2 + 'px', fill: '#c0c0c0' })
-                .setOrigin(0, 0.5);
-
+            let offset = SCREEN_ROWS+0.5;
+            
             let four_shapes = [];
-            four_shapes.push(create_shape(0, SCREEN_ROWS + 2)[STATE.WEST]);
-            four_shapes.push(create_shape(1, SCREEN_ROWS + 2)[STATE.SHIP]);
-            four_shapes.push(create_shape(2, SCREEN_ROWS + 2)[STATE.SHIP]);
-            four_shapes.push(create_shape(3, SCREEN_ROWS + 2)[STATE.EAST]);
+            four_shapes.push(create_shape(0, offset)[STATE.WEST]);
+            four_shapes.push(create_shape(1, offset)[STATE.SHIP]);
+            four_shapes.push(create_shape(2, offset)[STATE.SHIP]);
+            four_shapes.push(create_shape(3, offset)[STATE.EAST]);
 
             ship_shapes.push(four_shapes);
 
             let three_shapes = [];
-            three_shapes.push(create_shape(0, SCREEN_ROWS + 3)[STATE.WEST]);
-            three_shapes.push(create_shape(1, SCREEN_ROWS + 3)[STATE.SHIP]);
-            three_shapes.push(create_shape(2, SCREEN_ROWS + 3)[STATE.EAST]);
-            three_shapes.push(create_shape(4, SCREEN_ROWS + 3)[STATE.WEST]);
-            three_shapes.push(create_shape(5, SCREEN_ROWS + 3)[STATE.SHIP]);
-            three_shapes.push(create_shape(6, SCREEN_ROWS + 3)[STATE.EAST]);
+            three_shapes.push(create_shape(0, offset + 1)[STATE.WEST]);
+            three_shapes.push(create_shape(1, offset + 1)[STATE.SHIP]);
+            three_shapes.push(create_shape(2, offset + 1)[STATE.EAST]);
+            three_shapes.push(create_shape(4, offset + 1)[STATE.WEST]);
+            three_shapes.push(create_shape(5, offset + 1)[STATE.SHIP]);
+            three_shapes.push(create_shape(6, offset + 1)[STATE.EAST]);
 
             ship_shapes.push(three_shapes);
 
             let two_shapes = [];
-            two_shapes.push(create_shape(0, SCREEN_ROWS + 4)[STATE.WEST]);
-            two_shapes.push(create_shape(1, SCREEN_ROWS + 4)[STATE.EAST]);
-            two_shapes.push(create_shape(3, SCREEN_ROWS + 4)[STATE.WEST]);
-            two_shapes.push(create_shape(4, SCREEN_ROWS + 4)[STATE.EAST]);
-            two_shapes.push(create_shape(6, SCREEN_ROWS + 4)[STATE.WEST]);
-            two_shapes.push(create_shape(7, SCREEN_ROWS + 4)[STATE.EAST]);
+            two_shapes.push(create_shape(0, offset + 2)[STATE.WEST]);
+            two_shapes.push(create_shape(1, offset + 2)[STATE.EAST]);
+            two_shapes.push(create_shape(3, offset + 2)[STATE.WEST]);
+            two_shapes.push(create_shape(4, offset + 2)[STATE.EAST]);
+            two_shapes.push(create_shape(6, offset + 2)[STATE.WEST]);
+            two_shapes.push(create_shape(7, offset + 2)[STATE.EAST]);
 
             ship_shapes.push(two_shapes);
 
             let one_shapes = [];
-            one_shapes.push(create_shape(0, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(2, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(4, SCREEN_ROWS + 5)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(6, SCREEN_ROWS + 5)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(0, offset + 3)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(2, offset + 3)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(4, offset + 3)[STATE.CIRCLE]);
+            one_shapes.push(create_shape(6, offset + 3)[STATE.CIRCLE]);
 
             ship_shapes.push(one_shapes);
 
@@ -667,6 +662,7 @@ let GameScene = new Phaser.Class({
         scene.input.addPointer(5);
 
         let make_button = function(image,func) {
+            console.log(image.width + "x" + image.height);
             image.setAlpha(0.5);
             image.setInteractive();
             image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
@@ -681,13 +677,13 @@ let GameScene = new Phaser.Class({
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         esc_key.on(Phaser.Input.Keyboard.Events.DOWN, undo_square);
         make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+3),'undo'),
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+2),'undo'),
             undo_square);
         make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'clue'),
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+3),'clue'),
             reveal_random_hint);
         make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+5),'info'),
+            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'info'),
             function(){});
     },
 
