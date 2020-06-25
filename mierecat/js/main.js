@@ -548,7 +548,9 @@ let GameScene = new Phaser.Class({
                             if (square_is_legal(px,py))
                             {
                                 let tile = game_grid[px][py];
-                                if (tile.data.values.changeable) {
+                                if (tile.data.values.changeable &&
+                                    tile.data.values.value !== tile_target) {
+                                    current_active_unit.data.values.update_points(1);
                                     tile.setTexture('tiles', tile_target);
                                     tile.setData('value', tile_target);
                                 }
@@ -851,15 +853,24 @@ let GameScene = new Phaser.Class({
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height])
 
+            squid.setData('points',0);
             let pts = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height,
-                'PTS: 100/100', {font: text_height + 'px project_paintball', color: my_text})
+                'PTS:', {font: text_height + 'px project_paintball', color: my_text})
                 .setScrollFactor(0)
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+3)
                 .setStroke("#FFFFFF", GRID_SIZE/8)
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height]);
+            squid.setData('update_points',function(delta){
+                squid.data.values.points += delta;
+                if (squid.data.values.points < 0) {
+                    squid.data.values.points = 0;
+                }
+                pts.setText("PTS: " + squid.data.values.points);
+            });
+            squid.data.values.update_points(0);
 
             let objects = [];
             let tween_targets = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
