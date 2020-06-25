@@ -552,46 +552,53 @@ let GameScene = new Phaser.Class({
         };
 
         let prepare_hint_ships = function() {
-            let offset = SCREEN_ROWS+0.5;
+            let offset = SCREEN_ROWS;
 
-            let four_ships=[[]];
-            four_ships[0].push(create_shape(0, offset)[STATE.WEST]);
-            four_ships[0].push(create_shape(1, offset)[STATE.SHIP]);
-            four_ships[0].push(create_shape(2, offset)[STATE.SHIP]);
-            four_ships[0].push(create_shape(3, offset)[STATE.EAST]);
-            ship_clues.unshift(four_ships);
+            let min_col = 0;
+            let max_col = SCREEN_COLUMNS;
+            let current_row = offset;
+            let current_col = 0;
 
-            let three_ships=[[],[]];
-            three_ships[0].push(create_shape(0, offset + 1)[STATE.WEST]);
-            three_ships[0].push(create_shape(1, offset + 1)[STATE.SHIP]);
-            three_ships[0].push(create_shape(2, offset + 1)[STATE.EAST]);
-            three_ships[1].push(create_shape(4, offset + 1)[STATE.WEST]);
-            three_ships[1].push(create_shape(5, offset + 1)[STATE.SHIP]);
-            three_ships[1].push(create_shape(6, offset + 1)[STATE.EAST]);
-            ship_clues.unshift(three_ships);
-
-            let two_ships = [[],[],[]];
-            two_ships[0].push(create_shape(0, offset + 2)[STATE.WEST]);
-            two_ships[0].push(create_shape(1, offset + 2)[STATE.EAST]);
-            two_ships[1].push(create_shape(3, offset + 2)[STATE.WEST]);
-            two_ships[1].push(create_shape(4, offset + 2)[STATE.EAST]);
-            two_ships[2].push(create_shape(6, offset + 2)[STATE.WEST]);
-            two_ships[2].push(create_shape(7, offset + 2)[STATE.EAST]);
-            ship_clues.unshift(two_ships);
-
-            let one_ships = [[],[],[],[]];
-            one_ships[0].push(create_shape(0, offset + 3)[STATE.CIRCLE]);
-            one_ships[1].push(create_shape(2, offset + 3)[STATE.CIRCLE]);
-            one_ships[2].push(create_shape(4, offset + 3)[STATE.CIRCLE]);
-            one_ships[3].push(create_shape(6, offset + 3)[STATE.CIRCLE]);
-            ship_clues.unshift(one_ships);
-
-            for (let size of ship_clues) {
-                for (let ships of size) {
-                    for (let segment of ships) {
-                        for (let shape of segment) {
+            let hidden_ships = [4,3,2,1];
+            for(let i = hidden_ships.length - 1; i >= 0; i--)
+            {
+                let ship_size = [];
+                ship_clues.unshift(ship_size)
+                let ship_length = i + 1;
+                for(let j = 0; j < hidden_ships[i]; j++)
+                {
+                    let ship = [];
+                    ship_size.unshift(ship);
+                    if(current_col + ship_length - 1 > max_col) {
+                        current_row++;
+                        current_col = 0;
+                    }
+                    for (let k = 0; k < ship_length; k++)
+                    {
+                        let state = STATE.SHIP;
+                        if (k === 0) {
+                            state = STATE.WEST;
+                        }
+                        if (k === ship_length-1)
+                        {
+                            state = STATE.EAST;
+                        }
+                        if (ship_length === 1)
+                        {
+                            state = STATE.CIRCLE;
+                        }
+                        let segment = create_shape(current_col + k, current_row)[state];
+                        for (let shape of segment)
+                        {
                             shape.setVisible(true);
                         }
+                        ship.push(segment);
+                    }
+                    current_col += ship.length + 1;
+                    if (current_col > max_col)
+                    {
+                        current_row++;
+                        current_col = 0;
                     }
                 }
             }
@@ -684,13 +691,11 @@ let GameScene = new Phaser.Class({
             image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
         }
 
-        let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, undo_square);
         make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+2),'undo'),
+            scene.add.image(xPixel(SCREEN_COLUMNS-2),yPixel(SCREEN_ROWS+4),'undo'),
             undo_square);
         make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+3),'clue'),
+            scene.add.image(xPixel(SCREEN_COLUMNS-1),yPixel(SCREEN_ROWS+4),'clue'),
             reveal_random_hint);
         make_button(
             scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'info'),
