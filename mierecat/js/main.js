@@ -1025,7 +1025,7 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
                 rect.setAlpha(0.75);
             });
-            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, click);
+            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, click);
             let bg = scene.add.rectangle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
                 width+GRID_SIZE/16, GRID_SIZE/2+GRID_SIZE/16,
@@ -1212,7 +1212,7 @@ let GameScene = new Phaser.Class({
             add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', activateBooyah);
             add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
-            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
+            squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
                     if (current_active_unit === squid)
                     {
@@ -1366,7 +1366,7 @@ let GameScene = new Phaser.Class({
         scene.m_cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.m_cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         let esc_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        esc_key.on(Phaser.Input.Keyboard.Events.DOWN, function() {
+        esc_key.on(Phaser.Input.Keyboard.Events.UP, function() {
             highlight_squid(null);
         });
     },
