@@ -181,7 +181,7 @@ let GameScene = new Phaser.Class({
         let row_clues = [];
 
         //hidden ship clues
-        let ship_shapes = [];
+        let ship_clues = [];
 
         //do/undo log
         let events = [];
@@ -329,16 +329,16 @@ let GameScene = new Phaser.Class({
                         current_value++;
                     }
                     if(findShip(x,y,4,1) || findShip(x,y,1,4)) {
-                        found_ships[0]++;
+                        found_ships[3]++;
                     }
                     if(findShip(x,y,3,1) || findShip(x,y,1,3)) {
-                        found_ships[1]++;
-                    }
-                    if(findShip(x,y,2,1) || findShip(x,y,1,2)) {
                         found_ships[2]++;
                     }
+                    if(findShip(x,y,2,1) || findShip(x,y,1,2)) {
+                        found_ships[1]++;
+                    }
                     if(findShip(x,y,1,1)) {
-                        found_ships[3]++;
+                        found_ships[0]++;
                     }
                 }
                 let expected_value = column_clues[x].data.values.value;
@@ -375,40 +375,52 @@ let GameScene = new Phaser.Class({
 
             for (let i = 0; i < 4; i++)
             {
-                let expected_ships = i + 1;
-                let ship_length = 4 - i;
+                let expected_ships = ship_clues[i].length;
+                let ship_length = i + 1;
                 let actual_ships = found_ships[i];
+                let debug = {
+                    expected_ships: expected_ships,
+                    ship_length: ship_length,
+                    actual_ships: actual_ships,
+                    found_ships: found_ships
+                }
+                console.log(debug);
                 if (actual_ships < expected_ships)
                 {
                     violation = true;
                     let number_to_fill_in = ship_length * actual_ships;
                     let number_filled = 0;
-                    for (let segment of ship_shapes[i]) {
-                        let color = COLORS.GUESS;
-                        if (number_filled < number_to_fill_in)
-                        {
-                            number_filled++;
-                            color = COLORS.CLUE;
-                        }
-                        for (let subshape of segment) {
-                            subshape.setFillStyle(color, 1);
+                    for (let ship of ship_clues[i]) {
+                        for (let segment of ship) {
+                            let color = COLORS.GUESS;
+                            if (number_filled < number_to_fill_in) {
+                                number_filled++;
+                                color = COLORS.CLUE;
+                            }
+                            for (let shape of segment) {
+                                shape.setFillStyle(color, 1);
+                            }
                         }
                     }
                 }
                 if (actual_ships === expected_ships)
                 {
-                    for (let shape of ship_shapes[i]) {
-                        for (let s of shape) {
-                            s.setFillStyle(COLORS.CLUE, 1);
+                    for (let ship of ship_clues[i]) {
+                        for (let segment of ship) {
+                            for (let shape of segment) {
+                                shape.setFillStyle(COLORS.CLUE, 1);
+                            }
                         }
                     }
                 }
                 if (actual_ships > expected_ships)
                 {
                     violation = true;
-                    for (let shape of ship_shapes[i]) {
-                        for (let s of shape) {
-                            s.setFillStyle(COLORS.VIOLATION, 1);
+                    for (let ship of ship_clues[i]) {
+                        for (let segment of ship) {
+                            for (let shape of segment) {
+                                shape.setFillStyle(COLORS.VIOLATION, 1);
+                            }
                         }
                     }
                 }
@@ -542,46 +554,44 @@ let GameScene = new Phaser.Class({
         let prepare_hint_ships = function() {
             let offset = SCREEN_ROWS+0.5;
 
-            let four_shapes = [];
-            four_shapes.push(create_shape(0, offset)[STATE.WEST]);
-            four_shapes.push(create_shape(1, offset)[STATE.SHIP]);
-            four_shapes.push(create_shape(2, offset)[STATE.SHIP]);
-            four_shapes.push(create_shape(3, offset)[STATE.EAST]);
+            let four_ships=[[]];
+            four_ships[0].push(create_shape(0, offset)[STATE.WEST]);
+            four_ships[0].push(create_shape(1, offset)[STATE.SHIP]);
+            four_ships[0].push(create_shape(2, offset)[STATE.SHIP]);
+            four_ships[0].push(create_shape(3, offset)[STATE.EAST]);
+            ship_clues.unshift(four_ships);
 
-            ship_shapes.push(four_shapes);
+            let three_ships=[[],[]];
+            three_ships[0].push(create_shape(0, offset + 1)[STATE.WEST]);
+            three_ships[0].push(create_shape(1, offset + 1)[STATE.SHIP]);
+            three_ships[0].push(create_shape(2, offset + 1)[STATE.EAST]);
+            three_ships[1].push(create_shape(4, offset + 1)[STATE.WEST]);
+            three_ships[1].push(create_shape(5, offset + 1)[STATE.SHIP]);
+            three_ships[1].push(create_shape(6, offset + 1)[STATE.EAST]);
+            ship_clues.unshift(three_ships);
 
-            let three_shapes = [];
-            three_shapes.push(create_shape(0, offset + 1)[STATE.WEST]);
-            three_shapes.push(create_shape(1, offset + 1)[STATE.SHIP]);
-            three_shapes.push(create_shape(2, offset + 1)[STATE.EAST]);
-            three_shapes.push(create_shape(4, offset + 1)[STATE.WEST]);
-            three_shapes.push(create_shape(5, offset + 1)[STATE.SHIP]);
-            three_shapes.push(create_shape(6, offset + 1)[STATE.EAST]);
+            let two_ships = [[],[],[]];
+            two_ships[0].push(create_shape(0, offset + 2)[STATE.WEST]);
+            two_ships[0].push(create_shape(1, offset + 2)[STATE.EAST]);
+            two_ships[1].push(create_shape(3, offset + 2)[STATE.WEST]);
+            two_ships[1].push(create_shape(4, offset + 2)[STATE.EAST]);
+            two_ships[2].push(create_shape(6, offset + 2)[STATE.WEST]);
+            two_ships[2].push(create_shape(7, offset + 2)[STATE.EAST]);
+            ship_clues.unshift(two_ships);
 
-            ship_shapes.push(three_shapes);
+            let one_ships = [[],[],[],[]];
+            one_ships[0].push(create_shape(0, offset + 3)[STATE.CIRCLE]);
+            one_ships[1].push(create_shape(2, offset + 3)[STATE.CIRCLE]);
+            one_ships[2].push(create_shape(4, offset + 3)[STATE.CIRCLE]);
+            one_ships[3].push(create_shape(6, offset + 3)[STATE.CIRCLE]);
+            ship_clues.unshift(one_ships);
 
-            let two_shapes = [];
-            two_shapes.push(create_shape(0, offset + 2)[STATE.WEST]);
-            two_shapes.push(create_shape(1, offset + 2)[STATE.EAST]);
-            two_shapes.push(create_shape(3, offset + 2)[STATE.WEST]);
-            two_shapes.push(create_shape(4, offset + 2)[STATE.EAST]);
-            two_shapes.push(create_shape(6, offset + 2)[STATE.WEST]);
-            two_shapes.push(create_shape(7, offset + 2)[STATE.EAST]);
-
-            ship_shapes.push(two_shapes);
-
-            let one_shapes = [];
-            one_shapes.push(create_shape(0, offset + 3)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(2, offset + 3)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(4, offset + 3)[STATE.CIRCLE]);
-            one_shapes.push(create_shape(6, offset + 3)[STATE.CIRCLE]);
-
-            ship_shapes.push(one_shapes);
-
-            for (let ships of ship_shapes) {
-                for (let shape of ships) {
-                    for (let s of shape) {
-                        s.setVisible(true);
+            for (let size of ship_clues) {
+                for (let ships of size) {
+                    for (let segment of ships) {
+                        for (let shape of segment) {
+                            shape.setVisible(true);
+                        }
                     }
                 }
             }
