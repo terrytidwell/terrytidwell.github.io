@@ -31,7 +31,8 @@ let g_game_settings = {
     shoot_distance: 6,
     shoot_damage: -85,
     booyah_damage: 5,
-    actions_per_turn: 2
+    actions_per_turn: 2,
+    points_per_square_inked: 4
 };
 
 let TitleScene = new Phaser.Class({
@@ -550,7 +551,7 @@ let GameScene = new Phaser.Class({
                                 let tile = game_grid[px][py];
                                 if (tile.data.values.changeable &&
                                     tile.data.values.value !== tile_target) {
-                                    current_active_unit.data.values.update_points(1);
+                                    current_active_unit.data.values.update_points(g_game_settings.points_per_square_inked);
                                     tile.setTexture('tiles', tile_target);
                                     tile.setData('value', tile_target);
                                 }
@@ -568,7 +569,7 @@ let GameScene = new Phaser.Class({
                         };
                         for (let shot_squid of shot_squids)
                         {
-                            shot_squid.data.values.onDamage( g_game_settings.shoot_damage );
+                            shot_squid.data.values.onDamage(g_game_settings.shoot_damage );
                         }
 
                         set_current_active_unit(null);
@@ -581,7 +582,7 @@ let GameScene = new Phaser.Class({
                                 squid !== current_active_unit &&
                                 squid.data.values.color === current_active_unit.data.values.color)
                             {
-                                squid.data.values.onDamage( g_game_settings.booyah_damage);
+                                squid.data.values.onDamage(g_game_settings.booyah_damage);
                             }
                         }
                         current_active_unit.data.values.onDamage(g_game_settings.booyah_damage);
@@ -856,7 +857,7 @@ let GameScene = new Phaser.Class({
             squid.setData('points',0);
             let pts = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height,
-                'PTS:', {font: text_height + 'px project_paintball', color: my_text})
+                'PTS: 0/100', {font: text_height + 'px project_paintball', color: my_text})
                 .setScrollFactor(0)
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+3)
@@ -864,11 +865,11 @@ let GameScene = new Phaser.Class({
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height]);
             squid.setData('update_points',function(delta){
-                squid.data.values.points += delta;
+                squid.data.values.points = Phaser.Math.Clamp(squid.data.values.points + delta, 0, 100);
                 if (squid.data.values.points < 0) {
                     squid.data.values.points = 0;
                 }
-                pts.setText("PTS: " + squid.data.values.points);
+                pts.setText("PTS: " + squid.data.values.points + "/100");
             });
             squid.data.values.update_points(0);
 
