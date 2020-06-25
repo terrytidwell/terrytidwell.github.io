@@ -28,6 +28,7 @@ let COLORS = {
 let g_game_settings = {
     move: 4,
     swim: 6,
+    shoot_ink: 16,
     shoot_distance: 6,
     shoot_damage: -85,
     booyah_damage: 5,
@@ -530,6 +531,7 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SHOOT:
+                        current_active_unit.data.values.update_ink(-g_game_settings.shoot_ink);
                         let dx = x - current_active_unit.data.values.x;
                         let dy = y - current_active_unit.data.values.y;
                         let vector = new Phaser.Math.Vector2(dx, dy);
@@ -853,8 +855,15 @@ let GameScene = new Phaser.Class({
                 .setStroke("#FFFFFF", GRID_SIZE/8)
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height])
+            squid.setData('update_ink',function(delta){
+                squid.data.values.ink = Phaser.Math.Clamp(squid.data.values.ink + delta, 0, 100);
+                if (squid.data.values.ink < 0) {
+                    squid.data.values.ink = 0;
+                }
+                ink.setText("INK: " + squid.data.values.ink + "/100");
+            });
+            squid.data.values.update_ink(0);
 
-            squid.setData('points',0);
             let pts = scene.add.text(
                 SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height,
                 'PTS: 0/100', {font: text_height + 'px project_paintball', color: my_text})
@@ -1014,7 +1023,7 @@ let GameScene = new Phaser.Class({
             squid.data.values.moveFunctions.push(move);
         };
 
-        let add_menu_item = function(squid,angle,label,click,akimbo=true) {
+        let add_menu_item = function(squid,angle,label,click,allowed=function(){return true;}){
             let x = squid.data.values.x;
             let y = squid.data.values.y;
             angle %= 360;
@@ -1033,9 +1042,7 @@ let GameScene = new Phaser.Class({
 
             text.x = text.x + vector.x;
             text.y = text.y + vector.y;
-            if (akimbo) {
-                text.setAngle(angle + text_correction);
-            }
+            text.setAngle(angle + text_correction);
             text.setDepth(DEPTHS.UI+2);
 
             let rect = scene.add.rectangle(
@@ -1043,9 +1050,7 @@ let GameScene = new Phaser.Class({
                 width, GRID_SIZE/2,
                 squid.data.values.color, 1)
                 .setDepth(DEPTHS.UI+1);
-            if (akimbo) {
-                rect.setAngle(angle);
-            }
+            rect.setAngle(angle);
             rect.setAlpha(0.75);
             rect.setInteractive();
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
@@ -1054,15 +1059,17 @@ let GameScene = new Phaser.Class({
             rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
                 rect.setAlpha(0.75);
             });
-            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, click);
+            rect.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+                if (allowed()) {
+                    click();
+                }
+            });
             let bg = scene.add.rectangle(
                 xPixel(x) + vector.x,yPixel(y) + vector.y,
                 width+GRID_SIZE/16, GRID_SIZE/2+GRID_SIZE/16,
                 0xFFFFFF, 1)
                 .setDepth(DEPTHS.UI);
-            if (akimbo) {
-                bg.setAngle(angle);
-            }
+            bg.setAngle(angle);
 
             let objects = [text, bg, rect];
 
@@ -1087,6 +1094,11 @@ let GameScene = new Phaser.Class({
                 for (let object of objects) {
                     object.setVisible(true);
                 }
+                if (allowed()) {
+                    rect.setFillStyle(squid.data.values.color, 1);
+                } else {
+                    rect.setFillStyle(COLORS.NEUTRAL, 1);
+                }
             });
         };
 
@@ -1105,6 +1117,8 @@ let GameScene = new Phaser.Class({
             squid.setData('y',y);
             squid.setData('color', color);
             squid.setData('health', 100);
+            squid.setData('ink', 100);
+            squid.setData('points',100);
             squid.setData('isAlive', function() {
                 return squid.data.values.health > 0;
             });
@@ -1236,7 +1250,8 @@ let GameScene = new Phaser.Class({
             }
 
             add_menu_item(squid, angle_start + 360 / 7 * 3 * angle_fix, 'Move', activateMove);
-            add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot);
+            add_menu_item(squid, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', activateShot,
+                function(){return squid.data.values.ink > g_game_settings.shoot_ink;});
             add_menu_item(squid, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', activateBooyah);
             add_menu_close(squid, angle_start + 360 / 7 * 6 * angle_fix);
 
@@ -1260,6 +1275,7 @@ let GameScene = new Phaser.Class({
             squid.x = xPixel(x);
             squid.y = yPixel(y);
             squid.setData('health', 1);
+            squid.data.values.update_ink(100);
             squid.data.values.move();
             animation_queue.push(function() {
                 highlight_squid(squid, function() {
