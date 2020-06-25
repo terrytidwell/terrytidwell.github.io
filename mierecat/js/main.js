@@ -446,7 +446,7 @@ let GameScene = new Phaser.Class({
             return reach_map;
         };
 
-        let highlight_squid = function(squid) {
+        let highlight_squid = function(squid,callback=function(){}) {
             if (current_highlight === squid)
             {
                 return;
@@ -457,7 +457,7 @@ let GameScene = new Phaser.Class({
             }
             if (squid)
             {
-                squid.data.values.highlight();
+                squid.data.values.highlight(callback);
             }
             current_highlight = squid;
         }
@@ -521,11 +521,7 @@ let GameScene = new Phaser.Class({
                                         squid.data.values.x === px &&
                                         squid.data.values.y === py)
                                     {
-                                        squid.data.values.health =
-                                            Phaser.Math.Clamp(
-                                                squid.data.values.health + g_game_settings.shoot_damage,
-                                                0, 100);
-                                        squid.data.values.onDamage();
+                                        squid.data.values.onDamage(g_game_settings.shoot_damage);
                                     }
                                 }
                             }
@@ -535,21 +531,13 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.BOOYAH:
-                        current_active_unit.data.values.health =
-                            Phaser.Math.Clamp(
-                                current_active_unit.data.values.health + g_game_settings.booyah_damage,
-                                0, 100);
-                        current_active_unit.data.values.onDamage();
+                        current_active_unit.data.values.onDamage(g_game_settings.booyah_damage);
                         for (let squid of squids)
                         {
                             if(squid !== current_active_unit &&
                                 squid.data.values.color === current_active_unit.data.values.color)
                             {
-                                squid.data.values.health =
-                                    Phaser.Math.Clamp(
-                                        squid.data.values.health + g_game_settings.booyah_damage,
-                                        0, 100);
-                                squid.data.values.onDamage();
+                                squid.data.values.onDamage( g_game_settings.booyah_damage);
                             }
                         }
                         set_current_active_unit(null);
@@ -559,7 +547,7 @@ let GameScene = new Phaser.Class({
             }
         });
 
-        let track_camera = function(x,y)
+        let track_camera = function(x,y,callback=function(){})
         {
             //ok... so this code
             //the first camera pan simple is used to calculate the actual move to be made
@@ -583,7 +571,8 @@ let GameScene = new Phaser.Class({
                 yPixel(y),
                 d,
                 'Quad.EaseInEaseOut',
-                true);
+                true,
+                callback);
         };
 
         let add_menu_close = function(squid,angle)
@@ -699,13 +688,89 @@ let GameScene = new Phaser.Class({
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height + 4*text_height])
             Util.fixCenterText(life);
-            function onDamage() {
-                life.setText("HP: " + squid.data.values.health + "/100");
-                Util.fixCenterText(life);
-                squid.data.values.eyes.setTexture('tiles',TILES.X_EYES);
-                scene.time.delayedCall(1000, function() {
-                    squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
-                });
+
+            function onDamage(damage) {
+                let new_life = Phaser.Math.Clamp(squid.data.values.health + damage, 0, 100);
+                let actual_change = new_life - squid.data.values.health;
+                let full_reaction = 1000;
+                let actual_change_time = Math.round((actual_change/damage)*full_reaction);
+                let remainder_time = full_reaction - actual_change_time;
+                console.log("remainder_time:" + remainder_time);
+                console.log("actual_change_time:" + actual_change_time);
+
+                let reaction = function() {
+                    highlight_squid(squid, function() {
+                        scene.cameras.main.shake(250, 0.015, true);
+                        squid.data.values.eyes.setTexture('tiles', TILES.X_EYES);
+                        scene.tweens.add({
+                            targets: squid.data.values.animate_list,
+                            scale: 1.75,
+                            yoyo: true,
+                            duration: 250,
+                            repeat: 1
+                        });
+                        scene.tweens.add({
+                            targets: {counter: squid.data.values.health},
+                            props: {counter: new_life},
+                            //delay: 1000,
+                            duration: actual_change_time,
+                            onUpdate: function (tween) {
+                                let value = Math.floor(tween.getValue());
+                                life.setText("HP: " + value + "/100");
+                            },
+                            onComplete: function () {
+                                scene.time.delayedCall(remainder_time, function() {
+                                    squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
+                                    squid.setData('health', new_life);
+                                    recalculate_game_state();
+                                });
+                            }
+                        })
+                    });
+                }
+                if(damage > 0)
+                {
+                    reaction = function() {
+                        highlight_squid(squid, function() {
+                            let old_depth = squid.depth;
+                            let old_eye_depth = squid.data.values.eyes.depth;
+                            squid.setDepth(DEPTHS.SQUAD+3);
+                            squid.data.values.eyes.setDepth(DEPTHS.SQUAD+4);
+                            squid.data.values.eyes.setTexture('tiles', TILES.CLOSED_EYES);
+                            scene.tweens.add({
+                                targets: squid.data.values.animate_list,
+                                y: yPixel(squid.data.values.y - .25),
+                                scaleY: 1.8,
+                                duration: 250,
+                                ease: "Quad.easeOut",
+                                yoyo: true,
+                                repeat: 1,
+                                onComplete: function() {
+                                    squid.setDepth(old_depth);
+                                    squid.data.values.eyes.setDepth(old_eye_depth);
+                                    squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
+                                }
+                            });
+                            scene.tweens.add({
+                                targets: {counter: squid.data.values.health},
+                                props: {counter: new_life},
+                                //delay: 1000,
+                                duration: actual_change_time,
+                                onUpdate: function (tween) {
+                                    let value = Math.floor(tween.getValue());
+                                    life.setText("HP: " + value + "/100");
+                                },
+                                onComplete: function () {
+                                    scene.time.delayedCall(remainder_time, function() {
+                                        squid.setData('health', new_life);
+                                        recalculate_game_state();
+                                    });
+                                }
+                            })
+                        });
+                    }
+                }
+                animation_queue.push(reaction);
             }
             squid.setData('onDamage', onDamage);
 
@@ -760,7 +825,7 @@ let GameScene = new Phaser.Class({
                 object.setVisible(false);
             }
 
-            squid.data.values.highlightFunctions.push(function() {
+            squid.data.values.highlightFunctions.push(function(callback=function(){}) {
                 for (let object of objects) {
                     object.setVisible(true);
                 }
@@ -774,7 +839,8 @@ let GameScene = new Phaser.Class({
                         y: target.data.values.visible[1],
                         alpha: 1,
                         duration: 125,
-                        ease: 'Linear'
+                        ease: 'Linear',
+                        onComplete: callback
                     })
                 }
             });
@@ -977,8 +1043,8 @@ let GameScene = new Phaser.Class({
                 clear_selection();
                 squid.data.values.close();
             }]);
-            squid.setData('highlightFunctions', [ function() {
-                track_camera(squid.data.values.x,squid.data.values.y);
+            squid.setData('highlightFunctions', [ function(callback=function(){}) {
+                track_camera(squid.data.values.x,squid.data.values.y,callback);
                 if (current_active_unit === squid)
                 {
                     squid.data.values.open();
@@ -1025,7 +1091,25 @@ let GameScene = new Phaser.Class({
                     func();
                 }
             };
-            squid.setData('highlight', function() { execute(squid.data.values.highlightFunctions); });
+            let executeWithCallback = function(func_array,callback=function(){}) {
+                let full_count = func_array.length;
+                let current_count = 0;
+                let counterCallback = function() {
+                    current_count++;
+                    if(current_count === full_count)
+                    {
+                        callback();
+                    }
+                };
+
+                for (let func of func_array)
+                {
+                    func(counterCallback);
+                }
+            };
+
+            squid.setData('highlight', function(callback=function(){}) {
+                executeWithCallback(squid.data.values.highlightFunctions, callback); });
             squid.setData('unhighlight', function() { execute(squid.data.values.unhighlightFunctions); });
             squid.setData('open', function() { execute(squid.data.values.openFunctions); });
             squid.setData('close', function() { execute(squid.data.values.closeFunctions); });
