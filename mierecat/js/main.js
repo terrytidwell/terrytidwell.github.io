@@ -882,15 +882,18 @@ let GameScene = new Phaser.Class({
             });
             squid.data.values.update_points(0);
 
-            let objects = [];
             let tween_targets = [bubble, bubble_outline, portrait, portrait_eyes, life, ink, pts];
+            for (let target of tween_targets) {
+                target.setVisible(false);
+                target.setData('current_tween',null);
+            }
 
             let unhighlight = function() {
-                for (let object of objects) {
-                    object.setVisible(false);
-                }
                 for (let target of tween_targets){
-                    scene.tweens.add({
+                    if (target.data.values.current_tween) {
+                        target.data.values.current_tween.stop()
+                    }
+                    let tween = scene.tweens.add({
                         targets: target,
                         x: target.data.values.invisible[0],
                         y: target.data.values.invisible[1],
@@ -898,26 +901,32 @@ let GameScene = new Phaser.Class({
                         duration: 125,
                         ease: 'Linear',
                         onComplete: function() {
+                            target.setData('current_tween',null);
                             target.setVisible(false);
                         }
                     });
+                    target.setData('current_tween', tween);
                 }
             };
-            for (let object of objects) {
-                object.setVisible(false);
-            }
-            for (let object of tween_targets) {
-                object.setVisible(false);
-            }
+            squid.data.values.unhighlightFunctions.push(unhighlight);
 
             squid.data.values.highlightFunctions.push(function(callback=function(){}) {
-                for (let object of objects) {
-                    object.setVisible(true);
-                }
+                let current_callbacks = 0;
+                let expected_callbacks = tween_targets.length;
+                let chain_callback = function() {
+                    current_callbacks++;
+                    if (current_callbacks === expected_callbacks) {
+                        callback();
+                    }
+                };
                 let delay = current_highlight === null ? 0 : 125;
+
                 for (let target of tween_targets) {
+                    if (target.data.values.current_tween) {
+                        target.data.values.current_tween.stop()
+                    }
                     target.setVisible(true);
-                    scene.tweens.add({
+                    let tween = scene.tweens.add({
                         delay: delay,
                         targets: target,
                         x: target.data.values.visible[0],
@@ -925,11 +934,14 @@ let GameScene = new Phaser.Class({
                         alpha: 1,
                         duration: 125,
                         ease: 'Linear',
-                        onComplete: callback
-                    })
+                        onComplete: function() {
+                            target.setData('current_tween',null);
+                            chain_callback();
+                        }
+                    });
+                    target.setData('current_tween', tween);
                 }
             });
-            squid.data.values.unhighlightFunctions.push(unhighlight);
         }
 
         let add_health_bar = function(label, squid,angle) {
@@ -1343,7 +1355,6 @@ let GameScene = new Phaser.Class({
                         animation();
                         return;
                     }
-                    console.log('squid: ' + next_squid_index + ' action:' + next_action_index);
                     let squid = squids[next_squid_index];
 
                     if (squid.data.values.isAlive()) {
