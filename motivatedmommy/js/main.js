@@ -139,13 +139,13 @@ let STATE = {
 
 let COLORS = {
     BORDER: 0x000000,
-    BORDER_TEXT: "#000000",
+    BORDER_TEXT: '#000000',
     CLUE: 0x000000,
-    CLUE_TEXT: "#000000",
+    CLUE_TEXT: '#000000',
     GUESS: 0xC0C0C0,
-    GUESS_TEXT: "#C0C0C0",
+    GUESS_TEXT: '#C0C0C0',
     VIOLATION: 0x800000,
-    VIOLATION_TEXT: "#800000"
+    VIOLATION_TEXT: '#800000'
 };
 
 let GameScene = new Phaser.Class({
@@ -154,14 +154,11 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'GameScene', active: true});
+        Phaser.Scene.call(this, {key: 'GameScene', active: false});
     },
 
     //--------------------------------------------------------------------------
     preload: function () {
-        this.load.svg('undo', 'assets/undo-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
-        this.load.svg('clue', 'assets/search-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
-        this.load.svg('info', 'assets/help-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
     },
 
     //--------------------------------------------------------------------------
@@ -481,7 +478,7 @@ let GameScene = new Phaser.Class({
                     xPixel(x),
                     yPixel(-1),
                     "" + array[x],
-                    {fontSize: '' + GRID_SIZE + 'px', fill: '#c0c0c0'})
+                    {fontSize: '' + GRID_SIZE + 'px', fill: COLORS.GUESS_TEXT})
                     .setOrigin(0.5, 0.5);
                 column_clue.setData('value', array[x]);
                 column_clues.push(column_clue);
@@ -495,7 +492,7 @@ let GameScene = new Phaser.Class({
                     xPixel(SCREEN_COLUMNS),
                     yPixel(y),
                     "" + array[y],
-                    { fontSize: '' + GRID_SIZE + 'px', fill: '#c0c0c0' })
+                    { fontSize: '' + GRID_SIZE + 'px', fill: COLORS.GUESS_TEXT })
                     .setOrigin(0.5, 0.5);
                 row_clue.setData('value', array[y]);
                 row_clues.push(row_clue);
@@ -654,7 +651,7 @@ let GameScene = new Phaser.Class({
                 candidate_squares[Phaser.Math.Between(0, candidate_squares.length-1)];
             reveal_hint(reveal.data.values.x, reveal.data.values.y);
             checkConstraints();
-        }
+        };
 
         //----------------------------------------------------------------------
         // CODE TO SETUP GAME
@@ -678,32 +675,257 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
 
-        let make_button = function(image,func) {
-            console.log(image.width + "x" + image.height);
-            image.setAlpha(0.5);
-            image.setInteractive();
-            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
-                image.setAlpha(1);
-            });
-            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
-                image.setAlpha(0.5);
-            });
-            image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
-        }
-
-        make_button(
+        Util.make_button(
             scene.add.image(xPixel(SCREEN_COLUMNS-2),yPixel(SCREEN_ROWS+4),'undo'),
             undo_square);
-        make_button(
+        Util.make_button(
             scene.add.image(xPixel(SCREEN_COLUMNS-1),yPixel(SCREEN_ROWS+4),'clue'),
             reveal_random_hint);
-        make_button(
+        Util.make_button(
             scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'info'),
-            function(){});
+            HelpApi.fade_in);
     },
 
     update: function () {
     }
+});
+
+//Util functions
+let Util = {
+    make_button : function(image,func) {
+        console.log(image.width + "x" + image.height);
+        image.setAlpha(0.5);
+        image.setInteractive();
+        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
+            image.setAlpha(1);
+        });
+        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
+            image.setAlpha(0.5);
+        });
+        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
+    }
+};
+
+//external help api
+//filled in during HelpScene.create();
+let HelpApi = {
+    fade_in : function() {}
+};
+
+let HelpScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'HelpScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+
+        let panel_width = SCREEN_WIDTH-GRID_SIZE*2;
+        let panel_height = SCREEN_HEIGHT-GRID_SIZE;
+        let panels = [];
+        let current_panel_index = 0;
+
+        HelpApi.fade_in = function() {
+            bg.setVisible(true);
+            for(let component of current_panel) {
+                component.setVisible(true);
+            }
+            /*
+            scene.tweens.add({
+                targets: current_panel,
+                duration: 125
+            });
+             */
+            bg.setAlpha(0);
+            scene.tweens.add({
+                targets: bg,
+                alpha: 0.5,
+                duration: 125
+            });
+        };
+
+        let fade_out = function(){
+            for(let component of current_panel) {
+                component.setVisible(false);
+            }
+            bg.setAlpha(0);
+            scene.tweens.add({
+                targets: bg,
+                alpha: 0,
+                duration: 125,
+                onComplete: function() {
+                    bg.setVisible(false);
+                }
+            });
+        }
+
+        let add_next = function(panel) {
+            let next_func = function() {
+                for(let component of current_panel) {
+                    component.setVisible(false);
+                }
+                current_panel_index++;
+                current_panel = panels[current_panel_index];
+                for(let component of current_panel) {
+                    component.setVisible(true);
+                }
+            };
+            let next = scene.add.image(
+                SCREEN_WIDTH/2+panel_width/2-GRID_SIZE/2,
+                SCREEN_HEIGHT/2, 'next');
+            Util.make_button(next, next_func);
+            next.setVisible(false);
+            panel.push(next);
+        };
+
+        let add_prev = function(panel) {
+            let prev_func = function() {
+                for(let component of current_panel) {
+                    component.setVisible(false);
+                }
+                current_panel_index--;
+                current_panel = panels[current_panel_index];
+                for(let component of current_panel) {
+                    component.setVisible(true);
+                }
+            };
+            let next = scene.add.image(
+                SCREEN_WIDTH/2-panel_width/2+GRID_SIZE/2,
+                SCREEN_HEIGHT/2, 'next').setFlipX(true);
+            Util.make_button(next, prev_func);
+            panel.push(next);
+        };
+
+        let create_panel = function(panel_create_func) {
+            let panel = [];
+            let panel_bg = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                panel_width, panel_height, 0xffffff, 1)
+                .setStrokeStyle(GRID_SIZE/16, COLORS.GRID_BORDER);
+            panel_bg.setInteractive();
+            panel.push(panel_bg);
+            let cancel = scene.add.image(
+                SCREEN_WIDTH/2+panel_width/2-GRID_SIZE/2,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE/2, 'cancel');
+            Util.make_button(cancel, fade_out);
+            panel.push(cancel);
+
+            if(panels.length !== 0)
+            {
+                add_prev(panel);
+                add_next(panels[panels.length - 1]);
+            }
+
+            panel_create_func(panel);
+
+            for(let component of panel) {
+                component.setVisible(false);
+            }
+
+            panels.push(panel);
+        };
+
+        let bg = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5)
+            .setVisible(false);
+        bg.setInteractive();
+        bg.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, fade_out);
+
+        create_panel(function (panel) {
+            let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
+                "There is a wisdom that is woe; but there is a woe that is madness." +
+                " And there is a Catskill eagle in some souls that can alike dive " +
+                "down into the blackest gorges, and soar out of them again and " +
+                "become invisible in the sunny spaces.",
+                {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
+                    align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
+            text.setOrigin(0,0);
+            panel.push(text);
+        });
+
+        create_panel(function (panel) {
+            let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
+                "And even if he for ever flies within the gorge, that gorge is " +
+                "in the mountains; so that even in his lowest swoop the mountain " +
+                "eagle is still higher than other birds upon the plain, even though they soar.",
+                {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
+                    align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
+            text.setOrigin(0,0);
+            panel.push(text);
+        });
+
+        create_panel(function (panel) {
+            let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
+                "Chapter 97: The Lamp",
+                {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
+                    align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
+            text.setOrigin(0,0);
+            panel.push(text);
+            text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+2* GRID_SIZE,
+                "Had you descended from the Pequod’s try-works to the Pequod’s forecastle," +
+                " where the off duty watch were sleeping, for one single moment you would" +
+                " have almost thought you were standing in some illuminated shrine of " +
+                "canonized kings and counsellors. There they lay in their triangular oaken" +
+                " vaults, each mariner a chiselled muteness; a score of lamps flashing upon" +
+                " his hooded eyes.",
+                {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
+                    align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
+            text.setOrigin(0,0);
+            panel.push(text);
+        });
+
+        let current_panel = panels[current_panel_index];
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
+let LoadScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'LoadScene', active: true});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+        let scene = this;
+        scene.load.on('complete', function() {
+            scene.scene.start('HelpScene');
+            scene.scene.start('GameScene');
+            scene.scene.bringToTop('HelpScene');
+            scene.scene.stop('LoadScene');
+        });
+        scene.load.svg('undo', 'assets/undo-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('clue', 'assets/search-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('info', 'assets/help-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('next', 'assets/navigate_next-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('cancel', 'assets/cancel-black-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
 });
 
 let config = {
@@ -726,7 +948,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ GameScene ]
+    scene: [ LoadScene, HelpScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
