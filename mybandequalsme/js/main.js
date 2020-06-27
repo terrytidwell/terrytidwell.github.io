@@ -3,7 +3,7 @@ const SCREEN_HEIGHT = 512;
 let GAME_CONSTANTS = {
     damage_on_attack: 20,
     cpu_speed: { default: 500, minimum: 300, maximum: 1000, step: 25 },
-    avatars: {default:'ryu', options:['ryu','cammy']}
+    avatars: {default:0, options:['ryu','cammy']}
 };
 
 let global_game_state = {
@@ -133,25 +133,85 @@ let TitleScene = new Phaser.Class({
             repeat: 0,
         });
 
-        let play = scene.add.text(
+        let make_button = function(object, func) {
+            object.setInteractive();
+            object.alpha = 0.5;
+            object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
+                object.alpha = 1;
+            });
+            object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
+                object.alpha = 0.5;
+            });
+            object.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
+        }
+
+
+        let TEXT_SIZE = 32;
+
+            let play = scene.add.text(
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2,
-            "click to continue...",
-            { font: 32 + 'px Arial', color: '#ffffff'})
+            "Fight!",
+            { font: TEXT_SIZE + 'px', color: '#ffffff'})
             .setOrigin(0.5, 0.5);
-        play.setInteractive();
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
-            play.scaleX = 1.2;
-            play.scaleY = 1.2;
-        });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
-            play.scaleX = 1;
-            play.scaleY = 1;
-        });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+        make_button(play, function(){
             scene.scene.start('GameScene');
             scene.scene.stop('TitleScene');
+        })
+
+
+        let player_type = ['player', 'cpu'];
+        let player_index = [global_game_state.cpu[0] ? 1 : 0, global_game_state.cpu[1] ? 1 : 0];
+        let max_width = scene.add.text(
+            0,0, 'player',
+            { fontSize: ''+TEXT_SIZE+'px', fill: '#FFF' }).setVisible(false).width;
+        let make_selector = function(x,y,index, selection, selection_function) {
+            let text = scene.add.text(x,
+                y,
+                selection[index], { fontSize: ''+TEXT_SIZE+'px', fill: '#FFF' })
+                .setOrigin(0.5 , 0.5);
+            let make_func = function(delta) {
+                return function() {
+                    index += delta;
+                    if (index < 0) {
+                        index = selection.length - 1;
+                    }
+                    if (index >= selection.length) {
+                        index = 0
+                    }
+                    text.setText(selection[index])
+                    selection_function(index);
+                };
+            }
+            let prev = scene.add.text(x - max_width/2 - TEXT_SIZE,
+                y,
+                "<<", { fontSize: ''+TEXT_SIZE+'px', fill: '#FFF' }).setOrigin(0.5,0.5);
+            make_button(prev, make_func(-1));
+            let next = scene.add.text(x + max_width/2 + TEXT_SIZE,
+                y,
+                ">>", { fontSize: ''+TEXT_SIZE+'px', fill: '#FFF' }).setOrigin(0.5,0.5);
+            make_button(next, make_func(-1));
+        }
+        make_selector(
+            SCREEN_WIDTH/4,SCREEN_HEIGHT * 3/4,
+            global_game_state.avatars[0], GAME_CONSTANTS.avatars.options,function(choice){
+            global_game_state.avatars[0] = choice;
         });
+        make_selector(
+            SCREEN_WIDTH * 3/4,SCREEN_HEIGHT * 3/4,
+            global_game_state.avatars[1], GAME_CONSTANTS.avatars.options,function(choice){
+            global_game_state.avatars[1] = choice;
+        });
+        make_selector(
+            SCREEN_WIDTH/4, SCREEN_HEIGHT * 3/4 + TEXT_SIZE,
+            player_index[0], player_type,function(choice){
+                global_game_state.cpu[0] = choice === 1;
+            });
+        make_selector(
+            SCREEN_WIDTH * 3/4, SCREEN_HEIGHT * 3/4 + TEXT_SIZE,
+            player_index[1], player_type,function(choice){
+                global_game_state.cpu[1] = choice === 1;
+            });
     },
 
     //--------------------------------------------------------------------------
@@ -320,7 +380,7 @@ let GameScene = new Phaser.Class({
         let life = [];
 
         for (let i = 0; i < 2; i++) {
-            let name = global_game_state.avatars[i];
+            let name = GAME_CONSTANTS.avatars.options[global_game_state.avatars[i]];
             let flipX = [false, true][i];
             let xOffset = [-1, 1][i];
             let xOrigin = [1, 0][i];
