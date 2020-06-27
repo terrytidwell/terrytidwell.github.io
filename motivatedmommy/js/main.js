@@ -134,6 +134,20 @@ let STATE = {
         make_cardinal(90,270,1, 0);
 
         return shapes;
+    },
+    setColor : function(shape, color) {
+        for (let part of shape) {
+            part.setStrokeStyle(GRID_SIZE/32, color, 1);
+            if (part.setFillStyle)
+            {
+                part.setFillStyle(color, 1)
+            }
+        }
+    },
+    setVisible : function(shape, visible) {
+        for (let part of shape) {
+            part.setVisible(visible);
+        }
     }
 };
 
@@ -257,15 +271,11 @@ let GameScene = new Phaser.Class({
             }
 
             let state = get_proper_ship_state(x, y, is_ship);
-            let shapes = square.data.values.shapes[square.data.values.state];
-            for (shape of shapes) {
-                shape.setVisible(false);
-            }
+            let shape = square.data.values.shapes[square.data.values.state];
+            STATE.setVisible(shape, false);
             square.setData('state', state);
-            shapes = square.data.values.shapes[state];
-            for (shape of shapes) {
-                shape.setVisible(true);
-            }
+            shape = square.data.values.shapes[state];
+            STATE.setVisible(shape, true);
         };
 
         let addHint = function(x, y, state)
@@ -273,21 +283,13 @@ let GameScene = new Phaser.Class({
             let square = grid_squares[x][y];
             square.setData('locked', true);
             square.setData('state', state);
-            for (shape_array of square.data.values.shapes) {
-                for (let shape of shape_array) {
-                    shape.setVisible(false);
-            }};
-            let shapes = square.data.values.shapes[square.data.values.state];
-
-            for (let shape of shapes) {
-                shape.setVisible(true);
-                shape.setStrokeStyle(1, COLORS.CLUE, 1);
-                if (shape.setFillStyle)
-                {
-                    shape.setFillStyle(COLORS.CLUE, 1)
-                }
-            }
-        }
+            for (let shape of square.data.values.shapes) {
+                STATE.setVisible(shape, false);
+            };
+            let shape = square.data.values.shapes[square.data.values.state];
+            STATE.setColor(shape, COLORS.CLUE_TEXT);
+            STATE.setVisible(shape, true);
+        };
 
         let findShip = function(x, y, width, height) {
             for (let i = x - 1; i <= x + width; i++)
@@ -375,13 +377,6 @@ let GameScene = new Phaser.Class({
                 let expected_ships = ship_clues[i].length;
                 let ship_length = i + 1;
                 let actual_ships = found_ships[i];
-                let debug = {
-                    expected_ships: expected_ships,
-                    ship_length: ship_length,
-                    actual_ships: actual_ships,
-                    found_ships: found_ships
-                }
-                console.log(debug);
                 if (actual_ships < expected_ships)
                 {
                     violation = true;
@@ -440,20 +435,16 @@ let GameScene = new Phaser.Class({
             }
             let x = square.data.values.x;
             let y = square.data.values.y;
-            let shapes = square.data.values.shapes[square.data.values.state]
-            for (let shape of shapes) {
-                shape.setVisible(false);
-            }
+            let shape = square.data.values.shapes[square.data.values.state]
+            STATE.setVisible(shape, false)
             square.setData('state', func(square.data.values.state));
             fix_square(x, y);
             fix_square(x-1, y);
             fix_square(x+1, y);
             fix_square(x, y-1);
             fix_square(x, y+1);
-            shapes = square.data.values.shapes[square.data.values.state];
-            for (shape of shapes) {
-                shape.setVisible(true);
-            }
+            shape = square.data.values.shapes[square.data.values.state];
+            STATE.setVisible(shape, true)
             checkConstraints();
         };
 
@@ -505,7 +496,7 @@ let GameScene = new Phaser.Class({
                 yPixel(SCREEN_ROWS / 2 - 0.5),
                 SCREEN_COLUMNS * GRID_SIZE,
                 SCREEN_ROWS * GRID_SIZE,
-                0xffffff,
+                COLORS.BORDER,
                 0
             ).setStrokeStyle(GRID_SIZE/16, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
 
@@ -693,7 +684,6 @@ let GameScene = new Phaser.Class({
 //Util functions
 let Util = {
     make_button : function(image,func) {
-        console.log(image.width + "x" + image.height);
         image.setAlpha(0.5);
         image.setInteractive();
         image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
@@ -839,51 +829,211 @@ let HelpScene = new Phaser.Class({
         bg.setInteractive();
         bg.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, fade_out);
 
+        let sample_board_rows = 7;
+        let sample_board_cols = 7;
+        let sample_board_center_y = SCREEN_HEIGHT/2 + GRID_SIZE/2;
+        let sample_board_center_x = SCREEN_WIDTH/2 - GRID_SIZE/2;
+        let sample_board = [
+            STATE.WATER, STATE.NORTH, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER,
+            STATE.WATER, STATE.SHIP , STATE.WATER, STATE.WEST , STATE.SHIP , STATE.SHIP , STATE.EAST ,
+            STATE.WATER, STATE.SOUTH, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER,
+            STATE.WATER, STATE.WATER, STATE.WATER, STATE.NORTH, STATE.WATER, STATE.NORTH, STATE.WATER,
+            STATE.NORTH, STATE.WATER, STATE.WATER, STATE.SOUTH, STATE.WATER, STATE.SOUTH, STATE.WATER,
+            STATE.SHIP , STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER, STATE.WATER,
+            STATE.SOUTH, STATE.WATER, STATE.CIRCLE,STATE.WATER, STATE.WATER, STATE.WATER, STATE.CIRCLE
+        ];
+        let sample_ship_clues = [
+            STATE.WEST , STATE.SHIP , STATE.SHIP , STATE.EAST , STATE.EMPTY, STATE.WEST , STATE.SHIP , STATE.EAST ,
+            STATE.WEST , STATE.SHIP , STATE.EAST , STATE.EMPTY, STATE.WEST , STATE.EAST , STATE.EMPTY, STATE.EMPTY,
+            STATE.WEST , STATE.EAST , STATE.EMPTY, STATE.CIRCLE, STATE.EMPTY, STATE.CIRCLE, STATE.EMPTY, STATE.EMPTY,
+        ];
+        let sample_row_clues = [1,5,1,2,3,1,3];
+        let sample_col_clues = [3,3,1,3,1,3,2];
+
+
+        let xPixel = function(x) {
+            let x0 = sample_board_center_x - sample_board_cols/2 * GRID_SIZE;
+            return x0 + x * GRID_SIZE + GRID_SIZE/2;
+        };
+
+        let yPixel = function(y) {
+            let y0 = sample_board_center_y - sample_board_rows/2 * GRID_SIZE;
+            return y0 + y * GRID_SIZE + GRID_SIZE/2;
+        };
+
+        let create_sample_board = function(panel) {
+            panel.push(scene.add.rectangle(
+                sample_board_center_x,
+                sample_board_center_y,
+                sample_board_cols * GRID_SIZE,
+                sample_board_rows * GRID_SIZE,
+                COLORS.BORDER,
+                0)
+                .setStrokeStyle(GRID_SIZE / 16, COLORS.BORDER, 1)
+                .setDepth(DEPTHS.BG));
+            for (let x = 0; x < sample_board_cols; x++) {
+                for (let y = 0; y < sample_board_rows; y++) {
+                    panel.push(scene.add.rectangle(
+                        xPixel(x),
+                        yPixel(y),
+                        GRID_SIZE,
+                        GRID_SIZE,
+                        COLORS.BORDER,
+                        0)
+                        .setStrokeStyle(GRID_SIZE / 32, COLORS.BORDER, 1)
+                        .setDepth(DEPTHS.GRID));
+                }
+            }
+        };
+
+        let create_sample_col_clues = function(panel, array, color) {
+            for (let x = 0; x < sample_board_cols && array.length; x++) {
+                panel.push(scene.add.text(
+                    xPixel(x),
+                    yPixel(-1),
+                    '' + array[x] + '',
+                    {fontSize: '' + GRID_SIZE + 'px', fill: color})
+                    .setOrigin(0.5, 0.5));
+            }
+        };
+
+        let create_sample_row_clues = function(panel, array, color) {
+            for (let y = 0; y < sample_board_rows && array.length; y++) {
+                panel.push(scene.add.text(
+                    xPixel(sample_board_cols),
+                    yPixel(y),
+                    '' + array[y] + '',
+                    {fontSize: '' + GRID_SIZE + 'px', fill: color})
+                    .setOrigin(0.5, 0.5));
+            }
+        };
+
+        let display_shape = function(panel, x, y, shape, color) {
+            let target_shape =
+                STATE.createShapes(scene,xPixel(x),yPixel(y))[shape];
+            STATE.setColor(target_shape, color);
+            for (let part of target_shape) {
+                panel.push(part)
+            }
+        };
+
+        let fill_in_sample_at_location = function(panel, x, y, color) {
+            let index = y * sample_board_cols + x;
+            display_shape(panel, x, y, sample_board[index], color)
+        }
+
+        let fill_in_sample = function(panel, color, exculsions=[]) {
+            for (let x = 0; x < sample_board_cols; x++) {
+                for (let y = 0; y < sample_board_rows; y++) {
+                    let draw = true;
+                    for (let exclusion of exculsions) {
+                        if (x === exclusion[0] && y === exclusion[1])
+                        {
+                            draw = false;
+                        }
+                    }
+                    if (draw) {
+                        let index = y * sample_board_cols + x;
+                        display_shape(panel, x, y, sample_board[index], color);
+                    }
+                }
+            }
+        };
+
+        let fill_in_ship_clues = function(panel, color) {
+            for (let i = 0; i < sample_ship_clues.length; i++) {
+                let y = sample_board_rows + Math.floor(i/(sample_board_cols + 1));
+                let x = i % (sample_board_cols + 1);
+                display_shape(panel, x, y, sample_ship_clues[i], color);
+            }
+        }
+
         create_panel(function (panel) {
             let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
                 SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
-                "There is a wisdom that is woe; but there is a woe that is madness." +
-                " And there is a Catskill eagle in some souls that can alike dive " +
-                "down into the blackest gorges, and soar out of them again and " +
-                "become invisible in the sunny spaces.",
+                "Goal: Find all the ships hidden in the grid.",
                 {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
                     align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
             text.setOrigin(0,0);
             panel.push(text);
+            create_sample_board(panel);
+            fill_in_sample(panel,COLORS.GUESS);
         });
 
         create_panel(function (panel) {
             let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
                 SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
-                "And even if he for ever flies within the gorge, that gorge is " +
-                "in the mountains; so that even in his lowest swoop the mountain " +
-                "eagle is still higher than other birds upon the plain, even though they soar.",
+                "Each ship is surrounded by water so no hidden ships touch, even diagonally.",
                 {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
                     align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
             text.setOrigin(0,0);
             panel.push(text);
+            create_sample_board(panel);
+            let highlights = [
+                [2,0], [3,0], [4,0], [5,0], [6,0],
+                [2,1], [3,1], [4,1], [5,1], [6,1],
+                [2,2], [3,2], [4,2], [5,2], [6,2],
+                [0,3], [1,3],
+                [0,4], [1,4],
+                [0,5], [1,5],
+                [0,6], [1,6],
+            ];
+            fill_in_sample(panel,COLORS.GUESS,highlights);
+            for (let highlight of highlights) {
+                fill_in_sample_at_location(panel, highlight[0], highlight[1], COLORS.CLUE);
+            }
         });
 
         create_panel(function (panel) {
             let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
                 SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
-                "Chapter 97: The Lamp",
+                "The number and size of the hidden ships are displayed below the grid.",
                 {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
                     align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
             text.setOrigin(0,0);
             panel.push(text);
-            text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
-                SCREEN_HEIGHT/2-panel_height/2+2* GRID_SIZE,
-                "Had you descended from the Pequod’s try-works to the Pequod’s forecastle," +
-                " where the off duty watch were sleeping, for one single moment you would" +
-                " have almost thought you were standing in some illuminated shrine of " +
-                "canonized kings and counsellors. There they lay in their triangular oaken" +
-                " vaults, each mariner a chiselled muteness; a score of lamps flashing upon" +
-                " his hooded eyes.",
+            create_sample_board(panel);
+            fill_in_sample(panel,COLORS.GUESS);
+            fill_in_ship_clues(panel,COLORS.CLUE);
+        });
+
+        create_panel(function (panel) {
+            let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
+                "The number of ship segments in each column and row are displayed along the " +
+                "side of the grid.",
                 {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
                     align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
             text.setOrigin(0,0);
             panel.push(text);
+            create_sample_board(panel);
+            fill_in_sample(panel,COLORS.GUESS);
+            fill_in_ship_clues(panel,COLORS.GUESS);
+            create_sample_row_clues(panel,sample_row_clues,COLORS.CLUE_TEXT);
+            create_sample_col_clues(panel,sample_col_clues,COLORS.CLUE_TEXT);
+        });
+
+        create_panel(function (panel) {
+            let text = scene.add.text(SCREEN_WIDTH/2-panel_width/2+GRID_SIZE,
+                SCREEN_HEIGHT/2-panel_height/2+GRID_SIZE,
+                "The grid starts with some squares revealed. You must figure out the rest.",
+                {fontSize: ''+GRID_SIZE/2 + 'px', fill: COLORS.CLUE_TEXT,
+                    align: 'left', wordWrap: { width: panel_width - GRID_SIZE * 2, useAdvancedWrap: true } });
+            text.setOrigin(0,0);
+            panel.push(text);
+            create_sample_board(panel);
+            //fill_in_sample(panel,COLORS.GUESS);
+            let highlights = [
+                [4,1], [5,1],
+                [1,0],
+                [6,3]
+            ];
+            for (let highlight of highlights) {
+                fill_in_sample_at_location(panel, highlight[0], highlight[1], COLORS.CLUE);
+            }
+            create_sample_row_clues(panel,sample_row_clues,COLORS.GUESS_TEXT);
+            create_sample_col_clues(panel,sample_col_clues,COLORS.GUESS_TEXT);
+            fill_in_ship_clues(panel,COLORS.GUESS);
         });
 
         let current_panel = panels[current_panel_index];
