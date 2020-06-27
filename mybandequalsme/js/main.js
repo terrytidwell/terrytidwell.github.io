@@ -1,9 +1,16 @@
 const SCREEN_WIDTH = 1024;
 const SCREEN_HEIGHT = 512;
-const GAME_CONSTANTS = {
-    damage_on_attack: 20
+let GAME_CONSTANTS = {
+    damage_on_attack: 20,
+    cpu_speed: { default: 500, minimum: 300, maximum: 1000, step: 25 },
+    avatars: {default:'ryu', options:['ryu','cammy']}
 };
 
+let global_game_state = {
+    avatars: [GAME_CONSTANTS.avatars.default,GAME_CONSTANTS.avatars.default],
+    cpu: [false, false],
+    cpu_speed: [GAME_CONSTANTS.cpu_speed.default, GAME_CONSTANTS.cpu_speed.default]
+}
 let TitleScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -29,72 +36,6 @@ let TitleScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-        let play = scene.add.text(
-            SCREEN_WIDTH/2,
-            SCREEN_HEIGHT/2,
-            "click to continue...",
-            { font: 32 + 'px Arial', color: '#ffffff'})
-            .setOrigin(0.5, 0.5);
-        play.setInteractive();
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
-            play.scaleX = 1.2;
-            play.scaleY = 1.2;
-        });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
-            play.scaleX = 1;
-            play.scaleY = 1;
-        });
-        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
-            scene.scene.start('GameScene');
-            scene.scene.stop('TitleScene');
-        });
-    },
-
-    //--------------------------------------------------------------------------
-    update: function() {
-    },
-});
-
-let GameScene = new Phaser.Class({
-
-    Extends: Phaser.Scene,
-
-    //--------------------------------------------------------------------------
-    initialize: function () {
-        Phaser.Scene.call(this, {key: 'GameScene', active: false});
-    },
-
-    //--------------------------------------------------------------------------
-    preload: function () {
-    },
-
-    //--------------------------------------------------------------------------
-    create: function () {
-        let scene = this;
-
-        let INPUTS = {
-            UP: 0,
-            DOWN: 1,
-            LEFT: 2,
-            RIGHT: 3,
-            MAX: 4,
-            random: function () {
-                return Phaser.Math.Between(0,3)
-            },
-            prompt_keys_labels: ['up', 'down', 'left', 'right'],
-            prompt_keys: [],
-            current_prompt: 0
-        };
-
-        let STATES =  {
-            ACTIVE: 0,
-            OVER: 1
-        };
-
-        let game_state = STATES.ACTIVE;
-        let health = [100,100];
-        let players = [];
-        let bg_music = null;
 
         scene.anims.create({
             key: 'ryu_idle',
@@ -192,6 +133,73 @@ let GameScene = new Phaser.Class({
             repeat: 0,
         });
 
+        let play = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2,
+            "click to continue...",
+            { font: 32 + 'px Arial', color: '#ffffff'})
+            .setOrigin(0.5, 0.5);
+        play.setInteractive();
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function(){
+            play.scaleX = 1.2;
+            play.scaleY = 1.2;
+        });
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function(){
+            play.scaleX = 1;
+            play.scaleY = 1;
+        });
+        play.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function(){
+            scene.scene.start('GameScene');
+            scene.scene.stop('TitleScene');
+        });
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
+let GameScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'GameScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+
+        let INPUTS = {
+            UP: 0,
+            DOWN: 1,
+            LEFT: 2,
+            RIGHT: 3,
+            MAX: 4,
+            random: function () {
+                return Phaser.Math.Between(0,3)
+            },
+            prompt_keys_labels: ['up', 'down', 'left', 'right'],
+            prompt_keys: [],
+            current_prompt: 0
+        };
+
+        let STATES =  {
+            ACTIVE: 0,
+            OVER: 1
+        };
+
+        let game_state = STATES.ACTIVE;
+        let health = [100,100];
+        let players = [];
+        let bg_music = null;
+
         let celebration = function(winner) {
             winner++;
             let ko = scene.add.text(
@@ -269,6 +277,9 @@ let GameScene = new Phaser.Class({
             scene.cameras.main.shake(250, 0.015, true);
             if (health[index] === 0)
             {
+                if (game_state === STATES.OVER) {
+                    return
+                }
                 game_state = STATES.OVER;
                 for(let player of players) {
                     player.anims.pause();
@@ -309,7 +320,7 @@ let GameScene = new Phaser.Class({
         let life = [];
 
         for (let i = 0; i < 2; i++) {
-            let name = ['ryu','ryu'][i];
+            let name = global_game_state.avatars[i];
             let flipX = [false, true][i];
             let xOffset = [-1, 1][i];
             let xOrigin = [1, 0][i];
@@ -399,6 +410,14 @@ let GameScene = new Phaser.Class({
                    scene.cameras.main.shake(250, 0.015, true);
                }
             });
+            for (let cpu_id = 0; cpu_id < global_game_state.cpu.length; cpu_id++)
+            {
+                if (global_game_state.cpu[cpu_id]) {
+                    scene.time.delayedCall(global_game_state.cpu_speed[cpu_id], function() {
+                        handle_key_press(cpu_id,INPUTS.current_prompt);
+                    })
+                }
+            }
         };
         scene.time.delayedCall(2000,display_prompt);
 
@@ -413,28 +432,35 @@ let GameScene = new Phaser.Class({
             })
         }
 
-        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
-        bind_key(scene.m_cursor_keys.down,
-            function(event) {handle_key_press(1,INPUTS.DOWN)});
-        bind_key(scene.m_cursor_keys.up,
-            function(event) {handle_key_press(1,INPUTS.UP)});
-        bind_key(scene.m_cursor_keys.left,
-            function(event) {handle_key_press(1,INPUTS.LEFT)});
-        bind_key(scene.m_cursor_keys.right,
-            function(event) {handle_key_press(1,INPUTS.RIGHT)});
-        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-            function() {handle_key_press(0,INPUTS.UP)});
-        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-            function() {handle_key_press(0,INPUTS.LEFT)});
-        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-            function() {handle_key_press(0,INPUTS.DOWN)});
-        bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-            function() {handle_key_press(0,INPUTS.RIGHT)});
-
+        if (!global_game_state.cpu[1]){
+            scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
+            bind_key(scene.m_cursor_keys.down,
+                function(event) {handle_key_press(1,INPUTS.DOWN)});
+            bind_key(scene.m_cursor_keys.up,
+                function(event) {handle_key_press(1,INPUTS.UP)});
+            bind_key(scene.m_cursor_keys.left,
+                function(event) {handle_key_press(1,INPUTS.LEFT)});
+            bind_key(scene.m_cursor_keys.right,
+                function(event) {handle_key_press(1,INPUTS.RIGHT)});
+        }
+        if (!global_game_state.cpu[0])
+        {
+            bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+                function() {handle_key_press(0,INPUTS.UP)});
+            bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+                function() {handle_key_press(0,INPUTS.LEFT)});
+            bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+                function() {handle_key_press(0,INPUTS.DOWN)});
+            bind_key(scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+                function() {handle_key_press(0,INPUTS.RIGHT)});
+        }
 
         scene.input.addPointer(5);
         let locations = [ [128, SCREEN_HEIGHT - 128], [SCREEN_WIDTH - 128, SCREEN_HEIGHT - 128]];
         for(let i = 0; i < locations.length; i++) {
+            if (global_game_state.cpu[i]) {
+                continue;
+            }
             let dpad = this.add.sprite(locations[i][0], locations[i][1], 'd-pad')
                 .setScale(2);
                 dpad.alpha = 0.85;
