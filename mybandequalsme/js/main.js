@@ -249,7 +249,7 @@ let TitleScene = new Phaser.Class({
             SCREEN_WIDTH * 3/4, SCREEN_HEIGHT * 3/4 + TEXT_SIZE,
             player_index[1], player_type,function(choice){
                 let is_cpu = choice === 1;
-                global_game_state.cpu[0] = is_cpu;
+                global_game_state.cpu[1] = is_cpu;
                 for (let button of cpu_speed_1) {
                     button.setVisible(is_cpu);
                 }
