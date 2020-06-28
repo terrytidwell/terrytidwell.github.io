@@ -10,7 +10,8 @@ let global_game_state = {
     avatars: [GAME_CONSTANTS.avatars.default,GAME_CONSTANTS.avatars.default],
     cpu: [false, false],
     cpu_speed: [GAME_CONSTANTS.cpu_speed.default, GAME_CONSTANTS.cpu_speed.default]
-}
+};
+
 let TitleScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -190,7 +191,8 @@ let TitleScene = new Phaser.Class({
             let next = scene.add.text(x + max_width/2 + TEXT_SIZE,
                 y,
                 ">>", { fontSize: ''+TEXT_SIZE+'px', fill: '#FFF' }).setOrigin(0.5,0.5);
-            make_button(next, make_func(-1));
+            make_button(next, make_func(1));
+            return [text, prev, next];
         }
         make_selector(
             SCREEN_WIDTH/4,SCREEN_HEIGHT * 3/4,
@@ -202,16 +204,57 @@ let TitleScene = new Phaser.Class({
             global_game_state.avatars[1], GAME_CONSTANTS.avatars.options,function(choice){
             global_game_state.avatars[1] = choice;
         });
+
+        let cpu_speeds = [];
+        let cpu_speed_indexes = [0, 0];
+        for (let i = 0;  GAME_CONSTANTS.cpu_speed.minimum + i * GAME_CONSTANTS.cpu_speed.step
+        <= GAME_CONSTANTS.cpu_speed.maximum; i++) {
+            let cpu_speed = GAME_CONSTANTS.cpu_speed.minimum + i * GAME_CONSTANTS.cpu_speed.step;
+            cpu_speeds.push(cpu_speed);
+            if (cpu_speed === global_game_state.cpu_speed[0]) {
+                cpu_speed_indexes[0] = i;
+            }
+            if (cpu_speed === global_game_state.cpu_speed[1]) {
+                cpu_speed_indexes[1] = i;
+            }
+        }
+
+        let cpu_speed_0 = make_selector(
+            SCREEN_WIDTH/4, SCREEN_HEIGHT * 3/4 + 2*TEXT_SIZE,
+            cpu_speed_indexes[0], cpu_speeds ,function(choice){
+                global_game_state.cpu_speed[0] = cpu_speeds[choice];
+            });
+        for (let button of cpu_speed_0) {
+            button.setVisible(player_index[0]);
+        }
+        let cpu_speed_1 = make_selector(
+            SCREEN_WIDTH * 3/4, SCREEN_HEIGHT * 3/4 + 2*TEXT_SIZE,
+            cpu_speed_indexes[1], cpu_speeds ,function(choice){
+                global_game_state.cpu_speed[1] = cpu_speeds[choice];
+            });
+        for (let button of cpu_speed_1) {
+            button.setVisible(player_index[1]);
+        }
+
         make_selector(
             SCREEN_WIDTH/4, SCREEN_HEIGHT * 3/4 + TEXT_SIZE,
             player_index[0], player_type,function(choice){
-                global_game_state.cpu[0] = choice === 1;
+                let is_cpu = choice === 1;
+                global_game_state.cpu[0] = is_cpu;
+                for (let button of cpu_speed_0) {
+                    button.setVisible(is_cpu);
+                }
             });
         make_selector(
             SCREEN_WIDTH * 3/4, SCREEN_HEIGHT * 3/4 + TEXT_SIZE,
             player_index[1], player_type,function(choice){
-                global_game_state.cpu[1] = choice === 1;
+                let is_cpu = choice === 1;
+                global_game_state.cpu[0] = is_cpu;
+                for (let button of cpu_speed_1) {
+                    button.setVisible(is_cpu);
+                }
             });
+
     },
 
     //--------------------------------------------------------------------------
@@ -428,6 +471,10 @@ let GameScene = new Phaser.Class({
             {
                 return;
             }
+            if (STATES.OVER === game_state)
+            {
+                return;
+            }
 
             if (INPUTS.current_prompt === input &&
                 INPUTS.prompt_keys[INPUTS.current_prompt].visible) {
@@ -474,8 +521,8 @@ let GameScene = new Phaser.Class({
             {
                 if (global_game_state.cpu[cpu_id]) {
                     scene.time.delayedCall(global_game_state.cpu_speed[cpu_id], function() {
-                        handle_key_press(cpu_id,INPUTS.current_prompt);
-                    })
+                        handle_key_press(cpu_id, INPUTS.current_prompt);
+                    });
                 }
             }
         };
