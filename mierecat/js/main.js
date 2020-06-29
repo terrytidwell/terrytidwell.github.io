@@ -351,6 +351,17 @@ let GameScene = new Phaser.Class({
                 y >= 0 && y < SCREEN_ROWS;
         }
 
+        let square_is_shootable = function(x, y, my_color) {
+            let exclusive_tile = my_color === COLORS.PINK ?
+                TILES.PINK_GRID : TILES.ORANGE_GRID;
+            if (!game_grid[x][y].data.values.changeable &&
+                game_grid[x][y].data.values.value !== exclusive_tile)
+            {
+                return false;
+            }
+            return true;
+        }
+
         let square_is_squid_free = function(x, y, color)
         {
             for (let squid of squids) {
@@ -460,23 +471,25 @@ let GameScene = new Phaser.Class({
             return reach_map;
         };
 
-        let calculate_shootable_squares = function(x, y, shoot_distance)
+        let calculate_shootable_squares = function(x, y, shoot_distance, my_color)
         {
             let INFINITY = shoot_distance + 1;
             let reach_map = create_grid( function(){return INFINITY;});
+            let directions = [[+1,0,true],[-1,0,true],[0,+1,true],[0,-1,true]];
             for (let i = 1; i <= shoot_distance; i++)
             {
-                if (square_is_legal(x+i, y)) {
-                    reach_map[x+i][y] = 0;
-                }
-                if (square_is_legal(x-i, y)) {
-                    reach_map[x-i][y] = 0;
-                }
-                if (square_is_legal(x, y+i)) {
-                    reach_map[x][y+i] = 0;
-                }
-                if (square_is_legal(x, y-i)) {
-                    reach_map[x][y-i] = 0;
+                for (let direction of directions) {
+                    let dx = i * direction[0];
+                    let dy = i * direction[1];
+                    let propogate = direction[2];
+                    if (propogate && square_is_legal(x + dx, y + dy)) {
+                        if (square_is_shootable(x + dx, y + dy, my_color)) {
+                            reach_map[x + dx][y + dy] = 0;
+                        } else {
+                            //stop propogation
+                            direction[2] = false;
+                        }
+                    }
                 }
             }
             return reach_map;
@@ -551,6 +564,12 @@ let GameScene = new Phaser.Class({
                             if (square_is_legal(px,py))
                             {
                                 let tile = game_grid[px][py];
+                                if (!tile.data.values.changeable &&
+                                    tile.data.values.value !== tile_target) {
+                                    //your shot has been blocked!
+                                    //stop propogation
+                                    break;
+                                }
                                 if (tile.data.values.changeable &&
                                     tile.data.values.value !== tile_target) {
                                     current_active_unit.data.values.update_points(g_game_settings.points_per_square_inked);
@@ -1367,7 +1386,8 @@ let GameScene = new Phaser.Class({
                         map = calculate_shootable_squares(
                             squid.data.values.x,
                             squid.data.values.y,
-                            g_game_settings.shoot_distance);
+                            g_game_settings.shoot_distance,
+                            squid.data.values.color);
                         squid.setData('current_shoot_map', map);
 
                         set_current_active_unit(squid);
