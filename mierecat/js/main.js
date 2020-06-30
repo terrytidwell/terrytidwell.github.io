@@ -37,7 +37,7 @@ let g_game_settings = {
     end_of_turn_ink: 15,
     end_of_turn_submerged_ink: 20,
     end_of_turn_health: 15,
-    number_of_rounds: 2
+    number_of_rounds: 15
 };
 
 let TitleScene = new Phaser.Class({
@@ -220,9 +220,6 @@ let GameScene = new Phaser.Class({
         }
 
         let anim_round_start = function() {
-            //if not first round, schedule the actions needed
-            update_turn_timer();
-
             if (current_round > g_game_settings.number_of_rounds) {
                 let ui = scene.scene.get('UIScene');
                 let pink_percent = 0;
@@ -264,6 +261,9 @@ let GameScene = new Phaser.Class({
                 return;
             }
 
+            update_turn_timer();
+
+            //if not first round, schedule the actions needed
             if (current_round !== 1) {
                 round_begin();
             }
@@ -1632,7 +1632,7 @@ let GameScene = new Phaser.Class({
                 ui.pink_score.setData('score', pink_percent);
                 let orange_percent = Math.floor(orange_score * 100 / total);
                 ui.orange_score.setText(orange_percent + "%");
-                ui.orange_score.setData('score', pink_percent);
+                ui.orange_score.setData('score', orange_percent);
             }
             if (animation_queue.length !== 0)
             {
