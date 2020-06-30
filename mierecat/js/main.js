@@ -33,7 +33,11 @@ let g_game_settings = {
     shoot_damage: -85,
     booyah_damage: 5,
     actions_per_turn: 2,
-    points_per_square_inked: 4
+    points_per_square_inked: 4,
+    end_of_turn_ink: 15,
+    end_of_turn_submerged_ink: 20,
+    end_of_turn_health: 15,
+    number_of_rounds: 2
 };
 
 let TitleScene = new Phaser.Class({
@@ -124,6 +128,15 @@ let UIScene = new Phaser.Class({
             { font: GRID_SIZE + 'px project_paintball', color: COLORS.ORANGE_TEXT})
             .setOrigin(1,0)
             .setStroke('#ffffff', GRID_SIZE/8);
+        scene.ui_timer = scene.add.text(
+            SCREEN_WIDTH/2,
+            0,
+            'RD: 0/0',
+            { font: GRID_SIZE/2 + 'px project_paintball', color: '#000000'})
+            .setOrigin(0.5,0)
+            .setStroke('#ffffff', GRID_SIZE/16)
+            .setScrollFactor(0)
+            .setDepth(DEPTHS.HUD);
     },
 
     //--------------------------------------------------------------------------
@@ -198,11 +211,63 @@ let GameScene = new Phaser.Class({
             return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_VERTICAL_BORDER * GRID_SIZE;
         };
 
+        let update_turn_timer = function() {
+            let ui = scene.scene.get('UIScene');
+            if (ui.ui_timer)
+            {
+                ui.ui_timer.setText('RD:' + current_round + "/" + g_game_settings.number_of_rounds);
+            }
+        }
+
         let anim_round_start = function() {
             //if not first round, schedule the actions needed
+            update_turn_timer();
+
+            if (current_round > g_game_settings.number_of_rounds) {
+                let ui = scene.scene.get('UIScene');
+                let pink_percent = 0;
+                let orange_percent = 0;
+                if (ui.pink_score && ui.orange_score) {
+                    pink_percent =  ui.pink_score.data.values.score;
+                    orange_percent =  ui.orange_score.data.values.score;
+                }
+                let text = ["TIE!"];
+                let text_color = '#000000';
+                if (orange_percent > pink_percent) {
+                   text = ["ORANGE", "WINS!"];
+                   text_color = COLORS.ORANGE_TEXT;
+                }
+                if (pink_percent > orange_percent) {
+                    text = ["PINK", "WINS!"];
+                    text_color = COLORS.PINK_TEXT;
+                }
+                let victory_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                    text,
+                    { font: GRID_SIZE*2 + 'px project_paintball', color: text_color})
+                    .setOrigin(0.5)
+                    .setStroke("#FFFFFF", GRID_SIZE*2/4)
+                    .setScrollFactor(0)
+                    .setOrigin(0.5)
+                    .setDepth(DEPTHS.HUD)
+                    .setScale(3)
+                    .setAlpha(0)
+                    .setAlign('center');
+                scene.tweens.add({
+                    targets: victory_text,
+                    scale: 1,
+                    alpha: 1,
+                    duration: 500,
+                    onComplete: function() {
+                        scene.cameras.main.shake(250, 0.007, true);
+                    }
+                });
+                return;
+            }
+
             if (current_round !== 1) {
                 round_begin();
             }
+
             let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
                 ["ROUND " + current_round, "START"],
                 { font: GRID_SIZE*2 + 'px project_paintball', color: COLORS.PINK_TEXT})
@@ -667,15 +732,17 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.BOOYAH:
+                        let booyah_squids = [];
                         for (let squid of squids)
                         {
                             if( squid.data.values.isAlive() &&
                                 squid !== current_active_unit &&
                                 squid.data.values.color === current_active_unit.data.values.color)
                             {
-                                squid.data.values.onDamage(g_game_settings.booyah_damage);
+                                booyah_squids.push(squid);
                             }
                         }
+                        mass_life_change(booyah_squids, g_game_settings.booyah_damage);
                         current_active_unit.data.values.onDamage(g_game_settings.booyah_damage);
                         set_current_active_unit(null);
                         recalculate_game_state();
@@ -685,6 +752,27 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                 }
+            }
+        };
+
+        let mass_life_change = function (squids, delta) {
+            if (squids.length > 0) {
+                animation_queue.push(function () {
+                    let total_callbacks = squids.length;
+                    let received_callbacks = 0;
+                    let damage_callbacks = function(){
+                        received_callbacks++;
+                        if (received_callbacks >= total_callbacks)
+                        {
+                            recalculate_game_state();
+                        }
+                    };
+
+                    for (let squid of squids) {
+                        squid.data.values.onDamage(delta,
+                            true ,damage_callbacks);
+                    }
+                });
             }
         };
 
@@ -829,9 +917,9 @@ let GameScene = new Phaser.Class({
                 .setData('visible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height])
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-2*text_height + 4*text_height])
 
-            function onDamage(damage) {
+            function onDamage(damage, quick=false, quick_callback=null) {
                 if (damage < 0) {
-                    if (squid.data.values.submerged){
+                    if (squid.data.values.submerged) {
                         damage = Math.round(damage * 1.5);
                     }
                     squid.data.values.setSubmerged(false);
@@ -839,7 +927,7 @@ let GameScene = new Phaser.Class({
                 let new_life = Phaser.Math.Clamp(squid.data.values.health + damage, 0, 100);
                 let actual_change = new_life - squid.data.values.health;
                 let full_reaction = 1000;
-                let actual_change_time = Math.round((actual_change/damage)*full_reaction);
+                let actual_change_time = Math.round((actual_change / damage) * full_reaction);
                 let remainder_time = full_reaction - actual_change_time + 250;
 
                 let eye_tile = damage > 0 ? TILES.CLOSED_EYES : TILES.X_EYES;
@@ -864,16 +952,15 @@ let GameScene = new Phaser.Class({
                 let animation = damage > 0 ? heal_reaction : damage_reaction;
                 let label = damage > 0 ? '+' + damage : '' + damage;
 
-                let reaction = function() {
-                    highlight_squid(squid, function() {
-                        if (new_life === 0)
-                        {
+                let reaction = function () {
+                    let damage_function = function () {
+                        if (new_life === 0) {
                             scene.cameras.main.shake(250, 0.015, true);
                             scene.tweens.add({
                                 targets: squid,
                                 alpha: 0,
                                 duration: full_reaction,
-                                onComplete: function() {
+                                onComplete: function () {
                                     squid.setAlpha(1);
                                     squid.setVisible(false);
                                 }
@@ -881,13 +968,13 @@ let GameScene = new Phaser.Class({
                         }
                         let old_depth = squid.depth;
                         let old_eye_depth = squid.data.values.eyes.depth;
-                        squid.setDepth(DEPTHS.SQUAD+3);
-                        squid.data.values.eyes.setDepth(DEPTHS.SQUAD+4);
+                        squid.setDepth(DEPTHS.SQUAD + 3);
+                        squid.data.values.eyes.setDepth(DEPTHS.SQUAD + 4);
                         squid.data.values.health_text
                             .setText(label)
                             .setVisible(true)
                             .setAlpha(1)
-                            .setAngle(Phaser.Math.Between(-20,20));
+                            .setAngle(Phaser.Math.Between(-20, 20));
 
                         squid.data.values.eyes.setTexture('tiles', eye_tile);
 
@@ -901,16 +988,22 @@ let GameScene = new Phaser.Class({
                                 life.setText("HP: " + value + "/100");
                             },
                             onComplete: function () {
-                                scene.time.delayedCall(remainder_time, function() {
+                                scene.time.delayedCall(remainder_time, function () {
                                     squid.setData('health', new_life);
-                                    recalculate_game_state();
+                                    if (!quick){
+                                        recalculate_game_state();
+                                    } else {
+                                        if (quick_callback) {
+                                            quick_callback();
+                                        }
+                                    }
                                     if (new_life === 0) {
                                         scene.tweens.add({
                                             targets: squid.data.values.eyes,
                                             scale: 3,
                                             alpha: 0,
                                             duration: 100,
-                                            onComplete: function() {
+                                            onComplete: function () {
                                                 squid.data.values.eyes.setScale(2);
                                                 squid.data.values.eyes.setAlpha(1);
                                                 squid.data.values.eyes.setVisible(false);
@@ -928,7 +1021,7 @@ let GameScene = new Phaser.Class({
                             alpha: 0,
                             duration: full_reaction,
                             y: yPixel(squid.data.values.y - .5),
-                            onComplete: function() {
+                            onComplete: function () {
                                 squid.data.values.health_text.y =
                                     yPixel(squid.data.values.y);
                                 squid.setDepth(old_depth);
@@ -936,12 +1029,20 @@ let GameScene = new Phaser.Class({
                                 squid.data.values.eyes.setTexture('tiles', TILES.OPEN_EYES);
                             }
                         });
+                    }; //end damage_function
 
-
-
-                    });
+                    if (!quick) {
+                        highlight_squid(squid, damage_function);
+                    } else {
+                        damage_function();
+                    }
                 };
-                animation_queue.push(reaction);
+
+                if (!quick) {
+                    animation_queue.push(reaction);
+                } else {
+                    reaction();
+                }
             }
             squid.setData('onDamage', onDamage);
 
@@ -1487,12 +1588,26 @@ let GameScene = new Phaser.Class({
         };
 
         let round_begin = function() {
+            let alive_squids = [];
+            let dead_squids = [];
             for(let squid of squids)
             {
                 if (!squid.data.values.isAlive()) {
-                    find_start_point(squid);
+                    dead_squids.push(squid);
+                } else {
+                    alive_squids.push(squid);
                 }
+            };
+            for (let dead of dead_squids) {
+                find_start_point(dead);
             }
+            for (let alive of alive_squids) {
+                let ink_recover = alive.data.values.submerged ?
+                    g_game_settings.end_of_turn_submerged_ink :
+                    g_game_settings.end_of_turn_ink;
+                alive.data.values.update_ink(ink_recover);
+            }
+            mass_life_change(alive_squids, g_game_settings.end_of_turn_health);
         };
 
         let recalculate_game_state = function() {
@@ -1511,10 +1626,13 @@ let GameScene = new Phaser.Class({
                 }
             }
             let ui = scene.scene.get('UIScene');
-            if (ui.pink_score && ui.orange_score)
-            {
-                ui.pink_score.setText(Math.floor(pink_score * 100 / total) + "%");
-                ui.orange_score.setText(Math.floor(orange_score * 100 / total) + "%");
+            if (ui.pink_score && ui.orange_score) {
+                let pink_percent = Math.floor(pink_score * 100 / total);
+                ui.pink_score.setText(pink_percent + "%");
+                ui.pink_score.setData('score', pink_percent);
+                let orange_percent = Math.floor(orange_score * 100 / total);
+                ui.orange_score.setText(orange_percent + "%");
+                ui.orange_score.setData('score', pink_percent);
             }
             if (animation_queue.length !== 0)
             {
