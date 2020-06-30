@@ -168,12 +168,13 @@ let GameScene = new Phaser.Class({
             PINK_GRID: 2,
             PINK_SQUID: 3,
             ORANGE_SQUID: 4,
-            OPEN_EYES: 5,
-            X_EYES: 6,
-            CLOSED_EYES: 7,
-            BG_GRID: 8,
-            PINK_SELECTOR: 9,
-            ORANGE_SELECTOR: 10
+            DEAD_SQUID: 5,
+            OPEN_EYES: 6,
+            X_EYES: 7,
+            CLOSED_EYES: 8,
+            BG_GRID: 9,
+            PINK_SELECTOR: 10,
+            ORANGE_SELECTOR: 11
         };
 
         let SELECTION_ACTIONS = {
