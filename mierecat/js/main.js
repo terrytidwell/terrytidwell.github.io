@@ -28,9 +28,13 @@ let COLORS = {
 let g_game_settings = {
     move: 4,
     swim: 6,
-    shoot_ink: 16,
+    shoot_ink: 12,
     shoot_distance: 6,
     shoot_damage: -85,
+    throw_ink: 26,
+    throw_distance: 4,
+    throw_damage: -60,
+    throw_radius: 1,
     booyah_damage: 5,
     actions_per_turn: 2,
     points_per_square_inked: 4,
@@ -39,6 +43,7 @@ let g_game_settings = {
     end_of_turn_health: 15,
     number_of_rounds: 15,
     point_death_penalty: 30,
+    splashdown_points: 100,
     splashdown_inner_radius: 2,
     splashdown_outer_radius: 4,
     splashdown_inner_damage: -180,
@@ -192,6 +197,7 @@ let GameScene = new Phaser.Class({
             SURFACE: 4,
             SPLASHDOWN_START: 5,
             SPLASHDOWN_FINISH: 6,
+            THROW: 7
         };
 
         //----------------------------------------------------------------------
@@ -510,8 +516,7 @@ let GameScene = new Phaser.Class({
             return true;
         };
 
-        let activate_selection = function(map, filter)
-        {
+        let activate_selection = function(map, filter) {
             for (let i = 0; i < map.length; i++) {
                 for (let j = 0; j < map[i].length; j++) {
                     let value = map[i][j];
@@ -529,8 +534,21 @@ let GameScene = new Phaser.Class({
             }
         };
 
-        let calculate_swimmable_squares = function(x, y, moves_left, my_color)
-        {
+        let calculate_throwable_squares = function(x, y, distance, color) {
+            let INFINITY = distance + 1;
+            let reach_map = create_grid(function(){return INFINITY;});
+            for (let i = -distance; i <= distance; i++) {
+                for (let j = -distance; j <= distance; j++) {
+                    if (square_is_shootable(x+i, y+j, color) &&
+                        Math.sqrt(i * i + j * j) <= distance) {
+                        reach_map[x+i][y+j] = 0;
+                    }
+                }
+            }
+            return reach_map;
+        };
+
+        let calculate_swimmable_squares = function(x, y, moves_left, my_color) {
             let passable_squares = my_color === COLORS.PINK ? TILES.PINK_GRID : TILES.ORANGE_GRID;
             let INFINITY = moves_left + 1;
             let reach_map = create_grid(function(){return INFINITY;});
@@ -775,11 +793,12 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SPLASHDOWN_START:
+                        current_active_unit.data.values.update_points(-g_game_settings.splashdown_points);
+
                         set_current_active_unit(null);
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SPLASHDOWN_FINISH:
-                        current_active_unit.data.values.update_points(-100);
                         current_active_unit.data.values.update_ink(100);
 
                         let outer = g_game_settings.splashdown_outer_radius;
@@ -794,9 +813,39 @@ let GameScene = new Phaser.Class({
                                     g_game_settings.splashdown_outer_damage;
                                 let px = dx + current_active_unit.data.values.x;
                                 let py = dy + current_active_unit.data.values.y;
-                                if (square_is_legal(px,py))
+                                if (square_is_shootable(px,py,current_active_unit.data.values.color))
                                 {
                                     color_square(px,py,current_active_unit,false);
+                                    for (let squid of squids)
+                                    {
+                                        if( squid.data.values.isAlive() &&
+                                            squid.data.values.color !== current_active_unit.data.values.color &&
+                                            squid.data.values.x === px &&
+                                            squid.data.values.y === py)
+                                        {
+                                            squid.data.values.onDamage(damage);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        set_current_active_unit(null);
+                        recalculate_game_state();
+                        break;
+                    case SELECTION_ACTIONS.THROW:
+                        current_active_unit.data.values.update_ink(-g_game_settings.throw_ink);
+
+                        let radius = g_game_settings.throw_radius;
+                        for (let dx = -radius; dx <= radius; dx++)
+                        {
+                            for(let dy = -radius; dy <= radius; dy++)
+                            {
+                                let damage = g_game_settings.throw_damage;
+                                let px = dx + x;
+                                let py = dy + y;
+                                if (square_is_shootable(px,py,current_active_unit.data.values.color))
+                                {
+                                    color_square(px,py,current_active_unit);
                                     for (let squid of squids)
                                     {
                                         if( squid.data.values.isAlive() &&
@@ -1124,9 +1173,6 @@ let GameScene = new Phaser.Class({
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2-text_height + 4*text_height])
             squid.setData('update_ink',function(delta){
                 squid.data.values.ink = Phaser.Math.Clamp(squid.data.values.ink + delta, 0, 100);
-                if (squid.data.values.ink < 0) {
-                    squid.data.values.ink = 0;
-                }
                 ink.setText("INK: " + squid.data.values.ink + "/100");
             });
             squid.data.values.update_ink(0);
@@ -1142,9 +1188,6 @@ let GameScene = new Phaser.Class({
                 .setData('invisible',[SCREEN_WIDTH/2, SCREEN_HEIGHT-text_height/2 + 4*text_height]);
             squid.setData('update_points',function(delta){
                 squid.data.values.points = Phaser.Math.Clamp(squid.data.values.points + delta, 0, 100);
-                if (squid.data.values.points < 0) {
-                    squid.data.values.points = 0;
-                }
                 pts.setText("PTS: " + squid.data.values.points + "/100");
             });
             squid.data.values.update_points(0);
@@ -1398,7 +1441,8 @@ let GameScene = new Phaser.Class({
                 move_selection: 6,
                 ink: 7,
                 splashdown: 8,
-                max: 9
+                throw_selection: 9,
+                max: 10
             };
 
             squid.setData('openFunctions', []);
@@ -1607,6 +1651,17 @@ let GameScene = new Phaser.Class({
                 clear_selection();
             });
 
+            squid.data.values.openFunctions[MENUS.throw_selection].push(function() {
+                let map = squid.data.values.current_throw_map;
+                squid.setData('selection_action',SELECTION_ACTIONS.THROW);
+                activate_selection(map, function (value){
+                    return value <= g_game_settings.throw_radius;
+                });
+            });
+            squid.data.values.closeFunctions[MENUS.throw_selection].push(function() {
+                clear_selection();
+            });
+
             squid.data.values.openFunctions[MENUS.move_selection].push(function() {
                 let map = squid.data.values.current_move_map;
                 squid.setData('selection_action',SELECTION_ACTIONS.MOVE);
@@ -1641,9 +1696,14 @@ let GameScene = new Phaser.Class({
 
             add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 3 * angle_fix, 'Shoot', function() {
                 squid.data.values.open_internal(MENUS.shoot_selection);
+            }, function() {
+                return squid.data.values.ink >= g_game_settings.shoot_ink;
             });
-            add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 0.5 * angle_fix, 'Throw',
-                function() {}, function() {return false;});
+            add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 0.5 * angle_fix, 'Throw', function() {
+                squid.data.values.open_internal(MENUS.throw_selection);
+            },function() {
+                return squid.data.values.ink >= g_game_settings.throw_ink;
+            });
             add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 4 * angle_fix, 'Splashdown',
                 function() {
                     squid.data.values.setSplashdown(true);
@@ -1651,7 +1711,7 @@ let GameScene = new Phaser.Class({
                     scene.events.emit('selector_clicked',
                         squid.data.values.x,
                         squid.data.values.y);
-                }, function() {return squid.data.values.points >= 20;});
+                }, function() {return squid.data.values.points >= g_game_settings.splashdown_points;});
             add_menu_close(squid, MENUS.ink, MENUS.main,angle_start + 360 / 7 * 6 * angle_fix);
 
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 3 * angle_fix, 'Run', function() {
@@ -1806,6 +1866,12 @@ let GameScene = new Phaser.Class({
                             g_game_settings.move,
                             squid.data.values.color);
                         squid.setData('current_move_map', map);
+                        map = calculate_throwable_squares(
+                            squid.data.values.x,
+                            squid.data.values.y,
+                            g_game_settings.throw_distance,
+                            squid.data.values.color);
+                        squid.setData('current_throw_map', map);
                         map = calculate_shootable_squares(
                             squid.data.values.x,
                             squid.data.values.y,
