@@ -38,6 +38,7 @@ let g_game_settings = {
     end_of_turn_submerged_ink: 20,
     end_of_turn_health: 15,
     number_of_rounds: 15,
+    point_death_penalty: 30,
     grid_rows: 20,
     grid_cols:10
 };
@@ -1588,6 +1589,7 @@ let GameScene = new Phaser.Class({
             squid.x = xPixel(x);
             squid.y = yPixel(y);
             squid.setData('health', 1);
+            squid.data.values.update_points(-g_game_settings.point_death_penalty);
             squid.data.values.update_ink(100);
             squid.data.values.setSubmerged(false);
             squid.data.values.move();
