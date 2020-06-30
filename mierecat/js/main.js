@@ -1525,9 +1525,15 @@ let GameScene = new Phaser.Class({
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 3 * angle_fix, 'Run', function() {
                 squid.data.values.open_internal(MENUS.move_selection);
             });
+
+            let swim_allowed = function () {
+                let my_grid = squid.data.values.color === COLORS.PINK ? TILES.PINK_GRID : TILES.ORANGE_GRID;
+                return my_grid === game_grid[squid.data.values.x][squid.data.values.y].data.values.value;
+            }
+
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 0.5 * angle_fix, 'Swim', function () {
                     squid.data.values.open_internal(MENUS.swim_selection);
-            });
+            },swim_allowed);
             add_menu_close(squid, MENUS.move, MENUS.main,angle_start + 360 / 7 * 6 * angle_fix);
 
 
@@ -1540,7 +1546,7 @@ let GameScene = new Phaser.Class({
             });
             add_menu_item(squid, MENUS.swim, angle_start + 360 / 7 * 0.5 * angle_fix, 'Swim', function () {
                 squid.data.values.open_internal(MENUS.swim_selection);
-            });
+            }, swim_allowed);
             add_menu_close(squid, MENUS.swim, MENUS.none, angle_start + 360 / 7 * 6 * angle_fix);
 
 
