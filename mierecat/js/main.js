@@ -39,8 +39,12 @@ let g_game_settings = {
     end_of_turn_health: 15,
     number_of_rounds: 15,
     point_death_penalty: 30,
+    splashdown_inner_radius: 2,
+    splashdown_outer_radius: 4,
+    splashdown_inner_damage: -180,
+    splashdown_outer_damage: -79,
     grid_rows: 20,
-    grid_cols:10
+    grid_cols:10,
 };
 
 let TitleScene = new Phaser.Class({
@@ -184,6 +188,8 @@ let GameScene = new Phaser.Class({
             BOOYAH: 2,
             SWIM: 3,
             SURFACE: 4,
+            SPLASHDOWN_START: 5,
+            SPLASHDOWN_FINISH: 6,
         };
 
         //----------------------------------------------------------------------
@@ -417,7 +423,26 @@ let GameScene = new Phaser.Class({
                 y >= 0 && y < g_game_settings.grid_rows;
         };
 
+        let color_square = function(x,y,squid)
+        {
+            if (!square_is_legal(x,y)) {
+                return;
+            }
+            let tile = game_grid[x][y];
+            let tile_target = squid.data.values.color === COLORS.PINK ?
+                TILES.PINK_GRID : TILES.ORANGE_GRID;
+            if (tile.data.values.changeable &&
+                tile.data.values.value !== tile_target) {
+                squid.data.values.update_points(g_game_settings.points_per_square_inked);
+                tile.setTexture('tiles', tile_target);
+                tile.setData('value', tile_target);
+            }
+        };
+
         let square_is_shootable = function(x, y, my_color) {
+            if (!square_is_legal(x,y)) {
+                return false;
+            }
             let exclusive_tile = my_color === COLORS.PINK ?
                 TILES.PINK_GRID : TILES.ORANGE_GRID;
             if (!game_grid[x][y].data.values.changeable &&
@@ -692,9 +717,6 @@ let GameScene = new Phaser.Class({
                         let line = new Phaser.Geom.Line(0, 0, vector.x, vector.y);
                         let points = Phaser.Geom.Line.BresenhamPoints(line);
 
-                        let tile_target = current_active_unit.data.values.color === COLORS.PINK ?
-                            TILES.PINK_GRID : TILES.ORANGE_GRID;
-
                         let shot_squids = [];
                         for (let point of points)
                         {
@@ -702,19 +724,12 @@ let GameScene = new Phaser.Class({
                             let py = point.y + current_active_unit.data.values.y;
                             if (square_is_legal(px,py))
                             {
-                                let tile = game_grid[px][py];
-                                if (!tile.data.values.changeable &&
-                                    tile.data.values.value !== tile_target) {
+                                if (!square_is_shootable(px,py,current_active_unit.data.values.color)) {
                                     //your shot has been blocked!
                                     //stop propogation
                                     break;
                                 }
-                                if (tile.data.values.changeable &&
-                                    tile.data.values.value !== tile_target) {
-                                    current_active_unit.data.values.update_points(g_game_settings.points_per_square_inked);
-                                    tile.setTexture('tiles', tile_target);
-                                    tile.setData('value', tile_target);
-                                }
+                                color_square(px,py,current_active_unit);
                                 for (let squid of squids)
                                 {
                                     if( squid.data.values.isAlive() &&
@@ -752,6 +767,45 @@ let GameScene = new Phaser.Class({
                         recalculate_game_state();
                         break;
                     case SELECTION_ACTIONS.SURFACE:
+                        set_current_active_unit(null);
+                        recalculate_game_state();
+                        break;
+                    case SELECTION_ACTIONS.SPLASHDOWN_START:
+                        set_current_active_unit(null);
+                        recalculate_game_state();
+                        break;
+                    case SELECTION_ACTIONS.SPLASHDOWN_FINISH:
+                        current_active_unit.data.values.update_points(-100);
+                        current_active_unit.data.values.update_ink(100);
+
+                        let outer = g_game_settings.splashdown_outer_radius;
+                        let inner = g_game_settings.splashdown_innder_radius;
+                        for (let dx = -outer; dx <= outer; dx++)
+                        {
+                            for(let dy = -outer; dy <= outer; dy++)
+                            {
+                                let damage = (dx >= -inner && dx <= innder)
+                                    && (dy >= -inner && dy <= inner) ?
+                                    g_game_settings.splashdown_inner_damage :
+                                    g_game_settings.splashdown_outer_damage;
+                                let px = dx + current_active_unit.data.values.x;
+                                let py = dy + current_active_unit.data.values.y;
+                                if (square_is_legal(px,py))
+                                {
+                                    color_square(px,py,current_active_unit);
+                                    for (let squid of squids)
+                                    {
+                                        if( squid.data.values.isAlive() &&
+                                            squid.data.values.color !== current_active_unit.data.values.color &&
+                                            squid.data.values.x === px &&
+                                            squid.data.values.y === py)
+                                        {
+                                            squid.data.values.onDamage(damage);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         set_current_active_unit(null);
                         recalculate_game_state();
                         break;
@@ -1011,6 +1065,8 @@ let GameScene = new Phaser.Class({
                                                 squid.data.values.eyes.setScale(2);
                                                 squid.data.values.eyes.setAlpha(1);
                                                 squid.data.values.eyes.setVisible(false);
+                                                //onDeath
+                                                squid.data.values.setSplashdown(false);
                                             }
                                         })
                                     }
@@ -1334,7 +1390,8 @@ let GameScene = new Phaser.Class({
                 shoot_selection: 5,
                 move_selection: 6,
                 ink: 7,
-                max: 8
+                splashdown: 8,
+                max: 9
             };
 
             squid.setData('openFunctions', []);
@@ -1368,6 +1425,16 @@ let GameScene = new Phaser.Class({
                     squid.setAlpha(0.01);
                 } else {
                     squid.setAlpha(1);
+                }
+            });
+            squid.setData('splashdown', false);
+            squid.setData('setSplashdown', function(bool){
+                squid.setData('splashdown',bool);
+                if (bool) {
+                    //do some sort of animation
+                    //squid.setAlpha(0.01);
+                } else {
+                    //squid.setAlpha(1);
                 }
             });
             squid.setData('animate_list', [squid, squid_eyes]);
@@ -1457,6 +1524,10 @@ let GameScene = new Phaser.Class({
                     squid.data.values.open_internal(MENUS.swim);
                     return;
                 }
+                if (squid.data.values.splashdown) {
+                    squid.data.values.open_internal(MENUS.splashdown);
+                    return;
+                }
 
                 squid.data.values.open_internal(MENUS.main);
             });
@@ -1539,7 +1610,13 @@ let GameScene = new Phaser.Class({
             add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 0.5 * angle_fix, 'Throw',
                 function() {}, function() {return false;});
             add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 4 * angle_fix, 'Splashdown',
-                function() {}, function() {return false;});
+                function() {
+                    squid.data.values.setSplashdown(true);
+                    squid.setData('selection_action',SELECTION_ACTIONS.SPLASHDOWN_START);
+                    scene.events.emit('selector_clicked',
+                        squid.data.values.x,
+                        squid.data.values.y);
+                }, function() {return squid.data.values.points >= 100;});
             add_menu_close(squid, MENUS.ink, MENUS.main,angle_start + 360 / 7 * 6 * angle_fix);
 
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 3 * angle_fix, 'Run', function() {
@@ -1549,7 +1626,7 @@ let GameScene = new Phaser.Class({
             let swim_allowed = function () {
                 let my_grid = squid.data.values.color === COLORS.PINK ? TILES.PINK_GRID : TILES.ORANGE_GRID;
                 return my_grid === game_grid[squid.data.values.x][squid.data.values.y].data.values.value;
-            }
+            };
 
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 0.5 * angle_fix, 'Swim', function () {
                     squid.data.values.open_internal(MENUS.swim_selection);
@@ -1563,12 +1640,21 @@ let GameScene = new Phaser.Class({
                 scene.events.emit('selector_clicked',
                     squid.data.values.x,
                     squid.data.values.y);
-            })
+            });
             add_menu_item(squid, MENUS.swim, angle_start + 360 / 7 * 0.5 * angle_fix, 'Swim', function () {
                 squid.data.values.open_internal(MENUS.swim_selection);
             }, swim_allowed);
             add_menu_close(squid, MENUS.swim, MENUS.none, angle_start + 360 / 7 * 6 * angle_fix);
 
+
+            add_menu_item(squid, MENUS.splashdown, angle_start + 360 / 7 * 3 * angle_fix, 'Splashdown', function() {
+                squid.data.values.setSplashdown(false);
+                squid.setData('selection_action',SELECTION_ACTIONS.SPLASHDOWN_FINISH);
+                scene.events.emit('selector_clicked',
+                    squid.data.values.x,
+                    squid.data.values.y);
+            });
+            add_menu_close(squid, MENUS.splashdown, MENUS.none, angle_start + 360 / 7 * 6 * angle_fix);
 
             squid.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function(pointer, localX, localY, event) {
