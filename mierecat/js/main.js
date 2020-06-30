@@ -179,7 +179,9 @@ let GameScene = new Phaser.Class({
             CLOSED_EYES: 8,
             BG_GRID: 9,
             PINK_SELECTOR: 10,
-            ORANGE_SELECTOR: 11
+            ORANGE_SELECTOR: 11,
+            DOT: 12,
+            SPLAT: 13
         };
 
         let SELECTION_ACTIONS = {
@@ -423,7 +425,7 @@ let GameScene = new Phaser.Class({
                 y >= 0 && y < g_game_settings.grid_rows;
         };
 
-        let color_square = function(x,y,squid)
+        let color_square = function(x,y,squid,reward=true)
         {
             if (!square_is_legal(x,y)) {
                 return;
@@ -433,7 +435,9 @@ let GameScene = new Phaser.Class({
                 TILES.PINK_GRID : TILES.ORANGE_GRID;
             if (tile.data.values.changeable &&
                 tile.data.values.value !== tile_target) {
-                squid.data.values.update_points(g_game_settings.points_per_square_inked);
+                if (reward) {
+                    squid.data.values.update_points(g_game_settings.points_per_square_inked);
+                }
                 tile.setTexture('tiles', tile_target);
                 tile.setData('value', tile_target);
             }
@@ -792,7 +796,7 @@ let GameScene = new Phaser.Class({
                                 let py = dy + current_active_unit.data.values.y;
                                 if (square_is_legal(px,py))
                                 {
-                                    color_square(px,py,current_active_unit);
+                                    color_square(px,py,current_active_unit,false);
                                     for (let squid of squids)
                                     {
                                         if( squid.data.values.isAlive() &&
@@ -979,6 +983,9 @@ let GameScene = new Phaser.Class({
                 if (damage < 0) {
                     if (squid.data.values.submerged) {
                         damage = Math.round(damage * 1.5);
+                    }
+                    if (squid.data.values.splashdown) {
+                        damage = Math.round(damage * 0.5);
                     }
                     squid.data.values.setSubmerged(false);
                 }
@@ -1405,7 +1412,7 @@ let GameScene = new Phaser.Class({
             squid.setData('currentMenu',MENUS.none);
             squid.setScale(2);
             squid.setDepth(DEPTHS.SQUAD);
-            squid_eyes.setDepth(DEPTHS.SQUAD + 1);
+            squid_eyes.setDepth(DEPTHS.SQUAD + 2);
             squid_eyes.setScale(2);
             squid.setInteractive();
             squid.setData('x',x);
@@ -1418,6 +1425,27 @@ let GameScene = new Phaser.Class({
             squid.setData('isAlive', function() {
                 return squid.data.values.health > 0;
             });
+            let splashdown_shape = new Phaser.Geom.Rectangle(-GRID_SIZE/2,-GRID_SIZE/2,GRID_SIZE,GRID_SIZE);
+            let particle = scene.add.particles('tiles', TILES.SPLAT);
+            particle.setDepth(DEPTHS.SQUAD+1);
+            let splashdown_animation = particle.createEmitter({
+                x: xPixel(x),
+                y: yPixel(y),
+                alpha: {
+                    start: 1,
+                    end: 0,
+                },
+                speedY: -100,
+                speedX: {min: -40, max: 40},
+                gravityY: 200,
+                frequency: 25,
+                lifespan: 1000,
+                tint: color,
+                emitZone: { type: 'random', source: splashdown_shape}
+                //maxParticles: 10,
+            });
+            splashdown_animation.stop();
+
             squid.setData('submerged', false);
             squid.setData('setSubmerged', function(bool){
                 squid.setData('submerged',bool);
@@ -1431,9 +1459,11 @@ let GameScene = new Phaser.Class({
             squid.setData('setSplashdown', function(bool){
                 squid.setData('splashdown',bool);
                 if (bool) {
+                    splashdown_animation.start();
                     //do some sort of animation
                     //squid.setAlpha(0.01);
                 } else {
+                    splashdown_animation.stop();
                     //squid.setAlpha(1);
                 }
             });
@@ -1470,8 +1500,9 @@ let GameScene = new Phaser.Class({
                         repeat: -1
                     }));
                 squid.data.values.highlight();
-                squid.setDepth(DEPTHS.SQUAD+2);
-                squid_eyes.setDepth(DEPTHS.SQUAD+3);
+                squid.setDepth(DEPTHS.SQUAD+3);
+                particle.setDepth(DEPTHS.SQUAD+4);
+                squid_eyes.setDepth(DEPTHS.SQUAD+5);
                 squid.data.values.open();
             });
             squid.setData('inactivate', function() {
@@ -1485,9 +1516,13 @@ let GameScene = new Phaser.Class({
                     animated.scaleY = 2;
                 }
                 squid.setDepth(DEPTHS.SQUAD);
-                squid_eyes.setDepth(DEPTHS.SQUAD+1);
+                particle.setDepth(DEPTHS.SQUAD+1);
+                squid_eyes.setDepth(DEPTHS.SQUAD+2);
             });
             squid.setData('moveFunctions', [function(){
+                splashdown_animation.setPosition(
+                    xPixel(squid.data.values.x),
+                    yPixel(squid.data.values.y));
                 squid_eyes.x = xPixel(squid.data.values.x);
                 squid_eyes.y = yPixel(squid.data.values.y);
                 health_text.x = xPixel(squid.data.values.x);
@@ -1616,7 +1651,7 @@ let GameScene = new Phaser.Class({
                     scene.events.emit('selector_clicked',
                         squid.data.values.x,
                         squid.data.values.y);
-                }, function() {return squid.data.values.points >= 100;});
+                }, function() {return squid.data.values.points >= 20;});
             add_menu_close(squid, MENUS.ink, MENUS.main,angle_start + 360 / 7 * 6 * angle_fix);
 
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 3 * angle_fix, 'Run', function() {
@@ -1647,7 +1682,7 @@ let GameScene = new Phaser.Class({
             add_menu_close(squid, MENUS.swim, MENUS.none, angle_start + 360 / 7 * 6 * angle_fix);
 
 
-            add_menu_item(squid, MENUS.splashdown, angle_start + 360 / 7 * 3 * angle_fix, 'Splashdown', function() {
+            add_menu_item(squid, MENUS.splashdown, angle_start + 360 / 7 * 3 * angle_fix, 'BOOM!', function() {
                 squid.data.values.setSplashdown(false);
                 squid.setData('selection_action',SELECTION_ACTIONS.SPLASHDOWN_FINISH);
                 scene.events.emit('selector_clicked',
