@@ -1328,10 +1328,18 @@ let GameScene = new Phaser.Class({
                 swim: 3,
                 swim_selection: 4,
                 shoot_selection: 5,
-                move_selection: 6
+                move_selection: 6,
+                ink: 7,
+                max: 8
             };
-            squid.setData('openFunctions', [[],[],[],[],[],[],[]]);
-            squid.setData('closeFunctions', [[],[],[],[],[],[],[]]);
+
+            squid.setData('openFunctions', []);
+            squid.setData('closeFunctions', []);
+            for (i = 0; i < MENUS.max; i++)
+            {
+                squid.data.values.openFunctions.push([]);
+                squid.data.values.closeFunctions.push([]);
+            }
 
             squid.setData('currentMenu',MENUS.none);
             squid.setScale(2);
@@ -1514,13 +1522,21 @@ let GameScene = new Phaser.Class({
             add_menu_item(squid, MENUS.main, angle_start + 360 / 7 * 3 * angle_fix, 'Move', function() {
                 squid.data.values.open_internal(MENUS.move);
             });
-            add_menu_item(squid, MENUS.main, angle_start + 360 / 7 * 0.5 * angle_fix, 'Attack', function () {
-                    squid.data.values.open_internal(MENUS.shoot_selection);
+            add_menu_item(squid, MENUS.main, angle_start + 360 / 7 * 0.5 * angle_fix, 'Ink', function () {
+                    squid.data.values.open_internal(MENUS.ink);
                 },
                 function(){return squid.data.values.ink > g_game_settings.shoot_ink;});
             add_menu_item(squid, MENUS.main, angle_start + 360 / 7 * 4 * angle_fix, 'Booyah!', activateBooyah);
-            //add_menu_item(squid, MENUS.main,angle_start + 360 / 7 * 4 * angle_fix, 'Swim', activateSwim);
             add_menu_close(squid, MENUS.main, MENUS.none,angle_start + 360 / 7 * 6 * angle_fix);
+
+            add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 3 * angle_fix, 'Shoot', function() {
+                squid.data.values.open_internal(MENUS.shoot_selection);
+            });
+            add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 0.5 * angle_fix, 'Throw',
+                function() {}, function() {return false;});
+            add_menu_item(squid, MENUS.ink, angle_start + 360 / 7 * 4 * angle_fix, 'Splashdown',
+                function() {}, function() {return false;});
+            add_menu_close(squid, MENUS.ink, MENUS.main,angle_start + 360 / 7 * 6 * angle_fix);
 
             add_menu_item(squid, MENUS.move, angle_start + 360 / 7 * 3 * angle_fix, 'Run', function() {
                 squid.data.values.open_internal(MENUS.move_selection);
