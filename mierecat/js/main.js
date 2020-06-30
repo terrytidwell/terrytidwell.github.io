@@ -37,7 +37,9 @@ let g_game_settings = {
     end_of_turn_ink: 15,
     end_of_turn_submerged_ink: 20,
     end_of_turn_health: 15,
-    number_of_rounds: 15
+    number_of_rounds: 15,
+    grid_rows: 20,
+    grid_cols:10
 };
 
 let TitleScene = new Phaser.Class({
@@ -208,7 +210,7 @@ let GameScene = new Phaser.Class({
 
         let yPixel = function(y)
         {
-            return y * GRID_SIZE + GRID_SIZE/2 + SCREEN_VERTICAL_BORDER * GRID_SIZE;
+            return y * GRID_SIZE + GRID_SIZE/2;
         };
 
         let update_turn_timer = function() {
@@ -323,21 +325,21 @@ let GameScene = new Phaser.Class({
             let radius = GRID_SIZE - border * 2;
             let spawn_portal_bg = scene.add.circle(
                 xPixel(x + .5),
-                yPixel(x + .5),
+                yPixel(y + .5),
                 GRID_SIZE,
                 COLORS.GRID_BORDER,
                 1
             ).setDepth(DEPTHS.GRID+1);
             let spawn_portal = scene.add.circle(
                 xPixel(x + .5),
-                yPixel(x + .5),
+                yPixel(y + .5),
                 radius,
                 color,
                 1
             ).setDepth(DEPTHS.GRID+2);
             let spawn_portal_fg = scene.add.circle(
                 xPixel(x + .5),
-                yPixel(x + .5),
+                yPixel(y + .5),
                 GRID_SIZE/4,
                 COLORS.GRID_BORDER,
                 1
@@ -397,10 +399,10 @@ let GameScene = new Phaser.Class({
 
         let create_grid = function(generator) {
             let grid = [];
-            for (let x = 0; x < SCREEN_COLUMNS; x++)
+            for (let x = 0; x < g_game_settings.grid_cols; x++)
             {
                 grid.push([]);
-                for (let y = 0; y < SCREEN_ROWS; y++)
+                for (let y = 0; y < g_game_settings.grid_rows; y++)
                 {
                     grid[x].push(generator(x,y,grid));
                 }
@@ -409,8 +411,8 @@ let GameScene = new Phaser.Class({
         };
 
         let square_is_legal = function(x, y) {
-            return x >= 0 && x < SCREEN_COLUMNS &&
-                y >= 0 && y < SCREEN_ROWS;
+            return x >= 0 && x < g_game_settings.grid_cols &&
+                y >= 0 && y < g_game_settings.grid_rows;
         };
 
         let square_is_shootable = function(x, y, my_color) {
@@ -1559,7 +1561,7 @@ let GameScene = new Phaser.Class({
                 scene.events.emit('selector_clicked',
                     squid.data.values.x,
                     squid.data.values.y);
-            });
+            })
             add_menu_item(squid, MENUS.swim, angle_start + 360 / 7 * 0.5 * angle_fix, 'Swim', function () {
                 squid.data.values.open_internal(MENUS.swim_selection);
             }, swim_allowed);
@@ -1708,9 +1710,12 @@ let GameScene = new Phaser.Class({
             }
         }
 
-        scene.add.tileSprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH + (2 * BG_BORDER * GRID_SIZE),
-            SCREEN_HEIGHT + (2 * BG_BORDER * GRID_SIZE),
+        let border = BG_BORDER*GRID_SIZE;
+        let world_height =  g_game_settings.grid_rows * GRID_SIZE + (2 * border);
+        let world_width = g_game_settings.grid_cols * GRID_SIZE + (2 * border);
+        scene.add.tileSprite(world_width/2, world_height/2,
+            world_width,
+            world_height,
             'tiles',
             TILES.BG_GRID)
             .setDepth(DEPTHS.BG)
@@ -1718,7 +1723,7 @@ let GameScene = new Phaser.Class({
         game_grid = create_grid(create_random_square);
         selector_grid = create_grid(create_selector);
         create_spawn_portal(1,1,COLORS.PINK);
-        create_spawn_portal(SCREEN_COLUMNS - 3, SCREEN_COLUMNS - 3, COLORS.ORANGE);
+        create_spawn_portal(g_game_settings.grid_cols - 3, g_game_settings.grid_rows - 3, COLORS.ORANGE);
         for (let start_position of spawn_points) {
             add_squid(start_position.x, start_position.y, start_position.color)
         }
@@ -1728,15 +1733,15 @@ let GameScene = new Phaser.Class({
         animation_queue.push(anim_round_start);
         recalculate_game_state();
 
-        let border = BG_BORDER*GRID_SIZE;
-        scene.cameras.main.setBounds(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border);
+
+        scene.cameras.main.setBounds(-border, -border, world_width, world_height);
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
 
-        let zone = scene.add.zone(-border, -border, SCREEN_WIDTH + 2*border, SCREEN_HEIGHT + 2*border)
+        let zone = scene.add.zone(-border, -border, world_width, world_height)
             .setOrigin(0)
             .setInteractive();
         zone.on(Phaser.Input.Events.POINTER_MOVE, function (pointer) {
