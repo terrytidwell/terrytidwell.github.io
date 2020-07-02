@@ -49,38 +49,47 @@ let LoadScene = new Phaser.Class({
                 .setOrigin(0,0)
                 .setDepth(DEPTHS.HUD+1);
 
-            let text_off_tween = null;
-            let collision_box_offset = sprite.displayHeight - GRID_SIZE/8;
-            let analyze_text_offsetX = 0;
-            let analyze_text_offsetY = sprite.displayHeight/2 - GRID_SIZE/4;
-            let analyze_text = scene.add.image(SCREEN_WIDTH/2 +analyze_text_offsetX,
-                SCREEN_HEIGHT/2 + analyze_text_offsetY,'analyze')
-                .setOrigin(1,0.5)
-                .setDepth(DEPTHS.HUD)
+            let analyze_text = scene.add.image(-GRID_SIZE, -GRID_SIZE/4,'analyze')
+                .setOrigin(0.5,0.5)
                 .setAlpha(0)
-                .setInteractive()
-                .setAngle(-30);
-            analyze_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
+                //.setAngle(-30);
+            sprite.setData('doAnalyze', function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.analyze) {
                     dialogue_text.setText(sprite.data.values.current_object.data.values.analyze);
                 }
             });
-            let interact_text_offsetX = sprite.displayWidth;
-            let interact_text_offsetY = sprite.displayHeight/2 - GRID_SIZE/4;
-            let interact_text = scene.add.image(SCREEN_WIDTH/2 + interact_text_offsetX,
-                SCREEN_HEIGHT/2 + interact_text_offsetY,'interact')
-                .setOrigin(0,0.5)
-                .setDepth(DEPTHS.HUD)
+            let analyze_prompt = scene.add.text(-GRID_SIZE * .6, -GRID_SIZE*3/4, '1',
+                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+                .setOrigin(0.5)
                 .setAlpha(0)
-                .setInteractive()
-                .setAngle(30);
-            interact_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
+                .setAlign('center');
+            let analyze_container = scene.add.container(0,0);
+            let interact_container = scene.add.container(0,0);
+            let ui_container_offsetX = sprite.displayWidth/2;
+            let ui_container_offsetY = sprite.displayHeight/2;
+            let ui_container = scene.add.container(sprite.x + ui_container_offsetX,
+                sprite.y + ui_container_offsetY)
+                .setDepth(DEPTHS.HUD);
+            let interact_text = scene.add.image(GRID_SIZE, -GRID_SIZE*.45,'interact')
+                .setOrigin(0.5,0.5)
+                .setAlpha(0)
+            sprite.setData('doInteract', function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.interact) {
                     dialogue_text.setText(sprite.data.values.current_object.data.values.interact);
                 }
             });
+            let interact_prompt = scene.add.text(GRID_SIZE * .6, -GRID_SIZE*3/4, '2',
+                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+                .setOrigin(0.5)
+                .setAlpha(0)
+                .setAlign('center');
+            analyze_container.add([analyze_text, analyze_prompt]);
+            analyze_container.setAngle(-15);
+            interact_container.add([interact_text, interact_prompt]);
+            interact_container.setAngle(15);
+            ui_container.add([interact_container, analyze_container]);
 
             let analyze_text_tween_queue = [];
             let add_tween_to_queue = function(tween) {
@@ -93,8 +102,9 @@ let LoadScene = new Phaser.Class({
             let open_analyze = function () {
                 let tween =
                 {
-                    targets: [analyze_text,interact_text],
+                    targets: [analyze_text, analyze_prompt, interact_text, interact_prompt],
                     alpha: 0.5,
+                    //scale: 1,
                     duration: 500,
                     onComplete: function() {
                         analyze_text_tween_queue.shift();
@@ -108,8 +118,9 @@ let LoadScene = new Phaser.Class({
             let close_analyze = function () {
                 let tween =
                     {
-                        targets: [analyze_text,interact_text],
+                        targets: [analyze_text, analyze_prompt, interact_text, interact_prompt],
                         alpha: 0,
+                        //scale: 0,
                         duration: 250,
                         onComplete: function() {
                             analyze_text_tween_queue.shift();
@@ -121,6 +132,7 @@ let LoadScene = new Phaser.Class({
                 add_tween_to_queue(tween);
             };
 
+            let collision_box_offset = sprite.displayHeight - GRID_SIZE/8;
             let sprite_collision_box = scene.add.rectangle(SCREEN_WIDTH/2,
                 SCREEN_HEIGHT/2 + collision_box_offset,
                 sprite.displayWidth,GRID_SIZE/8,0xffffff,0)
@@ -224,10 +236,14 @@ let LoadScene = new Phaser.Class({
                 sprite.x = sprite_collision_box.body.x;
                 sprite.y = sprite_collision_box.body.y - collision_box_offset;
                 sprite.setDepth(DEPTHS.NORMAL + sprite.y + sprite.displayHeight);
+                /*
                 analyze_text.x = sprite.x + analyze_text_offsetX;
                 analyze_text.y = sprite.y + analyze_text_offsetY;
                 interact_text.x = sprite.x + interact_text_offsetX;
                 interact_text.y = sprite.y + interact_text_offsetY;
+                */
+                ui_container.x = sprite.x + ui_container_offsetX;
+                ui_container.y = sprite.y + ui_container_offsetY;
 
                 if (sprite.data.values.isOverlapping)
                 {
@@ -294,6 +310,12 @@ let LoadScene = new Phaser.Class({
         scene.G.player.data.values.addOverlap(scene.physics, overlaps);
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
+        let analyze_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+        analyze_key.on(Phaser.Input.Keyboard.Events.DOWN,
+            scene.G.player.data.values.doAnalyze);
+        let interact_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        interact_key.on(Phaser.Input.Keyboard.Events.DOWN,
+            scene.G.player.data.values.doInteract);
     },
 
     //--------------------------------------------------------------------------
