@@ -26,6 +26,7 @@ let LoadScene = new Phaser.Class({
         scene.load.svg('analyze', 'assets/visibility-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.spritesheet('character', 'assets/Animation_number_one_walking.png',
             { frameWidth: 34, frameHeight: 72, spacing: 1});
+        scene.load.audio('footsteps', ['assets/422856__ipaddeh__footsteps-cave-01.wav']);
     },
 
     //--------------------------------------------------------------------------
@@ -35,11 +36,12 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'walk',
             frames: this.anims.generateFrameNumbers('character'),
-            frameRate: 12,
+            frameRate: 24,
             repeat: -1
         });
 
         let add_character = function (scene) {
+            let footsteps = scene.sound.add('footsteps', {loop: true });
             let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'character',0)
                 .setScale(3)
                 .setOrigin(0,0);
@@ -193,8 +195,10 @@ let LoadScene = new Phaser.Class({
                 if (moving !== sprite.data.values.moving) {
                     sprite.setData('moving', moving);
                     if (moving) {
+                        footsteps.play();
                         sprite.anims.play('walk');
                     } else {
+                        footsteps.stop();
                         sprite.anims.stop();
                     }
                 }
