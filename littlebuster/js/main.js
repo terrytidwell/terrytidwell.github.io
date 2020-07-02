@@ -48,6 +48,21 @@ let LoadScene = new Phaser.Class({
                 '',{ fontSize: GRID_SIZE/2, fill: '#FFF' })
                 .setOrigin(0,0)
                 .setDepth(DEPTHS.HUD+1);
+            let expected_text = '';
+            scene.time.addEvent({
+                "delay": 35,
+                "loop": true,
+                "callback": function () {
+                    if (dialogue_text.text.length < expected_text.length) {
+                        dialogue_text.setText(
+                            expected_text.substr(0,dialogue_text.text.length+1));
+                    }
+                }
+            });
+            let setText = function(text) {
+                expected_text = text;
+                dialogue_text.setText('');
+            };
 
             let analyze_text = scene.add.image(-GRID_SIZE, -GRID_SIZE/4,'analyze')
                 .setOrigin(0.5,0.5)
@@ -56,7 +71,7 @@ let LoadScene = new Phaser.Class({
             sprite.setData('doAnalyze', function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.analyze) {
-                    dialogue_text.setText(sprite.data.values.current_object.data.values.analyze);
+                    setText(sprite.data.values.current_object.data.values.analyze);
                 }
             });
             let analyze_prompt = scene.add.text(-GRID_SIZE * .6, -GRID_SIZE*3/4, '1',
@@ -77,7 +92,7 @@ let LoadScene = new Phaser.Class({
             sprite.setData('doInteract', function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.interact) {
-                    dialogue_text.setText(sprite.data.values.current_object.data.values.interact);
+                    setText(sprite.data.values.current_object.data.values.interact);
                 }
             });
             let interact_prompt = scene.add.text(GRID_SIZE * .6, -GRID_SIZE*3/4, '2',
