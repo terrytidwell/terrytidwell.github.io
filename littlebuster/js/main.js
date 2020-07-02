@@ -1,4 +1,4 @@
-const GRID_SIZE = 64;
+const GRID_SIZE = 96;
 const SCREEN_COLUMNS = 20;
 const SCREEN_ROWS = 10;
 const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS;
@@ -22,6 +22,8 @@ let LoadScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function () {
         let scene = this;
+        scene.load.svg('interact', 'assets/pan_tool-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('analyze', 'assets/visibility-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.spritesheet('character', 'assets/Animation_number_one_walking.png',
             { frameWidth: 34, frameHeight: 72, spacing: 1});
     },
@@ -39,7 +41,7 @@ let LoadScene = new Phaser.Class({
 
         let add_character = function (scene) {
             let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'character',0)
-                .setScale(2)
+                .setScale(3)
                 .setOrigin(0,0);
 
             let dialogue_text = scene.add.text(GRID_SIZE,SCREEN_HEIGHT - GRID_SIZE*3/4,
@@ -50,14 +52,14 @@ let LoadScene = new Phaser.Class({
             let text_off_tween = null;
             let collision_box_offset = sprite.displayHeight - GRID_SIZE/8;
             let analyze_text_offsetX = 0;
-            let analyze_text_offsetY = sprite.displayHeight/2;
-            let analyze_text = scene.add.text(SCREEN_WIDTH/2 +analyze_text_offsetX,
-                SCREEN_HEIGHT/2 + analyze_text_offsetY,'analyze',
-                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+            let analyze_text_offsetY = sprite.displayHeight/2 - GRID_SIZE/4;
+            let analyze_text = scene.add.image(SCREEN_WIDTH/2 +analyze_text_offsetX,
+                SCREEN_HEIGHT/2 + analyze_text_offsetY,'analyze')
                 .setOrigin(1,0.5)
                 .setDepth(DEPTHS.HUD)
-                .setVisible(false)
-                .setInteractive();
+                .setAlpha(0)
+                .setInteractive()
+                .setAngle(-30);
             analyze_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.analyze) {
@@ -65,20 +67,59 @@ let LoadScene = new Phaser.Class({
                 }
             });
             let interact_text_offsetX = sprite.displayWidth;
-            let interact_text_offsetY = sprite.displayHeight/2;
-            let interact_text = scene.add.text(SCREEN_WIDTH/2 + interact_text_offsetX,
-                SCREEN_HEIGHT/2 + interact_text_offsetY,'interact',
-                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+            let interact_text_offsetY = sprite.displayHeight/2 - GRID_SIZE/4;
+            let interact_text = scene.add.image(SCREEN_WIDTH/2 + interact_text_offsetX,
+                SCREEN_HEIGHT/2 + interact_text_offsetY,'interact')
                 .setOrigin(0,0.5)
                 .setDepth(DEPTHS.HUD)
-                .setVisible(false)
-                .setInteractive();
+                .setAlpha(0)
+                .setInteractive()
+                .setAngle(30);
             interact_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
                 if (sprite.data.values.current_object &&
                     sprite.data.values.current_object.data.values.interact) {
                     dialogue_text.setText(sprite.data.values.current_object.data.values.interact);
                 }
             });
+
+            let analyze_text_tween_queue = [];
+            let add_tween_to_queue = function(tween) {
+                analyze_text_tween_queue.push(tween);
+                if (analyze_text_tween_queue.length === 1) {
+                    //I'm the only thing in the queue, run me!
+                    scene.tweens.add(tween);
+                }
+            };
+            let open_analyze = function () {
+                let tween =
+                {
+                    targets: [analyze_text,interact_text],
+                    alpha: 0.5,
+                    duration: 500,
+                    onComplete: function() {
+                        analyze_text_tween_queue.shift();
+                        if (analyze_text_tween_queue.length > 0) {
+                            scene.tweens.add(analyze_text_tween_queue[0]);
+                        }
+                    }
+                };
+                add_tween_to_queue(tween);
+            };
+            let close_analyze = function () {
+                let tween =
+                    {
+                        targets: [analyze_text,interact_text],
+                        alpha: 0,
+                        duration: 250,
+                        onComplete: function() {
+                            analyze_text_tween_queue.shift();
+                            if (analyze_text_tween_queue.length > 0) {
+                                scene.tweens.add(analyze_text_tween_queue[0]);
+                            }
+                        }
+                    };
+                add_tween_to_queue(tween);
+            };
 
             let sprite_collision_box = scene.add.rectangle(SCREEN_WIDTH/2,
                 SCREEN_HEIGHT/2 + collision_box_offset,
@@ -90,32 +131,27 @@ let LoadScene = new Phaser.Class({
                physics.add.collider(sprite_collision_box, group);
             });
 
-            sprite.setData('overlapTime', -1);
             sprite.setData('isOverlapping', false);
             sprite.setData('current_object', null);
 
             let onOverlapStart = function()  {
-                analyze_text.setVisible(true);
-                interact_text.setVisible(true);
+                open_analyze();
             };
 
             let onOverlapStop = function() {
-                analyze_text.setVisible(false);
-                interact_text.setVisible(false);
+                close_analyze();
 
                 sprite.setData('current_object',null);
                 sprite.setData('isOverlapping',false);
-                sprite.setData('overlapTime',-1);
             };
 
             let analyze = function(sprite_collision_box, object) {
-                if (!sprite.data.values.current_object ||
+                if (!sprite.data.values.current_object &&
                     sprite.data.values.current_object !== object) {
                     sprite.setData('current_object',object);
                     onOverlapStart();
                 }
-                sprite.setData('isOverlapping', true);
-                sprite.setData('overlapTime', scene.time.now);
+                sprite.setData('isOverlapping',true);
             };
 
             sprite.setData('addOverlap', function(physics, group) {
@@ -142,6 +178,13 @@ let LoadScene = new Phaser.Class({
                 }
                 sprite_collision_box.body.setVelocity(dx, dy);
             });
+
+            let AABB = function(object1, object2) {
+                return (object1.x < object2.x + object2.width &&
+                    object1.x + object1.width > object2.x &&
+                    object1.y < object2.y + object2.height &&
+                    object1.y + object1.height > object2.y);
+            };
 
             let cursor_keys = {
                 left: {isDown:false},
@@ -188,7 +231,7 @@ let LoadScene = new Phaser.Class({
 
                 if (sprite.data.values.isOverlapping)
                 {
-                    if (scene.time.now > sprite.data.values.overlapTime + 100) {
+                    if (!AABB(sprite_collision_box.body, sprite.data.values.current_object.body)) {
                         onOverlapStop();
                     }
                 }
