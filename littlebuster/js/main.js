@@ -76,7 +76,7 @@ let LoadScene = new Phaser.Class({
                     setText(sprite.data.values.current_object.data.values.analyze);
                 }
             });
-            let analyze_prompt = scene.add.text(-GRID_SIZE * .6, -GRID_SIZE*3/4, '1',
+            let analyze_prompt = scene.add.text(-GRID_SIZE * .6, -GRID_SIZE*3/4, 'z',
                 { fontSize: GRID_SIZE/2, fill: '#FFF' })
                 .setOrigin(0.5)
                 .setAlpha(0)
@@ -97,7 +97,7 @@ let LoadScene = new Phaser.Class({
                     setText(sprite.data.values.current_object.data.values.interact);
                 }
             });
-            let interact_prompt = scene.add.text(GRID_SIZE * .6, -GRID_SIZE*3/4, '2',
+            let interact_prompt = scene.add.text(GRID_SIZE * .6, -GRID_SIZE*3/4, 'x',
                 { fontSize: GRID_SIZE/2, fill: '#FFF' })
                 .setOrigin(0.5)
                 .setAlpha(0)
@@ -329,10 +329,10 @@ let LoadScene = new Phaser.Class({
         scene.G.player.data.values.addOverlap(scene.physics, overlaps);
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
-        let analyze_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+        let analyze_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         analyze_key.on(Phaser.Input.Keyboard.Events.DOWN,
             scene.G.player.data.values.doAnalyze);
-        let interact_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        let interact_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
         interact_key.on(Phaser.Input.Keyboard.Events.DOWN,
             scene.G.player.data.values.doInteract);
     },
