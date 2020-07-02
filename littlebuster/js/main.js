@@ -188,7 +188,7 @@ let LoadScene = new Phaser.Class({
             });
             sprite.setData('moving', false);
             sprite.setData('setVelocity',function(dx,dy) {
-                let moving = false
+                let moving = false;
                 if (dx !== 0 || dy !== 0) {
                     moving = true;
                 }
