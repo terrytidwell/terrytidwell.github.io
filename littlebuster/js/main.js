@@ -47,7 +47,7 @@ let LoadScene = new Phaser.Class({
                 .setOrigin(0,0);
 
             let dialogue_text = scene.add.text(GRID_SIZE,SCREEN_HEIGHT - GRID_SIZE*3/4,
-                '',{ fontSize: GRID_SIZE/2, fill: '#FFF' })
+                '',{ fontSize: GRID_SIZE/2, fontFamily:'gruppo', fill: '#FFF' })
                 .setOrigin(0,0)
                 .setDepth(DEPTHS.HUD+1);
             let expected_text = '';
@@ -77,7 +77,7 @@ let LoadScene = new Phaser.Class({
                 }
             });
             let analyze_prompt = scene.add.text(-GRID_SIZE * .6, -GRID_SIZE*3/4, 'z',
-                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+                { fontSize: GRID_SIZE/2, fontFamily:'gruppo', fill: '#FFF' })
                 .setOrigin(0.5)
                 .setAlpha(0)
                 .setAlign('center');
@@ -98,7 +98,7 @@ let LoadScene = new Phaser.Class({
                 }
             });
             let interact_prompt = scene.add.text(GRID_SIZE * .6, -GRID_SIZE*3/4, 'x',
-                { fontSize: GRID_SIZE/2, fill: '#FFF' })
+                { fontSize: GRID_SIZE/2, fontFamily:'gruppo', fill: '#FFF' })
                 .setOrigin(0.5)
                 .setAlpha(0)
                 .setAlign('center');
