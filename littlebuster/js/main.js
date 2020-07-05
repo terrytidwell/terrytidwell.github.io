@@ -24,7 +24,7 @@ let LoadScene = new Phaser.Class({
         let scene = this;
         scene.load.svg('interact', 'assets/pan_tool-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.svg('analyze', 'assets/visibility-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
-        scene.load.spritesheet('character', 'assets/Animation_number_one_walking.png',
+        scene.load.spritesheet('character', ['assets/Animation_number_one_walking.png','assets/Animation_number_one_walking_n.png'],
             { frameWidth: 34, frameHeight: 72, spacing: 1});
         scene.load.audio('footsteps', ['assets/422856__ipaddeh__footsteps-cave-01.wav']);
     },
@@ -45,6 +45,7 @@ let LoadScene = new Phaser.Class({
             let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'character',0)
                 .setScale(3)
                 .setOrigin(0,0);
+            //sprite.setPipeline('Light2D');
 
             let dialogue_text = scene.add.text(GRID_SIZE,SCREEN_HEIGHT - GRID_SIZE*3/4,
                 '',{ fontSize: GRID_SIZE/2, fontFamily:'gruppo', fill: '#FFF' })
@@ -335,6 +336,9 @@ let LoadScene = new Phaser.Class({
         let interact_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
         interact_key.on(Phaser.Input.Keyboard.Events.DOWN,
             scene.G.player.data.values.doInteract);
+
+        scene.lights.enable().setAmbientColor(0x555555);
+        scene.lights.addLight(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/4).setColor(0xffffff).setIntensity(3.0);
     },
 
     //--------------------------------------------------------------------------
@@ -347,7 +351,7 @@ let LoadScene = new Phaser.Class({
 
 let config = {
     backgroundColor: '#000000',
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
     render: {
         pixelArt: true
     },
