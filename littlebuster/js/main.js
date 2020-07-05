@@ -337,6 +337,28 @@ let LoadScene = new Phaser.Class({
         interact_key.on(Phaser.Input.Keyboard.Events.DOWN,
             scene.G.player.data.values.doInteract);
 
+        let canvas = scene.textures.createCanvas('lights',SCREEN_WIDTH,SCREEN_HEIGHT);
+        let ctx = canvas.context;
+        ctx.globalAlpha = 0.8;
+        ctx.filStyle = '#000000';
+        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+        ctx.globalCompositeOperation = 'destination-out';
+        let grad = ctx.createRadialGradient(
+            SCREEN_WIDTH/2,SCREEN_HEIGHT/2, 0,
+            SCREEN_WIDTH/2,SCREEN_HEIGHT/2, SCREEN_WIDTH/4);
+        grad.addColorStop(0, 'rgba(0,0,0,1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+        grad = ctx.createRadialGradient(
+            0,0, 0,
+            0,0, SCREEN_WIDTH/4);
+        grad.addColorStop(0, 'rgba(0,0,0,1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+        canvas.refresh();
+        scene.add.image(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'lights').setDepth(DEPTHS.HUD-1)
         scene.lights.enable().setAmbientColor(0x555555);
         scene.lights.addLight(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/4).setColor(0xffffff).setIntensity(3.0);
     },
