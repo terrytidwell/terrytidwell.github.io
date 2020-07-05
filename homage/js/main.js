@@ -943,7 +943,7 @@ let GameScene = new Phaser.Class({
         this.load.tilemapTiledJSON('Crypt1', 'assets/Crypt1.json');
         this.load.tilemapTiledJSON('Crypt2', 'assets/Crypt2.json');
         this.load.tilemapTiledJSON('Crypt3', 'assets/Crypt3.json');
-        this.load.image('crypt_tiles', 'assets/crypt_tiles.png');
+        this.load.image('crypt_tiles', 'assets/crypt_tiles_extruded.png');
         this.load.audio('crypt_music', ['assets/Cellar.mp3']);
     },
 
@@ -1383,7 +1383,7 @@ let GameScene = new Phaser.Class({
         let map_key = room.map_key;
         let tile_key = room.tile_key;
         let map = this.make.tilemap({ key: map_key });
-        let tileset = map.addTilesetImage(tile_key, tile_key, 16, 16);
+        let tileset = map.addTilesetImage(tile_key, tile_key, 16, 16, 2,4);
         let layer = map.createStaticLayer('Bg', tileset, 0, 0);
         layer.setScale(4);
         layer = map.createStaticLayer('Walls', tileset, 0, 0);
