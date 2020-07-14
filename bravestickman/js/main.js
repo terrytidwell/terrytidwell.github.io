@@ -25,6 +25,7 @@ let LoadScene = new Phaser.Class({
         scene.load.spritesheet('character', 'assets/Brave.png',
             { frameWidth: 64, frameHeight: 128});
         scene.load.image('bg', 'assets/office.jpg');
+        scene.load.image('fg', 'assets/shelf.png');
         //scene.load.audio('footsteps', ['assets/422856__ipaddeh__footsteps-cave-01.wav']);
     },
 
@@ -35,7 +36,7 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'walk',
             frames: this.anims.generateFrameNumbers('character'),
-            frameRate: 12,
+            frameRate: 14,
             repeat: -1
         });
 
@@ -96,7 +97,7 @@ let LoadScene = new Phaser.Class({
                 }
                 //normalize
                 let d = Math.sqrt(dx * dx + dy * dy);
-                let v = GRID_SIZE / 32;
+                let v = GRID_SIZE / 16;
                 if (d !== 0) {
                     dx = dx / d * v;
                     dy = dy / d * v;
@@ -113,6 +114,8 @@ let LoadScene = new Phaser.Class({
 
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg');
         scene.G.player = add_character(scene);
+        //scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,SCREEN_WIDTH,SCREEN_HEIGHT,'#000000',0.5);
+        //scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg');
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
     },
