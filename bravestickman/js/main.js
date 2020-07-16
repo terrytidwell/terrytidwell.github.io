@@ -164,7 +164,8 @@ let LoadScene = new Phaser.Class({
         };
 
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg');
-        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2');
+        let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2');
+        let highlight = scene.add.polygon(0,0,[852,432,826,415,703,411,674,429],0x6666ff,0.5).setOrigin(0);
         scene.G.player = add_character(scene);
         //scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,SCREEN_WIDTH,SCREEN_HEIGHT,'#000000',0.5);
         scene.add.image(SCREEN_WIDTH/2+GRID_SIZE/8,SCREEN_HEIGHT/2,'fg')
@@ -175,7 +176,20 @@ let LoadScene = new Phaser.Class({
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
         scene.input.on('pointerdown', function (pointer) {
             scene.G.player.data.values.setDestination(pointer.x);
+            console.log(pointer.x, pointer.y);
         }, this);
+        let shape = new Phaser.Geom.Polygon([852,432,826,415,703,411,674,429]);
+
+        let zone = scene.add.zone(0,0,SCREEN_HEIGHT,SCREEN_WIDTH)
+            .setOrigin(0)
+            .setInteractive(shape, Phaser.Geom.Polygon.Contains);
+        zone.on('pointerdown',function() {
+            scene.tweens.add({
+                targets: [book,highlight],
+                alpha: 0
+            })
+        });
+
     },
 
     //--------------------------------------------------------------------------
