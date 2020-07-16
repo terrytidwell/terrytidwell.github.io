@@ -24,8 +24,9 @@ let LoadScene = new Phaser.Class({
         //scene.load.svg('analyze', 'assets/visibility-white-36dp.svg', {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.spritesheet('character', 'assets/Brave.png',
             { frameWidth: 64, frameHeight: 128});
-        scene.load.image('bg', 'assets/office.jpg');
-        scene.load.image('fg', 'assets/shelf.png');
+        scene.load.image('bg', 'assets/IMG_0011.PNG');
+        scene.load.image('bg2', 'assets/IMG_0013.PNG');
+        scene.load.image('fg', 'assets/IMG_0012.PNG');
         //scene.load.audio('footsteps', ['assets/422856__ipaddeh__footsteps-cave-01.wav']);
     },
 
@@ -41,9 +42,15 @@ let LoadScene = new Phaser.Class({
         });
 
         let add_character = function (scene) {
-            let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2+64, 'character',0)
+            let sprite_shadow = scene.add.sprite(SCREEN_WIDTH/2+GRID_SIZE/8, SCREEN_HEIGHT/2+66, 'character',0)
+                .setScale(4)
+                .setOrigin(0.5,0.5)
+                .setTintFill(0x000000)
+                .setAlpha(0.5);
+            let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2+66, 'character',0)
                 .setScale(4)
                 .setOrigin(0.5,0.5);
+
 
             sprite.setData('moving', false);
             sprite.setData('dx',0);
@@ -57,16 +64,21 @@ let LoadScene = new Phaser.Class({
                     sprite.setData('moving', moving);
                     if (moving) {
                         sprite.anims.play('walk');
+                        sprite_shadow.anims.play('walk');
 
                     } else {
                         sprite.anims.stop();
+                        sprite_shadow.anims.stop();
                         sprite.setTexture('character',0);
+                        sprite_shadow.setTexture('character',0);
                     }
                 }
                 if (dx < 0) {
                     sprite.setFlipX(true);
+                    sprite_shadow.setFlipX(true);
                 } else if (dx > 0) {
                     sprite.setFlipX(false);
+                    sprite_shadow.setFlipX(false);
                 }
             });
 
@@ -105,6 +117,7 @@ let LoadScene = new Phaser.Class({
 
                 sprite.data.values.setVelocity(dx,dy);
                 sprite.x += sprite.data.values.dx;
+                sprite_shadow.x += sprite.data.values.dx;
             };
 
             sprite.setActive(true);
@@ -113,9 +126,13 @@ let LoadScene = new Phaser.Class({
         };
 
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg');
+        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2');
         scene.G.player = add_character(scene);
         //scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,SCREEN_WIDTH,SCREEN_HEIGHT,'#000000',0.5);
-        //scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg');
+        scene.add.image(SCREEN_WIDTH/2+GRID_SIZE/8,SCREEN_HEIGHT/2,'fg')
+            .setTintFill(0x000000)
+            .setAlpha(0.5);
+        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg');
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
     },
