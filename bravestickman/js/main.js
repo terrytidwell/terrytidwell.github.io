@@ -82,6 +82,22 @@ let LoadScene = new Phaser.Class({
                 }
             });
 
+            let calculate_dx = function(x) {
+                if (sprite.x > x) {
+                    return -1;
+                }
+                return 1;
+            };
+
+            sprite.setData('destination_set', false);
+            sprite.setData('destination_x',0);
+            sprite.setData('destination_dx',0);
+            sprite.setData('setDestination',function(x) {
+                sprite.setData('destination_x', x);
+                sprite.setData('destination_set',true);
+                sprite.setData('destination_dx', calculate_dx(x));
+            });
+
             let cursor_keys = {
                 left: {isDown:false},
                 right: {isDown:false},
@@ -109,11 +125,25 @@ let LoadScene = new Phaser.Class({
                 }
                 //normalize
                 let d = Math.sqrt(dx * dx + dy * dy);
+                if (d !== 0) {
+                    sprite.setData('destination_set', false);
+                }
+                if (sprite.data.values.destination_set) {
+                    if (sprite.data.values.destination_dx !==
+                        calculate_dx(sprite.data.values.destination_x)) {
+                        //you've made it (or overshot)
+                        sprite.setData('destination_set', false);
+                    } else {
+                        dx = sprite.data.values.destination_dx;
+                        d = 1;
+                    }
+                }
                 let v = GRID_SIZE / 16;
                 if (d !== 0) {
                     dx = dx / d * v;
                     dy = dy / d * v;
                 }
+
 
                 sprite.data.values.setVelocity(dx,dy);
                 sprite.x += sprite.data.values.dx;
@@ -135,6 +165,9 @@ let LoadScene = new Phaser.Class({
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg');
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
+        scene.input.on('pointerdown', function (pointer) {
+            scene.G.player.data.values.setDestination(pointer.x);
+        }, this);
     },
 
     //--------------------------------------------------------------------------
