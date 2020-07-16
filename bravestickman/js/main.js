@@ -96,6 +96,14 @@ let LoadScene = new Phaser.Class({
                 sprite.setData('destination_x', x);
                 sprite.setData('destination_set',true);
                 sprite.setData('destination_dx', calculate_dx(x));
+                if (sprite.flipX && sprite.data.values.destination_dx === -1 ||
+                    !sprite.flipX && sprite.data.values.destination_dx === 1) {
+                    if (Math.abs(x - sprite.x) < GRID_SIZE) {
+                        //nvm do nothing we are already facing that direction
+                        //and we are already close enough (avoids weird slide)
+                        sprite.setData('destination_set', false);
+                    }
+                }
             });
 
             let cursor_keys = {
