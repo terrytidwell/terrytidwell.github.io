@@ -157,21 +157,47 @@ let LoadScene = new Phaser.Class({
             sprite.setData('destination_set', false);
             sprite.setData('destination_x',0);
             sprite.setData('destination_dx',0);
-            sprite.setData('setDestination',function(x) {
-                sprite.setData('destination_x', x);
-                sprite.setData('destination_set',true);
-                sprite.setData('destination_dx', calculate_dx(x));
-                if (sprite.flipX && sprite.data.values.destination_dx === -1 ||
-                    !sprite.flipX && sprite.data.values.destination_dx === 1) {
+            sprite.setData('destination_interaction',null);
+
+            let handle_arrival = function() {
+                if (sprite.data.values.destination_interaction) {
+                    sprite.data.values.destination_interaction();
+                }
+                cancel_destination();
+            };
+
+            let cancel_destination = function() {
+                sprite.setData('destination_set', false);
+                sprite.setData('destination_interaction',null);
+            };
+
+            sprite.setData('setDestination',function(x,destination_interaction) {
+                let dx = calculate_dx(x);
+                let new_x = x - GRID_SIZE * dx;
+                if (calculate_dx(new_x) === dx)
+                {
+                    x = new_x;
+                }
+
+
+                if (sprite.flipX && dx === -1 ||
+                    !sprite.flipX && dx === 1) {
                     if (Math.abs(x - sprite.x) < GRID_SIZE) {
                         //nvm do nothing we are already facing that direction
                         //and we are already close enough (avoids weird slide)
-                        sprite.setData('destination_set', false);
+                        sprite.setData('destination_interaction', destination_interaction);
+                        handle_arrival();
+                        return;
                     }
                 }
+
+                sprite.setData('destination_dx', dx);
+                sprite.setData('destination_set',true);
+                sprite.setData('destination_x', x);
+                sprite.setData('destination_interaction', destination_interaction);
             });
 
-            sprite.setData('handleClick',function(pointer) {
+            sprite.setData('handleClick',function(pointer,destination_interaction) {
                if (sprite.data.values.state === STATES.TALKING) {
                    dialogue_text.setText(expected_text);
                } else if (sprite.data.values.state === STATES.DONE_TALKING) {
@@ -186,7 +212,7 @@ let LoadScene = new Phaser.Class({
                        }
                    });
                } else if (sprite.data.values.state === STATES.IDLE) {
-                   sprite.data.values.setDestination(pointer.x);
+                   sprite.data.values.setDestination(pointer.x,destination_interaction);
                }
             });
 
@@ -221,13 +247,13 @@ let LoadScene = new Phaser.Class({
                 //normalize
                 let d = Math.sqrt(dx * dx + dy * dy);
                 if (d !== 0) {
-                    sprite.setData('destination_set', false);
+                    cancel_destination();
                 }
                 if (sprite.data.values.destination_set) {
                     if (sprite.data.values.destination_dx !==
                         calculate_dx(sprite.data.values.destination_x)) {
                         //you've made it (or overshot)
-                        sprite.setData('destination_set', false);
+                        handle_arrival();
                     } else {
                         dx = sprite.data.values.destination_dx;
                         d = 1;
@@ -252,6 +278,12 @@ let LoadScene = new Phaser.Class({
 
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg');
         let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2');
+        scene.input.setTopOnly(true);
+        scene.input.on('pointerdown', function (pointer) {
+            scene.G.player.data.values.handleClick(pointer);
+            console.log('pointer interaction',pointer.x, pointer.y);
+        }, this);
+
         let highlight = scene.add.polygon(0,0,[852,432,826,415,703,411,674,429]).setOrigin(0);
         scene.G.player = add_character(scene);
         //scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,SCREEN_WIDTH,SCREEN_HEIGHT,'#000000',0.5);
@@ -266,18 +298,20 @@ let LoadScene = new Phaser.Class({
         let zone = scene.add.zone(0,0,SCREEN_HEIGHT,SCREEN_WIDTH)
             .setOrigin(0)
             .setInteractive(shape, Phaser.Geom.Polygon.Contains);
-        zone.on('pointerdown',function() {
-            scene.tweens.add({
-                targets: [book,highlight],
-                alpha: 0
-            });
-            scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THERE'S A CLUE?");
+        zone.on('pointerdown',function(pointer,localX,localY,event) {
+            console.log('zone interaction');
+            event.stopPropagation();
             zone.disableInteractive();
+            scene.G.player.data.values.handleClick(pointer,function() {
+                scene.tweens.add({
+                    targets: [book,highlight],
+                    alpha: 0
+                });
+                scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THERE'S A CLUE?");
+
+            });
         });
-        scene.input.on('pointerdown', function (pointer) {
-            scene.G.player.data.values.handleClick(pointer);
-            console.log(pointer.x, pointer.y);
-        }, this);
+
 
     },
 
