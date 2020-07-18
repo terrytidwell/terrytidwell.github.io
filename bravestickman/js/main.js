@@ -49,7 +49,8 @@ let LoadScene = new Phaser.Class({
                 PRE_TALKING: -1,
                 TALKING:0,
                 IDLE:1,
-                DONE_TALKING:2
+                DONE_TALKING:2,
+                PAUSE_TALKING:3,
             };
 
             let sprite_shadow = scene.add.sprite(SCREEN_WIDTH/2+GRID_SIZE/8, SCREEN_HEIGHT/2+66, 'character',0)
@@ -67,10 +68,12 @@ let LoadScene = new Phaser.Class({
                 .setAlpha(0);
             let dialogue_box = scene.add.image(SCREEN_WIDTH/2,GRID_SIZE*1.375,'speech_bubble')
                 .setAlpha(0);
-            let dialogue_text = scene.add.text(GRID_SIZE*3/4,GRID_SIZE*3/8,
+            let text_x_offset = GRID_SIZE*3/4;
+            let dialogue_text = scene.add.text(text_x_offset,GRID_SIZE*3/8,
                 '',{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000' })
                 .setOrigin(0,0)
                 .setAlpha(0);
+            let max_text_width = SCREEN_WIDTH - 2*text_x_offset;
             /*let dialogue_text_2 = scene.add.text(GRID_SIZE*3/4,GRID_SIZE,
                 'BRAVE STICKMAN',{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000' })
                 .setOrigin(0,0);
@@ -78,7 +81,7 @@ let LoadScene = new Phaser.Class({
 
             sprite.setData('state',STATES.IDLE);
 
-            let expected_text = '';
+            let expected_text = [''];
 
             scene.time.addEvent({
                 "delay": 35,
@@ -87,11 +90,16 @@ let LoadScene = new Phaser.Class({
                     if (sprite.data.values.state !== STATES.TALKING) {
                         return true;
                     }
-                    if (dialogue_text.text.length < expected_text.length) {
+                    if (dialogue_text.text.length < expected_text[0].length) {
                         dialogue_text.setText(
-                            expected_text.substr(0,dialogue_text.text.length+1));
+                            expected_text[0].substr(0,dialogue_text.text.length+1));
                     } else {
-                        sprite.setData('state',STATES.DONE_TALKING);
+                        expected_text.shift();
+                        if (expected_text.length === 0) {
+                            sprite.setData('state',STATES.DONE_TALKING);
+                        } else {
+                            sprite.setData('state',STATES.PAUSE_TALKING);
+                        }
                     }
                 }
             });
@@ -99,13 +107,30 @@ let LoadScene = new Phaser.Class({
                 sprite.setData('state',STATES.PRE_TALKING);
                 sprite.setData('destination_set',false);
                 sprite.data.values.setVelocity(0,0);
+                let words = text.split(" ");
+                expected_text = [''];
+                let candidate_line = words.shift();
+                while(words.length !== 0) {
+                    let next_word = words.shift();
+                    let new_candidate_line = candidate_line + ' ' + next_word;
+                    dialogue_text.setText(new_candidate_line);
+                    if (max_text_width < dialogue_text.displayWidth) {
+                        expected_text[expected_text.length - 1] = candidate_line;
+                        expected_text.push('');
+                        candidate_line = next_word;
+                    } else {
+                        candidate_line = new_candidate_line;
+                    }
+                }
+                expected_text[expected_text.length - 1] = candidate_line;
+                dialogue_text.setText('');
+
                 scene.tweens.add({
                     targets: [dialogue_box,dialogue_text],
                     alpha:1,
                     duration:250,
                     onComplete: function() {
                         sprite.setData('state',STATES.TALKING);
-                        expected_text = text;
                         dialogue_text.setText('');
                     }
                 });
@@ -199,8 +224,11 @@ let LoadScene = new Phaser.Class({
 
             sprite.setData('handleClick',function(pointer,destination_interaction) {
                if (sprite.data.values.state === STATES.TALKING) {
-                   dialogue_text.setText(expected_text);
-               } else if (sprite.data.values.state === STATES.DONE_TALKING) {
+                   dialogue_text.setText(expected_text[0]);
+               } else if (sprite.data.values.state === STATES.PAUSE_TALKING) {
+                   dialogue_text.setText('');
+                   sprite.setData('state',STATES.TALKING);
+               } else  if (sprite.data.values.state === STATES.DONE_TALKING) {
                    scene.tweens.add({
                        targets: [dialogue_box,dialogue_box_shadow,dialogue_text],
                        alpha:0,
@@ -307,7 +335,7 @@ let LoadScene = new Phaser.Class({
                     targets: [book,highlight],
                     alpha: 0
                 });
-                scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THERE'S A CLUE?");
+                scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM?");
 
             });
         });
