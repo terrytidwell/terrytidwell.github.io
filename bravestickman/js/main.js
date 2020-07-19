@@ -70,7 +70,7 @@ let LoadScene = new Phaser.Class({
                 .setAlpha(0);
             let text_x_offset = GRID_SIZE*3/4;
             let dialogue_text = scene.add.text(text_x_offset,GRID_SIZE*3/8,
-                '',{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000' })
+                ['',''],{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000', lineSpacing:-GRID_SIZE/4 })
                 .setOrigin(0,0)
                 .setAlpha(0);
             let max_text_width = SCREEN_WIDTH - 2*text_x_offset;
@@ -92,8 +92,13 @@ let LoadScene = new Phaser.Class({
                     }
                     if (dialogue_text.text.length < expected_text[0].length) {
                         dialogue_text.setText(
-                            expected_text[0].substr(0,dialogue_text.text.length+1));
+                            [expected_text[0].substr(0,dialogue_text.text.length+1),'']);
+                    } else if (expected_text.length > 1 &&
+                        dialogue_text.text.length < expected_text[0].length + expected_text[1].length + 1) {
+                        dialogue_text.setText([expected_text[0],
+                            expected_text[1].substr(0,dialogue_text.text.length+1-expected_text[0].length)]);
                     } else {
+                        expected_text.shift();
                         expected_text.shift();
                         if (expected_text.length === 0) {
                             sprite.setData('state',STATES.DONE_TALKING);
@@ -123,7 +128,7 @@ let LoadScene = new Phaser.Class({
                     }
                 }
                 expected_text[expected_text.length - 1] = candidate_line;
-                dialogue_text.setText('');
+                dialogue_text.setText(['','']);
 
                 scene.tweens.add({
                     targets: [dialogue_box,dialogue_text],
@@ -131,7 +136,6 @@ let LoadScene = new Phaser.Class({
                     duration:250,
                     onComplete: function() {
                         sprite.setData('state',STATES.TALKING);
-                        dialogue_text.setText('');
                     }
                 });
                 scene.tweens.add({
@@ -224,9 +228,13 @@ let LoadScene = new Phaser.Class({
 
             sprite.setData('handleClick',function(pointer,destination_interaction) {
                if (sprite.data.values.state === STATES.TALKING) {
-                   dialogue_text.setText(expected_text[0]);
+                   if (expected_text.length > 1) {
+                       dialogue_text.setText([expected_text[0],expected_text[1]]);
+                   } else {
+                       dialogue_text.setText([expected_text[0], '']);
+                   }
                } else if (sprite.data.values.state === STATES.PAUSE_TALKING) {
-                   dialogue_text.setText('');
+                   dialogue_text.setText(['','']);
                    sprite.setData('state',STATES.TALKING);
                } else  if (sprite.data.values.state === STATES.DONE_TALKING) {
                    scene.tweens.add({
@@ -235,7 +243,7 @@ let LoadScene = new Phaser.Class({
                        duration:250,
                        onComplete: function() {
                            expected_text = '';
-                           dialogue_text.setText('');
+                           dialogue_text.setText(['','']);
                            sprite.setData('state',STATES.IDLE);
                        }
                    });
@@ -335,7 +343,8 @@ let LoadScene = new Phaser.Class({
                     targets: [book,highlight],
                     alpha: 0
                 });
-                scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM?");
+                scene.G.player.data.values.setText("MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM?" +
+                " I HOPE HE DOESN'T MIND ME READING IT...");
 
             });
         });
