@@ -3,9 +3,11 @@ const SCREEN_HEIGHT = 768;
 const SCREEN_WIDTH = 1024;
 const DEPTHS =
 {
-    FLOOR : 0,
-    NORMAL : 1000,
-    HUD: 2000
+    BG : 0,
+    MID : 1000,
+    FORE : 2000,
+    HUD: 3000,
+    POINTER: 4000,
 };
 
 let LoadScene = new Phaser.Class({
@@ -57,27 +59,27 @@ let LoadScene = new Phaser.Class({
                 .setScale(1)
                 .setOrigin(0.5,0.5)
                 .setTintFill(0x000000)
-                .setAlpha(0.5);
+                .setAlpha(0.5)
+                .setDepth(DEPTHS.MID-1);
             let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2+66, 'character',0)
                 .setScale(1)
-                .setOrigin(0.5,0.5);
-
+                .setOrigin(0.5,0.5)
+                .setDepth(DEPTHS.MID);
             let dialogue_box_shadow = scene.add.image(SCREEN_WIDTH/2,GRID_SIZE*1.375+GRID_SIZE/8,'speech_bubble')
                 .setAlpha(0)
                 .setTintFill(0x000000)
-                .setAlpha(0);
+                .setAlpha(0)
+                .setDepth(DEPTHS.HUD-1);
             let dialogue_box = scene.add.image(SCREEN_WIDTH/2,GRID_SIZE*1.375,'speech_bubble')
-                .setAlpha(0);
+                .setAlpha(0)
+                .setDepth(DEPTHS.HUD);
             let text_x_offset = GRID_SIZE*3/4;
             let dialogue_text = scene.add.text(text_x_offset,GRID_SIZE*3/8,
                 ['',''],{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000', lineSpacing:-GRID_SIZE/4 })
                 .setOrigin(0,0)
-                .setAlpha(0);
+                .setAlpha(0)
+                .setDepth(DEPTHS.HUD+1);
             let max_text_width = SCREEN_WIDTH - 2*text_x_offset;
-            /*let dialogue_text_2 = scene.add.text(GRID_SIZE*3/4,GRID_SIZE,
-                'BRAVE STICKMAN',{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000' })
-                .setOrigin(0,0);
-            */
 
             sprite.setData('state',STATES.IDLE);
 
@@ -323,31 +325,48 @@ let LoadScene = new Phaser.Class({
             return sprite;
         };
 
-        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg');
-        let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2');
+        let circle = scene.add.circle(0,0,GRID_SIZE/16)
+            .setStrokeStyle(GRID_SIZE/16,0x000000)
+            .setAlpha(0)
+            .setDepth(DEPTHS.POINTER)
+            .setData('tween',null);
+        let update_circle = function(x,y) {
+            circle.setAlpha(0.5).setX(x).setY(y).setRadius(GRID_SIZE/16);
+            if (circle.data.values.tween) {
+                circle.data.values.tween.stop();
+            };
+            let tween = scene.tweens.add({
+                targets:circle,
+                radius: GRID_SIZE/8,
+                alpha: 0,
+                duration: 500
+            });
+            circle.setData('tween',tween);
+        };
+
+        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg').setDepth(DEPTHS.BG);
+        let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2').setDepth(DEPTHS.BG+1);
         scene.input.setTopOnly(true);
         scene.input.on('pointerdown', function (pointer) {
+            event.stopPropagation();
+            update_circle(pointer.x,pointer.y);
             scene.G.player.data.values.handleClick(pointer);
-            console.log('pointer interaction',pointer.x, pointer.y);
+            console.log('pointer interaction',Math.round(pointer.x), Math.round(pointer.y));
         }, this);
 
-        let highlight = scene.add.polygon(0,0,[852,432,826,415,703,411,674,429]).setOrigin(0);
         scene.G.player = add_character(scene);
         //scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,SCREEN_WIDTH,SCREEN_HEIGHT,'#000000',0.5);
         scene.add.image(SCREEN_WIDTH/2+GRID_SIZE/8,SCREEN_HEIGHT/2,'fg')
             .setTintFill(0x000000)
-            .setAlpha(0.5);
-        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg');
+            .setAlpha(0.5)
+            .setDepth(DEPTHS.FORE-1);
+        scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'fg')
+            .setDepth(DEPTHS.FORE);
 
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
-        let shape = new Phaser.Geom.Polygon([852,432,826,415,703,411,674,429]);
 
-        let zone = scene.add.zone(0,0,SCREEN_HEIGHT,SCREEN_WIDTH)
-            .setOrigin(0)
-            .setInteractive(shape, Phaser.Geom.Polygon.Contains);
-        zone.on('pointerdown',function(pointer,localX,localY,event) {
-            console.log('zone interaction');
-            event.stopPropagation();
+        let shape_array = [852,432,826,415,703,411,674,429];
+        let interaction_function = function(highlight, zone,pointer) {
             zone.disableInteractive();
             scene.G.player.data.values.handleClick(pointer,function() {
                 scene.tweens.add({
@@ -356,13 +375,60 @@ let LoadScene = new Phaser.Class({
                 });
                 scene.G.player.data.values.setText(
                     ["MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM? HE KEEPS NOTES ABOUT ALL HIS CRAZY IDEAS IN HERE.",
-                    "...",
-                    "I HOPE HE DOESN'T MIND ME READING IT..."]);
-
+                        "...",
+                        "I HOPE HE DOESN'T MIND ME READING IT..."]);
             });
-        });
+        }
 
+        let addInteractiveZone = function(shape_array, interaction_function) {
+            let reshape = function(shape_array) {
+                let x_min = shape_array[0];
+                let x_max = shape_array[0];
+                let y_min = shape_array[1];
+                let y_max = shape_array[1];
+                for(let i = 2; i < shape_array.length; i+=2) {
+                    x_max = Math.max(x_max,shape_array[i]);
+                    x_min = Math.min(x_min,shape_array[i]);
+                    y_max = Math.max(y_max,shape_array[i+1]);
+                    y_min = Math.min(y_min,shape_array[i+1]);
+                }
+                let width = x_max - x_min;
+                let height = y_max - y_min;
+                let x_center = Math.round(width/2) + x_min;
+                let y_center = Math.round(height/2) + y_min;
+                for (let i = 0; i < shape_array.length; i+=2) {
+                    shape_array[i] -= x_min;
+                    shape_array[i+1] -= y_min;
+                }
+                return {
+                    x_center: x_center,
+                    y_center: y_center,
+                    width: width,
+                    height: height,
+                    shape_array: shape_array,
+                };
+            };
+            let zone_object = reshape(shape_array);
 
+            let shape = new Phaser.Geom.Polygon(zone_object.shape_array);
+
+            let highlight = scene.add.polygon(
+                zone_object.x_center, zone_object.y_center,zone_object.shape_array,0x6666ff,0.5)
+                .setOrigin(0.5)
+                .setDepth(DEPTHS.HUD+1);
+            let zone = scene.add.zone(zone_object.x_center, zone_object.y_center,
+                zone_object.width,zone_object.height)
+                .setOrigin(0.5)
+                .setInteractive(shape, Phaser.Geom.Polygon.Contains)
+                .setDepth(DEPTHS.HUD);
+            zone.on('pointerdown',function(pointer,localX,localY,event) {
+                console.log('zone interaction');
+                update_circle(pointer.x,pointer.y);
+                event.stopPropagation();
+                interaction_function(highlight,zone,pointer);
+            });
+        }
+        addInteractiveZone(shape_array, interaction_function);
     },
 
     //--------------------------------------------------------------------------
@@ -370,7 +436,6 @@ let LoadScene = new Phaser.Class({
         let scene = this;
 
         scene.G.player.update();
-        //scene.G.lightLayer.update();
     },
 });
 
@@ -378,7 +443,7 @@ let config = {
     backgroundColor: '#000000',
     type: Phaser.AUTO,
     render: {
-        pixelArt: true
+        pixelArt: false
     },
     scale: {
         mode: Phaser.Scale.FIT,
