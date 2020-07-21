@@ -348,7 +348,6 @@ let LoadScene = new Phaser.Class({
         let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2').setDepth(DEPTHS.BG+1);
         scene.input.setTopOnly(true);
         scene.input.on('pointerdown', function (pointer) {
-            event.stopPropagation();
             update_circle(pointer.x,pointer.y);
             scene.G.player.data.values.handleClick(pointer);
             console.log('pointer interaction',Math.round(pointer.x), Math.round(pointer.y));
@@ -415,7 +414,8 @@ let LoadScene = new Phaser.Class({
             let highlight = scene.add.polygon(
                 zone_object.x_center, zone_object.y_center,zone_object.shape_array,0x6666ff,0.5)
                 .setOrigin(0.5)
-                .setDepth(DEPTHS.HUD+1);
+                .setDepth(DEPTHS.HUD+1)
+                .setAlpha(0);
             let zone = scene.add.zone(zone_object.x_center, zone_object.y_center,
                 zone_object.width,zone_object.height)
                 .setOrigin(0.5)
