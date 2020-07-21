@@ -75,7 +75,7 @@ let LoadScene = new Phaser.Class({
                 .setDepth(DEPTHS.HUD);
             let text_x_offset = GRID_SIZE*3/4;
             let dialogue_text = scene.add.text(text_x_offset,GRID_SIZE*3/8,
-                ['',''],{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000', lineSpacing:-GRID_SIZE/4 })
+                '',{ fontSize: GRID_SIZE*3/4, fontFamily:'schoolbell', fill: '#000', lineSpacing:-GRID_SIZE/4 })
                 .setOrigin(0,0)
                 .setAlpha(0)
                 .setDepth(DEPTHS.HUD+1);
@@ -347,10 +347,38 @@ let LoadScene = new Phaser.Class({
         scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg').setDepth(DEPTHS.BG);
         let book = scene.add.image(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,'bg2').setDepth(DEPTHS.BG+1);
         scene.input.setTopOnly(true);
+
+        let EDIT_MODE = false;
+
+        if (EDIT_MODE) {
+            this.input.mouse.disableContextMenu();
+        }
+
+        let current_polygon = [];
+
         scene.input.on('pointerdown', function (pointer) {
             update_circle(pointer.x,pointer.y);
-            scene.G.player.data.values.handleClick(pointer);
-            console.log('pointer interaction',Math.round(pointer.x), Math.round(pointer.y));
+            if (!EDIT_MODE) {
+                scene.G.player.data.values.handleClick(pointer);
+                return;
+            }
+
+            if (!pointer.rightButtonDown()) {
+                if (current_polygon.length > 0) {
+                    console.log(current_polygon);
+                    addInteractiveZone(
+                        current_polygon,
+                        function (highlight, zone, pointer) {
+                            scene.G.player.data.values.handleClick(pointer,function() {
+                                scene.G.player.data.values.setText(
+                                    ["A NEW INTERACTION ZONE!"]);
+                            })});
+                    current_polygon = [];
+                }
+                scene.G.player.data.values.handleClick(pointer);
+            } else {
+                current_polygon.push(Math.round(pointer.x),Math.round(pointer.y));
+            }
         }, this);
 
         scene.G.player = add_character(scene);
@@ -365,21 +393,18 @@ let LoadScene = new Phaser.Class({
         scene.G.player.data.values.addCursorKeys(scene.input.keyboard.createCursorKeys());
 
         let shape_array = [852,432,826,415,703,411,674,429];
-        let interaction_function = function(highlight, zone,pointer) {
-            zone.disableInteractive();
-            scene.G.player.data.values.handleClick(pointer,function() {
-                scene.tweens.add({
-                    targets: [book,highlight],
-                    alpha: 0
-                });
-                scene.G.player.data.values.setText(
-                    ["MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM? HE KEEPS NOTES ABOUT ALL HIS CRAZY IDEAS IN HERE.",
-                        "...",
-                        "I HOPE HE DOESN'T MIND ME READING IT..."]);
+        let interaction_function = function(pointer, highlight) {
+            scene.tweens.add({
+                targets: [book,highlight],
+                alpha: 0
             });
-        }
+            scene.G.player.data.values.setText(
+                ["MY DAD'S DIARY, MAYBE THIS WILL HELP ME FIGURE OUT WHAT HAPPENED TO HIM? HE KEEPS NOTES ABOUT ALL HIS CRAZY IDEAS IN HERE.",
+                    "...",
+                    "I HOPE HE DOESN'T MIND ME READING IT..."]);
+        };
 
-        let addInteractiveZone = function(shape_array, interaction_function) {
+        let addInteractiveZone = function(shape_array, interaction_function, destroy_after_use=false) {
             let reshape = function(shape_array) {
                 let x_min = shape_array[0];
                 let x_max = shape_array[0];
@@ -416,19 +441,37 @@ let LoadScene = new Phaser.Class({
                 .setOrigin(0.5)
                 .setDepth(DEPTHS.HUD+1)
                 .setAlpha(0);
+            if (EDIT_MODE) {
+                highlight.setAlpha(1);
+            }
             let zone = scene.add.zone(zone_object.x_center, zone_object.y_center,
                 zone_object.width,zone_object.height)
                 .setOrigin(0.5)
                 .setInteractive(shape, Phaser.Geom.Polygon.Contains)
                 .setDepth(DEPTHS.HUD);
             zone.on('pointerdown',function(pointer,localX,localY,event) {
-                console.log('zone interaction');
+                //console.log('zone interaction');
                 update_circle(pointer.x,pointer.y);
                 event.stopPropagation();
-                interaction_function(highlight,zone,pointer);
+                if (destroy_after_use) {
+                    zone.disableInteractive();
+                }
+                scene.G.player.data.values.handleClick(pointer,function() {
+                    interaction_function(pointer,highlight);
+                });
             });
         }
-        addInteractiveZone(shape_array, interaction_function);
+        addInteractiveZone(shape_array, interaction_function, true);
+        addInteractiveZone([859, 431, 881, 334, 952, 335, 943, 385, 953, 427],
+            function() {
+                scene.G.player.data.values.setText(
+                    ["A PICTURE OF ME EXCAVATING IN GREECE. I DIDN'T KNOW MY DAD KEPT THIS IN HIS OFFICE."]);
+            });
+        addInteractiveZone([285, 171, 15, 174, 21, 705, 300, 704],
+            function() {
+                scene.G.player.data.values.setText(
+                    ["I'M NOT LEAVING THIS OFFICE UNTIL I FIND A CLUE TO WHAT MIGHT HAVE HAPPENED TO DAD."]);
+            });
     },
 
     //--------------------------------------------------------------------------
