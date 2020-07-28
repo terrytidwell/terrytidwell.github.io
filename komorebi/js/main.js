@@ -114,6 +114,10 @@ let GameScene = new Phaser.Class({
         });
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
+        scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
+        scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
+        scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
+        scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         scene.__moving = false;
 
         scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
@@ -126,16 +130,20 @@ let GameScene = new Phaser.Class({
 
         let dx = 0;
         let dy = 0;
-        if (scene.__cursor_keys.left.isDown) {
+        if (scene.__cursor_keys.left.isDown ||
+            scene.__cursor_keys.letter_left.isDown) {
             dx -= 1;
         }
-        if (scene.__cursor_keys.right.isDown) {
+        if (scene.__cursor_keys.right.isDown ||
+            scene.__cursor_keys.letter_right.isDown) {
             dx += 1;
         }
-        if (scene.__cursor_keys.up.isDown) {
+        if (scene.__cursor_keys.up.isDown ||
+            scene.__cursor_keys.letter_up.isDown) {
             dy -= 1;
         }
-        if (scene.__cursor_keys.down.isDown) {
+        if (scene.__cursor_keys.down.isDown ||
+            scene.__cursor_keys.letter_down.isDown) {
             dy += 1;
         }
         //normalize
