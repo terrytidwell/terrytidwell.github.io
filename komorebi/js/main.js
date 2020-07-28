@@ -54,7 +54,7 @@ let LoadScene = new Phaser.Class({
                 { key: 'hero', frame: 16 }
             ],
             skipMissedFrames: false,
-            frameRate: 8,
+            frameRate: 12,
             repeat: -1
         });
     },
@@ -122,6 +122,14 @@ let GameScene = new Phaser.Class({
 
         scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
         scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
+
+        /*
+        let platforms = scene.physics.add.staticGroup();
+        let overlaps = scene.physics.add.staticGroup();
+
+        scene.G.player.data.values.addCollider(scene.physics, platforms);
+        scene.G.player.data.values.addOverlap(scene.physics, overlaps);d
+         */
     },
 
     //--------------------------------------------------------------------------
@@ -164,6 +172,7 @@ let GameScene = new Phaser.Class({
                 scene.__character.play('hero_run');
             } else {
                 scene.__character.anims.stop();
+                scene.__character.setTexture('hero', 0);
             }
         }
         /*if (dx < 0) {
