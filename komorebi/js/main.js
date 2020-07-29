@@ -86,16 +86,21 @@ let GameScene = new Phaser.Class({
             .setAltFillStyle(0xC0C0C0)
             .setOutlineStyle();
 
+        //scene.add.rectangle(scene.__character.x, scene.__character.y,64,64,0x00ff00, 0.3);
         scene.__character = scene.add.sprite(SCREEN_WIDTH/2 + 3*SPRITE_SCALE, SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
             'hero', 0)
             .setScale(3);
+
         scene.__gun_x_offset = 0;
         scene.__gun_y_offset = 11*SPRITE_SCALE;
         //character.play('hero_run');
+        let current_gun_index = 0;
+        let gun_array = ['assault_rifle','shotgun'];
         scene.__gun = scene.add.sprite(scene.__character.x + scene.__gun_x_offset,
-            scene.__character.y + scene.__gun_y_offset, 'assault_rifle')
+            scene.__character.y + scene.__gun_y_offset, gun_array[current_gun_index])
             .setScale(SPRITE_SCALE);
         scene.input.addPointer(5);
+        //scene.input.setPollAlways();
 
         let mouse_vector = new Phaser.Math.Vector2(0, 0);
         scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
@@ -118,6 +123,12 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
+        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
+
+        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP, function() {
+            current_gun_index = (current_gun_index+1) % gun_array.length;
+            scene.__gun.setTexture(gun_array[current_gun_index]);
+        });
         scene.__moving = false;
 
         scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
