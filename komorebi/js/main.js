@@ -117,13 +117,13 @@ let GameScene = new Phaser.Class({
         scene.__hitbox_y_offset = -8*CHARACTER_SPRITE_SIZE;
         scene.__hitbox = scene.add.rectangle(scene.__character.x + scene.__hitbox_x_offset,
             scene.__character.y + scene.__hitbox_y_offset,
-            6*CHARACTER_SPRITE_SIZE,20*CHARACTER_SPRITE_SIZE,0x00ff00, 0.3);
+            6*CHARACTER_SPRITE_SIZE,20*CHARACTER_SPRITE_SIZE,0x00ff00, 0.0);
 
         scene.__solidbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
         scene.__solidbox = scene.add.rectangle(scene.__character.x + scene.__solidbox_x_offset,
             scene.__character.y + scene.__solidbox_y_offset,
-            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.3);
+            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.0);
 
         scene.physics.add.existing(scene.__solidbox);
 
@@ -258,7 +258,7 @@ let config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: true
+            debug: false
         }
     },
     scene: [ LoadScene, GameScene ]
