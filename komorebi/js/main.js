@@ -86,13 +86,23 @@ let GameScene = new Phaser.Class({
             .setAltFillStyle(0xC0C0C0)
             .setOutlineStyle();
 
+        let platforms = scene.physics.add.staticGroup();
+        for (let n = 0; n < 15; n++) {
+            let x = Phaser.Math.Between(0,15);
+            let y = Phaser.Math.Between(0,9);
+            let obstacle = scene.add.rectangle((x + 0.5) * GRID_SIZE, y * GRID_SIZE, GRID_SIZE * 1, GRID_SIZE * 1, 0x000000);
+            platforms.add(obstacle);
+        }
+
         let CHARACTER_SPRITE_SIZE = 3;
+        scene.__character_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__character_y_offset = -13*CHARACTER_SPRITE_SIZE;
         scene.__character = scene.add.sprite(SCREEN_WIDTH/2 + 3*SPRITE_SCALE, SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
             'hero', 0)
             .setScale(CHARACTER_SPRITE_SIZE);
 
         scene.__gun_x_offset = 0*CHARACTER_SPRITE_SIZE;
-        scene.__gun_y_offset = 7*CHARACTER_SPRITE_SIZE;
+        scene.__gun_y_offset = -6*CHARACTER_SPRITE_SIZE;
         //character.play('hero_run');
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
@@ -101,7 +111,7 @@ let GameScene = new Phaser.Class({
             .setScale(SPRITE_SCALE);
 
         scene.__hitbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
-        scene.__hitbox_y_offset = 5*CHARACTER_SPRITE_SIZE;
+        scene.__hitbox_y_offset = -8*CHARACTER_SPRITE_SIZE;
         scene.__hitbox = scene.add.rectangle(scene.__character.x + scene.__hitbox_x_offset,
             scene.__character.y + scene.__hitbox_y_offset,
             6*CHARACTER_SPRITE_SIZE,20*CHARACTER_SPRITE_SIZE,0x00ff00, 0.3);
@@ -110,7 +120,9 @@ let GameScene = new Phaser.Class({
         scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
         scene.__solidbox = scene.add.rectangle(scene.__character.x + scene.__solidbox_x_offset,
             scene.__character.y + scene.__solidbox_y_offset,
-            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.3)
+            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.3);
+
+        scene.physics.add.existing(scene.__solidbox);
 
         scene.input.addPointer(5);
         //scene.input.setPollAlways();
@@ -145,6 +157,10 @@ let GameScene = new Phaser.Class({
         scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
         scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
+
+        scene.physics.add.collider(scene.__solidbox, platforms);
+
+
         /*
         let platforms = scene.physics.add.staticGroup();
         let overlaps = scene.physics.add.staticGroup();
@@ -178,7 +194,7 @@ let GameScene = new Phaser.Class({
         }
         //normalize
         let d = Math.sqrt(dx * dx + dy * dy);
-        let v = GRID_SIZE/16;
+        let v = 90*GRID_SIZE/16;
         if (d !== 0) {
             dx = dx / d * v;
             dy = dy / d * v;
@@ -202,14 +218,23 @@ let GameScene = new Phaser.Class({
         } else if (dx > 0) {
             scene.__character.setFlipX(false);
         }*/
-        scene.__character.x += dx;
-        scene.__character.y += dy;
-        scene.__gun.x = scene.__character.x + scene.__gun_x_offset;
-        scene.__gun.y = scene.__character.y + scene.__gun_y_offset;
-        scene.__hitbox.x = scene.__character.x + scene.__hitbox_x_offset;
-        scene.__hitbox.y = scene.__character.y + scene.__hitbox_y_offset;
-        scene.__solidbox.x = scene.__character.x + scene.__solidbox_x_offset;
-        scene.__solidbox.y = scene.__character.y + scene.__solidbox_y_offset;
+        scene.__solidbox.body.setVelocity(dx,dy);
+        let center_x = scene.__solidbox.body.x + scene.__solidbox.width / 2;
+        let center_y = scene.__solidbox.body.y + scene.__solidbox.height / 2;
+        /*
+        scene.__solidbox.x += dx;
+        scene.__solidbox.y += dy;
+        */
+        scene.__character.x = center_x + scene.__character_x_offset;
+        scene.__character.y =  center_y + scene.__character_y_offset;
+        scene.__gun.x = center_x + scene.__gun_x_offset;
+        scene.__gun.y =  center_y + scene.__gun_y_offset;
+        scene.__hitbox.x = center_x + scene.__hitbox_x_offset;
+        scene.__hitbox.y =  center_y + scene.__hitbox_y_offset;
+        /*
+        scene.__solidbox.x = scene.__solidbox.x + scene.__solidbox_x_offset;
+        scene.__solidbox.y = scene.__solidbox.y + scene.__solidbox_y_offset;
+        */
     },
 });
 
