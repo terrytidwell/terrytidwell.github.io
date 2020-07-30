@@ -86,26 +86,37 @@ let GameScene = new Phaser.Class({
             .setAltFillStyle(0xC0C0C0)
             .setOutlineStyle();
 
-        //scene.add.rectangle(scene.__character.x, scene.__character.y,64,64,0x00ff00, 0.3);
+        let CHARACTER_SPRITE_SIZE = 3;
         scene.__character = scene.add.sprite(SCREEN_WIDTH/2 + 3*SPRITE_SCALE, SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
             'hero', 0)
-            .setScale(3);
+            .setScale(CHARACTER_SPRITE_SIZE);
 
-        scene.__gun_x_offset = 0;
-        scene.__gun_y_offset = 11*SPRITE_SCALE;
+        scene.__gun_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__gun_y_offset = 7*CHARACTER_SPRITE_SIZE;
         //character.play('hero_run');
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
         scene.__gun = scene.add.sprite(scene.__character.x + scene.__gun_x_offset,
             scene.__character.y + scene.__gun_y_offset, gun_array[current_gun_index])
             .setScale(SPRITE_SCALE);
+
+        scene.__hitbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__hitbox_y_offset = 5*CHARACTER_SPRITE_SIZE;
+        scene.__hitbox = scene.add.rectangle(scene.__character.x + scene.__hitbox_x_offset,
+            scene.__character.y + scene.__hitbox_y_offset,
+            6*CHARACTER_SPRITE_SIZE,20*CHARACTER_SPRITE_SIZE,0x00ff00, 0.3);
+
+        scene.__solidbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
+        scene.__solidbox = scene.add.rectangle(scene.__character.x + scene.__solidbox_x_offset,
+            scene.__character.y + scene.__solidbox_y_offset,
+            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.3)
+
         scene.input.addPointer(5);
         //scene.input.setPollAlways();
 
         let mouse_vector = new Phaser.Math.Vector2(0, 0);
         scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
-            scene.__gun.x =  scene.__character.x + scene.__gun_x_offset;
-            scene.__gun.y =  scene.__character.y + scene.__gun_y_offset;
             let dx = pointer.worldX - scene.__gun.x;
             let dy = pointer.worldY - scene.__gun.y;
             let d = Math.sqrt(dx * dx + dy * dy);
@@ -115,8 +126,6 @@ let GameScene = new Phaser.Class({
             mouse_vector.y = dy;
             scene.__gun.setFlipY(dx < 0);
             scene.__character.setFlipX(dx < 0);
-            scene.__gun.x += dx;
-            scene.__gun.y += dy;
             scene.__gun.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
 
@@ -197,6 +206,10 @@ let GameScene = new Phaser.Class({
         scene.__character.y += dy;
         scene.__gun.x = scene.__character.x + scene.__gun_x_offset;
         scene.__gun.y = scene.__character.y + scene.__gun_y_offset;
+        scene.__hitbox.x = scene.__character.x + scene.__hitbox_x_offset;
+        scene.__hitbox.y = scene.__character.y + scene.__hitbox_y_offset;
+        scene.__solidbox.x = scene.__character.x + scene.__solidbox_x_offset;
+        scene.__solidbox.y = scene.__character.y + scene.__solidbox_y_offset;
     },
 });
 
