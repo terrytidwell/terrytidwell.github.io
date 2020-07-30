@@ -104,8 +104,10 @@ let GameScene = new Phaser.Class({
 
         let mouse_vector = new Phaser.Math.Vector2(0, 0);
         scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
-            let dx = pointer.worldX - scene.__character.x + scene.__gun_x_offset;
-            let dy = pointer.worldY - scene.__character.y + scene.__gun_y_offset;
+            scene.__gun.x =  scene.__character.x + scene.__gun_x_offset;
+            scene.__gun.y =  scene.__character.y + scene.__gun_y_offset;
+            let dx = pointer.worldX - scene.__gun.x;
+            let dy = pointer.worldY - scene.__gun.y;
             let d = Math.sqrt(dx * dx + dy * dy);
             dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
             dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
@@ -113,8 +115,8 @@ let GameScene = new Phaser.Class({
             mouse_vector.y = dy;
             scene.__gun.setFlipY(dx < 0);
             scene.__character.setFlipX(dx < 0);
-            scene.__gun.x = dx + scene.__character.x + scene.__gun_x_offset;
-            scene.__gun.y = dy + scene.__character.y + scene.__gun_y_offset;
+            scene.__gun.x += dx;
+            scene.__gun.y += dy;
             scene.__gun.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
 
