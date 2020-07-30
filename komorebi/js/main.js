@@ -24,6 +24,7 @@ let LoadScene = new Phaser.Class({
 
         this.load.image('assault_rifle', 'assets/assault_rifle.png');
         this.load.image('shotgun', 'assets/shotgun.png');
+        this.load.image('crate', 'assets/Crate.png');
         this.load.spritesheet('hero', 'assets/Adventurer Female Sprite Sheet.png',
             { frameWidth: 32, frameHeight: 32});
 
@@ -90,7 +91,9 @@ let GameScene = new Phaser.Class({
         for (let n = 0; n < 15; n++) {
             let x = Phaser.Math.Between(0,15);
             let y = Phaser.Math.Between(0,9);
-            let obstacle = scene.add.rectangle((x + 0.5) * GRID_SIZE, y * GRID_SIZE, GRID_SIZE * 1, GRID_SIZE * 1, 0x000000);
+            let obstacle = scene.add.sprite((x) * GRID_SIZE, (y-0.5) * GRID_SIZE, 'crate')
+                .setOrigin(0)
+                .setScale(4);
             platforms.add(obstacle);
         }
 
