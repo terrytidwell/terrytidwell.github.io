@@ -1,4 +1,5 @@
-const GRID_SIZE = 96;
+const GRID_SIZE = 64;
+const PLAYER_SCALE = GRID_SIZE/32;
 const SCREEN_COLUMNS = 20;
 const SCREEN_ROWS = 10;
 const SCREEN_HEIGHT = GRID_SIZE * SCREEN_ROWS;
@@ -9,6 +10,71 @@ const DEPTHS =
     NORMAL : 1000,
     HUD: 2000
 };
+
+let createLightLayer = function(config) {
+    let m_config = {
+        scene:null,
+        width:0,
+        height:0,
+        x:0,
+        y:0,
+        depth:0,
+        ambient:0.5
+    };
+    Object.assign(m_config,config);
+
+    let lights = [];
+
+    let canvas = m_config.scene.textures.createCanvas('lights',m_config.width, m_config.height);
+    let resetCanvas = function () {
+        let ctx = canvas.context;
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = 1;
+        ctx.clearRect(0,0,m_config.width,m_config.height);
+        ctx.globalAlpha = m_config.ambient;
+        ctx.filStyle = '#000000';
+        ctx.fillRect(0, 0, m_config.width, m_config.height);
+    }
+
+
+    let drawLight = function(x,y,radius,intensity,grad) {
+        let ctx = canvas.context;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,m_config.width,m_config.height);
+    };
+
+    let lightLayer = m_config.scene.add.image(m_config.x, m_config.y, 'lights').setDepth(m_config.depth);
+
+    lightLayer.addLight = function(x,y,radius,intensity) {
+        let ctx = canvas.context;
+        let light = {
+            x:x,
+            y:y,
+            radius:radius,
+            intensity:intensity,
+            grad: ctx.createRadialGradient(
+                x,y, 0,x,y,radius)
+        };
+        light.grad.addColorStop(0, 'rgba(0,0,0,'+intensity+')');
+        light.grad.addColorStop(1, 'rgba(0,0,0,0)');
+        lights.push(light);
+        return light;
+    };
+
+    lightLayer.addLight(m_config.width/2, m_config.height/2,SCREEN_WIDTH/4,1);
+    lightLayer.addLight(0,0,SCREEN_WIDTH/4,1);
+    lightLayer.update = function() {
+        resetCanvas();
+        for(const light of lights) {
+            drawLight(light.x,light.y,light.radius,light.intensity,light.grad);
+        }
+        canvas.refresh();
+    }
+    lightLayer.update();
+
+    return lightLayer;
+}
 
 let LoadScene = new Phaser.Class({
 
@@ -43,7 +109,7 @@ let LoadScene = new Phaser.Class({
         let add_character = function (scene) {
             let footsteps = scene.sound.add('footsteps', {loop: true });
             let sprite = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'character',0)
-                .setScale(3)
+                .setScale(PLAYER_SCALE)
                 .setOrigin(0,0);
             //sprite.setPipeline('Light2D');
 
@@ -337,28 +403,15 @@ let LoadScene = new Phaser.Class({
         interact_key.on(Phaser.Input.Keyboard.Events.DOWN,
             scene.G.player.data.values.doInteract);
 
-        let canvas = scene.textures.createCanvas('lights',SCREEN_WIDTH,SCREEN_HEIGHT);
-        let ctx = canvas.context;
-        ctx.globalAlpha = 0.8;
-        ctx.filStyle = '#000000';
-        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
-        ctx.globalCompositeOperation = 'destination-out';
-        let grad = ctx.createRadialGradient(
-            SCREEN_WIDTH/2,SCREEN_HEIGHT/2, 0,
-            SCREEN_WIDTH/2,SCREEN_HEIGHT/2, SCREEN_WIDTH/4);
-        grad.addColorStop(0, 'rgba(0,0,0,1)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
-        grad = ctx.createRadialGradient(
-            0,0, 0,
-            0,0, SCREEN_WIDTH/4);
-        grad.addColorStop(0, 'rgba(0,0,0,1)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
-        canvas.refresh();
-        scene.add.image(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'lights').setDepth(DEPTHS.HUD-1)
+        scene.G.lightLayer = createLightLayer({
+            scene: scene,
+            width: SCREEN_WIDTH,
+            height: SCREEN_HEIGHT,
+            x: SCREEN_WIDTH/2,
+            y: SCREEN_HEIGHT/2,
+            ambient: 0.8,
+            depth: DEPTHS.HUD-1
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -366,6 +419,7 @@ let LoadScene = new Phaser.Class({
         let scene = this;
 
         scene.G.player.update();
+        //scene.G.lightLayer.update();
     },
 });
 

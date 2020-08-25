@@ -26,7 +26,9 @@ let LoadScene = new Phaser.Class({
         this.load.image('shotgun', 'assets/shotgun.png');
         this.load.image('crate', 'assets/Crate.png');
         this.load.spritesheet('hero', 'assets/Adventurer Female Sprite Sheet.png',
-            { frameWidth: 32, frameHeight: 32});
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('slash', 'assets/slash.png',
+            { frameWidth: 64, frameHeight: 64 });
 
 
         scene.load.on('progress', function(percentage) {
@@ -57,6 +59,19 @@ let LoadScene = new Phaser.Class({
             skipMissedFrames: false,
             frameRate: 12,
             repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'slash_effect',
+            frames: [
+                { key: 'slash', frame: 2 },
+                { key: 'slash', frame: 3 },
+                { key: 'slash', frame: 4 },
+                { key: 'slash', frame: 5 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeat: 0
         });
     },
 
@@ -100,7 +115,7 @@ let GameScene = new Phaser.Class({
         let CHARACTER_SPRITE_SIZE = 3;
         scene.__character_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__character_y_offset = -13*CHARACTER_SPRITE_SIZE;
-        scene.__character = scene.add.sprite(SCREEN_WIDTH/2 + 3*SPRITE_SCALE, SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
+        scene.__character = scene.add.sprite(0,0,
             'hero', 0)
             .setScale(CHARACTER_SPRITE_SIZE);
 
@@ -109,23 +124,42 @@ let GameScene = new Phaser.Class({
         //character.play('hero_run');
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
-        scene.__gun = scene.add.sprite(scene.__character.x + scene.__gun_x_offset,
-            scene.__character.y + scene.__gun_y_offset, gun_array[current_gun_index])
-            .setScale(SPRITE_SCALE);
+        scene.__gun = scene.add.sprite(0, 0, gun_array[current_gun_index])
+            .setScale(SPRITE_SCALE)
+            .setVisible(false);
 
         scene.__hitbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__hitbox_y_offset = -8*CHARACTER_SPRITE_SIZE;
-        scene.__hitbox = scene.add.rectangle(scene.__character.x + scene.__hitbox_x_offset,
-            scene.__character.y + scene.__hitbox_y_offset,
+        scene.__hitbox = scene.add.rectangle(0, 0,
             6*CHARACTER_SPRITE_SIZE,20*CHARACTER_SPRITE_SIZE,0x00ff00, 0.0);
 
-        scene.__solidbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
-        scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
-        scene.__solidbox = scene.add.rectangle(scene.__character.x + scene.__solidbox_x_offset,
-            scene.__character.y + scene.__solidbox_y_offset,
+        //scene.__solidbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        //scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
+        scene.__solidbox = scene.add.rectangle(SCREEN_WIDTH/2 + 3*SPRITE_SCALE,
+            SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
             6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.0);
-
         scene.physics.add.existing(scene.__solidbox);
+
+
+        scene.__effect_x_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__effect_y_offset = -6*CHARACTER_SPRITE_SIZE;
+        scene.__effect = scene.add.sprite(0, 0, 'slash', 5)
+            .setScale(2);
+
+        scene.__align_player_group = function () {
+            let center_x = scene.__solidbox.body.x + scene.__solidbox.width / 2;
+            let center_y = scene.__solidbox.body.y + scene.__solidbox.height / 2;
+
+            scene.__character.x = center_x + scene.__character_x_offset;
+            scene.__character.y =  center_y + scene.__character_y_offset;
+            scene.__gun.x = center_x + scene.__gun_x_offset;
+            scene.__gun.y =  center_y + scene.__gun_y_offset;
+            scene.__hitbox.x = center_x + scene.__hitbox_x_offset;
+            scene.__hitbox.y =  center_y + scene.__hitbox_y_offset;
+            scene.__effect.x =  center_x + scene.__effect_x_offset;
+            scene.__effect.y =  center_y + scene.__effect_y_offset;
+        };
+        scene.__align_player_group();
 
         scene.input.addPointer(5);
         //scene.input.setPollAlways();
@@ -142,6 +176,11 @@ let GameScene = new Phaser.Class({
             scene.__gun.setFlipY(dx < 0);
             scene.__character.setFlipX(dx < 0);
             scene.__gun.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
+            scene.__effect.setFlipY(dx < 0);
+            scene.__effect.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
+        });
+        scene.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer) {
+            scene.__effect.play('slash_effect');
         });
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
@@ -163,6 +202,19 @@ let GameScene = new Phaser.Class({
 
         scene.physics.add.collider(scene.__solidbox, platforms);
 
+        scene.__align_player_group = function () {
+            let center_x = scene.__solidbox.body.x + scene.__solidbox.width / 2;
+            let center_y = scene.__solidbox.body.y + scene.__solidbox.height / 2;
+
+            scene.__character.x = center_x + scene.__character_x_offset;
+            scene.__character.y =  center_y + scene.__character_y_offset;
+            scene.__gun.x = center_x + scene.__gun_x_offset;
+            scene.__gun.y =  center_y + scene.__gun_y_offset;
+            scene.__hitbox.x = center_x + scene.__hitbox_x_offset;
+            scene.__hitbox.y =  center_y + scene.__hitbox_y_offset;
+            scene.__effect.x =  center_x + scene.__effect_x_offset;
+            scene.__effect.y =  center_y + scene.__effect_y_offset;
+        }
 
         /*
         let platforms = scene.physics.add.staticGroup();
@@ -222,22 +274,7 @@ let GameScene = new Phaser.Class({
             scene.__character.setFlipX(false);
         }*/
         scene.__solidbox.body.setVelocity(dx,dy);
-        let center_x = scene.__solidbox.body.x + scene.__solidbox.width / 2;
-        let center_y = scene.__solidbox.body.y + scene.__solidbox.height / 2;
-        /*
-        scene.__solidbox.x += dx;
-        scene.__solidbox.y += dy;
-        */
-        scene.__character.x = center_x + scene.__character_x_offset;
-        scene.__character.y =  center_y + scene.__character_y_offset;
-        scene.__gun.x = center_x + scene.__gun_x_offset;
-        scene.__gun.y =  center_y + scene.__gun_y_offset;
-        scene.__hitbox.x = center_x + scene.__hitbox_x_offset;
-        scene.__hitbox.y =  center_y + scene.__hitbox_y_offset;
-        /*
-        scene.__solidbox.x = scene.__solidbox.x + scene.__solidbox_x_offset;
-        scene.__solidbox.y = scene.__solidbox.y + scene.__solidbox_y_offset;
-        */
+        scene.__align_player_group()
     },
 });
 
