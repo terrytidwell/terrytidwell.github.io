@@ -29,7 +29,8 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('slash', 'assets/slash.png',
             { frameWidth: 64, frameHeight: 64 });
-
+        this.load.spritesheet('slime_medium', 'assets/Slime_Medium_Blue.png',
+            { frameWidth: 32, frameHeight: 32 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -73,6 +74,31 @@ let LoadScene = new Phaser.Class({
             frameRate: 12,
             repeat: 0
         });
+
+        scene.anims.create({
+            key: 'slime_medium_move',
+            frames: [
+                { key: 'slime_medium', frame: 0 },
+                { key: 'slime_medium', frame: 1 },
+                { key: 'slime_medium', frame: 2 },
+                { key: 'slime_medium', frame: 3 },
+                { key: 'slime_medium', frame: 4 },
+                { key: 'slime_medium', frame: 5 },
+                { key: 'slime_medium', frame: 6 },
+                { key: 'slime_medium', frame: 7 },
+                { key: 'slime_medium', frame: 8 },
+                { key: 'slime_medium', frame: 9 },
+                { key: 'slime_medium', frame: 10 },
+                { key: 'slime_medium', frame: 11 },
+                { key: 'slime_medium', frame: 12 },
+                { key: 'slime_medium', frame: 13 },
+                { key: 'slime_medium', frame: 14 },
+                { key: 'slime_medium', frame: 15 }
+            ],
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeat: -1
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -96,6 +122,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+        let CHARACTER_SPRITE_SIZE = 3;
 
         let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
@@ -104,15 +131,25 @@ let GameScene = new Phaser.Class({
 
         let platforms = scene.physics.add.staticGroup();
         for (let n = 0; n < 15; n++) {
-            let x = Phaser.Math.Between(0,15);
-            let y = Phaser.Math.Between(0,9);
-            let obstacle = scene.add.sprite((x) * GRID_SIZE, (y-0.5) * GRID_SIZE, 'crate')
+            let x = Phaser.Math.Between(0, 15);
+            let y = Phaser.Math.Between(0, 9);
+            let obstacle = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'crate')
                 .setOrigin(0)
                 .setScale(4);
             platforms.add(obstacle);
         }
+        for (let n = 0; n < 3; n++) {
+            let x = Phaser.Math.Between(0,15);
+            let y = Phaser.Math.Between(0,9);
+            let enemy = scene.add.sprite((x) * GRID_SIZE, (y-0.5) * GRID_SIZE, 'slime_medium',0)
+                .setOrigin(0)
+                .setScale(CHARACTER_SPRITE_SIZE);
+            enemy.play('slime_medium_move');
+        }
 
-        let CHARACTER_SPRITE_SIZE = 3;
+
+
+
         scene.__character_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__character_y_offset = -13*CHARACTER_SPRITE_SIZE;
         scene.__character = scene.add.sprite(0,0,
