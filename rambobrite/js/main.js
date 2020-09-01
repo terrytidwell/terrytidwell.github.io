@@ -204,7 +204,9 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
-        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
+        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("ONE");
+        scene.__cursor_keys.letter_two = scene.input.keyboard.addKey("TWO");
+        scene.__cursor_keys.letter_three = scene.input.keyboard.addKey("THREE");
 
         scene.__moving = false;
 
@@ -214,9 +216,18 @@ let GameScene = new Phaser.Class({
         scene.physics.add.collider(scene.__solidbox, platforms);
 
         scene.__character_color = 0;
-        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP, function() {
-            scene.__character_color = (scene.__character_color + 1) % 3;
+        let set_color = function(color) {
+            scene.__character_color = color;
             scene.__character.setTexture('hero', scene.__character_color);
+        }
+        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP, function() {
+            set_color(0)
+        });
+        scene.__cursor_keys.letter_two.on(Phaser.Input.Keyboard.Events.UP, function() {
+            set_color(1)
+        });
+        scene.__cursor_keys.letter_three.on(Phaser.Input.Keyboard.Events.UP, function() {
+            set_color(2)
         });
         /*
         let platforms = scene.physics.add.staticGroup();
