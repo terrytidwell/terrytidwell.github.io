@@ -192,12 +192,7 @@ let GameScene = new Phaser.Class({
             scene.cameras.main.shake(50, 0.005, true);
         };
 
-        scene.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer) {
-            scene.__fire_down = true; }
-        );
-        scene.input.on(Phaser.Input.Events.POINTER_UP, function(pointer) {
-            scene.__fire_down = false; }
-        );
+
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
@@ -217,6 +212,7 @@ let GameScene = new Phaser.Class({
 
         scene.__character_color = 0;
         let set_color = function(color) {
+            color = color % 3;
             scene.__character_color = color;
             scene.__character.setTexture('hero', scene.__character_color);
         }
@@ -229,6 +225,14 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_three.on(Phaser.Input.Keyboard.Events.UP, function() {
             set_color(2)
         });
+        scene.input.on(Phaser.Input.Events.POINTER_WHEEL, function(pointer, objects, dx, dy) {
+            console.log(dx + ' ' + dy);
+            if (dy > 0) {
+                set_color(scene.__character_color + 1);
+            } if (dy < 0 ) {
+                set_color( scene.__character_color + 2);
+            }}
+        );
         /*
         let platforms = scene.physics.add.staticGroup();
         let overlaps = scene.physics.add.staticGroup();
@@ -288,7 +292,7 @@ let GameScene = new Phaser.Class({
         }*/
         scene.__solidbox.body.setVelocity(dx,dy);
         scene.__align_player_group();
-        if (scene.__fire_down) {
+        if (scene.input.activePointer.leftButtonDown()) {
             scene.__generate_bullet();
         }
     },
