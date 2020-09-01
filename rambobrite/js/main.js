@@ -2,6 +2,14 @@ const GRID_SIZE = 64;
 const SPRITE_SCALE = 2;
 const SCREEN_WIDTH = 8 * GRID_SIZE; //512
 const SCREEN_HEIGHT = 8 * GRID_SIZE; //512
+const DEPTHS = {
+    BG: 0,
+    FLOOR: 10000,
+    MOBS: 20000,
+    WALLS: 30000,
+    CHAR: 40000,
+    FG: 50000
+};
 
 let LoadScene = new Phaser.Class({
 
@@ -29,6 +37,8 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('hero', 'assets/RGB.png',
             { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('small_blob', 'assets/small_blob.png',
+            { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('slash', 'assets/slash.png',
             { frameWidth: 64, frameHeight: 64 });
         this.load.spritesheet('slime_medium', 'assets/Slime_Medium_Blue.png',
@@ -113,21 +123,60 @@ let GameScene = new Phaser.Class({
         let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
             .setAltFillStyle(0xC0C0C0)
-            .setOutlineStyle();
+            .setOutlineStyle()
+            .setDepth(DEPTHS.BG);
 
         let platforms = scene.physics.add.staticGroup();
+        let shootables = scene.physics.add.group();
+        scene.__updateables = scene.physics.add.group();
         for (let n = 0; n < 15; n++) {
             let x = Phaser.Math.Between(0, 8);
             let y = Phaser.Math.Between(0, 8);
             let obstacle = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'crate')
                 .setOrigin(0)
-                .setScale(4);
+                .setScale(4)
+                .setDepth(DEPTHS.FLOOR);
             platforms.add(obstacle);
         }
 
+        let create_small_blob = function(scene) {
+            let x = Phaser.Math.Between(0, 8);
+            let y = Phaser.Math.Between(0, 8);
+            let color = Phaser.Math.Between(0, 2);
+            let small_blob = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'small_blob', color)
+                .setOrigin(0)
+                .setScale(CHARACTER_SPRITE_SIZE*2)
+                .setDepth(DEPTHS.MOBS);
+            small_blob.setData('color',color);
+            shootables.add(small_blob);
+            small_blob.setData('onShot', function(bullet) {
+                if (bullet.data.values.color === small_blob.data.values.color)
+                {
+                    small_blob.destroy();
+                }
+            });
+            scene.__updateables.add(small_blob);
+            small_blob.setData('update', function() {
+                let target_x = scene.__character.x;
+                let target_y = scene.__character.y;
+                let dx = target_x - small_blob.x;
+                let dy = target_y - small_blob.y;
+                let d = Math.sqrt(dx * dx + dy * dy);
+                dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
+                dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
+                small_blob.body.setVelocity(dx,dy);
+            });
+            //small_blob.body.setVelocity(x,y);
+        };
+        for (let n = 0; n < 8; n++) {
+            create_small_blob(scene);
+        }
+
+
         scene.__character = scene.add.sprite(0,0,
             'hero', 0)
-            .setScale(CHARACTER_SPRITE_SIZE);
+            .setScale(CHARACTER_SPRITE_SIZE)
+            .setDepth(DEPTHS.CHAR);
 
         scene.__hitbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__hitbox_y_offset = 0*CHARACTER_SPRITE_SIZE;
@@ -180,10 +229,17 @@ let GameScene = new Phaser.Class({
             mouse_vector.y = 0;
             mouse_vector.rotate(Phaser.Math.DegToRad(scene.__character.angle));
             let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
-                2, 2, 0x000000);
+                2, 2, 0x000000)
+                .setDepth(DEPTHS.MOBS);
+            bullet.setData('color',scene.__character_color);
             scene.physics.add.existing(bullet);
             bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
-            scene.physics.add.overlap(bullet, platforms,function() {
+            scene.physics.add.overlap(bullet, platforms, function(bullet, platform) {
+                bullet.destroy();
+                //platform.destroy();
+            });
+            scene.physics.add.overlap(bullet, shootables, function(bullet, shootable) {
+                shootable.data.values.onShot(bullet);
                 bullet.destroy();
             });
             scene.time.delayedCall(1000, function() {
@@ -191,8 +247,6 @@ let GameScene = new Phaser.Class({
             });
             scene.cameras.main.shake(50, 0.005, true);
         };
-
-
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
@@ -209,13 +263,15 @@ let GameScene = new Phaser.Class({
         scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
         scene.physics.add.collider(scene.__solidbox, platforms);
+        scene.physics.add.collider(shootables, platforms);
 
         scene.__character_color = 0;
         let set_color = function(color) {
             color = color % 3;
             scene.__character_color = color;
             scene.__character.setTexture('hero', scene.__character_color);
-        }
+        };
+        set_color(0);
         scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP, function() {
             set_color(0)
         });
@@ -295,6 +351,10 @@ let GameScene = new Phaser.Class({
         if (scene.input.activePointer.leftButtonDown()) {
             scene.__generate_bullet();
         }
+
+        scene.__updateables.children.each(function(updatable) {
+            updatable.data.values.update();
+        }, this);
     },
 });
 
