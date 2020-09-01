@@ -164,9 +164,40 @@ let GameScene = new Phaser.Class({
             //scene.__character.setFlipX(dx < 0);
             scene.__character.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
+
+        let allow_fire = true;
+        scene.__generate_bullet = function(pointer) {
+            if (!allow_fire) {
+                return;
+            }
+            allow_fire = false;
+            scene.time.delayedCall(100, function () {
+                allow_fire = true;
+            });
+            let x = scene.__character.x;
+            let y = scene.__character.y;
+            mouse_vector.x = GRID_SIZE/4;
+            mouse_vector.y = 0;
+            mouse_vector.rotate(Phaser.Math.DegToRad(scene.__character.angle));
+            let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
+                2, 2, 0x000000);
+            scene.physics.add.existing(bullet);
+            bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
+            scene.physics.add.overlap(bullet, platforms,function() {
+                bullet.destroy();
+            });
+            scene.time.delayedCall(1000, function() {
+                bullet.destroy();
+            });
+            scene.cameras.main.shake(50, 0.005, true);
+        };
+
         scene.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer) {
-            //scene.__effect.play('slash_effect');
-        });
+            scene.__fire_down = true; }
+        );
+        scene.input.on(Phaser.Input.Events.POINTER_UP, function(pointer) {
+            scene.__fire_down = false; }
+        );
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
@@ -245,7 +276,10 @@ let GameScene = new Phaser.Class({
             scene.__character.setFlipX(false);
         }*/
         scene.__solidbox.body.setVelocity(dx,dy);
-        scene.__align_player_group()
+        scene.__align_player_group();
+        if (scene.__fire_down) {
+            scene.__generate_bullet();
+        }
     },
 });
 
