@@ -287,7 +287,9 @@ let GameScene = new Phaser.Class({
             scene.physics.add.existing(casing);
             scene.physics.add.collider(casing, platforms);
             mouse_vector.normalizeRightHand();
-            let percent = Phaser.Math.Between(50,100);
+            let percent = Phaser.Math.Between(-40,0);
+            mouse_vector.rotate(percent/100)
+            percent = Phaser.Math.Between(50,100);
             casing.body.setVelocity(
                 mouse_vector.x * GRID_SIZE/16 * percent/100,
                 mouse_vector.y * GRID_SIZE/16 * percent/100);
@@ -297,7 +299,7 @@ let GameScene = new Phaser.Class({
                 y: 0,
                 duration: 1000
             });
-            percent = Phaser.Math.Between(160,200)
+            percent = Phaser.Math.Between(160,200);
             let target_angle = scene.__character.angle + percent;
             scene.tweens.add({
                 targets: casing,
