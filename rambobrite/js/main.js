@@ -10,6 +10,13 @@ const DEPTHS = {
     CHAR: 40000,
     FG: 50000
 };
+const COLORS = {
+    RED: 0,
+    GREEN: 1,
+    BLUE: 2,
+    random: function() { return Phaser.Math.Between(0, 2); },
+    color: function(color) { return [0x800000, 0x008000, 0x000080][color]; },
+};
 
 let LoadScene = new Phaser.Class({
 
@@ -128,6 +135,7 @@ let GameScene = new Phaser.Class({
 
         let platforms = scene.physics.add.staticGroup();
         let shootables = scene.physics.add.group();
+        let mobs = scene.physics.add.group();
         scene.__updateables = scene.physics.add.group();
         for (let n = 0; n < 15; n++) {
             let x = Phaser.Math.Between(0, 8);
@@ -142,16 +150,34 @@ let GameScene = new Phaser.Class({
         let create_small_blob = function(scene) {
             let x = Phaser.Math.Between(0, 8);
             let y = Phaser.Math.Between(0, 8);
-            let color = Phaser.Math.Between(0, 2);
+            let color = COLORS.random();
             let small_blob = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'small_blob', color)
                 .setOrigin(0)
                 .setScale(CHARACTER_SPRITE_SIZE*2)
                 .setDepth(DEPTHS.MOBS);
             small_blob.setData('color',color);
             shootables.add(small_blob);
+            mobs.add(small_blob);
             small_blob.setData('onShot', function(bullet) {
                 if (bullet.data.values.color === small_blob.data.values.color)
                 {
+                    let radius = 4 * CHARACTER_SPRITE_SIZE * 2;
+                    let circle = new Phaser.Geom.Circle(
+                        small_blob.x + radius,
+                        small_blob.y + radius,
+                        radius)
+                    for (let n = 0; n < 15; n++)
+                    {
+                        let point = circle.getRandomPoint();
+                        let splatter = scene.add.circle(point.x, point.y, radius/4,
+                            COLORS.color(small_blob.data.values.color))
+                            .setDepth(DEPTHS.FLOOR);
+                        scene.tweens.add({
+                            targets: splatter,
+                            radius: radius,
+                            alpha : 0
+                        });
+                    }
                     small_blob.destroy();
                 }
             });
@@ -246,6 +272,35 @@ let GameScene = new Phaser.Class({
                 bullet.destroy();
             });
             scene.cameras.main.shake(50, 0.005, true);
+            let casing = scene.add.rectangle(
+                x + mouse_vector.x,
+                y + mouse_vector.y, 4, 2,
+                COLORS.color(scene.__character_color))
+                .setDepth(DEPTHS.FLOOR)
+                .setAngle(scene.__character.angle);
+            scene.physics.add.existing(casing);
+            scene.physics.add.collider(casing, platforms);
+            mouse_vector.normalizeRightHand();
+            let percent = Phaser.Math.Between(50,100);
+            casing.body.setVelocity(
+                mouse_vector.x * GRID_SIZE/16 * percent/100,
+                mouse_vector.y * GRID_SIZE/16 * percent/100);
+            scene.tweens.add({
+                targets: casing.body.velocity,
+                x: 0,
+                y: 0,
+                duration: 1000
+            });
+            percent = Phaser.Math.Between(160,200)
+            let target_angle = scene.__character.angle + percent;
+            scene.tweens.add({
+                targets: casing,
+                angle: target_angle,
+                duration: 1000
+            })
+            scene.time.delayedCall(10000, function() {
+                casing.destroy();
+            })
         };
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
@@ -264,6 +319,7 @@ let GameScene = new Phaser.Class({
 
         scene.physics.add.collider(scene.__solidbox, platforms);
         scene.physics.add.collider(shootables, platforms);
+        scene.physics.add.collider(mobs, mobs);
 
         scene.__character_color = 0;
         let set_color = function(color) {
