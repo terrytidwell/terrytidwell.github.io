@@ -143,7 +143,7 @@ let GameScene = new Phaser.Class({
             let obstacle = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'crate')
                 .setOrigin(0)
                 .setScale(4)
-                .setDepth(DEPTHS.FLOOR);
+                .setDepth(DEPTHS.WALLS);
             platforms.add(obstacle);
         }
 
@@ -172,11 +172,17 @@ let GameScene = new Phaser.Class({
                         let splatter = scene.add.circle(point.x, point.y, radius/4,
                             COLORS.color(small_blob.data.values.color))
                             .setDepth(DEPTHS.FLOOR);
+                        scene.physics.add.existing(splatter);
                         scene.tweens.add({
                             targets: splatter,
-                            radius: radius,
-                            alpha : 0
+                            radius: radius/4,
+                            alpha : 0,
+                            onComplete : function() {
+                                splatter.destroy();
+                            }
                         });
+                        splatter.body.setVelocity(bullet.body.velocity.x / GRID_SIZE,
+                            bullet.body.velocity.y / GRID_SIZE);
                     }
                     small_blob.destroy();
                 }
