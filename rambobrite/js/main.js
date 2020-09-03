@@ -15,7 +15,7 @@ const COLORS = {
     GREEN: 1,
     BLUE: 2,
     random: function() { return Phaser.Math.Between(0, 2); },
-    color: function(color) { return [0x800000, 0x008000, 0x000080][color]; },
+    color: function(color) { return [0xff0000, 0x00ff00, 0x0000ff][color]; },
 };
 
 let LoadScene = new Phaser.Class({
