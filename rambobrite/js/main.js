@@ -148,10 +148,13 @@ let GameScene = new Phaser.Class({
         }
 
         let create_small_blob = function(scene) {
-            let x = Phaser.Math.Between(0, 8);
-            let y = Phaser.Math.Between(0, 8);
+            let orientation = Phaser.Math.Between(0,1);
+            let x = [Phaser.Math.Between(-.5 * SCREEN_WIDTH, 1.5*SCREEN_WIDTH),
+                [-.5 * SCREEN_WIDTH, 1.5 * SCREEN_WIDTH][Phaser.Math.Between(0, 1)]][orientation];
+            let y = [[-.5 * SCREEN_HEIGHT, 1.5 * SCREEN_HEIGHT][Phaser.Math.Between(0, 1)],
+                Phaser.Math.Between(-.5 * SCREEN_HEIGHT, 1.5*SCREEN_HEIGHT)][orientation];
             let color = COLORS.random();
-            let small_blob = scene.add.sprite((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE, 'small_blob', color)
+            let small_blob = scene.add.sprite(x, y, 'small_blob', color)
                 .setOrigin(0)
                 .setScale(CHARACTER_SPRITE_SIZE*2)
                 .setDepth(DEPTHS.MOBS);
@@ -194,11 +197,11 @@ let GameScene = new Phaser.Class({
                 let dx = target_x - small_blob.x;
                 let dy = target_y - small_blob.y;
                 let d = Math.sqrt(dx * dx + dy * dy);
-                dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
-                dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
+                dx = dx / d * GRID_SIZE/SPRITE_SCALE * 2;
+                dy = dy / d * GRID_SIZE/SPRITE_SCALE * 2;
                 small_blob.body.setVelocity(dx,dy);
             });
-            //small_blob.body.setVelocity(x,y);
+            small_blob.body.setVelocity(x,y);
         };
         for (let n = 0; n < 8; n++) {
             create_small_blob(scene);
