@@ -37,19 +37,11 @@ let LoadScene = new Phaser.Class({
             .setOrigin(0.5, 0.5);
 
 
-        this.load.image('assault_rifle', 'assets/assault_rifle.png');
-        this.load.image('shotgun', 'assets/shotgun.png');
         this.load.image('crate', 'assets/Crate.png');
-        this.load.spritesheet('old_hero', 'assets/Adventurer Female Sprite Sheet.png',
-            { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('hero', 'assets/RGB.png',
             { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('small_blob', 'assets/small_blob.png',
             { frameWidth: 8, frameHeight: 8 });
-        this.load.spritesheet('slash', 'assets/slash.png',
-            { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('slime_medium', 'assets/Slime_Medium_Blue.png',
-            { frameWidth: 32, frameHeight: 32 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -76,31 +68,6 @@ let LoadScene = new Phaser.Class({
             skipMissedFrames: false,
             frameRate: 12,
             repeat: 0
-        });
-
-        scene.anims.create({
-            key: 'slime_medium_move',
-            frames: [
-                { key: 'slime_medium', frame: 0 },
-                { key: 'slime_medium', frame: 1 },
-                { key: 'slime_medium', frame: 2 },
-                { key: 'slime_medium', frame: 3 },
-                { key: 'slime_medium', frame: 4 },
-                { key: 'slime_medium', frame: 5 },
-                { key: 'slime_medium', frame: 6 },
-                { key: 'slime_medium', frame: 7 },
-                { key: 'slime_medium', frame: 8 },
-                { key: 'slime_medium', frame: 9 },
-                { key: 'slime_medium', frame: 10 },
-                { key: 'slime_medium', frame: 11 },
-                { key: 'slime_medium', frame: 12 },
-                { key: 'slime_medium', frame: 13 },
-                { key: 'slime_medium', frame: 14 },
-                { key: 'slime_medium', frame: 15 }
-            ],
-            skipMissedFrames: false,
-            frameRate: 12,
-            repeat: -1
         });
     },
 
@@ -133,9 +100,14 @@ let GameScene = new Phaser.Class({
             .setOutlineStyle()
             .setDepth(DEPTHS.BG);
 
+        //unmoving object that block mobs and players
         let platforms = scene.physics.add.staticGroup();
+        //things that react to shooting; must implement 'onShot'
         let shootables = scene.physics.add.group();
+        //used to force collision among mobs
         let mobs = scene.physics.add.group();
+        //things that react to touch; must implement 'onTouch'
+        let touchable = scene.physics.add.group();
         scene.__updateables = scene.physics.add.group();
         for (let n = 0; n < 15; n++) {
             let x = Phaser.Math.Between(0, 8);
@@ -161,35 +133,45 @@ let GameScene = new Phaser.Class({
             small_blob.setData('color',color);
             shootables.add(small_blob);
             mobs.add(small_blob);
+            small_blob.setData('destroy', function(vx,vy) {
+                let radius = 4 * CHARACTER_SPRITE_SIZE * 2;
+                let circle = new Phaser.Geom.Circle(
+                    small_blob.x + radius,
+                    small_blob.y + radius,
+                    radius)
+                for (let n = 0; n < 15; n++)
+                {
+                    let point = circle.getRandomPoint();
+                    let splatter = scene.add.circle(point.x, point.y, radius/4,
+                        COLORS.color(small_blob.data.values.color))
+                        .setDepth(DEPTHS.FLOOR);
+                    scene.physics.add.existing(splatter);
+                    scene.tweens.add({
+                        targets: splatter,
+                        radius: radius/4,
+                        alpha : 0,
+                        onComplete : function() {
+                            splatter.destroy();
+                        }
+                    });
+                    splatter.body.setVelocity(vx, vy);
+                }
+                small_blob.destroy();
+            });
             small_blob.setData('onShot', function(bullet) {
                 if (bullet.data.values.color === small_blob.data.values.color)
                 {
-                    let radius = 4 * CHARACTER_SPRITE_SIZE * 2;
-                    let circle = new Phaser.Geom.Circle(
-                        small_blob.x + radius,
-                        small_blob.y + radius,
-                        radius)
-                    for (let n = 0; n < 15; n++)
-                    {
-                        let point = circle.getRandomPoint();
-                        let splatter = scene.add.circle(point.x, point.y, radius/4,
-                            COLORS.color(small_blob.data.values.color))
-                            .setDepth(DEPTHS.FLOOR);
-                        scene.physics.add.existing(splatter);
-                        scene.tweens.add({
-                            targets: splatter,
-                            radius: radius/4,
-                            alpha : 0,
-                            onComplete : function() {
-                                splatter.destroy();
-                            }
-                        });
-                        splatter.body.setVelocity(bullet.body.velocity.x / GRID_SIZE,
-                            bullet.body.velocity.y / GRID_SIZE);
-                    }
-                    small_blob.destroy();
+                    small_blob.data.values.destroy(bullet.body.velocity.x / GRID_SIZE,
+                        bullet.body.velocity.y / GRID_SIZE);
                 }
             });
+            small_blob.setData('onTouch', function(bullet) {
+                let target_x = scene.__character.x;
+                let target_y = scene.__character.y;
+                let dx = target_x - small_blob.x;
+                let dy = target_y - small_blob.y;
+
+            })
             scene.__updateables.add(small_blob);
             small_blob.setData('update', function() {
                 let target_x = scene.__character.x;
