@@ -107,7 +107,7 @@ let GameScene = new Phaser.Class({
         //used to force collision among mobs
         let mobs = scene.physics.add.group();
         //things that react to touch; must implement 'onTouch'
-        let touchable = scene.physics.add.group();
+        let touchables = scene.physics.add.group();
         scene.__updateables = scene.physics.add.group();
         for (let n = 0; n < 15; n++) {
             let x = Phaser.Math.Between(0, 8);
@@ -165,13 +165,17 @@ let GameScene = new Phaser.Class({
                         bullet.body.velocity.y / GRID_SIZE);
                 }
             });
+            touchables.add(small_blob);
             small_blob.setData('onTouch', function(bullet) {
                 let target_x = scene.__character.x;
                 let target_y = scene.__character.y;
                 let dx = target_x - small_blob.x;
                 let dy = target_y - small_blob.y;
-
-            })
+                let d = Math.sqrt(dx * dx + dy * dy);
+                dx = dx / d * GRID_SIZE/4;
+                dy = dy / d * GRID_SIZE/4;
+                small_blob.data.values.destroy(-dx, -dy);
+            });
             scene.__updateables.add(small_blob);
             small_blob.setData('update', function() {
                 let target_x = scene.__character.x;
@@ -311,6 +315,9 @@ let GameScene = new Phaser.Class({
         scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
         scene.physics.add.collider(scene.__solidbox, platforms);
+        scene.physics.add.collider(scene.__solidbox, touchables, function(player, touchable) {
+            touchable.data.values.onTouch();
+        });
         scene.physics.add.collider(shootables, platforms);
         scene.physics.add.collider(mobs, mobs);
 
