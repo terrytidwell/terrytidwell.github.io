@@ -74,6 +74,8 @@ let GameScene = new Phaser.Class({
         let prepare_empty_grid = function() {
 
             scene.add.sprite(xPixel(-0.55), yPixel(2), 'tiles',0).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-0.75), yPixel(8), 'tiles',6).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1.2), yPixel(-.75), 'tiles',6).setDepth(DEPTHS.BG);
             scene.add.sprite(xPixel(-1), yPixel(4), 'tiles',0).setDepth(DEPTHS.BG);
             scene.add.sprite(xPixel(-0.75), yPixel(5.25), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
             scene.add.sprite(xPixel(-1.35), yPixel(5.6), 'tiles',0).setFlipX(false).setDepth(DEPTHS.BG);
