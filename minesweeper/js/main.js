@@ -64,11 +64,11 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
 
         let xPixel = function(x) {
-            return x * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE;
+            return Math.round(x * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
         };
 
         let yPixel = function(y) {
-            return y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE;
+            return Math.round(y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
         };
 
         let prepare_empty_grid = function() {
