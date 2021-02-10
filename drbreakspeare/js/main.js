@@ -80,7 +80,7 @@ let LoadScene = new Phaser.Class({
             ],
             skipMissedFrames: false,
             frameRate: 12,
-            repeat: -1
+            repeat: 0
         });
     },
 
@@ -145,7 +145,9 @@ let GameScene = new Phaser.Class({
         scene.input.addPointer(5);
         //scene.input.setPollAlways();
 
+        /*
         let mouse_vector = new Phaser.Math.Vector2(0, 0);
+
         scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
             let dx = pointer.worldX - scene.__gun.x;
             let dy = pointer.worldY - scene.__gun.y;
@@ -156,6 +158,7 @@ let GameScene = new Phaser.Class({
             mouse_vector.y = dy;
             scene.__character.setFlipX(dx < 0);
         });
+         */
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
@@ -165,6 +168,7 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
 
         scene.__moving = false;
+        scene.__hitting = false;
 
         scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
         scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
@@ -185,6 +189,24 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
+
+        if (scene.__hitting) {
+            return;
+        }
+
+        if (scene.__cursor_keys.letter_one.isDown) {
+            scene.__solidbox.body.setVelocity(0,0);
+            scene.__character.anims.stop();
+            scene.__character.play('hero_attack');
+            scene.__hitting = true;
+            scene.__moving = false;
+            scene.time.delayedCall(500, function () {
+                scene.__hitting = false;
+                scene.__character.anims.stop();
+                scene.__character.play('hero_idle');
+            });
+            return;
+        }
 
         let dx = 0;
         let dy = 0;
@@ -211,6 +233,8 @@ let GameScene = new Phaser.Class({
             dx = dx / d * v;
             dy = dy / d * v;
         }
+
+
 
         let moving = false;
         if (dx !== 0 || dy !== 0) {
