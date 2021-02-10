@@ -112,8 +112,11 @@ let GameScene = new Phaser.Class({
             .setAltFillStyle(0xC0C0C0)
             .setOutlineStyle();
 
+        scene.__shadow = scene.add.ellipse(0,0,
+            12*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0x000000, 0.5);
+
         scene.__character_x_offset = 0*CHARACTER_SPRITE_SIZE;
-        scene.__character_y_offset = 0*CHARACTER_SPRITE_SIZE;
+        scene.__character_y_offset = -16*CHARACTER_SPRITE_SIZE;
         scene.__character = scene.add.sprite(0,0,
             'hero', 0)
             .setScale(CHARACTER_SPRITE_SIZE);
@@ -125,10 +128,10 @@ let GameScene = new Phaser.Class({
 
         //scene.__solidbox_x_offset = 0*CHARACTER_SPRITE_SIZE;
         //scene.__solidbox_y_offset = 13*CHARACTER_SPRITE_SIZE;
-        scene.__solidbox = scene.add.rectangle(SCREEN_WIDTH/2 + 3*SPRITE_SCALE,
-            SCREEN_HEIGHT/2 - 9*SPRITE_SCALE,
-            6*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.0);
+        scene.__solidbox = scene.add.rectangle(0,0,
+            12*CHARACTER_SPRITE_SIZE,4*CHARACTER_SPRITE_SIZE,0xff0000, 0.0);
         scene.physics.add.existing(scene.__solidbox);
+
 
 
         scene.__align_player_group = function () {
@@ -137,6 +140,8 @@ let GameScene = new Phaser.Class({
 
             scene.__character.x = center_x + scene.__character_x_offset;
             scene.__character.y =  center_y + scene.__character_y_offset;
+            scene.__shadow.x = center_x;
+            scene.__shadow.y =  center_y;
             scene.__hitbox.x = center_x + scene.__hitbox_x_offset;
             scene.__hitbox.y =  center_y + scene.__hitbox_y_offset;
         };
