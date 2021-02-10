@@ -59,6 +59,11 @@ let GameScene = new Phaser.Class({
         //do/undo log
         let events = [];
 
+        let current_x = 3;
+        let current_y = 0;
+        let player_pic = null;
+        let player_text = null;
+
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
@@ -69,6 +74,26 @@ let GameScene = new Phaser.Class({
 
         let yPixel = function(y) {
             return Math.round(y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
+        };
+
+        let set_player_location = function(x, y) {
+            current_x = x;
+            current_y = y;
+            player_pic.x = xPixel(current_x);
+            player_pic.y = yPixel(current_y - 0.5);
+            player_text.x = xPixel(current_x);
+            player_text.y = yPixel(current_y + 0.5);
+            let sum = 0;
+            for(let dx = -1; dx <= 1; dx++) {
+                for(let dy = -1; dy <= 1; dy++) {
+                    if (current_x + dx >= 0 && current_x + dx < SCREEN_COLUMNS &&
+                        current_y + dy >= 0 && current_y + dy < SCREEN_ROWS &&
+                        grid_squares[current_x+dx][current_y+dy].data.values.hidden_ship) {
+                        sum++
+                    }
+                }
+            }
+            player_text.text = '' + sum + '';
         };
 
         let prepare_empty_grid = function() {
@@ -106,6 +131,13 @@ let GameScene = new Phaser.Class({
                     square.setData('y', y);
                     square.setData('locked', false);
                     square.setData('hidden_ship', false);
+                    if (Phaser.Math.Between(0,100) < 14) {
+                        square.setData('hidden_ship', true);
+                    }
+                    if ( (y === 0 || y === 1) && (x === 2 || x === 3 || x === 4))
+                    {
+                        square.setData('hidden_ship', false);
+                    }
                     //square.setData('shapes', create_shape(x, y));
 
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
@@ -121,18 +153,34 @@ let GameScene = new Phaser.Class({
                         square.setFillStyle(0x000000, 0);
                     });
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
-                        //do_square(square);
+                        if (Phaser.Math.Distance.Snake(
+                            current_x, current_y,
+                            square.data.values.x, square.data.values.y) == 1) {
+                            if (square.data.values.hidden_ship) {
+                                set_player_location(3, 0)
+                            } else {
+                                set_player_location(square.data.values.x, square.data.values.y);
+                            }
+                        }
                     });
                 }
             }
 
             for (let x = 0 - BUFFER; x < SCREEN_COLUMNS + BUFFER; x++) {
                 let tile = 1;
+                let flipX = true;
                 if (x === Math.floor(SCREEN_COLUMNS/2)) {
                     tile = 3;
+                } else if (Phaser.Math.Between(0,100) < 25) {
+                    tile = 2;
                 }
-                scene.add.sprite(xPixel(x), yPixel(-1.9), 'tiles', tile).setDepth(DEPTHS.GRID);
-                scene.add.sprite(xPixel(x), yPixel(SCREEN_ROWS-1), 'tiles', tile).setDepth(DEPTHS.GRID);;
+                if (Phaser.Math.Between(0,100) < 50) {
+                    flipX = false;
+                }
+                scene.add.sprite(xPixel(x), yPixel(-1.9), 'tiles', tile)
+                    .setDepth(DEPTHS.GRID).setFlipX(flipX);
+                scene.add.sprite(xPixel(x), yPixel(SCREEN_ROWS-1), 'tiles', tile)
+                    .setDepth(DEPTHS.GRID).setFlipX(flipX);
             }
 
             let particles = scene.add.particles('tiles',5);
@@ -186,6 +234,17 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
 
         prepare_empty_grid();
+
+        player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0);
+        player_text = scene.add.text(
+            xPixel(current_x),
+            yPixel(current_y + 0.5),
+            '' + 0 + '',
+            {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+            .setOrigin(1, 1);
+
+
+        set_player_location(3, 0);
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
@@ -273,6 +332,7 @@ let LoadScene = new Phaser.Class({
             scene.scene.stop('LoadScene');
         });
         scene.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 64, frameHeight: 160});
+        scene.load.spritesheet('guy', 'assets/guy.png', { frameWidth: 64, frameHeight: 128});
     },
 
     //--------------------------------------------------------------------------
