@@ -81,19 +81,6 @@ let GameScene = new Phaser.Class({
             current_y = y;
             player_pic.x = xPixel(current_x);
             player_pic.y = yPixel(current_y - 0.5);
-            player_text.x = xPixel(current_x);
-            player_text.y = yPixel(current_y + 0.5);
-            let sum = 0;
-            for(let dx = -1; dx <= 1; dx++) {
-                for(let dy = -1; dy <= 1; dy++) {
-                    if (current_x + dx >= 0 && current_x + dx < SCREEN_COLUMNS &&
-                        current_y + dy >= 0 && current_y + dy < SCREEN_ROWS &&
-                        grid_squares[current_x+dx][current_y+dy].data.values.hidden_ship) {
-                        sum++
-                    }
-                }
-            }
-            player_text.text = '' + sum + '';
         };
 
         let prepare_empty_grid = function() {
@@ -130,16 +117,25 @@ let GameScene = new Phaser.Class({
                     square.setData('x', x);
                     square.setData('y', y);
                     square.setData('locked', false);
-                    square.setData('hidden_ship', false);
+                    square.setData('hidden_mine', false);
                     if (Phaser.Math.Between(0,100) < 14) {
-                        square.setData('hidden_ship', true);
+                        square.setData('hidden_mine', true);
                     }
                     if ( (y === 0 || y === 1) && (x === 2 || x === 3 || x === 4))
                     {
-                        square.setData('hidden_ship', false);
+                        square.setData('hidden_mine', false);
                     }
+                    if ( y === SCREEN_ROWS - 1 && x === 3)
+                    {
+                        square.setData('hidden_mine', false);
+                    }
+                    let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),64,64,'flag')
+                    flag.play('flag_blowing');
+                    flag.setVisible(false);
+                    square.setData('flag', flag);
                     //square.setData('shapes', create_shape(x, y));
 
+                    /*
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
                         if (square.data.values.locked) {
                             return;
@@ -152,17 +148,49 @@ let GameScene = new Phaser.Class({
                         }
                         square.setFillStyle(0x000000, 0);
                     });
+                     */
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
-                        if (Phaser.Math.Distance.Snake(
+                        let delta = Phaser.Math.Distance.Snake(
                             current_x, current_y,
-                            square.data.values.x, square.data.values.y) == 1) {
-                            if (square.data.values.hidden_ship) {
+                            square.data.values.x, square.data.values.y)
+                        if (delta > 1 || square.data.values.locked) {
+                            square.data.values.locked = !square.data.values.locked;
+                            square.data.values.flag.setVisible(square.data.values.locked);
+                        } else if (delta === 1) {
+                            if (square.data.values.hidden_mine) {
                                 set_player_location(3, 0)
                             } else {
                                 set_player_location(square.data.values.x, square.data.values.y);
+                                square.data.values.text.setVisible(true);
                             }
+                        } else if (delta === 0) {
+                            square.data.values.text.setVisible(true);
                         }
                     });
+                }
+            }
+
+            for (let x = 0; x < SCREEN_COLUMNS; x++) {
+                for (let y = 0; y < SCREEN_ROWS; y++) {
+                    let text = scene.add.text(
+                        xPixel(x),
+                        yPixel(y + 0.5),
+                        '' + 0 + '',
+                        {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+                        .setOrigin(1, 1)
+                        .setVisible(false);
+                    let sum = 0;
+                    for(let dx = -1; dx <= 1; dx++) {
+                        for(let dy = -1; dy <= 1; dy++) {
+                            if (x + dx >= 0 && x + dx < SCREEN_COLUMNS &&
+                                y + dy >= 0 && y + dy < SCREEN_ROWS &&
+                                grid_squares[x+dx][y+dy].data.values.hidden_mine) {
+                                sum++
+                            }
+                        }
+                    }
+                    text.text = '' + sum + '';
+                    grid_squares[x][y].setData('text',text);
                 }
             }
 
@@ -236,13 +264,6 @@ let GameScene = new Phaser.Class({
         prepare_empty_grid();
 
         player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0);
-        player_text = scene.add.text(
-            xPixel(current_x),
-            yPixel(current_y + 0.5),
-            '' + 0 + '',
-            {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
-            .setOrigin(1, 1);
-
 
         set_player_location(3, 0);
 
@@ -333,10 +354,26 @@ let LoadScene = new Phaser.Class({
         });
         scene.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 64, frameHeight: 160});
         scene.load.spritesheet('guy', 'assets/guy.png', { frameWidth: 64, frameHeight: 128});
+        scene.load.spritesheet('flag', 'assets/flag.png', { frameWidth: 64, frameHeight: 64});
     },
 
     //--------------------------------------------------------------------------
     create: function () {
+        let scene = this;
+        scene.anims.create({
+            key: 'flag_blowing',
+            frames: [
+                { key: 'flag', frame: 0 },
+                { key: 'flag', frame: 1 },
+                { key: 'flag', frame: 2 },
+                { key: 'flag', frame: 3 },
+                { key: 'flag', frame: 4 },
+                { key: 'flag', frame: 5 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 6,
+            repeat: -1
+        });
     },
 
     //--------------------------------------------------------------------------
