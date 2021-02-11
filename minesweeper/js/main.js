@@ -79,8 +79,9 @@ let GameScene = new Phaser.Class({
         let set_player_location = function(x, y) {
             current_x = x;
             current_y = y;
-            player_pic.x = xPixel(current_x);
-            player_pic.y = yPixel(current_y - 0.5);
+            player_pic.x = xPixel(x);
+            player_pic.y = yPixel(y - 0.5);
+            grid_squares[x][y].data.values.text.setVisible(true);
         };
 
         let prepare_empty_grid = function() {
@@ -161,7 +162,6 @@ let GameScene = new Phaser.Class({
                                 set_player_location(3, 0)
                             } else {
                                 set_player_location(square.data.values.x, square.data.values.y);
-                                square.data.values.text.setVisible(true);
                             }
                         } else if (delta === 0) {
                             square.data.values.text.setVisible(true);
@@ -371,7 +371,7 @@ let LoadScene = new Phaser.Class({
                 { key: 'flag', frame: 5 },
             ],
             skipMissedFrames: false,
-            frameRate: 6,
+            frameRate: 3,
             repeat: -1
         });
     },
