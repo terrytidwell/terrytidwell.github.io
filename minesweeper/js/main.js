@@ -155,8 +155,10 @@ let GameScene = new Phaser.Class({
                             current_x, current_y,
                             square.data.values.x, square.data.values.y)
                         if (delta > 1 || square.data.values.locked) {
-                            square.data.values.locked = !square.data.values.locked;
-                            square.data.values.flag.setVisible(square.data.values.locked);
+                            if (!square.data.values.text.visible) {
+                                square.data.values.locked = !square.data.values.locked;
+                                square.data.values.flag.setVisible(square.data.values.locked);
+                            }
                         } else if (delta === 1) {
                             if (square.data.values.hidden_mine) {
                                 set_player_location(3, 0)
