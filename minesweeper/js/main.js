@@ -136,20 +136,12 @@ let GameScene = new Phaser.Class({
                     square.setData('flag', flag);
                     //square.setData('shapes', create_shape(x, y));
 
-                    /*
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
-                        if (square.data.values.locked) {
-                            return;
-                        }
                         square.setFillStyle(0x000000, 0.15);
                     });
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
-                        if (square.data.values.locked) {
-                            return;
-                        }
                         square.setFillStyle(0x000000, 0);
                     });
-                     */
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
                         let delta = Phaser.Math.Distance.Snake(
                             current_x, current_y,
