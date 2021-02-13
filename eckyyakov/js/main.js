@@ -1,6 +1,6 @@
 const GRID_SIZE = 64;
 const SPRITE_SCALE = GRID_SIZE/32;
-const SCREEN_WIDTH = 16 * GRID_SIZE; //1025
+const SCREEN_WIDTH = 17 * GRID_SIZE; //1025
 const SCREEN_HEIGHT = 9 * GRID_SIZE; //576
 
 let LoadScene = new Phaser.Class({
@@ -70,25 +70,42 @@ let GameScene = new Phaser.Class({
         let CHARACTER_SPRITE_SIZE = 3;
 
         let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
+            SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
             .setAltFillStyle(0xC0C0C0)
             .setOutlineStyle();
 
         let platforms = scene.physics.add.staticGroup();
-        let floor = scene.add.rectangle(-SCREEN_WIDTH/2, SCREEN_HEIGHT * 6/4 - 16,
-            SCREEN_WIDTH*2, 16, 0x000000, 1.0)
-            .setOrigin(0);
-
+        let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + 8,
+            SCREEN_WIDTH, 16, 0xff0000, 1.0);
         platforms.add(floor);
-        let wall = scene.add.rectangle(-SCREEN_WIDTH/2, -SCREEN_HEIGHT * 2/4,
-            16, SCREEN_HEIGHT*2, 0x000000, 1.0)
-            .setOrigin(0);
-        platforms.add(wall);
-        wall = scene.add.rectangle(SCREEN_WIDTH * 6/4, -SCREEN_HEIGHT * 2/4,
-            16, SCREEN_HEIGHT*2, 0x000000, 1.0)
-            .setOrigin(0);
+
+        floor = scene.add.rectangle(SCREEN_WIDTH/2, - 8,
+            SCREEN_WIDTH, 16, 0xff0000, 1.0);
+        platforms.add(floor);
+
+        let wall = scene.add.rectangle(SCREEN_WIDTH + 8, SCREEN_HEIGHT/2,
+            16, SCREEN_HEIGHT, 0xff0000, 1.0)
+            platforms.add(wall);
+        wall = scene.add.rectangle(- 8, SCREEN_HEIGHT/2,
+            16, SCREEN_HEIGHT, 0xff0000, 1.0)
         platforms.add(wall);
 
+        let platform = scene.add.rectangle(4*GRID_SIZE, 7*GRID_SIZE,
+            4 * GRID_SIZE, 8,
+            0x000000, 1.0);
+        platforms.add(platform);
+
+        platform = scene.add.rectangle(4*GRID_SIZE, 2*GRID_SIZE,
+            4 * GRID_SIZE, 8,
+            0x000000, 1.0);
+        platforms.add(platform);
+
+        platform = scene.add.rectangle(5*GRID_SIZE, 4.5*GRID_SIZE,
+            2 * GRID_SIZE, 8,
+            0x000000, 1.0);
+        platforms.add(platform);
+
+        /*
         for (let n = 0; n < 60; n++) {
             let x = Phaser.Math.Between(-4, 19);
             let y = Phaser.Math.Between(-5, 14);
@@ -97,8 +114,10 @@ let GameScene = new Phaser.Class({
                 .setOrigin(0);
             platforms.add(obstacle);
         }
+        */
 
-        scene.__character = scene.add.rectangle(0,0,16,48,0x00ff00, 1.0);
+        scene.__character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
+            ,16,48,0x00ff00, 1.0);
 
         scene.__gun_x_offset = 0*CHARACTER_SPRITE_SIZE;
         scene.__gun_y_offset = 0*CHARACTER_SPRITE_SIZE;
@@ -106,7 +125,7 @@ let GameScene = new Phaser.Class({
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
         scene.__gun = scene.add.sprite(0, 0, gun_array[current_gun_index])
-            .setScale(SPRITE_SCALE)
+            .setScale(2)
             .setVisible(true);
 
         scene.physics.add.existing(scene.__character);
@@ -153,8 +172,8 @@ let GameScene = new Phaser.Class({
         });
         scene.__moving = false;
 
-        scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
-        scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
+        //scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
         scene.physics.add.collider(scene.__character, platforms);
 
