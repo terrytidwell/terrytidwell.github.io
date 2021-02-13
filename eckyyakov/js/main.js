@@ -210,6 +210,7 @@ let GameScene = new Phaser.Class({
         //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
         scene.physics.add.collider(scene.__character, platforms);
+        scene.physics.add.collider(ball, platforms);
 
         /*
         let platforms = scene.physics.add.staticGroup();
@@ -218,6 +219,84 @@ let GameScene = new Phaser.Class({
         scene.G.player.data.values.addCollider(scene.physics, platforms);
         scene.G.player.data.values.addOverlap(scene.physics, overlaps);d
          */
+        let shootables = scene.physics.add.group(ball);
+        ball.setData('onShot', function(bullet) {
+           ball.body.velocity.x += bullet.body.velocity.x/10;
+           ball.body.velocity.y += bullet.body.velocity.y/10;
+        });
+        ball.body.setBounce(0.75);
+
+        let allow_fire = true;
+        scene.__generate_bullet = function(pointer) {
+            if (!allow_fire) {
+                return;
+            }
+            allow_fire = false;
+            scene.time.delayedCall(100, function () {
+                allow_fire = true;
+            });
+            let x = scene.__character.x;
+            let y = scene.__character.y;
+            mouse_vector.x = GRID_SIZE/4;
+            mouse_vector.y = 0;
+            mouse_vector.rotate(Phaser.Math.DegToRad(scene.__gun.angle));
+            let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
+                2, 2, 0x000000);
+                //.setDepth(DEPTHS.MOBS);
+            bullet.setData('color',scene.__character_color);
+            scene.physics.add.existing(bullet);
+            bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
+            scene.physics.add.overlap(bullet, platforms, function(bullet, platform) {
+                bullet.destroy();
+                //platform.destroy();
+            });
+            scene.physics.add.overlap(bullet, shootables, function(bullet, shootable) {
+                shootable.data.values.onShot(bullet);
+                bullet.destroy();
+            });
+            scene.physics.add.overlap(bullet, platforms, function(bullet, shootable) {
+                //shootable.data.values.onShot(bullet);
+                bullet.destroy();
+            });
+            scene.time.delayedCall(1000, function() {
+                bullet.destroy();
+            });
+            //scene.cameras.main.shake(50, 0.005, true);
+            return;
+            /*
+            let casing = scene.add.rectangle(
+                x + mouse_vector.x,
+                y + mouse_vector.y, 4, 2,
+                COLORS.color(scene.__character_color))
+                .setDepth(DEPTHS.FLOOR)
+                .setAngle(scene.__character.angle);
+            scene.physics.add.existing(casing);
+            scene.physics.add.collider(casing, platforms);
+            mouse_vector.normalizeRightHand();
+            let percent = Phaser.Math.Between(-40,0);
+            mouse_vector.rotate(percent/100)
+            percent = Phaser.Math.Between(50,100);
+            casing.body.setVelocity(
+                mouse_vector.x * GRID_SIZE/16 * percent/100,
+                mouse_vector.y * GRID_SIZE/16 * percent/100);
+            scene.tweens.add({
+                targets: casing.body.velocity,
+                x: 0,
+                y: 0,
+                duration: 1000
+            });
+            percent = Phaser.Math.Between(160,200);
+            let target_angle = scene.__character.angle + percent;
+            scene.tweens.add({
+                targets: casing,
+                angle: target_angle,
+                duration: 1000
+            })
+            scene.time.delayedCall(10000, function() {
+                casing.destroy();
+            })
+            */
+        };
     },
 
     //--------------------------------------------------------------------------
@@ -285,7 +364,11 @@ let GameScene = new Phaser.Class({
             scene.__character.setFlipX(false);
         }*/
         scene.__character.body.setVelocityX(dx);
-        scene.__align_player_group()
+        scene.__align_player_group();
+
+        if (scene.input.activePointer.leftButtonDown()) {
+            scene.__generate_bullet();
+        }
     },
 });
 
