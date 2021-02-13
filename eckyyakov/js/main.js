@@ -75,9 +75,23 @@ let GameScene = new Phaser.Class({
             .setOutlineStyle();
 
         let platforms = scene.physics.add.staticGroup();
-        for (let n = 0; n < 15; n++) {
-            let x = Phaser.Math.Between(0, 15);
-            let y = Phaser.Math.Between(0, 9);
+        let floor = scene.add.rectangle(-SCREEN_WIDTH/2, SCREEN_HEIGHT * 6/4 - 16,
+            SCREEN_WIDTH*2, 16, 0x000000, 1.0)
+            .setOrigin(0);
+
+        platforms.add(floor);
+        let wall = scene.add.rectangle(-SCREEN_WIDTH/2, -SCREEN_HEIGHT * 2/4,
+            16, SCREEN_HEIGHT*2, 0x000000, 1.0)
+            .setOrigin(0);
+        platforms.add(wall);
+        wall = scene.add.rectangle(SCREEN_WIDTH * 6/4, -SCREEN_HEIGHT * 2/4,
+            16, SCREEN_HEIGHT*2, 0x000000, 1.0)
+            .setOrigin(0);
+        platforms.add(wall);
+
+        for (let n = 0; n < 60; n++) {
+            let x = Phaser.Math.Between(-4, 19);
+            let y = Phaser.Math.Between(-5, 14);
             let obstacle = scene.add.rectangle((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE,
                 GRID_SIZE, GRID_SIZE, 0x000000, 1.0)
                 .setOrigin(0);
@@ -96,6 +110,9 @@ let GameScene = new Phaser.Class({
             .setVisible(true);
 
         scene.physics.add.existing(scene.__character);
+        //scene.__character.body.collideWorldBounds = true;
+        scene.__character.body.gravity.y = 450;
+
 
         scene.__align_player_group = function () {
             let center_x = scene.__character.body.x + scene.__character.width / 2;
@@ -166,12 +183,25 @@ let GameScene = new Phaser.Class({
         }
         if (scene.__cursor_keys.up.isDown ||
             scene.__cursor_keys.letter_up.isDown) {
-            dy -= 1;
+            if (scene.__character.body.blocked.down) {
+                scene.__character.body.setVelocityY(-450);
+            }
         }
+        if (!scene.__cursor_keys.up.isDown &&
+            !scene.__cursor_keys.letter_up.isDown)
+        {
+            if (scene.__character.body.velocity.y < 0)
+            {
+                scene.__character.body.setVelocityY(scene.__character.body.velocity.y * .1);
+            }
+        }
+        /*
         if (scene.__cursor_keys.down.isDown ||
             scene.__cursor_keys.letter_down.isDown) {
             dy += 1;
         }
+        */
+
         //normalize
         let d = Math.sqrt(dx * dx + dy * dy);
         let v = 90*GRID_SIZE/16;
@@ -181,7 +211,7 @@ let GameScene = new Phaser.Class({
         }
 
         let moving = false;
-        if (dx !== 0 || dy !== 0) {
+        if (dx !== 0) {
             moving = true;
         }
         if (moving !== scene.__moving) {
@@ -198,7 +228,7 @@ let GameScene = new Phaser.Class({
         } else if (dx > 0) {
             scene.__character.setFlipX(false);
         }*/
-        scene.__character.body.setVelocity(dx,dy);
+        scene.__character.body.setVelocityX(dx);
         scene.__align_player_group()
     },
 });
