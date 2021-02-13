@@ -85,23 +85,47 @@ let GameScene = new Phaser.Class({
 
         let wall = scene.add.rectangle(SCREEN_WIDTH + 8, SCREEN_HEIGHT/2,
             16, SCREEN_HEIGHT, 0xff0000, 1.0)
-            platforms.add(wall);
+        platforms.add(wall);
         wall = scene.add.rectangle(- 8, SCREEN_HEIGHT/2,
             16, SCREEN_HEIGHT, 0xff0000, 1.0)
         platforms.add(wall);
 
-        let platform = scene.add.rectangle(4*GRID_SIZE, 7*GRID_SIZE,
-            4 * GRID_SIZE, 8,
+        let add_left_platform= function(x, y, length) {
+            let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
+                length * GRID_SIZE, 8,
+                0x000000, 1.0);
+            platforms.add(platform);
+            platform = scene.add.rectangle(SCREEN_WIDTH - x*GRID_SIZE, y*GRID_SIZE,
+                length * GRID_SIZE, 8,
+                0x000000, 1.0);
+            platforms.add(platform);
+        }
+
+        add_left_platform(3.5, 7, 3);
+        add_left_platform(3.5, 2, 3);
+        add_left_platform(4.25, 4.5, 1.5);
+        add_left_platform(6.75, 3.25, 1.5);
+        add_left_platform(6.75, 5.75, 1.5);
+
+        /*
+
+        platform = scene.add.rectangle(3.5*GRID_SIZE, 2*GRID_SIZE,
+            3 * GRID_SIZE, 8,
             0x000000, 1.0);
         platforms.add(platform);
 
-        platform = scene.add.rectangle(4*GRID_SIZE, 2*GRID_SIZE,
-            4 * GRID_SIZE, 8,
+        platform = scene.add.rectangle(4.25*GRID_SIZE, 4.5*GRID_SIZE,
+            1.5 * GRID_SIZE, 8,
             0x000000, 1.0);
         platforms.add(platform);
 
-        platform = scene.add.rectangle(5*GRID_SIZE, 4.5*GRID_SIZE,
-            2 * GRID_SIZE, 8,
+        platform = scene.add.rectangle(6.75*GRID_SIZE, 3.25*GRID_SIZE,
+            1.5 * GRID_SIZE, 8,
+            0x000000, 1.0);
+        platforms.add(platform);
+
+        platform = scene.add.rectangle(6.75*GRID_SIZE, 5.75*GRID_SIZE,
+            1.5 * GRID_SIZE, 8,
             0x000000, 1.0);
         platforms.add(platform);
 
@@ -115,6 +139,14 @@ let GameScene = new Phaser.Class({
             platforms.add(obstacle);
         }
         */
+
+        scene.add.rectangle(1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
+            0x0000ff, 1.0);
+        scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
+            0x0000ff, 1.0);
+
+        let ball = scene.add.circle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, GRID_SIZE/4,0xff00ff, 1.0);
+        scene.physics.add.existing(ball);
 
         scene.__character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
             ,16,48,0x00ff00, 1.0);
@@ -130,7 +162,9 @@ let GameScene = new Phaser.Class({
 
         scene.physics.add.existing(scene.__character);
         //scene.__character.body.collideWorldBounds = true;
-        scene.__character.body.gravity.y = 450;
+        scene.__character.body.gravity.y = 900;
+        scene.__character.setData('jump_strength', -600);
+        scene.__character.setData('jump_deadening', 0.5);
 
 
         scene.__align_player_group = function () {
@@ -203,7 +237,9 @@ let GameScene = new Phaser.Class({
         if (scene.__cursor_keys.up.isDown ||
             scene.__cursor_keys.letter_up.isDown) {
             if (scene.__character.body.blocked.down) {
-                scene.__character.body.setVelocityY(-450);
+                scene.__character.body.setVelocityY(
+                    scene.__character.data.values.jump_strength
+                );
             }
         }
         if (!scene.__cursor_keys.up.isDown &&
@@ -211,7 +247,8 @@ let GameScene = new Phaser.Class({
         {
             if (scene.__character.body.velocity.y < 0)
             {
-                scene.__character.body.setVelocityY(scene.__character.body.velocity.y * .1);
+                scene.__character.body.setVelocityY(scene.__character.body.velocity.y *
+                    scene.__character.data.values.jump_deadening);
             }
         }
         /*
