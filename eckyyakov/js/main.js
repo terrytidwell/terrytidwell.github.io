@@ -140,13 +140,19 @@ let GameScene = new Phaser.Class({
         }
         */
 
-        scene.add.rectangle(1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
-            0x0000ff, 1.0);
-        scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
-            0x0000ff, 1.0);
-
         let ball = scene.add.circle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, GRID_SIZE/4,0xff00ff, 1.0);
         scene.physics.add.existing(ball);
+
+        let goal = scene.add.rectangle(1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
+            0x0000ff, 1.0);
+        goal.setData('player', 0);
+        let goals = scene.physics.add.group();
+        goals.add(goal);
+        goal = scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
+            0x0000ff, 1.0);
+        goal.setData('player', 1);
+        goals.add(goal);
+
 
         scene.__character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
             ,16,48,0x00ff00, 1.0);
@@ -225,6 +231,12 @@ let GameScene = new Phaser.Class({
            ball.body.velocity.y += bullet.body.velocity.y/10;
         });
         ball.body.setBounce(0.75);
+        scene.physics.add.overlap(ball, goals, function(ball, goal) {
+            ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
+            ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
+            ball.body.setVelocity(0,0);
+
+        });
 
         let allow_fire = true;
         scene.__generate_bullet = function(pointer) {
