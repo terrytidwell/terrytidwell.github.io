@@ -169,8 +169,8 @@ let GameScene = new Phaser.Class({
         scene.physics.add.existing(scene.__character);
         //scene.__character.body.collideWorldBounds = true;
         scene.__character.body.gravity.y = 900;
-        scene.__character.setData('jump_strength', -600);
-        scene.__character.setData('jump_deadening', 0.5);
+        scene.__character.setData('jump_strength', -550);
+        scene.__character.setData('jump_deadening', 0.75);
 
 
         scene.__align_player_group = function () {
@@ -223,19 +223,102 @@ let GameScene = new Phaser.Class({
         let overlaps = scene.physics.add.staticGroup();
 
         scene.G.player.data.values.addCollider(scene.physics, platforms);
-        scene.G.player.data.values.addOverlap(scene.physics, overlaps);d
-         */
+        scene.G.player.data.values.addOverlap(scene.physics, overlaps);
+        */
+
         let shootables = scene.physics.add.group(ball);
+
+        let working_vector = new Phaser.Math.Vector2(0, 0);
+        let bullet_velocity_trajectory = new Phaser.Math.Vector2(0,0);
+        let bullet_trajectory_line = new Phaser.Geom.Line(0,0,0,0);
+        let bullet_trajectory_nearest_point = new Phaser.Geom.Point(0,0);
+        let ball_center_point = new Phaser.Geom.Point(0,0)
         ball.setData('onShot', function(bullet) {
-           ball.body.velocity.x += bullet.body.velocity.x/10;
-           ball.body.velocity.y += bullet.body.velocity.y/10;
+
+            let impact = bullet.body.velocity.length()/10;
+            let ball_x = ball.body.x + ball.width/2;
+            let ball_y = ball.body.y + ball.height/2;
+            let bullet_x = bullet.body.x + bullet.width/2;
+            let bullet_y = bullet.body.y + bullet.height/2;
+
+            ball_center_point.setTo(ball_x, ball_y);
+            bullet_trajectory_line.setTo(bullet_x, bullet_y,
+                bullet_x + bullet.body.velocity.x, bullet_y + bullet.body.velocity.y);
+            Phaser.Geom.Line.GetNearestPoint(bullet_trajectory_line, ball_center_point,
+                bullet_trajectory_nearest_point);
+
+            /*
+            scene.add.rectangle(bullet_x, bullet_y,
+                bullet.body.width, bullet.body.height, 0x000000, 0.5);
+
+            scene.add.circle(ball_x, ball_y,
+                ball.width/2, 0xff00ff, 0.5);
+            scene.add.line(ball_x,
+                ball_y,
+                0, 0,
+                ball.body.velocity.x/2, ball.body.velocity.y/2, 0xff00ff, 1.0).setOrigin(0);
+            scene.add.line(bullet_x, bullet_y,
+                0, 0,
+                bullet.body.velocity.x/20, bullet.body.velocity.y/20, 0x000000, 1.0).setOrigin(0);
+            scene.add.rectangle(bullet_trajectory_nearest_point.x, bullet_trajectory_nearest_point.y,
+                bullet.body.width, bullet.body.height, 0x00ff00, 1.0);
+            */
+
+
+
+            working_vector.x = ball_center_point.x - bullet_trajectory_nearest_point.x;
+            working_vector.y = ball_center_point.y - bullet_trajectory_nearest_point.y;
+            let distance_from_center = working_vector.length();
+            let distance_along_trajectory = Math.sqrt(ball.width/2 * ball.width/2-
+                distance_from_center * distance_from_center);
+            bullet_velocity_trajectory.x = - bullet.body.velocity.x;
+            bullet_velocity_trajectory.y = - bullet.body.velocity.y;
+            bullet_velocity_trajectory.setLength(distance_along_trajectory);
+            let impact_x = bullet_trajectory_nearest_point.x + bullet_velocity_trajectory.x;
+            let impact_y = bullet_trajectory_nearest_point.y + bullet_velocity_trajectory.y;
+            working_vector.x = ball_center_point.x - impact_x;
+            working_vector.y = ball_center_point.y - impact_y;
+            working_vector.setLength(impact);
+
+            ball.body.velocity.x += working_vector.x;
+            ball.body.velocity.y += working_vector.y;
+
+            working_vector.negate();
+            working_vector.rotate(-Math.PI/4)
+            for (let n = 0; n < 10; n++) {
+                let casing = scene.add.rectangle(
+                    impact_x, impact_y, bullet.body.width, bullet.body.height,
+                    0xff00ff);
+                scene.physics.add.existing(casing);
+                working_vector.rotate(Math.PI/2/10);
+                casing.body.setVelocity(
+                    working_vector.x/1,
+                    working_vector.y/1);
+                scene.tweens.add({
+                    targets: casing,
+                    alpha: 0,
+                    duration: 200
+                });
+                scene.time.delayedCall(400, function() {
+                    casing.destroy();
+                })
+            }
+            /*
+            scene.add.line(ball_x,
+                ball_y,
+                0, 0,
+                ball.body.velocity.x, ball.body.velocity.y, 0x00ff00, 1.0).setOrigin(0);
+
+            scene.add.rectangle(impact_x,
+                impact_y,
+                bullet.body.width, bullet.body.height, 0xff0000, 1);
+            */
         });
         ball.body.setBounce(0.75);
         scene.physics.add.overlap(ball, goals, function(ball, goal) {
             ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
             ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
             ball.body.setVelocity(0,0);
-
         });
 
         let allow_fire = true;
@@ -275,39 +358,6 @@ let GameScene = new Phaser.Class({
             });
             //scene.cameras.main.shake(50, 0.005, true);
             return;
-            /*
-            let casing = scene.add.rectangle(
-                x + mouse_vector.x,
-                y + mouse_vector.y, 4, 2,
-                COLORS.color(scene.__character_color))
-                .setDepth(DEPTHS.FLOOR)
-                .setAngle(scene.__character.angle);
-            scene.physics.add.existing(casing);
-            scene.physics.add.collider(casing, platforms);
-            mouse_vector.normalizeRightHand();
-            let percent = Phaser.Math.Between(-40,0);
-            mouse_vector.rotate(percent/100)
-            percent = Phaser.Math.Between(50,100);
-            casing.body.setVelocity(
-                mouse_vector.x * GRID_SIZE/16 * percent/100,
-                mouse_vector.y * GRID_SIZE/16 * percent/100);
-            scene.tweens.add({
-                targets: casing.body.velocity,
-                x: 0,
-                y: 0,
-                duration: 1000
-            });
-            percent = Phaser.Math.Between(160,200);
-            let target_angle = scene.__character.angle + percent;
-            scene.tweens.add({
-                targets: casing,
-                angle: target_angle,
-                duration: 1000
-            })
-            scene.time.delayedCall(10000, function() {
-                casing.destroy();
-            })
-            */
         };
     },
 
