@@ -90,6 +90,19 @@ let GameScene = new Phaser.Class({
             16, SCREEN_HEIGHT, 0xff0000, 1.0)
         platforms.add(wall);
 
+
+        let touchables = scene.physics.add.group();
+
+        let add_ammo = function(x,y) {
+            let ammo = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
+                0xff8000, 1.0);
+            touchables.add(ammo);
+            ammo.setData('onTouch', function(character, ammo) {
+                character.data.values.addAmmo(3);
+                ammo.destroy();
+            });
+        }
+
         let add_left_platform= function(x, y, length) {
             let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
                 length * GRID_SIZE, 8,
@@ -99,46 +112,14 @@ let GameScene = new Phaser.Class({
                 length * GRID_SIZE, 8,
                 0x000000, 1.0);
             platforms.add(platform);
-        }
+            add_ammo(x,y-1);
+        };
 
         add_left_platform(3.5, 7, 3);
         add_left_platform(3.5, 2, 3);
         add_left_platform(4.25, 4.5, 1.5);
         add_left_platform(6.75, 3.25, 1.5);
         add_left_platform(6.75, 5.75, 1.5);
-
-        /*
-
-        platform = scene.add.rectangle(3.5*GRID_SIZE, 2*GRID_SIZE,
-            3 * GRID_SIZE, 8,
-            0x000000, 1.0);
-        platforms.add(platform);
-
-        platform = scene.add.rectangle(4.25*GRID_SIZE, 4.5*GRID_SIZE,
-            1.5 * GRID_SIZE, 8,
-            0x000000, 1.0);
-        platforms.add(platform);
-
-        platform = scene.add.rectangle(6.75*GRID_SIZE, 3.25*GRID_SIZE,
-            1.5 * GRID_SIZE, 8,
-            0x000000, 1.0);
-        platforms.add(platform);
-
-        platform = scene.add.rectangle(6.75*GRID_SIZE, 5.75*GRID_SIZE,
-            1.5 * GRID_SIZE, 8,
-            0x000000, 1.0);
-        platforms.add(platform);
-
-        /*
-        for (let n = 0; n < 60; n++) {
-            let x = Phaser.Math.Between(-4, 19);
-            let y = Phaser.Math.Between(-5, 14);
-            let obstacle = scene.add.rectangle((x) * GRID_SIZE, (y - 0.5) * GRID_SIZE,
-                GRID_SIZE, GRID_SIZE, 0x000000, 1.0)
-                .setOrigin(0);
-            platforms.add(obstacle);
-        }
-        */
 
         let ball = scene.add.circle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, GRID_SIZE/4,0xff00ff, 1.0);
         scene.physics.add.existing(ball);
@@ -152,7 +133,6 @@ let GameScene = new Phaser.Class({
             0x0000ff, 1.0);
         goal.setData('player', 1);
         goals.add(goal);
-
 
         scene.__character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
             ,16,48,0x00ff00, 1.0);
@@ -171,6 +151,7 @@ let GameScene = new Phaser.Class({
         scene.__character.body.gravity.y = 900;
         scene.__character.setData('jump_strength', -550);
         scene.__character.setData('jump_deadening', 0.75);
+        scene.__character.setData('ammo', 3);
 
 
         scene.__align_player_group = function () {
@@ -216,6 +197,10 @@ let GameScene = new Phaser.Class({
         //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
 
         scene.physics.add.collider(scene.__character, platforms);
+        scene.physics.add.overlap(scene.__character, touchables,
+            function(character, touchable) {
+                touchable.data.values.onTouch(character, touchable);
+        });
         scene.physics.add.collider(ball, platforms);
 
         /*
@@ -321,11 +306,20 @@ let GameScene = new Phaser.Class({
             ball.body.setVelocity(0,0);
         });
 
+
+        let ammo_text =
+            scene.add.text(0,SCREEN_HEIGHT, "" + scene.__character.data.values.ammo + "", { fontSize: GRID_SIZE/2 + 'px', fill: '#000' }).setOrigin(0,1);
+        scene.__character.setData('addAmmo',function(ammount) {
+            scene.__character.data.values.ammo += ammount;
+            ammo_text.setText("" + scene.__character.data.values.ammo + "" );
+        });
+
         let allow_fire = true;
         scene.__generate_bullet = function(pointer) {
-            if (!allow_fire) {
+            if (!allow_fire || scene.__character.data.values.ammo === 0) {
                 return;
             }
+            scene.__character.data.values.addAmmo(-1);
             allow_fire = false;
             scene.time.delayedCall(100, function () {
                 allow_fire = true;
