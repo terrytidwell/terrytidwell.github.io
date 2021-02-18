@@ -1,7 +1,9 @@
 const GRID_SIZE = 64;
 const SPRITE_SCALE = GRID_SIZE/32;
-const SCREEN_WIDTH = 17 * GRID_SIZE; //1025
-const SCREEN_HEIGHT = 9 * GRID_SIZE; //576
+const SCREEN_COLS = 17;
+const SCREEN_ROWS = 9;
+const SCREEN_WIDTH = SCREEN_COLS * GRID_SIZE; //1025
+const SCREEN_HEIGHT = SCREEN_ROWS * GRID_SIZE; //576
 
 let LoadScene = new Phaser.Class({
 
@@ -65,153 +67,179 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    create: function () {
+    addPlayer: function () {
         let scene = this;
-        let CHARACTER_SPRITE_SIZE = 3;
 
-        let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
-            .setAltFillStyle(0xC0C0C0)
-            .setOutlineStyle();
-
-        let platforms = scene.physics.add.staticGroup();
-        let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + 8,
-            SCREEN_WIDTH, 16, 0xff0000, 1.0);
-        platforms.add(floor);
-
-        floor = scene.add.rectangle(SCREEN_WIDTH/2, - 8,
-            SCREEN_WIDTH, 16, 0xff0000, 1.0);
-        platforms.add(floor);
-
-        let wall = scene.add.rectangle(SCREEN_WIDTH + 8, SCREEN_HEIGHT/2,
-            16, SCREEN_HEIGHT, 0xff0000, 1.0)
-        platforms.add(wall);
-        wall = scene.add.rectangle(- 8, SCREEN_HEIGHT/2,
-            16, SCREEN_HEIGHT, 0xff0000, 1.0)
-        platforms.add(wall);
-
-
-        let touchables = scene.physics.add.group();
-
-        let add_ammo = function(x,y) {
-            let ammo = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
-                0xff8000, 1.0);
-            touchables.add(ammo);
-            ammo.setData('onTouch', function(character, ammo) {
-                character.data.values.addAmmo(3);
-                ammo.destroy();
-            });
-        }
-
-        let add_left_platform= function(x, y, length) {
-            let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
-                length * GRID_SIZE, 8,
-                0x000000, 1.0);
-            platforms.add(platform);
-            platform = scene.add.rectangle(SCREEN_WIDTH - x*GRID_SIZE, y*GRID_SIZE,
-                length * GRID_SIZE, 8,
-                0x000000, 1.0);
-            platforms.add(platform);
-            add_ammo(x,y-1);
-        };
-
-        add_left_platform(3.5, 7, 3);
-        add_left_platform(3.5, 2, 3);
-        add_left_platform(4.25, 4.5, 1.5);
-        add_left_platform(6.75, 3.25, 1.5);
-        add_left_platform(6.75, 5.75, 1.5);
-
-        let ball = scene.add.circle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, GRID_SIZE/4,0xff00ff, 1.0);
-        scene.physics.add.existing(ball);
-
-        let goal = scene.add.rectangle(1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
-            0x0000ff, 1.0);
-        goal.setData('player', 0);
-        let goals = scene.physics.add.group();
-        goals.add(goal);
-        goal = scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
-            0x0000ff, 1.0);
-        goal.setData('player', 1);
-        goals.add(goal);
-
-        scene.__character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
+        let character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
             ,16,48,0x00ff00, 1.0);
 
-        scene.__gun_x_offset = 0*CHARACTER_SPRITE_SIZE;
-        scene.__gun_y_offset = 0*CHARACTER_SPRITE_SIZE;
         //character.play('hero_run');
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
-        scene.__gun = scene.add.sprite(0, 0, gun_array[current_gun_index])
+        let gun = scene.add.sprite(0, 0, gun_array[current_gun_index])
             .setScale(2)
             .setVisible(true);
+        character.setData('gun', gun);
 
-        scene.physics.add.existing(scene.__character);
-        //scene.__character.body.collideWorldBounds = true;
-        scene.__character.body.gravity.y = 900;
-        scene.__character.setData('jump_strength', -550);
-        scene.__character.setData('jump_deadening', 0.75);
-        scene.__character.setData('ammo', 3);
+        scene.physics.add.existing(character);
+        character.body.gravity.y = 900;
+        character.setData('jump_strength', -550);
+        character.setData('jump_deadening', 0.75);
+        character.setData('ammo', 3);
 
+        let align_player_group = function () {
+            let center_x = character.body.x + character.width / 2;
+            let center_y = character.body.y + character.height / 2;
 
-        scene.__align_player_group = function () {
-            let center_x = scene.__character.body.x + scene.__character.width / 2;
-            let center_y = scene.__character.body.y + scene.__character.height / 2;
-
-            scene.__gun.x = center_x + scene.__gun_x_offset;
-            scene.__gun.y =  center_y + scene.__gun_y_offset;
+            character.data.values.gun.x = center_x;
+            character.data.values.gun.y =  center_y;
         };
-        scene.__align_player_group();
-
-        scene.input.addPointer(5);
-        //scene.input.setPollAlways();
+        align_player_group();
 
         let mouse_vector = new Phaser.Math.Vector2(0, 0);
-        scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
-            let dx = pointer.worldX - scene.__gun.x;
-            let dy = pointer.worldY - scene.__gun.y;
-            let d = Math.sqrt(dx * dx + dy * dy);
-            dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
-            dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
+        character.setData('setAngle', function(dx, dy) {
             mouse_vector.x = dx;
             mouse_vector.y = dy;
-            scene.__gun.setFlipY(dx < 0);
-            //scene.__character.setFlipX(dx < 0);
-            scene.__gun.setAngle(Phaser.Math.RadToDeg(mouse_vector.angle()));
+            character.data.values.gun.setFlipY(dx < 0);
+            character.data.values.gun.setAngle(
+                Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
 
-        scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
-        scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
-        scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
-        scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
-        scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
-        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
-
-        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP, function() {
-            current_gun_index = (current_gun_index+1) % gun_array.length;
-            scene.__gun.setTexture(gun_array[current_gun_index]);
+        let ammo_text =
+            scene.add.text(0,SCREEN_HEIGHT, "" + character.data.values.ammo + "", { fontSize: GRID_SIZE/2 + 'px', fill: '#000' }).setOrigin(0,1);
+        character.setData('addAmmo',function(ammount) {
+            character.data.values.ammo += ammount;
+            ammo_text.setText("" + character.data.values.ammo + "" );
         });
-        scene.__moving = false;
 
-        //scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
-        //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
+        let allow_fire = true;
+        let generate_bullet = function() {
+            if (!allow_fire || character.data.values.ammo === 0) {
+                return;
+            }
+            character.data.values.addAmmo(-1);
+            allow_fire = false;
+            scene.time.delayedCall(100, function () {
+                allow_fire = true;
+            });
+            let x = character.x;
+            let y = character.y;
+            mouse_vector.x = GRID_SIZE/4;
+            mouse_vector.y = 0;
+            mouse_vector.rotate(Phaser.Math.DegToRad(
+                character.data.values.gun.angle));
+            let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
+                2, 2, 0x000000);
+            //.setDepth(DEPTHS.MOBS);
+            scene.physics.add.existing(bullet);
+            bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
+            scene.physics.add.overlap(bullet, scene.__platforms, function(bullet, platform) {
+                bullet.destroy();
+                //platform.destroy();
+            });
+            scene.physics.add.overlap(bullet, scene.__shootables, function(bullet, shootable) {
+                shootable.data.values.onShot(bullet);
+                bullet.destroy();
+            });
+            scene.time.delayedCall(1000, function() {
+                bullet.destroy();
+            });
+            //scene.cameras.main.shake(50, 0.005, true);
+            return;
+        };
+        character.setData('generateBullet', generate_bullet);
 
-        scene.physics.add.collider(scene.__character, platforms);
-        scene.physics.add.overlap(scene.__character, touchables,
-            function(character, touchable) {
-                touchable.data.values.onTouch(character, touchable);
+        character.setData('toggleGun', function() {
+            current_gun_index = (current_gun_index + 1) % gun_array.length;
+            character.data.values.gun.setTexture(gun_array[current_gun_index]);
         });
-        scene.physics.add.collider(ball, platforms);
 
-        /*
-        let platforms = scene.physics.add.staticGroup();
-        let overlaps = scene.physics.add.staticGroup();
+        character.setData('moving', false);
+        character.setData('left', false);
+        character.setData('right', false);
+        character.setData('up', false);
+        character.setData('down', false);
+        character.setData('fire', false);
 
-        scene.G.player.data.values.addCollider(scene.physics, platforms);
-        scene.G.player.data.values.addOverlap(scene.physics, overlaps);
-        */
+        character.setData('update', function () {
+            let dx = 0;
+            let dy = 0;
+            if (character.data.values.left) {
+                dx -= 1;
+            }
+            if (character.data.values.right) {
+                dx += 1;
+            }
+            if (character.data.values.up) {
+                if (character.body.blocked.down) {
+                    character.body.setVelocityY(
+                        character.data.values.jump_strength
+                    );
+                }
+            }
+            if (!character.data.values.up)
+            {
+                if (character.body.velocity.y < 0)
+                {
+                    character.body.setVelocityY(character.body.velocity.y *
+                        character.data.values.jump_deadening);
+                }
+            }
+            if (character.data.values.down)
+            {
+                if (character.body.blocked.down) {
+                    //character.body.y += 8;
+                }
+            }
+            /*
+            if (scene.__cursor_keys.down.isDown ||
+                scene.__cursor_keys.letter_down.isDown) {
+                dy += 1;
+            }
+            */
 
-        let shootables = scene.physics.add.group(ball);
+            //normalize
+            let d = Math.sqrt(dx * dx + dy * dy);
+            let v = 90*GRID_SIZE/16;
+            if (d !== 0) {
+                dx = dx / d * v;
+                dy = dy / d * v;
+            }
+
+            let moving = false;
+            if (dx !== 0) {
+                moving = true;
+            }
+            if (moving !== character.data.values.moving) {
+                character.data.values.moving = moving;
+                if (moving) {
+                    //character.play('hero_run');
+                } else {
+                    //character.anims.stop();
+                    //character.setTexture('hero', 0);
+                }
+            }
+            /*if (dx < 0) {
+                character.setFlipX(true);
+            } else if (dx > 0) {
+                character.setFlipX(false);
+            }*/
+            character.body.setVelocityX(dx);
+            align_player_group();
+
+            if (character.data.values.fire) {
+                character.data.values.generateBullet();
+            }
+        });
+
+        return character;
+    },
+
+    addBall: function () {
+        let scene = this;
+
+        let ball = scene.add.circle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, GRID_SIZE/4,0xff00ff, 1.0);
+        scene.__shootables.add(ball);
 
         let working_vector = new Phaser.Math.Vector2(0, 0);
         let bullet_velocity_trajectory = new Phaser.Math.Vector2(0,0);
@@ -231,25 +259,6 @@ let GameScene = new Phaser.Class({
                 bullet_x + bullet.body.velocity.x, bullet_y + bullet.body.velocity.y);
             Phaser.Geom.Line.GetNearestPoint(bullet_trajectory_line, ball_center_point,
                 bullet_trajectory_nearest_point);
-
-            /*
-            scene.add.rectangle(bullet_x, bullet_y,
-                bullet.body.width, bullet.body.height, 0x000000, 0.5);
-
-            scene.add.circle(ball_x, ball_y,
-                ball.width/2, 0xff00ff, 0.5);
-            scene.add.line(ball_x,
-                ball_y,
-                0, 0,
-                ball.body.velocity.x/2, ball.body.velocity.y/2, 0xff00ff, 1.0).setOrigin(0);
-            scene.add.line(bullet_x, bullet_y,
-                0, 0,
-                bullet.body.velocity.x/20, bullet.body.velocity.y/20, 0x000000, 1.0).setOrigin(0);
-            scene.add.rectangle(bullet_trajectory_nearest_point.x, bullet_trajectory_nearest_point.y,
-                bullet.body.width, bullet.body.height, 0x00ff00, 1.0);
-            */
-
-
 
             working_vector.x = ball_center_point.x - bullet_trajectory_nearest_point.x;
             working_vector.y = ball_center_point.y - bullet_trajectory_nearest_point.y;
@@ -288,143 +297,203 @@ let GameScene = new Phaser.Class({
                     casing.destroy();
                 })
             }
-            /*
-            scene.add.line(ball_x,
-                ball_y,
-                0, 0,
-                ball.body.velocity.x, ball.body.velocity.y, 0x00ff00, 1.0).setOrigin(0);
-
-            scene.add.rectangle(impact_x,
-                impact_y,
-                bullet.body.width, bullet.body.height, 0xff0000, 1);
-            */
         });
         ball.body.setBounce(0.75);
-        scene.physics.add.overlap(ball, goals, function(ball, goal) {
+
+        return ball;
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+
+        let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
+            .setAltFillStyle(0xC0C0C0)
+            .setOutlineStyle();
+
+        scene.__touchables = scene.physics.add.group();
+        scene.__platforms = scene.physics.add.staticGroup();
+        scene.__ball_platforms = scene.physics.add.staticGroup();
+        scene.__shootables = scene.physics.add.group();
+        scene.__goals = scene.physics.add.group();
+
+        let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + 8,
+            SCREEN_WIDTH, 16, 0xff0000, 1.0);
+        scene.__platforms.add(floor);
+        scene.__ball_platforms.add(floor);
+
+        floor = scene.add.rectangle(SCREEN_WIDTH/2, - 8,
+            SCREEN_WIDTH, 16, 0xff0000, 1.0);
+        scene.__platforms.add(floor);
+        scene.__ball_platforms.add(floor);
+
+        let wall = scene.add.rectangle(SCREEN_WIDTH + 8, SCREEN_HEIGHT/2,
+            16, SCREEN_HEIGHT, 0xff0000, 1.0)
+        scene.__platforms.add(wall);
+        scene.__ball_platforms.add(wall);
+        wall = scene.add.rectangle(- 8, SCREEN_HEIGHT/2,
+            16, SCREEN_HEIGHT, 0xff0000, 1.0)
+        scene.__platforms.add(wall);
+        scene.__ball_platforms.add(wall);
+
+        let add_ammo = function(x,y) {
+            let ammo = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
+                0xff8000, 1.0);
+            scene.__touchables.add(ammo);
+            ammo.setData('onTouch', function(character, ammo) {
+                character.data.values.addAmmo(3);
+                ammo.destroy();
+            });
+        };
+
+        let add_left_platform= function(x, y, length) {
+            let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
+                length * GRID_SIZE, 8,
+                0x000000, 1.0);
+            scene.__platforms.add(platform);
+            scene.__ball_platforms.add(platform);
+
+
+            platform = scene.add.rectangle((SCREEN_COLS - x)*GRID_SIZE, y*GRID_SIZE,
+                length * GRID_SIZE, 8,
+                0x000000, 1.0);
+            scene.__platforms.add(platform);
+            scene.__ball_platforms.add(platform);
+
+            add_ammo(x,y-1);
+            add_ammo(SCREEN_COLS - x, y-1);
+        };
+
+        add_left_platform(3.5, 7, 3);
+        add_left_platform(3.5, 2, 3);
+        add_left_platform(4.25, 4.5, 1.5);
+        add_left_platform(6.75, 3.25, 1.5);
+        add_left_platform(6.75, 5.75, 1.5);
+
+        let goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE - GRID_SIZE/8 - GRID_SIZE/16, SCREEN_HEIGHT / 2,
+            GRID_SIZE/8, GRID_SIZE - GRID_SIZE/4,
+            0x000080, 1.0);
+        scene.__ball_platforms.add(goal_exterior);
+        goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE,
+            SCREEN_HEIGHT / 2 + GRID_SIZE/2 - GRID_SIZE/8/2,
+            GRID_SIZE/2, GRID_SIZE/8,
+            0x000080, 1.0);
+        scene.__ball_platforms.add(goal_exterior);
+        goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE,
+            SCREEN_HEIGHT / 2 - GRID_SIZE/2 + GRID_SIZE/8/2,
+            GRID_SIZE/2, GRID_SIZE/8,
+            0x000080, 1.0);
+        scene.__ball_platforms.add(goal_exterior);
+        let goal = scene.add.rectangle(1.5 * GRID_SIZE,
+            SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, GRID_SIZE - GRID_SIZE/4,
+            0x0000ff, 1.0);
+        goal.setData('player', 0);
+
+        scene.__goals.add(goal);
+        goal = scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
+            0x0000ff, 1.0);
+        goal.setData('player', 1);
+        scene.__goals.add(goal);
+
+        scene.__character = scene.addPlayer();
+        let ball = scene.addBall();
+
+        scene.input.addPointer(5);
+
+        scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
+            let dx = pointer.worldX - scene.__character.data.values.gun.x;
+            let dy = pointer.worldY - scene.__character.data.values.gun.y;
+            let d = Math.sqrt(dx * dx + dy * dy);
+            dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
+            dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
+            scene.__character.data.values.setAngle(dx, dy);
+        });
+
+        scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
+        scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
+        scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
+        scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
+        scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
+        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
+
+        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP,
+            scene.__character.data.values.toggleGun);
+
+        //scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
+
+        scene.physics.add.collider(scene.__character, scene.__platforms);
+        scene.physics.add.overlap(scene.__character, scene.__touchables,
+            function(character, touchable) {
+                touchable.data.values.onTouch(character, touchable);
+        });
+        scene.physics.add.collider(ball, scene.__ball_platforms);
+        scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
             ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
             ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
             ball.body.setVelocity(0,0);
         });
 
 
-        let ammo_text =
-            scene.add.text(0,SCREEN_HEIGHT, "" + scene.__character.data.values.ammo + "", { fontSize: GRID_SIZE/2 + 'px', fill: '#000' }).setOrigin(0,1);
-        scene.__character.setData('addAmmo',function(ammount) {
-            scene.__character.data.values.ammo += ammount;
-            ammo_text.setText("" + scene.__character.data.values.ammo + "" );
-        });
 
-        let allow_fire = true;
-        scene.__generate_bullet = function(pointer) {
-            if (!allow_fire || scene.__character.data.values.ammo === 0) {
-                return;
-            }
-            scene.__character.data.values.addAmmo(-1);
-            allow_fire = false;
-            scene.time.delayedCall(100, function () {
-                allow_fire = true;
-            });
-            let x = scene.__character.x;
-            let y = scene.__character.y;
-            mouse_vector.x = GRID_SIZE/4;
-            mouse_vector.y = 0;
-            mouse_vector.rotate(Phaser.Math.DegToRad(scene.__gun.angle));
-            let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
-                2, 2, 0x000000);
-                //.setDepth(DEPTHS.MOBS);
-            bullet.setData('color',scene.__character_color);
-            scene.physics.add.existing(bullet);
-            bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
-            scene.physics.add.overlap(bullet, platforms, function(bullet, platform) {
-                bullet.destroy();
-                //platform.destroy();
-            });
-            scene.physics.add.overlap(bullet, shootables, function(bullet, shootable) {
-                shootable.data.values.onShot(bullet);
-                bullet.destroy();
-            });
-            scene.physics.add.overlap(bullet, platforms, function(bullet, shootable) {
-                //shootable.data.values.onShot(bullet);
-                bullet.destroy();
-            });
-            scene.time.delayedCall(1000, function() {
-                bullet.destroy();
-            });
-            //scene.cameras.main.shake(50, 0.005, true);
-            return;
-        };
     },
 
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
 
-        let dx = 0;
-        let dy = 0;
-        if (scene.__cursor_keys.left.isDown ||
-            scene.__cursor_keys.letter_left.isDown) {
-            dx -= 1;
-        }
-        if (scene.__cursor_keys.right.isDown ||
-            scene.__cursor_keys.letter_right.isDown) {
-            dx += 1;
-        }
-        if (scene.__cursor_keys.up.isDown ||
-            scene.__cursor_keys.letter_up.isDown) {
-            if (scene.__character.body.blocked.down) {
-                scene.__character.body.setVelocityY(
-                    scene.__character.data.values.jump_strength
-                );
-            }
-        }
-        if (!scene.__cursor_keys.up.isDown &&
-            !scene.__cursor_keys.letter_up.isDown)
-        {
-            if (scene.__character.body.velocity.y < 0)
-            {
-                scene.__character.body.setVelocityY(scene.__character.body.velocity.y *
-                    scene.__character.data.values.jump_deadening);
-            }
-        }
-        /*
-        if (scene.__cursor_keys.down.isDown ||
-            scene.__cursor_keys.letter_down.isDown) {
-            dy += 1;
-        }
-        */
+        let gamepad_input = {
+            left : false,
+            right : false,
+            up : false,
+            down : false,
+            fire : false
+        };
+        if (scene.input.gamepad.total !== 0) {
+            let pad = scene.input.gamepad.gamepads[0];
 
-        //normalize
-        let d = Math.sqrt(dx * dx + dy * dy);
-        let v = 90*GRID_SIZE/16;
-        if (d !== 0) {
-            dx = dx / d * v;
-            dy = dy / d * v;
+            gamepad_input.left = pad.buttons[14].value === 1;
+            gamepad_input.right = pad.buttons[15].value === 1;
+            gamepad_input.up = pad.buttons[12].value === 1;
+            gamepad_input.down = pad.buttons[13].value === 1;
+            gamepad_input.fire = pad.buttons[5].value === 1;
+
+            let dx = pad.axes[2].getValue();
+            let dy = pad.axes[3].getValue();
+            let tolerance = 0.5;
+            if (dx * dx + dy * dy > tolerance * tolerance) {
+                scene.__character.data.values.setAngle(pad.axes[2].getValue(),
+                    pad.axes[3].getValue());
+            }
+            dx = pad.axes[0].getValue();
+            dy = pad.axes[1].getValue();
+            gamepad_input.left = dx < -tolerance;
+            gamepad_input.right = dx > tolerance;
+            gamepad_input.up = dy < -tolerance;
+            gamepad_input.down = dy > tolerance;
         }
 
-        let moving = false;
-        if (dx !== 0) {
-            moving = true;
-        }
-        if (moving !== scene.__moving) {
-            scene.__moving = moving;
-            if (moving) {
-                //scene.__character.play('hero_run');
-            } else {
-                //scene.__character.anims.stop();
-                //scene.__character.setTexture('hero', 0);
-            }
-        }
-        /*if (dx < 0) {
-            scene.__character.setFlipX(true);
-        } else if (dx > 0) {
-            scene.__character.setFlipX(false);
-        }*/
-        scene.__character.body.setVelocityX(dx);
-        scene.__align_player_group();
+        scene.__character.data.values.left = scene.__cursor_keys.left.isDown ||
+            scene.__cursor_keys.letter_left.isDown ||
+            gamepad_input.left;
 
-        if (scene.input.activePointer.leftButtonDown()) {
-            scene.__generate_bullet();
-        }
+        scene.__character.data.values.right = scene.__cursor_keys.right.isDown ||
+            scene.__cursor_keys.letter_right.isDown ||
+            gamepad_input.right;
+
+        scene.__character.data.values.up = scene.__cursor_keys.up.isDown ||
+            scene.__cursor_keys.letter_up.isDown ||
+            gamepad_input.up;
+
+        scene.__character.data.values.down = scene.__cursor_keys.letter_down.isDown ||
+            scene.__cursor_keys.down.isDown ||
+            gamepad_input.down;
+
+        scene.__character.data.values.fire = scene.input.activePointer.leftButtonDown() ||
+            gamepad_input.fire;
+
+        scene.__character.data.values.update();
     },
 });
 
@@ -433,6 +502,9 @@ let config = {
     type: Phaser.AUTO,
     render: {
         pixelArt: true
+    },
+    input: {
+        gamepad: true
     },
     scale: {
         mode: Phaser.Scale.FIT,
