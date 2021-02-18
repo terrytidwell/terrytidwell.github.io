@@ -333,16 +333,23 @@ let GameScene = new Phaser.Class({
             16, SCREEN_HEIGHT, 0xff0000, 1.0);
         addToPhysics(wall);
 
-        let add_ammo = function(x,y) {
-            let ammo = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
+        let ammo_randomizer = function() {
+            return Phaser.Math.Between(1000,30000);
+        };
+        let add_ammo = function(x,y, length) {
+            let rx = Phaser.Math.Between((x - length/2) * GRID_SIZE,
+                (x + length/2)*GRID_SIZE);
+            let ammo = scene.add.rectangle(rx, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
                 0xff8000, 1.0);
             scene.__touchables.add(ammo);
+            scene.__ammos.add(ammo);
             scene.__platform_colliders.add(ammo);
             ammo.body.gravity.y = 900;
             ammo.setData('onTouch', function(character, ammo) {
                 character.data.values.addAmmo(3);
                 ammo.destroy();
             });
+            scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y, length]);
         };
 
         let add_left_platform= function(x, y, length) {
@@ -356,8 +363,8 @@ let GameScene = new Phaser.Class({
                 0x000000, 1.0);
             addToPhysics(platform);
 
-            add_ammo(x,y-1);
-            add_ammo(SCREEN_COLS - x, y-1);
+            scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y-1, length]);
+            scene.time.delayedCall(ammo_randomizer(), add_ammo, [SCREEN_COLS - x, y-1, length]);
         };
 
         add_left_platform(3.5, 7, 3);
@@ -420,6 +427,7 @@ let GameScene = new Phaser.Class({
         scene.__shootables = scene.physics.add.group();
         scene.__goals = scene.physics.add.group();
         scene.__players = scene.physics.add.group();
+        scene.__ammos = scene.physics.add.group();
 
         scene.setupField();
         scene.__player_objects = [
@@ -466,6 +474,7 @@ let GameScene = new Phaser.Class({
             bullet.destroy();
         });
         scene.physics.add.collider(ball, scene.__ball_platforms);
+        scene.physics.add.collider(scene.__ammos, scene.__ammos);
         scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
             ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
             ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
