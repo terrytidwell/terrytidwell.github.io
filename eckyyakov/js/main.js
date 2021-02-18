@@ -67,11 +67,22 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    addPlayer: function () {
+    addPlayer: function (player) {
         let scene = this;
 
-        let character = scene.add.rectangle(0.5 * GRID_SIZE, 8.5 * GRID_SIZE
-            ,16,48,0x00ff00, 1.0);
+        let x_offset = 0.5;
+        let color = 0x00ff00;
+        let ammo_text_x_offset = 0;
+        let ammo_text_x_origin = 0;
+        if (player === 1) {
+            x_offset = SCREEN_COLS - x_offset;
+            ammo_text_x_offset = SCREEN_COLS - ammo_text_x_offset;
+            color = 0xff8000;
+            ammo_text_x_origin = 1;
+        }
+
+        let character = scene.add.rectangle(x_offset * GRID_SIZE, 8.5 * GRID_SIZE
+            ,16,48,color, 1.0);
 
         //character.play('hero_run');
         let current_gun_index = 0;
@@ -81,7 +92,7 @@ let GameScene = new Phaser.Class({
             .setVisible(true);
         character.setData('gun', gun);
 
-        scene.physics.add.existing(character);
+        scene.__players.add(character);
         character.body.gravity.y = 900;
         character.setData('jump_strength', -550);
         character.setData('jump_deadening', 0.75);
@@ -106,7 +117,10 @@ let GameScene = new Phaser.Class({
         });
 
         let ammo_text =
-            scene.add.text(0,SCREEN_HEIGHT, "" + character.data.values.ammo + "", { fontSize: GRID_SIZE/2 + 'px', fill: '#000' }).setOrigin(0,1);
+            scene.add.text(ammo_text_x_offset * GRID_SIZE,SCREEN_HEIGHT,
+                "" + character.data.values.ammo + "",
+                { fontSize: GRID_SIZE/2 + 'px', fill: '#000' })
+                .setOrigin(ammo_text_x_origin,1);
         character.setData('addAmmo',function(ammount) {
             character.data.values.ammo += ammount;
             ammo_text.setText("" + character.data.values.ammo + "" );
@@ -303,20 +317,8 @@ let GameScene = new Phaser.Class({
         return ball;
     },
 
-    //--------------------------------------------------------------------------
-    create: function () {
+    setupField : function() {
         let scene = this;
-
-        let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
-            .setAltFillStyle(0xC0C0C0)
-            .setOutlineStyle();
-
-        scene.__touchables = scene.physics.add.group();
-        scene.__platforms = scene.physics.add.staticGroup();
-        scene.__ball_platforms = scene.physics.add.staticGroup();
-        scene.__shootables = scene.physics.add.group();
-        scene.__goals = scene.physics.add.group();
 
         let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + 8,
             SCREEN_WIDTH, 16, 0xff0000, 1.0);
@@ -404,20 +406,44 @@ let GameScene = new Phaser.Class({
 
         addGoal(0);
         addGoal(1);
+    },
 
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
 
-        scene.__character = scene.addPlayer();
+        let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
+            .setAltFillStyle(0xC0C0C0)
+            .setOutlineStyle();
+
+        //SETUP PHYSICS GROUPS
+
+        scene.__touchables = scene.physics.add.group();
+        scene.__platforms = scene.physics.add.staticGroup();
+        scene.__ball_platforms = scene.physics.add.staticGroup();
+        scene.__shootables = scene.physics.add.group();
+        scene.__goals = scene.physics.add.group();
+        scene.__players = scene.physics.add.group();
+
+        scene.setupField();
+        scene.__player_objects = [
+            scene.addPlayer(0),
+            scene.addPlayer(1)
+        ];
         let ball = scene.addBall();
+
+        //SETUP INPUTS
 
         scene.input.addPointer(5);
 
         scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
-            let dx = pointer.worldX - scene.__character.data.values.gun.x;
-            let dy = pointer.worldY - scene.__character.data.values.gun.y;
+            let dx = pointer.worldX - scene.__player_objects[0].data.values.gun.x;
+            let dy = pointer.worldY - scene.__player_objects[0].data.values.gun.y;
             let d = Math.sqrt(dx * dx + dy * dy);
             dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
             dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
-            scene.__character.data.values.setAngle(dx, dy);
+            scene.__player_objects[0].data.values.setAngle(dx, dy);
         });
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
@@ -428,13 +454,12 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
 
         scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP,
-            scene.__character.data.values.toggleGun);
+            scene.__player_objects[0].data.values.toggleGun);
 
-        //scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
-        //scene.cameras.main.startFollow(scene.__character, true, 1, 1, 0, 0);
+        //SETUP PHYSICS INTERACTIONS
 
-        scene.physics.add.collider(scene.__character, scene.__platforms);
-        scene.physics.add.overlap(scene.__character, scene.__touchables,
+        scene.physics.add.collider(scene.__players, scene.__platforms);
+        scene.physics.add.overlap(scene.__players, scene.__touchables,
             function(character, touchable) {
                 touchable.data.values.onTouch(character, touchable);
         });
@@ -444,9 +469,6 @@ let GameScene = new Phaser.Class({
             ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
             ball.body.setVelocity(0,0);
         });
-
-
-
     },
 
     //--------------------------------------------------------------------------
@@ -473,7 +495,7 @@ let GameScene = new Phaser.Class({
             let dy = pad.axes[3].getValue();
             let tolerance = 0.5;
             if (dx * dx + dy * dy > tolerance * tolerance) {
-                scene.__character.data.values.setAngle(pad.axes[2].getValue(),
+                scene.__player_objects[1].data.values.setAngle(pad.axes[2].getValue(),
                     pad.axes[3].getValue());
             }
             dx = pad.axes[0].getValue();
@@ -484,26 +506,27 @@ let GameScene = new Phaser.Class({
             gamepad_input.down = dy > tolerance;
         }
 
-        scene.__character.data.values.left = scene.__cursor_keys.left.isDown ||
-            scene.__cursor_keys.letter_left.isDown ||
-            gamepad_input.left;
+        scene.__player_objects[0].data.values.left = scene.__cursor_keys.left.isDown ||
+            scene.__cursor_keys.letter_left.isDown;
+        scene.__player_objects[1].data.values.left = gamepad_input.left;
 
-        scene.__character.data.values.right = scene.__cursor_keys.right.isDown ||
-            scene.__cursor_keys.letter_right.isDown ||
-            gamepad_input.right;
+        scene.__player_objects[0].data.values.right = scene.__cursor_keys.right.isDown ||
+            scene.__cursor_keys.letter_right.isDown;
+        scene.__player_objects[1].data.values.right = gamepad_input.right;
 
-        scene.__character.data.values.up = scene.__cursor_keys.up.isDown ||
-            scene.__cursor_keys.letter_up.isDown ||
-            gamepad_input.up;
+        scene.__player_objects[0].data.values.up = scene.__cursor_keys.up.isDown ||
+            scene.__cursor_keys.letter_up.isDown;
+        scene.__player_objects[1].data.values.up = gamepad_input.up;
 
-        scene.__character.data.values.down = scene.__cursor_keys.letter_down.isDown ||
-            scene.__cursor_keys.down.isDown ||
-            gamepad_input.down;
+        scene.__player_objects[0].data.values.down = scene.__cursor_keys.letter_down.isDown ||
+            scene.__cursor_keys.down.isDown;
+        scene.__player_objects[1].data.values.down = gamepad_input.down;
 
-        scene.__character.data.values.fire = scene.input.activePointer.leftButtonDown() ||
-            gamepad_input.fire;
+        scene.__player_objects[0].data.values.fire = scene.input.activePointer.leftButtonDown();
+        scene.__player_objects[1].data.values.fire = gamepad_input.fire;
 
-        scene.__character.data.values.update();
+        scene.__player_objects[0].data.values.update();
+        scene.__player_objects[1].data.values.update();
     },
 });
 
