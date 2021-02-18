@@ -371,30 +371,40 @@ let GameScene = new Phaser.Class({
         add_left_platform(6.75, 3.25, 1.5);
         add_left_platform(6.75, 5.75, 1.5);
 
-        let goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE - GRID_SIZE/8 - GRID_SIZE/16, SCREEN_HEIGHT / 2,
-            GRID_SIZE/8, GRID_SIZE - GRID_SIZE/4,
-            0x000080, 1.0);
-        scene.__ball_platforms.add(goal_exterior);
-        goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE,
-            SCREEN_HEIGHT / 2 + GRID_SIZE/2 - GRID_SIZE/8/2,
-            GRID_SIZE/2, GRID_SIZE/8,
-            0x000080, 1.0);
-        scene.__ball_platforms.add(goal_exterior);
-        goal_exterior = scene.add.rectangle(1.5 * GRID_SIZE,
-            SCREEN_HEIGHT / 2 - GRID_SIZE/2 + GRID_SIZE/8/2,
-            GRID_SIZE/2, GRID_SIZE/8,
-            0x000080, 1.0);
-        scene.__ball_platforms.add(goal_exterior);
-        let goal = scene.add.rectangle(1.5 * GRID_SIZE,
-            SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, GRID_SIZE - GRID_SIZE/4,
-            0x0000ff, 1.0);
-        goal.setData('player', 0);
+        let addGoal = function (player) {
+            let x_offset = 1.5;
+            let x_back_offset = - GRID_SIZE/8 - GRID_SIZE/16;
+            if (player === 1) {
+                x_offset = SCREEN_COLS - x_offset;
+                x_back_offset = -x_back_offset;
+            }
 
-        scene.__goals.add(goal);
-        goal = scene.add.rectangle(SCREEN_WIDTH - 1.5 * GRID_SIZE, SCREEN_HEIGHT / 2, GRID_SIZE/2, GRID_SIZE,
-            0x0000ff, 1.0);
-        goal.setData('player', 1);
-        scene.__goals.add(goal);
+            let goal_exterior = scene.add.rectangle(
+                x_offset * GRID_SIZE + x_back_offset, SCREEN_HEIGHT / 2,
+                GRID_SIZE/8, GRID_SIZE - GRID_SIZE/4,
+                0x000080, 1.0);
+            scene.__ball_platforms.add(goal_exterior);
+            goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
+                SCREEN_HEIGHT / 2 + GRID_SIZE/2 - GRID_SIZE/8/2,
+                GRID_SIZE/2, GRID_SIZE/8,
+                0x000080, 1.0);
+            scene.__ball_platforms.add(goal_exterior);
+            goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
+                SCREEN_HEIGHT / 2 - GRID_SIZE/2 + GRID_SIZE/8/2,
+                GRID_SIZE/2, GRID_SIZE/8,
+                0x000080, 1.0);
+            scene.__ball_platforms.add(goal_exterior);
+            let goal = scene.add.rectangle(x_offset * GRID_SIZE,
+                SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, GRID_SIZE - GRID_SIZE/4,
+                0x0000ff, 1.0);
+            goal.setData('player', player);
+
+            scene.__goals.add(goal);
+        };
+
+        addGoal(0);
+        addGoal(1);
+
 
         scene.__character = scene.addPlayer();
         let ball = scene.addBall();
