@@ -4,6 +4,45 @@ const GRID_COLS = 16;
 const GRID_ROWS = 10;
 const SCREEN_WIDTH = 1280; //845 + 400; //845; //1025
 const SCREEN_HEIGHT = 768; //542 + 150; //542; //576
+const ARROW = {
+    NONE: 0,
+    LEFT: 1,
+    RIGHT: 2,
+    /*
+    random: function() { return Phaser.Math.Between(0, 2); },
+    color: function(color) { return [0xff0000, 0x00ff00, 0x0000ff][color]; },
+    */
+};
+const SEGMENT = {
+    NONE: 0,
+    LEFT: 1,
+    MIDDLE: 2,
+    RIGHT: 3,
+    offset: function(segment) {
+        return segment;
+    }
+};
+const COLORS = {
+    BLUE: 0,
+    GREEN: 1,
+    LIME: 2,
+    ORANGE: 3,
+    PURPLE: 4,
+    RED: 5,
+    COLORLESS: 6,
+    isColor: function(color) {
+        return color !== 6;
+    },
+    randomColor: function() {
+        return Phaser.Math.Between(0,5);
+    },
+    randomColorExcluding(color) {
+        if (COLORS.isColor(color)) {
+            return (color + Phaser.Math.Between(1,5)) % 6;
+        }
+        return COLORS.randomColor();
+    }
+};
 
 let LoadScene = new Phaser.Class({
 
@@ -26,9 +65,8 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('boxes', 'assets/Boxes.png', { frameWidth: 50, frameHeight: 50 });
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
-        this.load.image('l_scanline', 'assets/Play Grid/L_Scanline.png');
-        this.load.image('r_scanline', 'assets/Play Grid/R_Scanline.png');
-        //this.load.video('bg_video', 'assets/Play Grid/Background Video/dynamic lines.mp4');
+        this.load.image('grey_arrow', 'assets/Boxes/Grey/GreyArrow_Left.png');
+        this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -81,26 +119,52 @@ let GameScene = new Phaser.Class({
 
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
 
-        let colors = 6;
         let grid = [];
+
+        let set_block_texture = function(square) {
+            let color = square.data.values.color;
+            if (COLORS.isColor(color)) {
+                let offset = SEGMENT.offset(square.data.values.segment);
+                square.setTexture('boxes', color*6 + offset).setFlipX(false);
+            } else {
+                square.setTexture('grey_arrow')
+                    .setFlipX(ARROW.RIGHT === square.data.values.arrow);
+                if (COLORS.isColor(square.data.values.arrow_color)) {
+                    square.setTexture('boxes', square.data.values.arrow_color*6 + 4);
+                }
+            }
+        };
+
         for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
             {
-                let chosen_color = Phaser.Math.Between(0, colors - 1);
+                let chosen_color = COLORS.randomColor();
+                let chosen_arrow = ARROW.NONE;
                 if (x !== 0)
                 {
-                    chosen_color = grid[x-1][y].data.values.color
-                        + Phaser.Math.Between(1, colors - 1);
-                    chosen_color %= colors;
+                    chosen_color =
+                        COLORS.randomColorExcluding(grid[x-1][y].data.values.color);
+                }
+                if (Phaser.Math.Between(0, 100) < 10) {
+                    chosen_arrow = ARROW.LEFT;
+                    chosen_color = COLORS.COLORLESS;
+                    if (Phaser.Math.Between(0,1) === 0) {
+                        chosen_arrow = ARROW.RIGHT;
+                    }
                 }
 
                 let square = scene.add.sprite(gridX(x), gridY(y),
-                    'boxes', chosen_color * 6).setAlpha(0.75);
+                    'boxes', 0).setAlpha(0.75);
+                grid[x].push(square);
+                square.setData('arrow', chosen_arrow);
                 square.setData('color', chosen_color);
                 square.setData('locked', false);
-                grid[x].push(square);
+                square.setData('arrow_color', COLORS.COLORLESS);
+                square.setData('segment', SEGMENT.NONE);
+                set_block_texture(square);
+
                 square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
             }
         }
@@ -108,7 +172,7 @@ let GameScene = new Phaser.Class({
         let playerX = GRID_COLS/2 - 1;
         let playerY = GRID_ROWS/2;
         let player = scene.add.sprite(0,0,'player_controller');
-        let scanline = scene.add.sprite(0,0,'r_scanline');
+        let scanline = scene.add.sprite(0,0,'scanline');
 
         let scanlineX = 0;
         let scanlineDx = 1;
@@ -124,9 +188,9 @@ let GameScene = new Phaser.Class({
                 scanlineDx *= -1;
             }
             if (scanlineDx > 0) {
-                scanline.setTexture('r_scanline');
+                scanline.setFlipX(false);
             } else {
-                scanline.setTexture('l_scanline');
+                scanline.setFlipX(true);
             }
             set_scanline();
         }
@@ -142,6 +206,9 @@ let GameScene = new Phaser.Class({
         scene.input.addPointer(5);
 
         let left_test = function(x,y,test_color) {
+            if (!COLORS.isColor(test_color)) {
+                return false;
+            }
             if (x !== 0 && grid[x-1][y].data.values.color === test_color) {
                 return false;
             }
@@ -154,6 +221,9 @@ let GameScene = new Phaser.Class({
         };
 
         let middle_test = function(x,y,test_color) {
+            if (!COLORS.isColor(test_color)) {
+                return false;
+            }
             if (x + 1 < GRID_COLS && x - 1 >= 0 &&
                 grid[x-1][y].data.values.color === test_color &&
                 grid[x+1][y].data.values.color === test_color) {
@@ -163,6 +233,9 @@ let GameScene = new Phaser.Class({
         };
 
         let right_test = function(x,y,test_color) {
+            if (!COLORS.isColor(test_color)) {
+                return false;
+            }
             if (x !== GRID_COLS-1 && grid[x+1][y].data.values.color === test_color) {
                 return false;
             }
@@ -175,23 +248,51 @@ let GameScene = new Phaser.Class({
         };
 
         let merge_squares = function(y) {
+            //handle color squares
             for(let x = 0; x < GRID_COLS; x++) {
-                let test_color = grid[x][y].data.values.color;
+                let square = grid[x][y];
+                let test_color = square.data.values.color;
                 if (left_test(x,y,test_color)) {
-                    grid[x][y].setTexture('boxes',test_color*6 + 1);
-                    grid[x][y].setData('locked',true);
-                }
-                else if (middle_test(x,y,test_color)) {
-                    grid[x][y].setTexture('boxes',test_color*6 + 2);
-                    grid[x][y].setData('locked',true);
-                }
-                else if (right_test(x,y,test_color)) {
-                    grid[x][y].setTexture('boxes',test_color*6 + 3);
-                    grid[x][y].setData('locked',true);
+                    square.setData('locked',false);
+                    square.setData('segment', SEGMENT.LEFT);
+                } else if (middle_test(x,y,test_color)) {
+                    square.setData('locked',false);
+                    square.setData('segment', SEGMENT.MIDDLE);
+                } else if (right_test(x,y,test_color)) {
+                    square.setData('locked',false);
+                    square.setData('segment', SEGMENT.RIGHT);
                 } else {
-                    grid[x][y].setTexture('boxes',test_color*6);
-                    grid[x][y].setData('locked',false);
+                    square.setData('locked',false);
+                    square.setData('segment', SEGMENT.NONE);
                 }
+            }
+            //handle grey arrows
+            for(let x = 0; x < GRID_COLS; x++) {
+                let square = grid[x][y];
+                square.setData('arrow_color', COLORS.COLORLESS);
+                let test_color = square.data.values.color;
+                if (!COLORS.isColor(test_color)) {
+                    if (x !== 0 &&
+                        square.data.values.arrow === ARROW.LEFT &&
+                        COLORS.isColor(grid[x-1][y].data.values.color) &&
+                        grid[x-1][y].data.values.segment === SEGMENT.RIGHT ) {
+                        //end cap!!
+                        grid[x - 1][y].setData('segment', SEGMENT.MIDDLE);
+                        square.setData('arrow_color', grid[x-1][y].data.values.color);
+                    } else if (x !== GRID_COLS -1  &&
+                        square.data.values.arrow === ARROW.RIGHT &&
+                        COLORS.isColor(grid[x+1][y].data.values.color) &&
+                        grid[x+1][y].data.values.segment === SEGMENT.LEFT) {
+                        grid[x+1][y].setData('segment', SEGMENT.MIDDLE);
+                        square.setData('arrow_color', grid[x+1][y].data.values.color);
+                    }
+
+                }
+            }
+            //now paint tiles
+            for(let x = 0; x < GRID_COLS; x++) {
+                let square = grid[x][y];
+                set_block_texture(square);
             }
         };
 
@@ -212,15 +313,20 @@ let GameScene = new Phaser.Class({
         let try_selection = function () {
             let left_square = grid[playerX][playerY];
             let left_color = left_square.data.values.color;
+            let left_arrow = left_square.data.values.arrow;
             let right_square = grid[playerX+1][playerY];
             let right_color = right_square.data.values.color;
+            let right_arrow = right_square.data.values.arrow;
+
             if (left_square.data.values.locked || right_square.data.values.locked) {
                 return;
             }
+
             left_square.setData('color',right_color);
-            left_square.setTexture('boxes',right_color * 6);
+            left_square.setData('arrow',right_arrow);
             right_square.setData('color',left_color);
-            right_square.setTexture('boxes',left_color * 6);
+            right_square.setData('arrow',left_arrow);
+
             merge_squares(playerY);
         };
 
