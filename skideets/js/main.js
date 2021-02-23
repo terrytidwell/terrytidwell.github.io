@@ -99,12 +99,11 @@ let GameScene = new Phaser.Class({
                 let square = scene.add.sprite(gridX(x), gridY(y),
                     'boxes', chosen_color * 6).setAlpha(0.75);
                 square.setData('color', chosen_color);
+                square.setData('locked', false);
                 grid[x].push(square);
                 square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
             }
         }
-
-
 
         let playerX = GRID_COLS/2 - 1;
         let playerY = GRID_ROWS/2;
@@ -180,14 +179,18 @@ let GameScene = new Phaser.Class({
                 let test_color = grid[x][y].data.values.color;
                 if (left_test(x,y,test_color)) {
                     grid[x][y].setTexture('boxes',test_color*6 + 1);
+                    grid[x][y].setData('locked',true);
                 }
                 else if (middle_test(x,y,test_color)) {
                     grid[x][y].setTexture('boxes',test_color*6 + 2);
+                    grid[x][y].setData('locked',true);
                 }
                 else if (right_test(x,y,test_color)) {
                     grid[x][y].setTexture('boxes',test_color*6 + 3);
+                    grid[x][y].setData('locked',true);
                 } else {
                     grid[x][y].setTexture('boxes',test_color*6);
+                    grid[x][y].setData('locked',false);
                 }
             }
         };
@@ -211,6 +214,9 @@ let GameScene = new Phaser.Class({
             let left_color = left_square.data.values.color;
             let right_square = grid[playerX+1][playerY];
             let right_color = right_square.data.values.color;
+            if (left_square.data.values.locked || right_square.data.values.locked) {
+                return;
+            }
             left_square.setData('color',right_color);
             left_square.setTexture('boxes',right_color * 6);
             right_square.setData('color',left_color);
