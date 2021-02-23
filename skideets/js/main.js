@@ -26,6 +26,11 @@ let LoadScene = new Phaser.Class({
 
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
         this.load.image('blue', 'assets/Boxes/Blue/Blue_Single.png');
+        this.load.image('green', 'assets/Boxes/Green/Green_Single.png');
+        this.load.image('lime', 'assets/Boxes/Lime/Lime_Single.png');
+        this.load.image('orange', 'assets/Boxes/Orange/Orange_Single.png');
+        this.load.image('purple', 'assets/Boxes/Purple/Purple_Single.png');
+        this.load.image('red', 'assets/Boxes/Red/Red_Single.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
         this.load.image('l_scanline', 'assets/Play Grid/L_Scanline.png');
         this.load.image('r_scanline', 'assets/Play Grid/R_Scanline.png');
@@ -69,29 +74,37 @@ let GameScene = new Phaser.Class({
 
         let gridX = function(x) {
             let dx = x - GRID_COLS / 2;
-            return SCREEN_WIDTH/2 + dx * GRID_SIZE - 27;
+            return SCREEN_WIDTH/2 + dx * GRID_SIZE + 23;
         };
 
         let gridY = function(y) {
             let dy = y - GRID_ROWS / 2;
-            return SCREEN_HEIGHT/2 + dy * GRID_SIZE - 23;
+            return SCREEN_HEIGHT/2 + dy * GRID_SIZE + 27;
         };
 
+        let colors = ['blue','green','lime','orange','purple','red'];
+        let grid = [];
+        for (let x = 0; x < GRID_COLS; x++)
+        {
+            grid.push([]);
+            for (let y = 0; y < GRID_ROWS; y++)
+            {
 
-        for (let x=0; x < GRID_COLS; x++){
-            for (let y=0; y < GRID_ROWS; y++) {
-                //scene.add.sprite(gridX(x), gridY(y), 'blue');
+                let square = scene.add.sprite(gridX(x), gridY(y),
+                    colors[Phaser.Math.Between(0, colors.length-1)]);
+                grid[x].push(square);
+                square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
             }
         }
 
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
 
-        let playerX = GRID_COLS/2;
+        let playerX = GRID_COLS/2 - 1;
         let playerY = GRID_ROWS/2;
         let player = scene.add.sprite(0,0,'player_controller');
         let scanline = scene.add.sprite(0,0,'r_scanline');
 
-        let scanlineX = 1;
+        let scanlineX = 0;
         let scanlineDx = 1;
 
         let set_scanline = function() {
@@ -101,7 +114,7 @@ let GameScene = new Phaser.Class({
 
         let update_scanline = function() {
             scanlineX += scanlineDx;
-            if (scanlineX < 1 || scanlineX > GRID_COLS) {
+            if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
                 scanlineDx *= -1;
             }
             if (scanlineDx > 0) {
@@ -118,21 +131,15 @@ let GameScene = new Phaser.Class({
             "callback": update_scanline
         });
 
-
-
-
         //SETUP INPUTS
-
 
         scene.input.addPointer(5);
 
         let move_character = function (dx, dy) {
-            //valid range x = [1,GRID_COLS-1]
-            //valid_range y = [0,GRID_COLS]
             let newX = playerX + dx;
             let newY = playerY + dy;
-            if (newX < 1 || newX > GRID_COLS - 1 ||
-                newY < 1 || newY > GRID_ROWS)
+            if (newX < 0 || newX > GRID_COLS - 2 ||
+                newY < 0 || newY > GRID_ROWS - 1)
             {
                 return;
             }
@@ -142,7 +149,11 @@ let GameScene = new Phaser.Class({
         };
         move_character(0,0);
 
-        let try_selection = function () {};
+        let try_selection = function () {
+            let temp = grid[playerX][playerY].texture;
+            grid[playerX][playerY].setTexture(grid[playerX+1][playerY].texture);
+            grid[playerX+1][playerY].setTexture(temp);
+        };
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.m_cursor_keys.down.on('down', function(event) {
