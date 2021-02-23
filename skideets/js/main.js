@@ -2,8 +2,8 @@ const GRID_SIZE = 50;
 //const SPRITE_SCALE = GRID_SIZE/32;
 const GRID_COLS = 16;
 const GRID_ROWS = 10;
-const SCREEN_WIDTH = 845; //1025
-const SCREEN_HEIGHT = 542; //576
+const SCREEN_WIDTH = 1280; //845 + 400; //845; //1025
+const SCREEN_HEIGHT = 768; //542 + 150; //542; //576
 
 let LoadScene = new Phaser.Class({
 
@@ -23,17 +23,12 @@ let LoadScene = new Phaser.Class({
             "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-
+        this.load.spritesheet('boxes', 'assets/Boxes.png', { frameWidth: 50, frameHeight: 50 });
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
-        this.load.image('blue', 'assets/Boxes/Blue/Blue_Single.png');
-        this.load.image('green', 'assets/Boxes/Green/Green_Single.png');
-        this.load.image('lime', 'assets/Boxes/Lime/Lime_Single.png');
-        this.load.image('orange', 'assets/Boxes/Orange/Orange_Single.png');
-        this.load.image('purple', 'assets/Boxes/Purple/Purple_Single.png');
-        this.load.image('red', 'assets/Boxes/Red/Red_Single.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
         this.load.image('l_scanline', 'assets/Play Grid/L_Scanline.png');
         this.load.image('r_scanline', 'assets/Play Grid/R_Scanline.png');
+        //this.load.video('bg_video', 'assets/Play Grid/Background Video/dynamic lines.mp4');
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -82,22 +77,34 @@ let GameScene = new Phaser.Class({
             return SCREEN_HEIGHT/2 + dy * GRID_SIZE + 27;
         };
 
-        let colors = ['blue','green','lime','orange','purple','red'];
+        //let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
+
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
+
+        let colors = 6;
         let grid = [];
         for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
             {
+                let chosen_color = Phaser.Math.Between(0, colors - 1);
+                if (x !== 0)
+                {
+                    chosen_color = grid[x-1][y].data.values.color
+                        + Phaser.Math.Between(1, colors - 1);
+                    chosen_color %= colors;
+                }
 
                 let square = scene.add.sprite(gridX(x), gridY(y),
-                    colors[Phaser.Math.Between(0, colors.length-1)]);
+                    'boxes', chosen_color * 6).setAlpha(0.75);
+                square.setData('color', chosen_color);
                 grid[x].push(square);
                 square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
             }
         }
 
-        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
+
 
         let playerX = GRID_COLS/2 - 1;
         let playerY = GRID_ROWS/2;
@@ -126,7 +133,7 @@ let GameScene = new Phaser.Class({
         }
 
         scene.time.addEvent({
-            "delay": 60 * 1000 / 100,
+            "delay": 60 * 1000 / 112,
             "loop": true,
             "callback": update_scanline
         });
@@ -134,6 +141,56 @@ let GameScene = new Phaser.Class({
         //SETUP INPUTS
 
         scene.input.addPointer(5);
+
+        let left_test = function(x,y,test_color) {
+            if (x !== 0 && grid[x-1][y].data.values.color === test_color) {
+                return false;
+            }
+            if (x + 2 < GRID_COLS &&
+                grid[x+1][y].data.values.color === test_color &&
+                grid[x+2][y].data.values.color === test_color) {
+                return true;
+            }
+            return false;
+        };
+
+        let middle_test = function(x,y,test_color) {
+            if (x + 1 < GRID_COLS && x - 1 >= 0 &&
+                grid[x-1][y].data.values.color === test_color &&
+                grid[x+1][y].data.values.color === test_color) {
+                return true;
+            }
+            return false;
+        };
+
+        let right_test = function(x,y,test_color) {
+            if (x !== GRID_COLS-1 && grid[x+1][y].data.values.color === test_color) {
+                return false;
+            }
+            if (x - 2 >= 0 &&
+                grid[x-1][y].data.values.color === test_color &&
+                grid[x-2][y].data.values.color === test_color) {
+                return true;
+            }
+            return false;
+        };
+
+        let merge_squares = function(y) {
+            for(let x = 0; x < GRID_COLS; x++) {
+                let test_color = grid[x][y].data.values.color;
+                if (left_test(x,y,test_color)) {
+                    grid[x][y].setTexture('boxes',test_color*6 + 1);
+                }
+                else if (middle_test(x,y,test_color)) {
+                    grid[x][y].setTexture('boxes',test_color*6 + 2);
+                }
+                else if (right_test(x,y,test_color)) {
+                    grid[x][y].setTexture('boxes',test_color*6 + 3);
+                } else {
+                    grid[x][y].setTexture('boxes',test_color*6);
+                }
+            }
+        };
 
         let move_character = function (dx, dy) {
             let newX = playerX + dx;
@@ -150,9 +207,15 @@ let GameScene = new Phaser.Class({
         move_character(0,0);
 
         let try_selection = function () {
-            let temp = grid[playerX][playerY].texture;
-            grid[playerX][playerY].setTexture(grid[playerX+1][playerY].texture);
-            grid[playerX+1][playerY].setTexture(temp);
+            let left_square = grid[playerX][playerY];
+            let left_color = left_square.data.values.color;
+            let right_square = grid[playerX+1][playerY];
+            let right_color = right_square.data.values.color;
+            left_square.setData('color',right_color);
+            left_square.setTexture('boxes',right_color * 6);
+            right_square.setData('color',left_color);
+            right_square.setTexture('boxes',left_color * 6);
+            merge_squares(playerY);
         };
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
