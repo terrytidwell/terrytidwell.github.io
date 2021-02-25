@@ -127,25 +127,48 @@ let GameScene = new Phaser.Class({
             if (COLORS.isColor(color)) {
                 let offset = SEGMENT.offset(square.data.values.segment);
                 square.setTexture('boxes', color*6 + offset).setFlipX(false);
+                square.setVisible(true);
             } else {
                 if (square.data.values.arrow === ARROW.NONE) {
                     square.setTexture('grey_box').setFlipX(false);
+                    square.setVisible(false);
                 } else {
                     square.setTexture('grey_arrow')
                         .setFlipX(ARROW.RIGHT === square.data.values.arrow);
                     if (COLORS.isColor(square.data.values.arrow_color)) {
                         square.setTexture('boxes', square.data.values.arrow_color*6 + 4);
                     }
+                    square.setVisible(true);
                 }
             }
         };
 
         let swap_square = function(square1, square2) {
-            let properties = ['segment', 'color', 'arrow_color', 'arrow', 'locked'];
+            let data_properties = ['segment', 'color', 'arrow_color', 'arrow', 'locked'];
+            for (let i = 0; i < data_properties.length; i++) {
+                let temp = square1.data.values[data_properties[i]];
+                square1.setData(data_properties[i],square2.data.values[data_properties[i]]);
+                square2.setData(data_properties[i],temp);
+            }
+            let properties = ['visible'];
             for (let i = 0; i < properties.length; i++) {
-                let temp = square1.data.values[properties[i]];
-                square1.setData(properties[i],square2.data.values[properties[i]]);
-                square2.setData(properties[i],temp);
+                let temp = square1[properties[i]];
+                square1[properties[i]] = square2[properties[i]];
+                square2[properties[i]] = temp;
+            }
+        };
+
+        scene.__gravity = function() {
+            for (let y = 1; y < GRID_ROWS; y++ ) {
+                for(let x = 0; x < GRID_COLS; x++) {
+                    let square = grid[x][y];
+                    let blank = square.data.values.color === COLORS.COLORLESS &&
+                        square.data.values.arrow === ARROW.NONE;
+                    if (blank) {
+                        swap_square(square, grid[x][y-1]);
+                    }
+                }
+                merge_squares(y);
             }
         };
 
@@ -181,7 +204,6 @@ let GameScene = new Phaser.Class({
             }
             square.setData('arrow', chosen_arrow);
             square.setData('color', chosen_color);
-            set_block_texture(square);
         }
 
         for (let x = 0; x < GRID_COLS; x++)
@@ -191,20 +213,54 @@ let GameScene = new Phaser.Class({
             {
                 let square = create_block(x,y);
                 grid[x].push(square);
-                randomize_block(square, x, y);
-
-
-                square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
+                set_block_texture(square);
             }
         }
 
+
         let playerX = GRID_COLS/2 - 1;
-        let playerY = GRID_ROWS/2;
+        let playerY = GRID_ROWS - 1;
         let player = scene.add.sprite(0,0,'player_controller');
+        let move_character = function (dx, dy) {
+            let newX = playerX + dx;
+            let newY = playerY + dy;
+            if (newX < 0 || newX > GRID_COLS - 2 ||
+                newY < 0 || newY > GRID_ROWS - 1)
+            {
+                return;
+            }
+            playerX = newX;
+            playerY = newY;
+            player.setPosition(gridX(playerX + .5), gridY(playerY));
+        };
+        move_character(0,0);
+
+
+
         let scanline = scene.add.sprite(0,0,'scanline');
 
         let scanlineX = 0;
         let scanlineDx = 1;
+
+        let add_line = function() {
+            for (let x = 0; x < GRID_COLS; x++) {
+                for(let y = 0; y < GRID_ROWS - 1; y++) {
+                    let square = grid[x][y];
+                    let blank = square.data.values.color === COLORS.COLORLESS &&
+                        square.data.values.arrow === ARROW.NONE;
+                    if (blank) {
+                        swap_square(square, grid[x][y+1]);
+                    }
+                }
+                randomize_block(grid[x][GRID_ROWS-1], x, GRID_ROWS - 1);
+            }
+            move_character(0,-1);
+        };
+
+        add_line();
+        add_line();
+        add_line();
+        add_line();
 
         let set_scanline = function() {
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
@@ -226,12 +282,10 @@ let GameScene = new Phaser.Class({
                     if (dx > 0 && arrow === ARROW.RIGHT ||
                         dx < 0 && arrow === ARROW.LEFT)
                     {
-                        //square.setVisible(false);
                         clear_block(square);
                         let match_x = x + dx;
                         while (match_x >= 0 && match_x < GRID_COLS &&
                             grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
-                            //grid[match_x][y].setVisible(false);
                             square = grid[match_x][y];
                             clear_block(square);
                             match_x += dx;
@@ -246,6 +300,9 @@ let GameScene = new Phaser.Class({
             scanlineX += scanlineDx;
             if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
                 scanlineDx *= -1;
+                if ( scanlineX < 0) {
+                    add_line();
+                }
             }
             if (scanlineDx > 0) {
                 scanline.setFlipX(false);
@@ -356,20 +413,6 @@ let GameScene = new Phaser.Class({
             }
         };
 
-        let move_character = function (dx, dy) {
-            let newX = playerX + dx;
-            let newY = playerY + dy;
-            if (newX < 0 || newX > GRID_COLS - 2 ||
-                newY < 0 || newY > GRID_ROWS - 1)
-            {
-                return;
-            }
-            playerX = newX;
-            playerY = newY;
-            player.setPosition(gridX(playerX + .5), gridY(playerY));
-        };
-        move_character(0,0);
-
         let try_selection = function () {
             let left_square = grid[playerX][playerY];
             let right_square = grid[playerX+1][playerY];
@@ -398,6 +441,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
+        scene.__gravity();
     },
 });
 
