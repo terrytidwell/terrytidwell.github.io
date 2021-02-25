@@ -140,38 +140,61 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let swap_square = function(square1, square2) {
+            let properties = ['segment', 'color', 'arrow_color', 'arrow', 'locked'];
+            for (let i = 0; i < properties.length; i++) {
+                let temp = square1.data.values[properties[i]];
+                square1.setData(properties[i],square2.data.values[properties[i]]);
+                square2.setData(properties[i],temp);
+            }
+        };
+
+        let clear_block = function(square) {
+            square.setData('segment',SEGMENT.NONE);
+            square.setData('color',COLORS.COLORLESS);
+            square.setData('arrow_color',COLORS.COLORLESS);
+            square.setData('arrow',ARROW.NONE);
+            square.setData('locked',false);
+        };
+
+        let create_block = function (x,y) {
+            let square = scene.add.sprite(gridX(x), gridY(y),
+                'boxes', 0).setAlpha(0.75);
+            clear_block(square);
+            return square;
+        }
+
+        let randomize_block = function(square, x, y) {
+            let chosen_color = COLORS.randomColor();
+            let chosen_arrow = ARROW.NONE;
+            if (x !== 0)
+            {
+                chosen_color =
+                    COLORS.randomColorExcluding(grid[x-1][y].data.values.color);
+            }
+            if (Phaser.Math.Between(0, 100) < 10) {
+                chosen_arrow = ARROW.LEFT;
+                chosen_color = COLORS.COLORLESS;
+                if (Phaser.Math.Between(0,1) === 0) {
+                    chosen_arrow = ARROW.RIGHT;
+                }
+            }
+            square.setData('arrow', chosen_arrow);
+            square.setData('color', chosen_color);
+            set_block_texture(square);
+        }
+
         for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
             {
-                let chosen_color = COLORS.randomColor();
-                let chosen_arrow = ARROW.NONE;
-                if (x !== 0)
-                {
-                    chosen_color =
-                        COLORS.randomColorExcluding(grid[x-1][y].data.values.color);
-                }
-                if (Phaser.Math.Between(0, 100) < 10) {
-                    chosen_arrow = ARROW.LEFT;
-                    chosen_color = COLORS.COLORLESS;
-                    if (Phaser.Math.Between(0,1) === 0) {
-                        chosen_arrow = ARROW.RIGHT;
-                    }
-                }
-
-                let square = scene.add.sprite(gridX(x), gridY(y),
-                    'boxes', 0).setAlpha(0.75);
+                let square = create_block(x,y);
                 grid[x].push(square);
-                square.setData('arrow', chosen_arrow);
-                square.setData('color', chosen_color);
-                square.setData('locked', false);
-                square.setData('arrow_color', COLORS.COLORLESS);
-                square.setData('segment', SEGMENT.NONE);
-                set_block_texture(square);
+                randomize_block(square, x, y);
+
 
                 square.setVisible(y >= GRID_ROWS/2 - 2 && y <= GRID_ROWS/2 + 1);
-                //square.setVisible(Phaser.Math.Between(0, 100)<20);
             }
         }
 
@@ -196,8 +219,7 @@ let GameScene = new Phaser.Class({
                 let square = grid[x][y];
                 let arrow_color = square.data.values.arrow_color;
                 let arrow = square.data.values.arrow;
-                if (square.visible &&
-                    arrow !== ARROW.NONE &&
+                if (arrow !== ARROW.NONE &&
                     arrow_color !== COLORS.COLORLESS)
                 {
                     //match?
@@ -205,19 +227,13 @@ let GameScene = new Phaser.Class({
                         dx < 0 && arrow === ARROW.LEFT)
                     {
                         //square.setVisible(false);
-                        square.setData('segment',SEGMENT.NONE);
-                        square.setData('color',COLORS.COLORLESS);
-                        square.setData('arrow_color',COLORS.COLORLESS);
-                        square.setData('arrow',ARROW.NONE);
+                        clear_block(square);
                         let match_x = x + dx;
                         while (match_x >= 0 && match_x < GRID_COLS &&
                             grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
                             //grid[match_x][y].setVisible(false);
                             square = grid[match_x][y];
-                            square.setData('segment',SEGMENT.NONE);
-                            square.setData('color',COLORS.COLORLESS);
-                            square.setData('arrow_color',COLORS.COLORLESS);
-                            square.setData('arrow',ARROW.NONE);
+                            clear_block(square);
                             match_x += dx;
                         }
                         merge_squares(y);
@@ -356,26 +372,13 @@ let GameScene = new Phaser.Class({
 
         let try_selection = function () {
             let left_square = grid[playerX][playerY];
-            let left_color = left_square.data.values.color;
-            let left_arrow = left_square.data.values.arrow;
-            let left_visible = left_square.visible;
             let right_square = grid[playerX+1][playerY];
-            let right_color = right_square.data.values.color;
-            let right_arrow = right_square.data.values.arrow;
-            let right_visible = right_square.visible;
 
             if (left_square.data.values.locked || right_square.data.values.locked) {
                 return;
             }
 
-            left_square.setData('color',right_color);
-            left_square.setData('arrow',right_arrow);
-            left_square.setVisible(right_visible);
-
-            right_square.setData('color',left_color);
-            right_square.setData('arrow',left_arrow);
-            right_square.setVisible(left_visible);
-
+            swap_square(left_square, right_square);
             merge_squares(playerY);
         };
 
