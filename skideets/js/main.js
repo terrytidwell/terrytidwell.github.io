@@ -4,14 +4,11 @@ const GRID_COLS = 16;
 const GRID_ROWS = 10;
 const SCREEN_WIDTH = 1280; //845 + 400; //845; //1025
 const SCREEN_HEIGHT = 768; //542 + 150; //542; //576
+const BPM = 133;
 const ARROW = {
     NONE: 0,
     LEFT: 1,
     RIGHT: 2,
-    /*
-    random: function() { return Phaser.Math.Between(0, 2); },
-    color: function(color) { return [0xff0000, 0x00ff00, 0x0000ff][color]; },
-    */
 };
 const SEGMENT = {
     NONE: 0,
@@ -68,19 +65,21 @@ let LoadScene = new Phaser.Class({
             "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        this.load.spritesheet('boxes', 'assets/Boxes.png', { frameWidth: 50, frameHeight: 50 });
+        this.load.spritesheet('boxes', 'assets/Boxes/Boxes.png', { frameWidth: 50, frameHeight: 50 });
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
-        this.load.image('grey_arrow', 'assets/Boxes/Grey/GreyArrow_Right.png');
-        this.load.image('grey_box', 'assets/Boxes/Grey/Unused/Grey_Single.png');
+        this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
+        this.load.image('grey_box', 'assets/Boxes/Unused/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
+        this.load.image('menu', 'assets/ScanlineMenu_v2.png')
+        this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
             loading_text.setText(Math.round(percentage) + "%");
         });
         scene.load.once('complete',  function() {
-            scene.scene.start('GameScene');
+            scene.scene.start('TitleScene');
             scene.scene.stop('LoadScene');
         });
     },
@@ -88,6 +87,35 @@ let LoadScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
+let TitleScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'TitleScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        let menu = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'menu');
+        menu.setInteractive();
+        menu.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
+            scene.scene.start('GameScene');
+            scene.scene.stop('TitleScene');
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -463,7 +491,7 @@ let GameScene = new Phaser.Class({
 
         let grid = [];
 
-        //let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
+        let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
 
         for (let x = 0; x < GRID_COLS; x++)
@@ -502,7 +530,7 @@ let GameScene = new Phaser.Class({
         set_scanline();
 
         scene.time.addEvent({
-            "delay": 60 * 1000 / 112,
+            "delay": 60 * 1000 / BPM,
             "loop": true,
             "callback": update_scanline
         });
@@ -556,7 +584,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, GameScene ]
+    scene: [ LoadScene, TitleScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
