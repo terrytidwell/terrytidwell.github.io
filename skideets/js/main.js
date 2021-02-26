@@ -184,13 +184,14 @@ let GameScene = new Phaser.Class({
             return square;
         }
 
-        let randomize_block = function(square, x, y) {
+        let randomize_block = function(x, y) {
+            let square = grid[x][y];
             let chosen_color = COLORS.randomColor();
             let chosen_arrow = ARROW.NONE;
-            if (x !== 0)
+            if (x - 2 >= 0)
             {
                 chosen_color =
-                    COLORS.randomColorExcluding(grid[x-1][y].data.values.color);
+                    COLORS.randomColorExcluding(grid[x-2][y].data.values.color);
             }
             if (Phaser.Math.Between(0, 100) < 10) {
                 chosen_arrow = ARROW.LEFT;
@@ -334,7 +335,7 @@ let GameScene = new Phaser.Class({
                         swap_squares(square, grid[x][y+1]);
                     } else {
                         //...we add random blocks
-                        randomize_block(grid[x][GRID_ROWS-1], x, GRID_ROWS - 1);
+                        randomize_block(x, GRID_ROWS - 1);
                     }
                 }
                 merge_squares(y);
