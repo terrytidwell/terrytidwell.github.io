@@ -106,6 +106,9 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+        //----------------------------------------------------------------------
+        //FUNCTIONS
+        //----------------------------------------------------------------------
         let gridX = function(x) {
             let dx = x - GRID_COLS / 2;
             return SCREEN_WIDTH/2 + dx * GRID_SIZE + 23;
@@ -115,12 +118,6 @@ let GameScene = new Phaser.Class({
             let dy = y - GRID_ROWS / 2;
             return SCREEN_HEIGHT/2 + dy * GRID_SIZE + 27;
         };
-
-        //let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
-
-        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
-
-        let grid = [];
 
         let set_block_texture = function(square) {
             let color = square.data.values.color;
@@ -143,7 +140,7 @@ let GameScene = new Phaser.Class({
             }
         };
 
-        let swap_square = function(square1, square2) {
+        let swap_squares = function(square1, square2) {
             let data_properties = ['segment', 'color', 'arrow_color', 'arrow', 'locked'];
             for (let i = 0; i < data_properties.length; i++) {
                 let temp = square1.data.values[data_properties[i]];
@@ -165,7 +162,7 @@ let GameScene = new Phaser.Class({
                     let blank = square.data.values.color === COLORS.COLORLESS &&
                         square.data.values.arrow === ARROW.NONE;
                     if (blank) {
-                        swap_square(square, grid[x][y-1]);
+                        try_swap_squares(square, grid[x][y-1]);
                     }
                 }
                 merge_squares(y);
@@ -205,123 +202,6 @@ let GameScene = new Phaser.Class({
             square.setData('arrow', chosen_arrow);
             square.setData('color', chosen_color);
         }
-
-        for (let x = 0; x < GRID_COLS; x++)
-        {
-            grid.push([]);
-            for (let y = 0; y < GRID_ROWS; y++)
-            {
-                let square = create_block(x,y);
-                grid[x].push(square);
-                set_block_texture(square);
-            }
-        }
-
-
-        let playerX = GRID_COLS/2 - 1;
-        let playerY = GRID_ROWS - 1;
-        let player = scene.add.sprite(0,0,'player_controller');
-        let move_character = function (dx, dy) {
-            let newX = playerX + dx;
-            let newY = playerY + dy;
-            if (newX < 0 || newX > GRID_COLS - 2 ||
-                newY < 0 || newY > GRID_ROWS - 1)
-            {
-                return;
-            }
-            playerX = newX;
-            playerY = newY;
-            player.setPosition(gridX(playerX + .5), gridY(playerY));
-        };
-        move_character(0,0);
-
-
-
-        let scanline = scene.add.sprite(0,0,'scanline');
-
-        let scanlineX = 0;
-        let scanlineDx = 1;
-
-        let add_line = function() {
-            for (let x = 0; x < GRID_COLS; x++) {
-                for(let y = 0; y < GRID_ROWS - 1; y++) {
-                    let square = grid[x][y];
-                    let blank = square.data.values.color === COLORS.COLORLESS &&
-                        square.data.values.arrow === ARROW.NONE;
-                    if (blank) {
-                        swap_square(square, grid[x][y+1]);
-                    }
-                }
-                randomize_block(grid[x][GRID_ROWS-1], x, GRID_ROWS - 1);
-            }
-            move_character(0,-1);
-        };
-
-        add_line();
-        add_line();
-        add_line();
-        add_line();
-
-        let set_scanline = function() {
-            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
-        }
-        set_scanline();
-
-        let scan_line = function(x, dx) {
-            if (x < 0 || x >= GRID_COLS) {
-                return;
-            }
-            for (let y = 0; y < GRID_ROWS; y++) {
-                let square = grid[x][y];
-                let arrow_color = square.data.values.arrow_color;
-                let arrow = square.data.values.arrow;
-                if (arrow !== ARROW.NONE &&
-                    arrow_color !== COLORS.COLORLESS)
-                {
-                    //match?
-                    if (dx > 0 && arrow === ARROW.RIGHT ||
-                        dx < 0 && arrow === ARROW.LEFT)
-                    {
-                        clear_block(square);
-                        let match_x = x + dx;
-                        while (match_x >= 0 && match_x < GRID_COLS &&
-                            grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
-                            square = grid[match_x][y];
-                            clear_block(square);
-                            match_x += dx;
-                        }
-                        merge_squares(y);
-                    }
-                }
-            }
-        };
-
-        let update_scanline = function() {
-            scanlineX += scanlineDx;
-            if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
-                scanlineDx *= -1;
-                if ( scanlineX < 0) {
-                    add_line();
-                }
-            }
-            if (scanlineDx > 0) {
-                scanline.setFlipX(false);
-            } else {
-                scanline.setFlipX(true);
-            }
-            set_scanline();
-            scan_line(scanlineX, scanlineDx);
-        }
-
-        scene.time.addEvent({
-            "delay": 60 * 1000 / 112,
-            "loop": true,
-            "callback": update_scanline
-        });
-
-        //SETUP INPUTS
-
-        scene.input.addPointer(5);
 
         let left_test = function(x,y,test_color) {
             if (!COLORS.isColor(test_color)) {
@@ -413,17 +293,154 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let try_swap_squares = function(square1, square2) {
+            if (square1.data.values.locked || square2.data.values.locked) {
+                return false;
+            }
+
+            swap_squares(square1, square2);
+            return true;
+        };
+
         let try_selection = function () {
             let left_square = grid[playerX][playerY];
             let right_square = grid[playerX+1][playerY];
 
-            if (left_square.data.values.locked || right_square.data.values.locked) {
+            if (try_swap_squares(left_square,right_square)) {
+                merge_squares(playerY);
+            }
+        };
+
+        let move_character = function (dx, dy) {
+            let newX = playerX + dx;
+            let newY = playerY + dy;
+            if (newX < 0 || newX > GRID_COLS - 2 ||
+                newY < 0 || newY > GRID_ROWS - 1)
+            {
                 return;
             }
-
-            swap_square(left_square, right_square);
-            merge_squares(playerY);
+            playerX = newX;
+            playerY = newY;
+            player.setPosition(gridX(playerX + .5), gridY(playerY));
         };
+
+        let add_line = function() {
+            for (let y = 0; y < GRID_ROWS; y++) {
+                for(let x = 0; x < GRID_COLS; x++) {
+                    //two things on most rows we...
+                    if (y + 1 < GRID_ROWS) {
+                        //...shift squares up, but on the bottom...
+                        let square = grid[x][y];
+                        swap_squares(square, grid[x][y+1]);
+                    } else {
+                        //...we add random blocks
+                        randomize_block(grid[x][GRID_ROWS-1], x, GRID_ROWS - 1);
+                    }
+                }
+                merge_squares(y);
+            }
+            move_character(0,-1);
+        };
+
+        let set_scanline = function() {
+            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
+        };
+
+        let scan_line = function(x, dx) {
+            if (x < 0 || x >= GRID_COLS) {
+                return;
+            }
+            for (let y = 0; y < GRID_ROWS; y++) {
+                let square = grid[x][y];
+                let arrow_color = square.data.values.arrow_color;
+                let arrow = square.data.values.arrow;
+                if (arrow !== ARROW.NONE &&
+                    arrow_color !== COLORS.COLORLESS)
+                {
+                    //match?
+                    if (dx > 0 && arrow === ARROW.RIGHT ||
+                        dx < 0 && arrow === ARROW.LEFT)
+                    {
+                        clear_block(square);
+                        let match_x = x + dx;
+                        while (match_x >= 0 && match_x < GRID_COLS &&
+                        grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
+                            square = grid[match_x][y];
+                            clear_block(square);
+                            match_x += dx;
+                        }
+                        merge_squares(y);
+                    }
+                }
+            }
+        };
+
+        let update_scanline = function() {
+            scanlineX += scanlineDx;
+            if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
+                scanlineDx *= -1;
+                if ( scanlineX < 0) {
+                    add_line();
+                }
+            }
+            if (scanlineDx > 0) {
+                scanline.setFlipX(false);
+            } else {
+                scanline.setFlipX(true);
+            }
+            set_scanline();
+            scan_line(scanlineX, scanlineDx);
+        };
+
+        //----------------------------------------------------------------------
+        //GAME ENTITY SETUP
+        //----------------------------------------------------------------------
+
+        let grid = [];
+
+        //let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
+
+        for (let x = 0; x < GRID_COLS; x++)
+        {
+            grid.push([]);
+            for (let y = 0; y < GRID_ROWS; y++)
+            {
+                let square = create_block(x,y);
+                grid[x].push(square);
+                set_block_texture(square);
+            }
+        }
+
+        let playerX = GRID_COLS/2 - 1;
+        let playerY = GRID_ROWS - 1;
+        let player = scene.add.sprite(0,0,'player_controller');
+        //reconcile sprite to playerX, playerY
+        move_character(0,0);
+
+        let scanlineX = 0;
+        let scanlineDx = 1;
+        let scanline = scene.add.sprite(0,0,'scanline');
+
+        add_line();
+        add_line();
+        add_line();
+        add_line();
+
+        //reconcile sprite to scanelineX
+        set_scanline();
+
+        scene.time.addEvent({
+            "delay": 60 * 1000 / 112,
+            "loop": true,
+            "callback": update_scanline
+        });
+
+        //----------------------------------------------------------------------
+        //SETUP INPUTS
+        //----------------------------------------------------------------------
+
+        scene.input.addPointer(5);
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.m_cursor_keys.down.on('down', function(event) {
