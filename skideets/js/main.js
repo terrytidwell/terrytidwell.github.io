@@ -69,7 +69,7 @@ let LoadScene = new Phaser.Class({
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
         this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
-        this.load.image('grey_box', 'assets/Boxes/Unused/Grey_Single.png');
+        this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
         this.load.image('menu', 'assets/ScanlineMenu_v2.png')
         this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
