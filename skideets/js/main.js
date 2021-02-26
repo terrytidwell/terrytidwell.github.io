@@ -343,6 +343,17 @@ let GameScene = new Phaser.Class({
             move_character(0,-1);
         };
 
+        let remove_n_blocks_from_line = function(y, number) {
+            let indexes = Phaser.Utils.Array.NumberArray(0, GRID_COLS-1);
+            Phaser.Utils.Array.Shuffle(indexes);
+            number = Math.min(number, indexes.length)
+            for (let i = 0; i < number; i++) {
+                let square = grid[indexes[i]][y];
+                clear_block(square);
+            }
+            merge_squares(y);
+        }
+
         let set_scanline = function() {
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
         };
@@ -424,8 +435,14 @@ let GameScene = new Phaser.Class({
         let scanline = scene.add.sprite(0,0,'scanline');
 
         add_line();
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .75));
+
         add_line();
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .50));
+
         add_line();
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .25));
+
         add_line();
 
         //reconcile sprite to scanelineX
