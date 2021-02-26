@@ -19,7 +19,13 @@ const SEGMENT = {
     MIDDLE: 2,
     RIGHT: 3,
     offset: function(segment) {
+        if (segment === SEGMENT.RIGHT) {
+            return 1;
+        }
         return segment;
+    },
+    flipX: function(segment) {
+        return [false, false, false, true][segment];
     }
 };
 const COLORS = {
@@ -65,7 +71,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('boxes', 'assets/Boxes.png', { frameWidth: 50, frameHeight: 50 });
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
-        this.load.image('grey_arrow', 'assets/Boxes/Grey/GreyArrow_Left.png');
+        this.load.image('grey_arrow', 'assets/Boxes/Grey/GreyArrow_Right.png');
         this.load.image('grey_box', 'assets/Boxes/Grey/Unused/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
 
@@ -122,8 +128,13 @@ let GameScene = new Phaser.Class({
         let set_block_texture = function(square) {
             let color = square.data.values.color;
             if (COLORS.isColor(color)) {
-                let offset = SEGMENT.offset(square.data.values.segment);
-                square.setTexture('boxes', color*6 + offset).setFlipX(false);
+                let segment = square.data.values.segment;
+                let offset = SEGMENT.offset(segment);
+                if (square.data.values.locked) {
+                    offset += 3;
+                }
+                let flipX = SEGMENT.flipX(segment);
+                square.setTexture('boxes', color*7 + offset).setFlipX(flipX);
                 square.setVisible(true);
             } else {
                 if (square.data.values.arrow === ARROW.NONE) {
@@ -131,9 +142,13 @@ let GameScene = new Phaser.Class({
                     square.setVisible(false);
                 } else {
                     square.setTexture('grey_arrow')
-                        .setFlipX(ARROW.RIGHT === square.data.values.arrow);
+                        .setFlipX(ARROW.LEFT === square.data.values.arrow);
                     if (COLORS.isColor(square.data.values.arrow_color)) {
-                        square.setTexture('boxes', square.data.values.arrow_color*6 + 4);
+                        let offset = 3;
+                        if (square.data.values.locked) {
+                            offset += 3;
+                        }
+                        square.setTexture('boxes', square.data.values.arrow_color*7 + offset);
                     }
                     square.setVisible(true);
                 }
@@ -252,36 +267,37 @@ let GameScene = new Phaser.Class({
                 let square = grid[x][y];
                 let test_color = square.data.values.color;
                 if (left_test(x,y,test_color)) {
-                    square.setData('locked',false);
                     square.setData('segment', SEGMENT.LEFT);
+                    square.setData('locked', grid[x+1][y].data.values.locked);
                 } else if (middle_test(x,y,test_color)) {
-                    square.setData('locked',false);
                     square.setData('segment', SEGMENT.MIDDLE);
                 } else if (right_test(x,y,test_color)) {
-                    square.setData('locked',false);
                     square.setData('segment', SEGMENT.RIGHT);
+                    square.setData('locked', grid[x-1][y].data.values.locked);
                 } else {
-                    square.setData('locked',false);
                     square.setData('segment', SEGMENT.NONE);
                 }
             }
             //handle grey arrows
             for(let x = 0; x < GRID_COLS; x++) {
                 let square = grid[x][y];
+                let locked = square.data.values.locked;
                 square.setData('arrow_color', COLORS.COLORLESS);
                 let test_color = square.data.values.color;
                 if (!COLORS.isColor(test_color)) {
                     if (x !== 0 &&
                         square.data.values.arrow === ARROW.LEFT &&
-                        COLORS.isColor(grid[x-1][y].data.values.color) &&
-                        grid[x-1][y].data.values.segment === SEGMENT.RIGHT ) {
+                        COLORS.isColor(grid[x-1][y].data .values.color) &&
+                        grid[x-1][y].data.values.segment === SEGMENT.RIGHT &&
+                        grid[x-1][y].data.values.locked === locked) {
                         //end cap!!
                         grid[x - 1][y].setData('segment', SEGMENT.MIDDLE);
                         square.setData('arrow_color', grid[x-1][y].data.values.color);
                     } else if (x !== GRID_COLS -1  &&
                         square.data.values.arrow === ARROW.RIGHT &&
                         COLORS.isColor(grid[x+1][y].data.values.color) &&
-                        grid[x+1][y].data.values.segment === SEGMENT.LEFT) {
+                        grid[x+1][y].data.values.segment === SEGMENT.LEFT &&
+                        grid[x+1][y].data.values.locked === locked) {
                         grid[x+1][y].setData('segment', SEGMENT.MIDDLE);
                         square.setData('arrow_color', grid[x+1][y].data.values.color);
                     }
@@ -330,12 +346,13 @@ let GameScene = new Phaser.Class({
                 for(let x = 0; x < GRID_COLS; x++) {
                     //two things on most rows we...
                     if (y + 1 < GRID_ROWS) {
-                        //...shift squares up, but on the bottom...
+                        //...shift squares up, but...
                         let square = grid[x][y];
                         swap_squares(square, grid[x][y+1]);
                     } else {
-                        //...we add random blocks
-                        randomize_block(x, GRID_ROWS - 1);
+                        //...on the bottom row, add random blocks
+                        clear_block(grid[x][y]);
+                        randomize_block(x,y);
                     }
                 }
                 merge_squares(y);
@@ -358,27 +375,28 @@ let GameScene = new Phaser.Class({
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
         };
 
-        let scan_line = function(x, dx) {
+        let scan_line_enter = function(x, dx) {
             if (x < 0 || x >= GRID_COLS) {
                 return;
             }
             for (let y = 0; y < GRID_ROWS; y++) {
+                //test for locking
                 let square = grid[x][y];
                 let arrow_color = square.data.values.arrow_color;
                 let arrow = square.data.values.arrow;
                 if (arrow !== ARROW.NONE &&
-                    arrow_color !== COLORS.COLORLESS)
-                {
+                    arrow_color !== COLORS.COLORLESS) {
                     //match?
                     if (dx > 0 && arrow === ARROW.RIGHT ||
-                        dx < 0 && arrow === ARROW.LEFT)
-                    {
-                        clear_block(square);
+                        dx < 0 && arrow === ARROW.LEFT) {
+                        //clear_block(square);
+                        square.setData('locked', true);
                         let match_x = x + dx;
                         while (match_x >= 0 && match_x < GRID_COLS &&
                         grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
                             square = grid[match_x][y];
-                            clear_block(square);
+                            //clear_block(square);
+                            square.setData('locked', true);
                             match_x += dx;
                         }
                         merge_squares(y);
@@ -387,7 +405,41 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let scan_line_exit = function(x, dx) {
+            if (x < 0 || x >= GRID_COLS) {
+                return;
+            }
+            for (let y = 0; y < GRID_ROWS; y++) {
+                //test for removal
+                let square = grid[x][y];
+                let arrow = square.data.values.arrow;
+                let segment = square.data.values.segment;
+                let locked = square.data.values.locked;
+                if (arrow === ARROW.NONE && locked) {
+                    if (dx > 0 && segment === SEGMENT.RIGHT ||
+                        dx < 0 && segment === SEGMENT.LEFT)
+                    {
+                        //march forward and clear through to arrow
+                        let finished = false;
+                        let match_x = x;
+                        while (match_x >= 0 && match_x < GRID_COLS && !finished) {
+                            if(grid[match_x][y].data.values.arrow !== ARROW.NONE) {
+                                finished = true;
+                            }
+                            clear_block(grid[match_x][y]);
+                            match_x -= dx;
+                        }
+
+                        merge_squares(y);
+                    }
+                }
+            }
+        };
+
         let update_scanline = function() {
+
+            scan_line_exit(scanlineX, scanlineDx);
+
             scanlineX += scanlineDx;
             if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
                 scanlineDx *= -1;
@@ -400,8 +452,9 @@ let GameScene = new Phaser.Class({
             } else {
                 scanline.setFlipX(true);
             }
+
             set_scanline();
-            scan_line(scanlineX, scanlineDx);
+            scan_line_enter(scanlineX, scanlineDx);
         };
 
         //----------------------------------------------------------------------
