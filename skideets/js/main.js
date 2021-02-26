@@ -418,12 +418,15 @@ let GameScene = new Phaser.Class({
                     if (dx > 0 && arrow === ARROW.RIGHT ||
                         dx < 0 && arrow === ARROW.LEFT) {
                         //clear_block(square);
-                        square.setData('locked', true);
-                        let match_x = x + dx;
-                        while (match_x >= 0 && match_x < GRID_COLS &&
-                        grid[match_x][y].data.values.segment !== SEGMENT.NONE) {
+                        let finished = false;
+                        let match_x = x;
+                        let target_segment = arrow === ARROW.RIGHT ?
+                            SEGMENT.RIGHT : SEGMENT.LEFT;
+                        while (match_x >= 0 && match_x < GRID_COLS && !finished ) {
                             square = grid[match_x][y];
-                            //clear_block(square);
+                            if (square.data.values.segment === target_segment) {
+                                finished = true;
+                            }
                             square.setData('locked', true);
                             match_x += dx;
                         }
@@ -457,7 +460,6 @@ let GameScene = new Phaser.Class({
                             clear_block(grid[match_x][y]);
                             match_x -= dx;
                         }
-
                         merge_squares(y);
                     }
                 }
