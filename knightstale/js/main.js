@@ -25,6 +25,8 @@ let LoadScene = new Phaser.Class({
 
         this.load.spritesheet('floor', 'assets/Wood 1 TD 64x72.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.image('frame', 'assets/frame.png');
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -39,6 +41,21 @@ let LoadScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+
+        scene.anims.create({
+            key: 'impact_anim',
+            frames: [
+                { key: 'impact', frame: 0 },
+                { key: 'impact', frame: 1 },
+                { key: 'impact', frame: 2 },
+                { key: 'impact', frame: 3 },
+                { key: 'impact', frame: 4 },
+                { key: 'impact', frame: 5 },
+            ],
+            skipMissedFrames: false,
+            frameRate: 24,
+            repeat: 0
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -75,17 +92,101 @@ let GameScene = new Phaser.Class({
             return y * GRID_SIZE + GRID_SIZE/2;
         };
 
-        let moveCharacter = function(x, y) {
-            playerX = x;
-            playerY = y;
-            character.setPosition(gridX(x),gridY(y - .5));
+        let characterY = function(y) {
+            return gridY(y - .5);
         };
 
-        let tryMoveCharacter = function(x, y) {
-            if (3 === Phaser.Math.Distance.Snake(x, y, playerX, playerY) &&
-                x !== playerX &&
-                y !== playerY) {
-                moveCharacter(x,y);
+        let impact = function() {
+            impact_sprite.play('impact_anim');
+            //scene.cameras.main.shake(25, 0.0125, true);
+        };
+
+        let movePlayer = function(x, y) {
+            playerMoveAllowed = false;
+            let z_height = -64;
+            let tweenX = scene.tweens.add({
+                targets: { x: playerX},
+                props: { x: x },
+                duration: 200,
+                onUpdate: function() {
+                    playerX = tweenX.getValue();
+                }
+            });
+            let tweenY = scene.tweens.add({
+                targets: { y: playerY},
+                props: { y: y },
+                duration: 200,
+                onUpdate: function() {
+                    playerY = tweenY.getValue();
+                }
+            });
+            let timeline = scene.tweens.createTimeline();
+            timeline.add({
+                targets: { z: playerZ},
+                props: { z: z_height },
+                duration: 200,
+                onUpdate: function() {
+                    playerZ = this.getValue();
+                }
+            });
+            timeline.add({
+                targets: { z: z_height},
+                props: { z: 0 },
+                duration: 100,
+                onUpdate: function() {
+                    playerZ = this.getValue();
+                },
+                onComplete: function()
+                {
+                    impact();
+                    playerMoveAllowed = true;
+                }
+            });
+            timeline.play();
+
+            /*
+            scene.add.tween({
+                targets: character,
+                x: gridX(x),
+                y: characterY(y),
+                duration: 200
+            });
+             */
+            //character.setPosition(gridX(x),characterY(y));
+        };
+
+        let orientation = {
+            RIGHT: 0,
+            UP: 1,
+            DOWN: 2,
+            LEFT: 3
+        };
+        let setOrientation = function(orientation) {
+            character.setTexture('pieces', 4 + orientation);
+        }
+
+        let tryMovePlayer = function(x, y) {
+            if (!playerMoveAllowed) {
+                return;
+            }
+            if (x !== playerX &&
+                y !== playerY &&
+                3 === Phaser.Math.Distance.Snake(x, y, playerX, playerY) ) {
+                let dx = x - playerX;
+                let dy = y - playerY;
+                if (dx === 2) {
+                    setOrientation(orientation.RIGHT);
+                }
+                if (dy === -2) {
+                    setOrientation(orientation.UP);
+                }
+                if (dy === 2) {
+                    setOrientation(orientation.DOWN);
+                }
+                if (dx === -2) {
+                    setOrientation(orientation.LEFT);
+                }
+                movePlayer(x, y);
             }
         };
         //----------------------------------------------------------------------
@@ -110,33 +211,77 @@ let GameScene = new Phaser.Class({
                     square.setVisible(true);
                 }
                 grid[x].push(square);
-                square.setInteractive();
-                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
-                    function () {
-                        tryMoveCharacter(x,y);
-                    }
-                );
-
             }
         }
 
 
         let playerX = 5;
         let playerY = 7;
-        let character = scene.add.sprite(gridX(5), gridY(6.5), 'pieces', 4);
+        let playerZ = -1000;
+        let playerMoveAllowed = false;
+        let tweenZ = scene.tweens.add({
+            targets: { z: playerZ},
+            props: { z: 0 },
+            duration: 1000,
+            onUpdate: function() {
+                playerZ = tweenZ.getValue();
+            },
+            onComplete: function() {
+                impact();
+                playerMoveAllowed = true;
+            }
+        });
 
-        /*
-        scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-            SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
-            .setAltFillStyle(0xC0C0C0)
-            .setOutlineStyle()
-            .setAlpha(0.25);
-         */
+        let moves = [
+            {dx: -2, dy: -1},
+            {dx: -2, dy: 1},
+            {dx: 2, dy: -1},
+            {dx: 2, dy: 1},
+            {dx: -1, dy: -2},
+            {dx: 1, dy: -2},
+            {dx: -1, dy: 2},
+            {dx: 1, dy: 2}
+        ];
+        let frames = [];
+        for (let i = 0; i < moves.length; i++) {
+            let frame = scene.add.sprite(0,0,'frame').setScale(2);
+            frames.push(frame);
+            frame.setData('dx', moves[i].dx);
+            frame.setData('dy', moves[i].dy);
+            frame.setInteractive();
+            frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
+                function () {
+                    tryMovePlayer(playerX + frame.data.values.dx,
+                        playerY + frame.data.values.dy);
+                }
+            );
+        }
 
-        /*
-        scene.__shadow = scene.add.ellipse(gridX(5),gridY(7),
-            GRID_SIZE*.73,GRID_SIZE*.57,0x000000, 0.5);
-         */
+        scene.__alignPlayer = function() {
+            character.setPosition(gridX(playerX), characterY(playerY)+playerZ);
+            shadow.setPosition(gridX(playerX),gridY(playerY));
+            impact_sprite.setPosition(gridX(playerX),gridY(playerY));
+            for (let i = 0; i < frames.length; i++) {
+                let frame = frames[i];
+                let x = playerX + frame.data.values.dx;
+                let y = playerY + frame.data.values.dy;
+                frame.setPosition(gridX(x),
+                    gridY(y));
+                frame.setVisible(playerMoveAllowed &&
+                    x <= 9 && x >= 2 &&
+                    y <= 9 && y >= 2);
+            }
+        };
+
+        let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
+        let shadow = scene.add.ellipse(0, 0,
+            GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
+        let character = scene.add.sprite(0, 0, 'pieces', 4);
+        scene.add.sprite(gridX(9), characterY(9), 'pieces', 12);
+
+
+        scene.__alignPlayer();
+
 
         //----------------------------------------------------------------------
         //SETUP INPUTS
@@ -148,6 +293,9 @@ let GameScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     update: function() {
+        let scene = this;
+
+        scene.__alignPlayer();
     },
 });
 
