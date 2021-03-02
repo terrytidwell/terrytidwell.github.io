@@ -9,6 +9,17 @@ const DEPTHS = {
     SURFACE: 1,
     ENTITIES: 1000,
 }
+const DIRECTIONS = {
+    RIGHT: {dx: 1, dy: 0},
+    LEFT: {dx: -1, dy: 0},
+    UP: {dx: 0, dy: -1},
+    DOWN: {dx: 0, dy: 1},
+
+    UP_LEFT : {dx: -1, dy: -1},
+    UP_RIGHT : {dx: 1, dy: -1},
+    DOWN_LEFT : {dx: 1, dy: -1},
+    DOWN_RIGHT : {dx: 1, dy: 1},
+};
 
 let LoadScene = new Phaser.Class({
 
@@ -85,6 +96,8 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+        let group = scene.add.group();
+
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
@@ -102,11 +115,29 @@ let GameScene = new Phaser.Class({
         };
 
         let impact = function() {
+            impact_sprite.setPosition(
+                gridX(Math.round(playerX)),
+                gridY(Math.round(playerY)));
             impact_sprite.play('impact_anim');
             //scene.cameras.main.shake(25, 0.0125, true);
         };
 
         let movePlayer = function(x, y) {
+            playerDx = x - playerX;
+            playerDy = y - playerY;
+            if (playerDx === 2) {
+                setOrientation(orientation.RIGHT);
+            }
+            if (playerDy === -2) {
+                setOrientation(orientation.UP);
+            }
+            if (playerDy === 2) {
+                setOrientation(orientation.DOWN);
+            }
+            if (playerDx === -2) {
+                setOrientation(orientation.LEFT);
+            }
+
             playerMoveAllowed = false;
             let z_height = -64;
             let tweenX = scene.tweens.add({
@@ -132,6 +163,9 @@ let GameScene = new Phaser.Class({
                 duration: 200,
                 onUpdate: function() {
                     playerZ = this.getValue();
+                },
+                onComplete: function() {
+                    playerDangerous = true;
                 }
             });
             timeline.add({
@@ -145,6 +179,7 @@ let GameScene = new Phaser.Class({
                 {
                     impact();
                     playerMoveAllowed = true;
+                    playerDangerous = false;
                 }
             });
             timeline.play();
@@ -177,20 +212,6 @@ let GameScene = new Phaser.Class({
             if (x !== playerX &&
                 y !== playerY &&
                 3 === Phaser.Math.Distance.Snake(x, y, playerX, playerY) ) {
-                let dx = x - playerX;
-                let dy = y - playerY;
-                if (dx === 2) {
-                    setOrientation(orientation.RIGHT);
-                }
-                if (dy === -2) {
-                    setOrientation(orientation.UP);
-                }
-                if (dy === 2) {
-                    setOrientation(orientation.DOWN);
-                }
-                if (dx === -2) {
-                    setOrientation(orientation.LEFT);
-                }
                 movePlayer(x, y);
             }
         };
@@ -206,6 +227,7 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
 
         let grid = [];
+        let hittables = scene.physics.add.group();
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
         for (let x = 0; x < 12; x++)
@@ -229,9 +251,12 @@ let GameScene = new Phaser.Class({
 
 
         let playerX = 5;
+        let playerDx = 0;
         let playerY = 7;
+        let playerDy = 0;
         let playerZ = -1000;
         let playerMoveAllowed = false;
+        let playerDangerous = false;
         let tweenZ = scene.tweens.add({
             targets: { z: playerZ},
             props: { z: 0 },
@@ -276,7 +301,7 @@ let GameScene = new Phaser.Class({
             character.setDepth(DEPTHS.ENTITIES + playerY);
             shadow.setPosition(gridX(playerX),gridY(playerY));
             bounding_box.setPosition(gridX(Math.round(playerX)),gridY(Math.round(playerY)));
-            impact_sprite.setPosition(gridX(playerX),gridY(playerY));
+            //impact_sprite.setPosition(gridX(playerX),gridY(playerY));
             for (let i = 0; i < frames.length; i++) {
                 let frame = frames[i];
                 let x = playerX + frame.data.values.dx;
@@ -288,6 +313,7 @@ let GameScene = new Phaser.Class({
             }
         };
         let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
+        scene.physics.add.existing(bounding_box);
         let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
         let shadow = scene.add.ellipse(0, 0,
             GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
@@ -301,6 +327,8 @@ let GameScene = new Phaser.Class({
             let m_z = 0;
             let m_dx = 0;
             let m_dy = 0;
+            let m_impact_x = 0;
+            let m_impact_y = 0;
             let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
             //cancel tweens with tween.remove();
             //cancel timeline with timeline.stop();
@@ -315,7 +343,8 @@ let GameScene = new Phaser.Class({
                 IDLE: 1,
                 PRE_ATTACK: 2,
                 ATTACK: 3,
-                POST_ATTACK_IDLE: 4
+                POST_ATTACK_IDLE: 4,
+                STUNNED: 5
             };
             let current_state = STATES.IDLE;
 
@@ -335,7 +364,8 @@ let GameScene = new Phaser.Class({
                                 targets: {z : 0},
                                 props: {z: -8},
                                 yoyo: true,
-                                duration: 200,
+                                repeat: 1,
+                                duration: 100,
                                 onUpdate: function() {
                                     m_z = this.getValue();
                                 },
@@ -387,6 +417,48 @@ let GameScene = new Phaser.Class({
                         //so we didn't do it, return to idle
                         change_state(STATES.IDLE);
                         break;
+                    case STATES.STUNNED:
+                        m_z = 0;
+                        m_y = Math.round(m_y);
+                        m_x = Math.round(m_x);
+                        pawn.alpha = 0.5;
+                        let directions = [
+                            {d:DIRECTIONS.UP, m:0},
+                            {d:DIRECTIONS.LEFT, m:0},
+                            {d:DIRECTIONS.RIGHT, m:0},
+                            {d:DIRECTIONS.DOWN, m:0}
+                        ];
+                        for(let direction of directions) {
+                            direction.m = direction.d.dx * m_impact_x +
+                                direction.d.dy * m_impact_y;
+                        }
+                        directions.sort(function(a,b) {
+                            if(a.m > b.m) {
+                                return -1;
+                            }
+                            if (a.m < b.m) {
+                                return 1;
+                            }
+                            return 0;
+                            });
+                        for(let direction of directions) {
+                            if (isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy)) {
+                                m_dx = direction.d.dx;
+                                m_dy = direction.d.dy;
+                                m_x += m_dx;
+                                m_y += m_dy;
+                                break;
+                            }
+                        }
+                        tweens.push(scene.tweens.add({
+                            targets: pawn,
+                            alpha: 0,
+                            yoyo: true,
+                            duration: 50,
+                            repeat: -1,
+                        }));
+                        delayedCalls.push(scene.time.delayedCall(2000, change_state, [STATES.MOVING]));
+                        break;
                     default:
                         break;
                 }
@@ -394,6 +466,9 @@ let GameScene = new Phaser.Class({
 
             let exit_state = function() {
                 switch(current_state) {
+                    case STATES.STUNNED:
+                        pawn.alpha = 1;
+                        break;
                     default:
                         break;
                 }
@@ -411,15 +486,16 @@ let GameScene = new Phaser.Class({
                 exit_state();
                 current_state = new_state;
                 enter_state();
+            };
+
+            let swap_direction = function(directions, a, b) {
+                let temp = directions[a];
+                directions[a] =
+                    directions[b];
+                directions[b] = temp;
             }
 
-            let enter_move = function() {
-                let directions_consts = {
-                    RIGHT: {dx: 1, dy: 0},
-                    LEFT: {dx: -1, dy: 0},
-                    UP: {dx: 0, dy: -1},
-                    DOWN: {dx: 0, dy: 1},
-                };
+            let general_move_ai = function(deltaX, deltaY, directions) {
                 if (Phaser.Math.Between(0, 99) < 80) {
                     m_prefer_horizontal = !m_prefer_horizontal;
                 }
@@ -427,47 +503,82 @@ let GameScene = new Phaser.Class({
                 let primary_horizontal_index = 1;
                 let secondary_vertical_index = 2;
                 let secondary_horizontal_index = 3;
-                let directions = [
-                    directions_consts.UP,
-                    directions_consts.LEFT,
-                    directions_consts.DOWN,
-                    directions_consts.RIGHT];
+                directions = [
+                    DIRECTIONS.UP,
+                    DIRECTIONS.LEFT,
+                    DIRECTIONS.DOWN,
+                    DIRECTIONS.RIGHT];
                 if (m_prefer_horizontal) {
                     primary_horizontal_index = 0;
                     primary_vertical_index = 1;
                     secondary_horizontal_index = 2;
                     secondary_vertical_index = 3;
                     directions = [
-                        directions_consts.LEFT,
-                        directions_consts.UP,
-                        directions_consts.RIGHT,
-                        directions_consts.DOWN];
+                        DIRECTIONS.LEFT,
+                        DIRECTIONS.UP,
+                        DIRECTIONS.RIGHT,
+                        DIRECTIONS.DOWN];
                 }
-                let deltaX = Math.round(playerX) - Math.round(m_x);
                 if (deltaX > 0 || (deltaX === 0 && Phaser.Math.Between(0, 99) < 50)) {
                     //swap horizontals
-                    let temp = directions[primary_horizontal_index];
-                    directions[primary_horizontal_index] =
-                        directions[secondary_horizontal_index];
-                    directions[secondary_horizontal_index] = temp;
+                    swap_direction(directions, primary_horizontal_index,
+                        secondary_horizontal_index);
                 }
-                let deltaY = Math.round(playerY) - Math.round(m_y);
                 if (deltaY > 0 || (deltaY === 0 && Phaser.Math.Between(0, 99) < 50)) {
                     //swap vertical
-                    let temp = directions[primary_vertical_index];
-                    directions[primary_vertical_index] =
-                        directions[secondary_vertical_index];
-                    directions[secondary_vertical_index] = temp;
+                    swap_direction(directions, primary_vertical_index,
+                        secondary_vertical_index);
                 }
-                //if we are really close we move away
-                if (Math.abs(deltaX) + Math.abs(deltaY) < 2) {
-                    Phaser.Utils.Array.RotateLeft(directions, 1);
-                };
+                return directions;
+            };
+
+            let enter_move = function() {
+                let directions = [
+                    DIRECTIONS.UP,
+                    DIRECTIONS.LEFT,
+                    DIRECTIONS.DOWN,
+                    DIRECTIONS.RIGHT];
+                let deltaX = Math.round(playerX) - Math.round(m_x);
+                let deltaY = Math.round(playerY) - Math.round(m_y);
+                if (deltaX === 0 && deltaY === 0) {
+                    //on top movement AI
+                    Phaser.Utils.Array.Shuffle(directions);
+                } else if (Math.abs(deltaX)+Math.abs(deltaY) === 1) {
+                    //adjacent movement AI
+                    //[x]   [x]
+                    //   [p]
+                    //[x]   [x]
+                    //target those squares around player
+                    if(deltaY === 0) {
+                        directions = [
+                            DIRECTIONS.UP,
+                            DIRECTIONS.DOWN,
+                            DIRECTIONS.LEFT,
+                            DIRECTIONS.RIGHT
+                        ];
+                    } else if(deltaX === 0) {
+                        directions = [
+                            DIRECTIONS.LEFT,
+                            DIRECTIONS.RIGHT,
+                            DIRECTIONS.UP,
+                            DIRECTIONS.DOWN
+                        ];
+                    }
+                    //now randomize
+                    if (Phaser.Math.Between(0,99) < 50) {
+                        swap_direction(directions, 0, 1);
+                    }
+                    if (Phaser.Math.Between(0,99) < 50) {
+                        swap_direction(directions, 2, 3);
+                    }
+                } else {
+                    directions = general_move_ai(deltaX,  deltaY, directions);
+                }
+
                 m_dx = 0;
                 m_dy = 0;
                 for (let direction of directions) {
                     if (isGridPassable(m_x+direction.dx, m_y+direction.dy)) {
-
                         m_dx = direction.dx;
                         m_dy = direction.dy;
                         let rendevous = 0;
@@ -495,7 +606,7 @@ let GameScene = new Phaser.Class({
                             },
                             onComplete: rendevous_complete
                         }));
-                        return;
+                        return; //<------ RETURN to end function
                     }
                 }
                 //no direction worked?
@@ -503,6 +614,13 @@ let GameScene = new Phaser.Class({
             };
 
             let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
+            hittables.add(bounding_box);
+            bounding_box.setData('onHit',function(dx, dy) {
+                m_impact_x = dx;
+                m_impact_y = dy;
+                change_state(STATES.STUNNED);
+            });
+
             let shadow = scene.add.ellipse(0, 0,
                 GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
 
@@ -519,9 +637,11 @@ let GameScene = new Phaser.Class({
                 }
                 pawn.setPosition(gridX(m_x),characterY(m_y) + m_z);
                 shadow.setPosition(gridX(m_x),gridY(m_y));
+                shadow.setVisible(m_z < 0);
                 pawn.setDepth(DEPTHS.ENTITIES + m_y);
                 bounding_box.setPosition(gridX(Math.round(m_x)),gridY(Math.round(m_y)));
             });
+
 
             enter_state();
             pawn.data.values.update();
@@ -542,7 +662,11 @@ let GameScene = new Phaser.Class({
         //SETUP PHYSICS
         //----------------------------------------------------------------------
 
-
+        scene.physics.add.overlap(bounding_box, hittables, function(player, hittable) {
+            if (playerDangerous) {
+                hittable.data.values.onHit(playerDx, playerDy);
+            }
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -559,9 +683,6 @@ let config = {
     type: Phaser.AUTO,
     render: {
         pixelArt: true
-    },
-    input: {
-        gamepad: true
     },
     scale: {
         mode: Phaser.Scale.FIT,
