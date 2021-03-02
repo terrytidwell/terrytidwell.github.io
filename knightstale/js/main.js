@@ -126,6 +126,7 @@ let GameScene = new Phaser.Class({
         let grid = [];
         let hittables = scene.physics.add.group();
         let dangerous_touchables = scene.physics.add.group();
+        scene.__updateables = scene.physics.add.group();
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
         for (let x = 0; x < 12; x++)
@@ -683,6 +684,7 @@ let GameScene = new Phaser.Class({
             let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
             hittables.add(bounding_box);
             dangerous_touchables.add(bounding_box);
+            scene.__updateables.add(pawn);
             bounding_box.setData('onHit',function(dx, dy) {
                 if (current_state !== STATES.STUNNED) {
                     m_impact_x = dx;
@@ -692,6 +694,9 @@ let GameScene = new Phaser.Class({
             });
             bounding_box.setData('registerDangerousTouch',function() {
                 return {dx: m_dx, dy: m_dy};
+            });
+            bounding_box.setData('isDangerous',function() {
+                return current_state !== STATES.STUNNED;
             });
 
             let shadow = scene.add.ellipse(0, 0,
@@ -725,6 +730,7 @@ let GameScene = new Phaser.Class({
 
         scene.__character = addPlayer(5,7);
         scene.__pawn = addPawn(9,9);
+        scene.__pawn = addPawn(2,2);
 
 
         //----------------------------------------------------------------------
@@ -745,7 +751,8 @@ let GameScene = new Phaser.Class({
         });
         scene.physics.add.overlap(scene.__character, dangerous_touchables,
             function(character, dangerous_touchable) {
-            if (character.data.values.isVulnerable()) {
+            if (character.data.values.isVulnerable() &&
+                dangerous_touchable.data.values.isDangerous()) {
                 let touch_info = dangerous_touchable.data.values.registerDangerousTouch();
                 character.data.values.onHit(
                     touch_info.dx,
@@ -759,7 +766,10 @@ let GameScene = new Phaser.Class({
         let scene = this;
 
         scene.__character.data.values.update();
-        scene.__pawn.data.values.update();
+
+        scene.__updateables.children.each(function(updatable) {
+            updatable.data.values.update();
+        }, this);
     },
 });
 
