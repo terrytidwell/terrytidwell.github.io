@@ -189,6 +189,13 @@ let GameScene = new Phaser.Class({
                 movePlayer(x, y);
             }
         };
+
+        let isGridPassable = function(x,y) {
+            return x >= 0 && x < 12 &&
+                y >= 0 && y < 12 &&
+                grid[x][y].visible;
+        };
+
         //----------------------------------------------------------------------
         //GAME ENTITY SETUP
         //----------------------------------------------------------------------
@@ -268,8 +275,7 @@ let GameScene = new Phaser.Class({
                 frame.setPosition(gridX(x),
                     gridY(y));
                 frame.setVisible(playerMoveAllowed &&
-                    x <= 9 && x >= 2 &&
-                    y <= 9 && y >= 2);
+                    isGridPassable(x,y));
             }
         };
 
@@ -277,10 +283,64 @@ let GameScene = new Phaser.Class({
         let shadow = scene.add.ellipse(0, 0,
             GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
         let character = scene.add.sprite(0, 0, 'pieces', 4);
-        scene.add.sprite(gridX(9), characterY(9), 'pieces', 12);
+        let addPawn = function(x,y) {
+            let pawn = scene.add.sprite(gridX(0), characterY(0), 'pieces', 12);
+            let mx = x;
+            let my = y;
+            let mdx = 0;
+            let mdy = 0;
+            let timelineX = null;
+            let timelineY = null;
+            let delayedCall = null;
+            let begin_walk = function() {
+                let directions = [
+                    {dx: -1, dy: 0},
+                    {dx: 1, dy: 0},
+                    {dx: 0, dy: -1},
+                    {dx: 0, dy: 1},
+                ];
+                Phaser.Utils.Array.Shuffle(directions);
+                mdx = 0;
+                mdy = 0;
+                for (let direction of directions) {
+                    if (isGridPassable(mx+direction.dx, my+direction.dy)) {
 
+                        mdx = direction.dx;
+                        mdy = direction.dy;
+                        scene.tweens.add({
+                            targets: { x: mx},
+                            props: { x: mx+mdx },
+                            duration: 200,
+                            onUpdate: function() {
+                                mx = this.getValue();
+                            },
+                        });
+                        scene.tweens.add({
+                            targets: { y: my},
+                            props: { y: my+mdy },
+                            duration: 200,
+                            onUpdate: function() {
+                                my = this.getValue();
+                            },
+                            onComplete: function() {
+                                delayedCall = scene.time.delayedCall(1000, begin_walk);
+                            }
+                        });
+                        return;
+                    }
+                }
+                delayedCall = scene.time.delayedCall(1000, begin_walk);
+            };
+            delayedCall = scene.time.delayedCall(1000, begin_walk);
+
+            pawn.setData('update', function() {
+                pawn.setPosition(gridX(mx),characterY(my));
+            });
+            return pawn;
+        };
 
         scene.__alignPlayer();
+        scene.__pawn = addPawn(9,9);
 
 
         //----------------------------------------------------------------------
@@ -296,6 +356,7 @@ let GameScene = new Phaser.Class({
         let scene = this;
 
         scene.__alignPlayer();
+        scene.__pawn.data.values.update();
     },
 });
 
