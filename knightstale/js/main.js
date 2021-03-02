@@ -40,7 +40,8 @@ let LoadScene = new Phaser.Class({
             .setOrigin(0.5, 0.5);
 
         this.load.spritesheet('floor', 'assets/Wood 1 TD 64x72.png', { frameWidth: 80, frameHeight: 80 });
-        this.load.spritesheet('pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('white_pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
         this.load.image('frame', 'assets/frame.png');
 
@@ -124,7 +125,7 @@ let GameScene = new Phaser.Class({
 
         let grid = [];
         let hittables = scene.physics.add.group();
-        //let dangerous_touchables = scene.physics.add.group();
+        let dangerous_touchables = scene.physics.add.group();
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
         for (let x = 0; x < 12; x++)
@@ -249,7 +250,7 @@ let GameScene = new Phaser.Class({
                 LEFT: 3
             };
             let setOrientation = function(orientation) {
-                sprite.setTexture('pieces', 4 + orientation);
+                sprite.setTexture('black_pieces', 4 + orientation);
             }
 
             let tryMovePlayer = function(x, y) {
@@ -266,6 +267,7 @@ let GameScene = new Phaser.Class({
 
             let playerMoveAllowed = false;
             let playerDangerous = false;
+            let playerGracePeriod = false;
             let tweenZ = scene.tweens.add({
                 targets: { z: character.data.values.z},
                 props: { z: 0 },
@@ -279,12 +281,69 @@ let GameScene = new Phaser.Class({
                 }
             });
 
-            character.setData('isVulnerable', function() {
-                return playerMoveAllowed;
-            });
-
             character.setData('isHitting', function() {
                 return playerDangerous;
+            });
+
+            character.setData('isVulnerable', function() {
+                return !playerGracePeriod && playerMoveAllowed ;
+            });
+
+            character.setData('onHit', function(impact_x, impact_y) {
+                character.setData('z', 0);
+                character.setData('y', Math.round(character.data.values.y));
+                character.setData('x', Math.round(character.data.values.x));
+                let directions = [
+                    {d:DIRECTIONS.UP, m:0},
+                    {d:DIRECTIONS.UP_LEFT, m:0},
+
+                    {d:DIRECTIONS.LEFT, m:0},
+                    {d:DIRECTIONS.DOWN_LEFT, m:0},
+
+                    {d:DIRECTIONS.DOWN, m:0},
+                    {d:DIRECTIONS.DOWN_RIGHT, m:0},
+
+                    {d:DIRECTIONS.RIGHT, m:0},
+                    {d:DIRECTIONS.UP_RIGHT, m:0},
+
+                ];
+                for(let direction of directions) {
+                    direction.m = direction.d.dx * impact_x +
+                        direction.d.dy * impact_y;
+                }
+                directions.sort(function(a,b) {
+                    if(a.m > b.m) {
+                        return -1;
+                    }
+                    if (a.m < b.m) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                for(let direction of directions) {
+                    if (isGridPassable(character.data.values.x+direction.d.dx,
+                        character.data.values.y+direction.d.dy)) {
+                        character.setData('x', character.data.values.x += direction.d.dx);
+                        character.setData('y', character.data.values.y += direction.d.dy);
+                        character.setData('dx', direction.d.dx);
+                        character.setData('dy', direction.d.dy);
+                        break;
+                    }
+                }
+                playerGracePeriod = true;
+                sprite.alpha = 0.75;
+                scene.tweens.add({
+                    targets: sprite,
+                    alpha: 0.25,
+                    duration: 50,
+                    repeat: 1500/50,
+                    onComplete: function() {
+                        sprite.alpha = 1;
+                        scene.time.delayedCall(500, function() {
+                            playerGracePeriod = false;
+                        });
+                    }
+                })
             });
 
             let moves = [
@@ -312,7 +371,7 @@ let GameScene = new Phaser.Class({
                     }
                 );
             }
-            let sprite = scene.add.sprite(0, 0, 'pieces', 4);;
+            let sprite = scene.add.sprite(0, 0, 'black_pieces', 4);;
             scene.physics.add.existing(character);
             let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
             let shadow = scene.add.ellipse(0, 0,
@@ -324,7 +383,7 @@ let GameScene = new Phaser.Class({
         };
 
         let addPawn = function(x,y) {
-            let pawn = scene.add.sprite(gridX(0), characterY(0), 'pieces', 12);
+            let pawn = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12);
             let m_x = x;
             let m_y = y;
             let m_z = 0;
@@ -359,7 +418,8 @@ let GameScene = new Phaser.Class({
                     case STATES.IDLE:
                         delayedCalls.push(scene.time.delayedCall(1000, change_state, [STATES.MOVING]));
                         break;
-                      case STATES.POST_ATTACK_IDLE:
+                    case STATES.POST_ATTACK_IDLE:
+                        //like idle, but can't attack
                         delayedCalls.push(scene.time.delayedCall(1000, change_state, [STATES.MOVING]));
                         break;
                     case STATES.PRE_ATTACK:
@@ -398,9 +458,9 @@ let GameScene = new Phaser.Class({
                                     };
                                     tweens.push(scene.tweens.add({
                                         targets: { x: m_x},
-                                        props: { x: m_x+m_dx/2 },
+                                        props: { x: m_x+m_dx },
                                         duration: 100,
-                                        yoyo: true,
+                                        yoyo: false,
                                         onUpdate: function() {
                                             m_x = this.getValue();
                                         },
@@ -408,9 +468,9 @@ let GameScene = new Phaser.Class({
                                     }));
                                     tweens.push(scene.tweens.add({
                                         targets: { y: m_y},
-                                        props: { y: m_y+m_dy/2 },
+                                        props: { y: m_y+m_dy },
                                         duration: 100,
-                                        yoyo: true,
+                                        yoyo: false,
                                         onUpdate: function() {
                                             m_y = this.getValue();
                                         },
@@ -622,10 +682,16 @@ let GameScene = new Phaser.Class({
 
             let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
             hittables.add(bounding_box);
+            dangerous_touchables.add(bounding_box);
             bounding_box.setData('onHit',function(dx, dy) {
-                m_impact_x = dx;
-                m_impact_y = dy;
-                change_state(STATES.STUNNED);
+                if (current_state !== STATES.STUNNED) {
+                    m_impact_x = dx;
+                    m_impact_y = dy;
+                    change_state(STATES.STUNNED);
+                }
+            });
+            bounding_box.setData('registerDangerousTouch',function() {
+                return {dx: m_dx, dy: m_dy};
             });
 
             let shadow = scene.add.ellipse(0, 0,
@@ -675,6 +741,15 @@ let GameScene = new Phaser.Class({
             if (character.data.values.isHitting()) {
                 hittable.data.values.onHit(character.data.values.dx,
                     character.data.values.dy);
+            }
+        });
+        scene.physics.add.overlap(scene.__character, dangerous_touchables,
+            function(character, dangerous_touchable) {
+            if (character.data.values.isVulnerable()) {
+                let touch_info = dangerous_touchable.data.values.registerDangerousTouch();
+                character.data.values.onHit(
+                    touch_info.dx,
+                    touch_info.dy);
             }
         });
     },
