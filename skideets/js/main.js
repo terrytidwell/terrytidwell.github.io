@@ -327,13 +327,13 @@ let GameScene = new Phaser.Class({
         };
 
         let line_algorithm = function(path, x, y) {
-            let arrow = path[path.length-1].square.data.values.arrow;
+            let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
             let path_color = grid[x][y].data.values.color;
             let preferred_direction = ARROW.RIGHT === arrow ?
                 DIRECTION.RIGHT : DIRECTION.LEFT
-            let dx = path[0].dx;
-            let dy = path[0].dy;
-            let previous_direction = DIRECTION.opposite(path[0].d1);
+            let dx = path.steps[0].dx;
+            let dy = path.steps[0].dy;
+            let previous_direction = DIRECTION.opposite(path.steps[0].d1);
             let directions = [
                 preferred_direction,
                 DIRECTION.UP, //up
@@ -366,13 +366,18 @@ let GameScene = new Phaser.Class({
                     x = test_x;
                     y = test_y;
                     previous_direction = direction;
-                    path[0].d2 = direction;
-                    path.unshift({
+                    path.steps[0].d2 = direction;
+                    path.steps.unshift({
                         square: grid[x][y],
                         dx: dx,
                         dy: dy,
                         d1: DIRECTION.opposite(direction),
                         d2: DIRECTION.NONE});
+                    path.min_x = Math.min(path.min_x, x);
+                    path.min_y = Math.min(path.min_y, y);
+                    path.max_x = Math.max(path.max_x, x);
+                    path.max_y = Math.max(path.max_y, y);
+
                     finished = false;
                     break;
                 }
@@ -387,8 +392,11 @@ let GameScene = new Phaser.Class({
             let preferred_direction = arrow === ARROW.RIGHT ?
                 DIRECTION.RIGHT : DIRECTION.LEFT;
 
-            let path = [];
-            path.unshift({
+            let path = {
+                min_x: x, max_x: x,
+                min_y: y, max_y: y,
+                steps: [] };
+            path.steps.unshift({
                 square: grid[x][y],
                 dx: dx,
                 dy: dy,
@@ -407,12 +415,16 @@ let GameScene = new Phaser.Class({
             if (!COLORS.isColor(path_color)) {
                 return path;
             }
-            path.unshift({
+            path.steps.unshift({
                 square: grid[x][y],
                 dx: dx,
                 dy: dy,
                 d1: DIRECTION.opposite(preferred_direction),
                 d2: DIRECTION.NONE});
+            path.min_x = Math.min(path.min_x, x);
+            path.min_y = Math.min(path.min_y, y);
+            path.max_x = Math.max(path.max_x, x);
+            path.max_y = Math.max(path.max_y, y);
 
             return line_algorithm(path, x, y);
         };
@@ -433,6 +445,7 @@ let GameScene = new Phaser.Class({
                     }
                 }
             }
+
             //look for grey arrows
             for (let y = 0; y < GRID_ROWS; y++) {
                for (let x = 0; x < GRID_COLS; x++) {
@@ -445,12 +458,12 @@ let GameScene = new Phaser.Class({
 
                         let path = find_line(x, y);
                         //includes arrow
-                        if (path.length >= 4) {
-                            //path[0] is last square
-                            let color = path[0].square.data.values.color;
+                        if (path.steps.length >= 4) {
+                            //path.steps[0] is last square
+                            let color = path.steps[0].square.data.values.color;
                             square.setData('arrow_color',
                                 color);
-                            for (let step of path) {
+                            for (let step of path.steps) {
                                 step.square.setData('connection',
                                     CONNECTION.directionToSegment(step.d1, step.d2));
                                 step.square.setData('path', path);
@@ -474,7 +487,7 @@ let GameScene = new Phaser.Class({
                         CONNECTION.isEndpoint(square.data.values.connection)) {
 
                         let path = continue_line(x, y);
-                        for (let step of path) {
+                        for (let step of path.steps) {
                             step.square.setData('connection',
                                 CONNECTION.directionToSegment(step.d1, step.d2));
                             step.square.setData('path', path);
@@ -569,7 +582,7 @@ let GameScene = new Phaser.Class({
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
         };
 
-        let scan_line_exit_handlers = [];
+        let active_lines = [];
         let scan_line_enter = function(x, direction) {
             if (!xLegal(x)) {
                 return;
@@ -583,42 +596,31 @@ let GameScene = new Phaser.Class({
                     arrow_color !== COLORS.COLORLESS) {
                     if (DIRECTION.RIGHT === direction && arrow === ARROW.RIGHT ||
                         DIRECTION.LEFT === direction && arrow === ARROW.LEFT) {
-                        let x_extrema = x;
-                        for (let step of square.data.values.path) {
-                            if (gridLegal(x+step.dx, y+step.dy)) {
-                                x_extrema = DIRECTION.RIGHT === direction ?
-                                    Math.max(x_extrema, x+step.dx) :
-                                    Math.min(x_extrema, x+step.dx);
-                                grid[x+step.dx][y+step.dy].setData('locked', true);
-                            }
+                        for (let step of square.data.values.path.steps) {
+                            step.square.setData('locked', true);
                         }
-                        scan_line_exit_handlers.push({exit_x:x_extrema,
-                            start_x: x,
-                            start_y: y,
-                            arrow: square
-                        });
+                        active_lines.push({start_x: x, start_y:y, path: square.data.values.path});
                     }
                     scan_grid();
                 }
             }
         };
 
-        let scan_line_exit = function(x) {
+        let scan_line_exit = function(x, direction) {
             if (!xLegal(x)) {
                 return;
             }
-            scan_line_exit_handlers =
-                scan_line_exit_handlers.filter(function(exit_handler) {
-                if (x !== exit_handler.exit_x) {
+            active_lines =
+                active_lines.filter(function(active_line) {
+                let end_x = direction === DIRECTION.LEFT ?
+                    active_line.path.min_x :
+                    active_line.path.max_x
+                if (x !== end_x) {
                     //keep this around
                     return true;
                 }
-                for (let step of exit_handler.arrow.data.values.path) {
-                    let path_x = exit_handler.start_x +step.dx;
-                    let path_y = exit_handler.start_y +step.dy;
-                    if (gridLegal(path_x, path_y)) {
-                        clear_block(grid[path_x][path_y]);
-                    }
+                for (let step of active_line.path.steps) {
+                    clear_block(step.square);
                 }
                 return false;
             });
@@ -627,13 +629,13 @@ let GameScene = new Phaser.Class({
 
         let update_scanline = function() {
 
-            scan_line_exit(scanlineX);
+            scan_line_exit(scanlineX, scanlineDirection);
 
             scanlineX += DIRECTION.dx(scanlineDirection);
             if (!xLegal(scanlineX)) {
                 scanlineDirection = DIRECTION.opposite(scanlineDirection);
                 if ( scanlineX < 0) {
-                    console.assert(scan_line_exit_handlers.length === 0);
+                    console.assert(active_lines.length === 0);
                     add_line();
                 }
             }
