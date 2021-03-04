@@ -38,6 +38,13 @@ const CONNECTION = {
     UP: 8,
     UP_2_DOWN: 9,
     DOWN: 10,
+    isEndpoint(connection) {
+      return [
+          false,  true, false, false,
+          false,  true, false, false,
+           true, false,  true
+      ][connection];
+    },
     directionToSegment(d1,d2) {
       return [
            0, 8,10, 1, 5,
@@ -52,7 +59,7 @@ const CONNECTION = {
             0, 1, 3, 2,
             3, 1, 3, 3,
             1, 2, 1
-        ][connection]
+        ][connection];
     },
     flipX: function(connection) {
         return [
@@ -319,45 +326,19 @@ let GameScene = new Phaser.Class({
             square.setData('color', chosen_color);
         };
 
-        let find_line = function(x, y) {
-            let arrow = grid[x][y].data.values.arrow;
-            let dx = 0;
-            let dy = 0;
-            let cx = x;
-            let cy = y;
+        let line_algorithm = function(path, x, y) {
+            let arrow = path[path.length-1].square.data.values.arrow;
+            let path_color = grid[x][y].data.values.color;
+            let preferred_direction = ARROW.RIGHT === arrow ?
+                DIRECTION.RIGHT : DIRECTION.LEFT
+            let dx = path[0].dx;
+            let dy = path[0].dy;
+            let previous_direction = DIRECTION.opposite(path[0].d1);
             let directions = [
-                ARROW.RIGHT === arrow ?
-                    DIRECTION.RIGHT : DIRECTION.LEFT, //right
+                preferred_direction,
                 DIRECTION.UP, //up
                 DIRECTION.DOWN, //down
             ];
-            let path = [];
-            path.unshift({
-                square: grid[cx][cy],
-                dx: dx,
-                dy: dy,
-                d1: DIRECTION.NONE,
-                d2: directions[0]
-            });
-            dx += DIRECTION.dx(directions[0]);
-            dy += DIRECTION.dy(directions[0]);
-            cx = x + dx;
-            cy = y + dy;
-
-            if (!gridLegal(cx,cy)) {
-                return path;
-            }
-            let path_color = grid[cx][cy].data.values.color;
-            if (!COLORS.isColor(path_color)) {
-                return path;
-            }
-            path.unshift({
-                square: grid[cx][cy],
-                dx: dx,
-                dy: dy,
-                d1: DIRECTION.opposite(directions[0]),
-                d2: DIRECTION.NONE});
-            let previous_direction = directions[0];
             let finished = false;
             while (!finished) {
                 finished = true;
@@ -365,8 +346,8 @@ let GameScene = new Phaser.Class({
                     if (direction === DIRECTION.opposite(previous_direction)) {
                         continue;
                     }
-                    let test_x = cx + DIRECTION.dx(direction);
-                    let test_y = cy + DIRECTION.dy(direction);
+                    let test_x = x + DIRECTION.dx(direction);
+                    let test_y = y + DIRECTION.dy(direction);
                     if (!gridLegal(test_x, test_y)) {
                         continue;
                     }
@@ -382,12 +363,12 @@ let GameScene = new Phaser.Class({
 
                     dx += DIRECTION.dx(direction);
                     dy += DIRECTION.dy(direction);
-                    cx = test_x;
-                    cy = test_y;
+                    x = test_x;
+                    y = test_y;
                     previous_direction = direction;
                     path[0].d2 = direction;
                     path.unshift({
-                        square: grid[cx][cy],
+                        square: grid[x][y],
                         dx: dx,
                         dy: dy,
                         d1: DIRECTION.opposite(direction),
@@ -397,6 +378,48 @@ let GameScene = new Phaser.Class({
                 }
             }
             return path;
+        }
+
+        let find_line = function(x, y) {
+            let arrow = grid[x][y].data.values.arrow;
+            let dx = 0;
+            let dy = 0;
+            let preferred_direction = arrow === ARROW.RIGHT ?
+                DIRECTION.RIGHT : DIRECTION.LEFT;
+
+            let path = [];
+            path.unshift({
+                square: grid[x][y],
+                dx: dx,
+                dy: dy,
+                d1: DIRECTION.NONE,
+                d2: preferred_direction
+            });
+            dx += DIRECTION.dx(preferred_direction);
+            dy += DIRECTION.dy(preferred_direction);
+            x += dx;
+            y += dy;
+
+            if (!gridLegal(x,y)) {
+                return path;
+            }
+            let path_color = grid[x][y].data.values.color;
+            if (!COLORS.isColor(path_color)) {
+                return path;
+            }
+            path.unshift({
+                square: grid[x][y],
+                dx: dx,
+                dy: dy,
+                d1: DIRECTION.opposite(preferred_direction),
+                d2: DIRECTION.NONE});
+
+            return line_algorithm(path, x, y);
+        };
+
+        let continue_line = function(x, y) {
+            let path = grid[x][y].data.values.path;
+            return line_algorithm(path, x, y);
         };
 
         let scan_grid = function() {
@@ -406,6 +429,7 @@ let GameScene = new Phaser.Class({
                     if (!grid[x][y].data.values.locked &&
                         COLORS.isColor(grid[x][y].data.values.color)) {
                         grid[x][y].setData('connection', CONNECTION.NONE);
+                        grid[x][y].setData('path', null);
                     }
                 }
             }
@@ -422,16 +446,15 @@ let GameScene = new Phaser.Class({
                         let path = find_line(x, y);
                         //includes arrow
                         if (path.length >= 4) {
-                            //path[0] is arrow
-                            //path[1] is first square
-                            let color = path[1].square.data.values.color;
+                            //path[0] is last square
+                            let color = path[0].square.data.values.color;
                             square.setData('arrow_color',
                                 color);
                             for (let step of path) {
                                 step.square.setData('connection',
                                     CONNECTION.directionToSegment(step.d1, step.d2));
+                                step.square.setData('path', path);
                             }
-                            square.setData('path', path);
                         } else {
                             square.setData('arrow_color', COLORS.COLORLESS);
                             square.setData('path', null);
@@ -439,6 +462,28 @@ let GameScene = new Phaser.Class({
                     }
                 }
             }
+
+            for (let y = 0; y < GRID_ROWS; y++) {
+                for (let x = 0; x < GRID_COLS; x++) {
+                    let square = grid[x][y];
+                    let color = square.data.values.color;
+                    let arrow = square.data.values.arrow;
+                    if (square.data.values.locked &&
+                        COLORS.isColor(color) &&
+                        arrow === ARROW.NONE &&
+                        CONNECTION.isEndpoint(square.data.values.connection)) {
+
+                        let path = continue_line(x, y);
+                        for (let step of path) {
+                            step.square.setData('connection',
+                                CONNECTION.directionToSegment(step.d1, step.d2));
+                            step.square.setData('path', path);
+                            step.square.setData('locked', true);
+                        }
+                    }
+                }
+            }
+
             for (let y = 0; y < GRID_ROWS; y++) {
                 for(let x = 0; x < GRID_COLS; x++) {
                     let square = grid[x][y];
