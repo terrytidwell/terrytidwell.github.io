@@ -524,6 +524,7 @@ let GameScene = new Phaser.Class({
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
         };
 
+        let scan_line_exit_handlers = [];
         let scan_line_enter = function(x, dx) {
             if (!xLegal(x)) {
                 return;
@@ -537,46 +538,45 @@ let GameScene = new Phaser.Class({
                     arrow_color !== COLORS.COLORLESS) {
                     if (dx > 0 && arrow === ARROW.RIGHT ||
                         dx < 0 && arrow === ARROW.LEFT) {
+                        let x_extrema = x;
                         for (let step of square.data.values.path) {
                             if (gridLegal(x+step.dx, y+step.dy)) {
+                                x_extrema = dx > 0 ? Math.max(x_extrema, x+step.dx) :
+                                    Math.min(x_extrema, x+step.dx);
                                 grid[x+step.dx][y+step.dy].setData('locked', true);
                             }
                         }
+                        scan_line_exit_handlers.push({exit_x:x_extrema,
+                            start_x: x,
+                            start_y: y,
+                            arrow: square
+                        });
                     }
                     scan_grid();
                 }
             }
         };
 
-        let scan_line_exit = function(x, dx) {
+        let scan_line_exit = function(x) {
             if (!xLegal(x)) {
                 return;
             }
-            return;
-            for (let y = 0; y < GRID_ROWS; y++) {
-                //test for removal
-                let square = grid[x][y];
-                let arrow = square.data.values.arrow;
-                let connection = square.data.values.connection;
-                let locked = square.data.values.locked;
-                if (arrow === ARROW.NONE && locked) {
-                    if (dx > 0 && connection === CONNECTION.RIGHT ||
-                        dx < 0 && connection === CONNECTION.LEFT)
-                    {
-                        //march forward and clear through to arrow
-                        let finished = false;
-                        let match_x = x;
-                        while (match_x >= 0 && match_x < GRID_COLS && !finished) {
-                            if(grid[match_x][y].data.values.arrow !== ARROW.NONE) {
-                                finished = true;
-                            }
-                            clear_block(grid[match_x][y]);
-                            match_x -= dx;
-                        }
-                        scan_grid();
+            scan_line_exit_handlers =
+                scan_line_exit_handlers.filter(function(exit_handler) {
+                if (x !== exit_handler.exit_x) {
+                    //keep this around
+                    return true;
+                }
+                for (let step of exit_handler.arrow.data.values.path) {
+                    let path_x = exit_handler.start_x +step.dx;
+                    let path_y = exit_handler.start_y +step.dy;
+                    if (gridLegal(path_x, path_y)) {
+                        clear_block(grid[path_x][path_y]);
                     }
                 }
-            }
+                return false;
+            });
+            scan_grid();
         };
 
         let update_scanline = function() {
@@ -587,6 +587,7 @@ let GameScene = new Phaser.Class({
             if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
                 scanlineDx *= -1;
                 if ( scanlineX < 0) {
+                    console.assert(scan_line_exit_handlers.length === 0);
                     add_line();
                 }
             }
