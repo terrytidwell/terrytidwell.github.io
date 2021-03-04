@@ -465,9 +465,9 @@ let GameScene = new Phaser.Class({
             }
         };
 
-        let move_character = function (dx, dy) {
-            let newX = playerX + dx;
-            let newY = playerY + dy;
+        let move_character = function (direction) {
+            let newX = playerX + DIRECTION.dx(direction);
+            let newY = playerY + DIRECTION.dy(direction);
             if (!xLegal(newX) ||
                 !xLegal(newX+1) ||
                 !yLegal(newY))
@@ -506,7 +506,7 @@ let GameScene = new Phaser.Class({
                 }
                 scan_grid();
             }
-            move_character(0,-1);
+            move_character(DIRECTION.UP);
         };
 
         let remove_n_blocks_from_line = function(y, number) {
@@ -625,7 +625,7 @@ let GameScene = new Phaser.Class({
         let playerY = GRID_ROWS - 1;
         let player = scene.add.sprite(0,0,'player_controller');
         //reconcile sprite to playerX, playerY
-        move_character(0,0);
+        move_character(DIRECTION.NONE);
 
         let scanlineX = 0;
         let scanlineDx = 1;
@@ -663,13 +663,13 @@ let GameScene = new Phaser.Class({
 
         scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.m_cursor_keys.down.on('down', function(event) {
-            move_character(0,1)});
+            move_character(DIRECTION.DOWN)});
         scene.m_cursor_keys.up.on('down', function(event) {
-            move_character(0,-1)});
+            move_character(DIRECTION.UP)});
         scene.m_cursor_keys.left.on('down', function(event) {
-            move_character(-1,0)});
+            move_character(DIRECTION.LEFT)});
         scene.m_cursor_keys.right.on('down', function(event) {
-            move_character(1,0)});
+            move_character(DIRECTION.RIGHT)});
         scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         scene.space_key.on('down', try_selection);
     },
