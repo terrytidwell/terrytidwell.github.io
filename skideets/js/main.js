@@ -525,7 +525,7 @@ let GameScene = new Phaser.Class({
         };
 
         let scan_line_exit_handlers = [];
-        let scan_line_enter = function(x, dx) {
+        let scan_line_enter = function(x, direction) {
             if (!xLegal(x)) {
                 return;
             }
@@ -536,12 +536,13 @@ let GameScene = new Phaser.Class({
                 let arrow = square.data.values.arrow;
                 if (arrow !== ARROW.NONE &&
                     arrow_color !== COLORS.COLORLESS) {
-                    if (dx > 0 && arrow === ARROW.RIGHT ||
-                        dx < 0 && arrow === ARROW.LEFT) {
+                    if (DIRECTION.RIGHT === direction && arrow === ARROW.RIGHT ||
+                        DIRECTION.LEFT === direction && arrow === ARROW.LEFT) {
                         let x_extrema = x;
                         for (let step of square.data.values.path) {
                             if (gridLegal(x+step.dx, y+step.dy)) {
-                                x_extrema = dx > 0 ? Math.max(x_extrema, x+step.dx) :
+                                x_extrema = DIRECTION.RIGHT === direction ?
+                                    Math.max(x_extrema, x+step.dx) :
                                     Math.min(x_extrema, x+step.dx);
                                 grid[x+step.dx][y+step.dy].setData('locked', true);
                             }
@@ -581,24 +582,21 @@ let GameScene = new Phaser.Class({
 
         let update_scanline = function() {
 
-            scan_line_exit(scanlineX, scanlineDx);
+            scan_line_exit(scanlineX);
 
-            scanlineX += scanlineDx;
-            if (scanlineX < 0 || scanlineX > GRID_COLS-1) {
-                scanlineDx *= -1;
+            scanlineX += DIRECTION.dx(scanlineDirection);
+            if (!xLegal(scanlineX)) {
+                scanlineDirection = DIRECTION.opposite(scanlineDirection);
                 if ( scanlineX < 0) {
                     console.assert(scan_line_exit_handlers.length === 0);
                     add_line();
                 }
             }
-            if (scanlineDx > 0) {
-                scanline.setFlipX(false);
-            } else {
-                scanline.setFlipX(true);
-            }
+
+            scanline.setFlipX(DIRECTION.LEFT === scanlineDirection);
 
             set_scanline();
-            scan_line_enter(scanlineX, scanlineDx);
+            scan_line_enter(scanlineX, scanlineDirection);
         };
 
         //----------------------------------------------------------------------
@@ -628,7 +626,7 @@ let GameScene = new Phaser.Class({
         move_character(DIRECTION.NONE);
 
         let scanlineX = 0;
-        let scanlineDx = 1;
+        let scanlineDirection = DIRECTION.RIGHT;
         let scanline = scene.add.sprite(0,0,'scanline');
 
         //add_test_line();
