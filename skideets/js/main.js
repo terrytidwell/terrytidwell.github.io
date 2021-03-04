@@ -1,10 +1,10 @@
 const GRID_SIZE = 50;
-//const SPRITE_SCALE = GRID_SIZE/32;
 const GRID_COLS = 16;
 const GRID_ROWS = 10;
-const SCREEN_WIDTH = 1280; //845 + 400; //845; //1025
-const SCREEN_HEIGHT = 768; //542 + 150; //542; //576
+const SCREEN_WIDTH = 1280;
+const SCREEN_HEIGHT = 768;
 const BPM = 133;
+
 const ARROW = {
     NONE: 0,
     LEFT: 1,
@@ -270,7 +270,7 @@ let GameScene = new Phaser.Class({
         };
 
         scene.__gravity = function() {
-            for (let y = 1; y < GRID_ROWS; y++ ) {
+            for (let y = GRID_ROWS - 1; y > 0; y--) {
                 for(let x = 0; x < GRID_COLS; x++) {
                     let square = grid[x][y];
                     let blank = square.data.values.color === COLORS.COLORLESS &&
