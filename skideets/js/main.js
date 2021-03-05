@@ -619,6 +619,44 @@ let GameScene = new Phaser.Class({
                     //keep this around
                     return true;
                 }
+
+                let delta = active_line.path.steps.length * 100;
+                let mid_x = (active_line.path.min_x + active_line.path.max_x)/2;
+                let mid_y = (active_line.path.min_y + active_line.path.max_y)/2;
+                let text = scene.add.text(
+                    gridX(mid_x),
+                    gridY(mid_y),
+                    '+' + delta,
+                    {font: '' + GRID_SIZE*2 + 'px xolonium', fill: '#FFFFFF'})
+                    .setOrigin(0.5, 0.5)
+                    .setAlpha(0)
+                    .setScale(0);
+                let timeline = scene.tweens.createTimeline();
+                timeline.add({
+                    targets: text,
+                    scale: 1,
+                    alpha: 1,
+                    duration: 100,
+                });
+                timeline.add({
+                    targets: text,
+                    scale: 0.75,
+                    alpha: 0.5,
+                    duration: 1000,
+                })
+                timeline.add({
+                    targets: text,
+                    scale: 0,
+                    alpha: 0,
+                    duration: 200,
+                    x: 0,
+                    y: 0,
+                    onComplete: function() {
+                        addScore(delta);
+                        text.destroy();
+                    }
+                });
+                timeline.play();
                 for (let step of active_line.path.steps) {
                     clear_block(step.square);
                 }
@@ -699,6 +737,32 @@ let GameScene = new Phaser.Class({
             "loop": true,
             "callback": update_scanline
         });
+
+        let addScore = function(delta) {
+            scene.tweens.add({
+                targets: {score: score},
+                props: {score: score+delta},
+                duration: 250,
+                onUpdate: function() {
+                    score = Math.round(this.getValue());
+                    score_text.text = '' + score + '';
+                }
+            });
+            scene.tweens.add({
+                targets: score_text,
+                alpha: 1,
+                duration: 125,
+                yoyo: true
+            });
+        }
+        let score = 0;
+        let score_text = scene.add.text(
+            0,
+            GRID_SIZE/2,
+            '' +  score + '',
+            {font: '' + GRID_SIZE + 'px xolonium', fill: '#FFFFFF'})
+            .setOrigin(0, 0.5)
+            .setAlpha(0.7);
 
         //----------------------------------------------------------------------
         //SETUP INPUTS
