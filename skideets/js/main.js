@@ -576,7 +576,7 @@ let GameScene = new Phaser.Class({
                 clear_block(square);
             }
             scan_grid();
-        }
+        };
 
         let set_scanline = function() {
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
@@ -658,7 +658,30 @@ let GameScene = new Phaser.Class({
                 });
                 timeline.play();
                 for (let step of active_line.path.steps) {
-                    clear_block(step.square);
+
+                    let afterglow = afterglow_pool.length === 0 ? create_block(0, 0) : afterglow_pool.pop();
+                    clear_block(afterglow);
+                    afterglow.setPosition(gridX(active_line.start_x + step.dx),
+                        gridY(active_line.start_y + step.dy));
+                    swap_squares(afterglow, step.square);
+                    set_block_texture(afterglow);
+                    afterglow.setAlpha(0);
+                    afterglow.setTintFill(0xffffff);
+                    let timeline2 = scene.tweens.createTimeline();
+                    timeline2.add({
+                        targets: afterglow,
+                        alpha: 1,
+                        duration: 100,
+                    });
+                    timeline2.add({
+                        targets: afterglow,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: function() {
+                            afterglow_pool.push(afterglow);
+                        }
+                    });
+                    timeline2.play();
                 }
                 return false;
             });
@@ -689,6 +712,7 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
 
         let grid = [];
+        let afterglow_pool = [];
 
         let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
