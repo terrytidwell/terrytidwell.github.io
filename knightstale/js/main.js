@@ -344,7 +344,7 @@ let GameScene = new Phaser.Class({
                     yoyo: true,
                     repeat: 1,
                     duration: 50
-                })
+                });
                 scene.tweens.add({
                     targets: sprite,
                     alpha: 0.25,
@@ -399,6 +399,9 @@ let GameScene = new Phaser.Class({
 
         let addPawn = function(x,y) {
             let pawn = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12);
+            let pawn_overlay = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12)
+                .setTintFill(0xffffff)
+                .setAlpha(0);
             let m_x = x;
             let m_y = y;
             let m_z = 0;
@@ -532,6 +535,13 @@ let GameScene = new Phaser.Class({
                                 break;
                             }
                         }
+                        scene.tweens.add({
+                            targets: pawn_overlay,
+                            alpha: 1,
+                            yoyo: true,
+                            repeat: 1,
+                            duration: 50
+                        });
                         tweens.push(scene.tweens.add({
                             targets: pawn,
                             alpha: 0.25,
@@ -740,6 +750,7 @@ let GameScene = new Phaser.Class({
                     }
                 }
                 pawn.setPosition(gridX(m_x),characterY(m_y) + m_z);
+                pawn_overlay.setPosition(gridX(m_x),characterY(m_y) + m_z);
                 shadow.setPosition(gridX(m_x),gridY(m_y));
                 shadow.setVisible(m_z < 0);
                 pawn.setDepth(DEPTHS.ENTITIES + m_y);
