@@ -161,7 +161,10 @@ let GameScene = new Phaser.Class({
                 let z = character.data.values.z;
                 sprite.setPosition(gridX(x), characterY(y)+z);
                 sprite.setDepth(DEPTHS.ENTITIES + y);
+                sprite_overlay.setPosition(gridX(x), characterY(y)+z);
+                sprite_overlay.setDepth(DEPTHS.ENTITIES + y);
                 shadow.setPosition(gridX(x),gridY(y));
+                shadow.setVisible(z < 0);
                 character.setPosition(gridX(Math.round(x)),gridY(Math.round(y)));
                 for (let i = 0; i < frames.length; i++) {
                     let frame = frames[i];
@@ -252,6 +255,7 @@ let GameScene = new Phaser.Class({
             };
             let setOrientation = function(orientation) {
                 sprite.setTexture('black_pieces', 4 + orientation);
+                sprite_overlay.setTexture('black_pieces', 4 + orientation);
             }
 
             let tryMovePlayer = function(x, y) {
@@ -331,11 +335,20 @@ let GameScene = new Phaser.Class({
                         break;
                     }
                 }
+                scene.cameras.main.shake(50, 0.005, true);
+                sprite.setAlpha(0.75);
                 playerGracePeriod = true;
-                sprite.alpha = 0.75;
+                scene.tweens.add({
+                    targets: sprite_overlay,
+                    alpha: 1,
+                    yoyo: true,
+                    repeat: 1,
+                    duration: 50
+                })
                 scene.tweens.add({
                     targets: sprite,
                     alpha: 0.25,
+                    yoyo: true,
                     duration: 50,
                     repeat: 1500/50,
                     onComplete: function() {
@@ -372,7 +385,8 @@ let GameScene = new Phaser.Class({
                     }
                 );
             }
-            let sprite = scene.add.sprite(0, 0, 'black_pieces', 4);;
+            let sprite = scene.add.sprite(0, 0, 'black_pieces', 4);
+            let sprite_overlay = scene.add.sprite(0, 0, 'black_pieces', 4).setTintFill(0xffffff).setAlpha(0);
             scene.physics.add.existing(character);
             let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
             let shadow = scene.add.ellipse(0, 0,
@@ -489,7 +503,7 @@ let GameScene = new Phaser.Class({
                         m_z = 0;
                         m_y = Math.round(m_y);
                         m_x = Math.round(m_x);
-                        pawn.alpha = 0.5;
+                        pawn.alpha = 0.75;
                         let directions = [
                             {d:DIRECTIONS.UP, m:0},
                             {d:DIRECTIONS.LEFT, m:0},
@@ -520,7 +534,7 @@ let GameScene = new Phaser.Class({
                         }
                         tweens.push(scene.tweens.add({
                             targets: pawn,
-                            alpha: 0,
+                            alpha: 0.25,
                             yoyo: true,
                             duration: 50,
                             repeat: -1,
@@ -782,13 +796,10 @@ let GameScene = new Phaser.Class({
 
         scene.__character.data.values.update();
 
-        let updateable_count = 0
         scene.__updateables.children.each(function(updatable) {
-            updateable_count++;
             updatable.data.values.update();
         }, this);
 
-        updateable_count = 0;
     },
 });
 
