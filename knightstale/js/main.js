@@ -390,6 +390,7 @@ let GameScene = new Phaser.Class({
             let m_z = 0;
             let m_dx = 0;
             let m_dy = 0;
+            let life = 2;
             let m_impact_x = 0;
             let m_impact_y = 0;
             let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
@@ -407,7 +408,8 @@ let GameScene = new Phaser.Class({
                 PRE_ATTACK: 2,
                 ATTACK: 3,
                 POST_ATTACK_IDLE: 4,
-                STUNNED: 5
+                STUNNED: 5,
+                DEAD: 6
             };
             let current_state = STATES.IDLE;
 
@@ -524,6 +526,9 @@ let GameScene = new Phaser.Class({
                             repeat: -1,
                         }));
                         delayedCalls.push(scene.time.delayedCall(2000, change_state, [STATES.MOVING]));
+                        break;
+                    case STATES.DEAD:
+                        destroy();
                         break;
                     default:
                         break;
@@ -689,6 +694,10 @@ let GameScene = new Phaser.Class({
                 if (current_state !== STATES.STUNNED) {
                     m_impact_x = dx;
                     m_impact_y = dy;
+                    if (--life <= 0) {
+                        change_state(STATES.DEAD);
+                        return;
+                    }
                     change_state(STATES.STUNNED);
                 }
             });
@@ -722,6 +731,12 @@ let GameScene = new Phaser.Class({
                 pawn.setDepth(DEPTHS.ENTITIES + m_y);
                 bounding_box.setPosition(gridX(Math.round(m_x)),gridY(Math.round(m_y)));
             });
+
+            let destroy = function() {
+                pawn.destroy();
+                shadow.destroy();
+                bounding_box.destroy();
+            }
 
             enter_state();
             pawn.data.values.update();
@@ -767,9 +782,13 @@ let GameScene = new Phaser.Class({
 
         scene.__character.data.values.update();
 
+        let updateable_count = 0
         scene.__updateables.children.each(function(updatable) {
+            updateable_count++;
             updatable.data.values.update();
         }, this);
+
+        updateable_count = 0;
     },
 });
 
