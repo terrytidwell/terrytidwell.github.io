@@ -453,7 +453,52 @@ let GameScene = new Phaser.Class({
                 addTweenParallel: addTweenParallel,
                 addTweenSequence: addTweenSequence,
                 addDelayedCall: addDelayedCall
+            };
+        };
+
+        let stateHandler = function(scene, states, start_state) {
+            let async_handler = asyncHandler(scene);
+            let current_state = start_state;
+
+            let enter_state = function() {
+                if(current_state.enter) {
+                    current_state.enter();
+                }
+            };
+
+            let exit_state = function() {
+                if(current_state.exit) {
+                    current_state.exit();
+                }
+            };
+
+            let changeState = function(new_state) {
+                //clear async calls
+                async_handler.clear();
+
+                exit_state();
+                current_state = new_state;
+                enter_state();
+            };
+
+            let getState = function () {
+                return current_state;
             }
+
+            //do the initial state enter
+            let start = function () {
+                enter_state();
+            }
+
+            return {
+                changeState: changeState,
+                getState: getState,
+                start: start,
+                addTween: async_handler.addTween,
+                addTweenParallel: async_handler.addTweenParallel,
+                addTweenSequence: async_handler.addTweenSequence,
+                addDelayedCall: async_handler.addDelayedCall
+            };
         };
 
         let addPawn = function(x,y) {
@@ -471,163 +516,133 @@ let GameScene = new Phaser.Class({
             let m_impact_x = 0;
             let m_impact_y = 0;
             let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
-            //cancel tweens with tween.remove();
-            //cancel timeline with timeline.stop();
-            //cancel with delayedCall.remove(false) <-- if you don't want callback
 
-            let async_handler = asyncHandler(scene);
-
-            let STATES = {
-                MOVING: 0,
-                IDLE: 1,
-                PRE_ATTACK: 2,
-                ATTACK: 3,
-                POST_ATTACK_IDLE: 4,
-                STUNNED: 5,
-                DEAD: 6
+            let enter_idle = function() {
+                state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVING]);
             };
-            let current_state = STATES.IDLE;
 
-            let enter_state = function() {
-                switch(current_state) {
-                    case STATES.MOVING:
-                        enter_move();
-                        break;
-                    case STATES.IDLE:
-                        async_handler.addDelayedCall(1000, change_state, [STATES.MOVING]);
-                        break;
-                    case STATES.POST_ATTACK_IDLE:
-                        //like idle, but can't attack
-                        async_handler.addDelayedCall(1000, change_state, [STATES.MOVING]);
-                        break;
-                    case STATES.PRE_ATTACK:
-                        async_handler.addTween({
-                                targets: {z : 0},
-                                props: {z: -8},
-                                yoyo: true,
-                                repeat: 1,
+            let enter_post_attack_idle = function() {
+                state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVING]);
+            };
+
+            let enter_pre_attack = function() {
+                state_handler.addTween({
+                    targets: {z : 0},
+                    props: {z: -8},
+                    yoyo: true,
+                    repeat: 1,
+                    duration: 100,
+                    onUpdate: function() {
+                        m_z = this.getValue();
+                    },
+                    onComplete: function () {
+                        state_handler.changeState(STATES.ATTACK);
+                    },
+                });
+            };
+
+            let enter_attack = function() {
+                let deltaX = Math.round(scene.__character.data.values.x)
+                    - Math.round(m_x);
+                let deltaY = Math.round(scene.__character.data.values.y)
+                    - Math.round(m_y);
+                if ((deltaX === -1 && deltaY === -1) ||
+                    (deltaX === 1 && deltaY === 1) ||
+                    (deltaX === 1 && deltaY === -1) ||
+                    (deltaX === -1 && deltaY === 1)) {
+                    m_dx = deltaX;
+                    m_dy = deltaY;
+                    if (isGridPassable(m_x + m_dx, m_y + m_dy)) {
+                        state_handler.addTweenParallel(
+                            [{
+                                targets: { x: m_x},
+                                props: { x: m_x+m_dx },
                                 duration: 100,
                                 onUpdate: function() {
-                                    m_z = this.getValue();
+                                    m_x = this.getValue();
                                 },
-                                onComplete: function () {
-                                    change_state(STATES.ATTACK);
+                            },{
+                                targets: { y: m_y},
+                                props: { y: m_y+m_dy },
+                                duration: 100,
+                                onUpdate: function() {
+                                    m_y = this.getValue();
                                 },
-                        });
-                        break;
-                    case STATES.ATTACK:
-                        let deltaX = Math.round(scene.__character.data.values.x)
-                            - Math.round(m_x);
-                        let deltaY = Math.round(scene.__character.data.values.y)
-                            - Math.round(m_y);
-                        if ((deltaX === -1 && deltaY === -1) ||
-                                (deltaX === 1 && deltaY === 1) ||
-                                (deltaX === 1 && deltaY === -1) ||
-                                (deltaX === -1 && deltaY === 1)) {
-                                m_dx = deltaX;
-                                m_dy = deltaY;
-                                if (isGridPassable(m_x + m_dx, m_y + m_dy)) {
-                                    async_handler.addTweenParallel(
-                                        [{
-                                            targets: { x: m_x},
-                                            props: { x: m_x+m_dx },
-                                            duration: 100,
-                                            onUpdate: function() {
-                                                m_x = this.getValue();
-                                            },
-                                        },{
-                                            targets: { y: m_y},
-                                            props: { y: m_y+m_dy },
-                                            duration: 100,
-                                            onUpdate: function() {
-                                                m_y = this.getValue();
-                                            },
-                                        }],
-                                        function() { change_state(STATES.POST_ATTACK_IDLE); }
-                                    );
-                                    return;
-                                }
-                        }
-                        //so we didn't do it, return to idle
-                        change_state(STATES.IDLE);
-                        break;
-                    case STATES.STUNNED:
-                        m_z = 0;
-                        m_y = Math.round(m_y);
-                        m_x = Math.round(m_x);
-                        pawn.alpha = 0.75;
-                        let directions = [
-                            {d:DIRECTIONS.UP, m:0},
-                            {d:DIRECTIONS.LEFT, m:0},
-                            {d:DIRECTIONS.RIGHT, m:0},
-                            {d:DIRECTIONS.DOWN, m:0}
-                        ];
-                        for(let direction of directions) {
-                            direction.m = direction.d.dx * m_impact_x +
-                                direction.d.dy * m_impact_y;
-                        }
-                        directions.sort(function(a,b) {
-                            if(a.m > b.m) {
-                                return -1;
-                            }
-                            if (a.m < b.m) {
-                                return 1;
-                            }
-                            return 0;
-                            });
-                        for(let direction of directions) {
-                            if (isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy)) {
-                                m_dx = direction.d.dx;
-                                m_dy = direction.d.dy;
-                                m_x += m_dx;
-                                m_y += m_dy;
-                                break;
-                            }
-                        }
-                        async_handler.addTween({
-                            targets: pawn_overlay,
-                            alpha: 1,
-                            yoyo: true,
-                            repeat: 1,
-                            duration: 50
-                        });
-                        async_handler.addTween({
-                            targets: pawn,
-                            alpha: 0.25,
-                            yoyo: true,
-                            duration: 50,
-                            repeat: -1,
-                        });
-                        async_handler.addDelayedCall(2000, change_state, [STATES.MOVING]);
-                        break;
-                    case STATES.DEAD:
-                        destroy();
-                        break;
-                    default:
-                        break;
+                            }],
+                            function() { state_handler.changeState(STATES.POST_ATTACK_IDLE); }
+                        );
+                        return;
+                    }
                 }
+                //so we didn't do it, return to idle
+                state_handler.changeState(STATES.IDLE);
             };
 
-            let exit_state = function() {
-                switch(current_state) {
-                    case STATES.STUNNED:
-                        pawn_overlay.alpha = 0;
-                        pawn.alpha = 1;
-                        break;
-                    case STATES.PRE_ATTACK:
-                        m_z = 0;
-                    default:
-                        break;
+            let enter_stunned = function() {
+                m_z = 0;
+                m_y = Math.round(m_y);
+                m_x = Math.round(m_x);
+                pawn.alpha = 0.75;
+                let directions = [
+                    {d:DIRECTIONS.UP, m:0},
+                    {d:DIRECTIONS.LEFT, m:0},
+                    {d:DIRECTIONS.RIGHT, m:0},
+                    {d:DIRECTIONS.DOWN, m:0}
+                ];
+                for(let direction of directions) {
+                    direction.m = direction.d.dx * m_impact_x +
+                        direction.d.dy * m_impact_y;
                 }
+                directions.sort(function(a,b) {
+                    if(a.m > b.m) {
+                        return -1;
+                    }
+                    if (a.m < b.m) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                for(let direction of directions) {
+                    if (isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy)) {
+                        m_dx = direction.d.dx;
+                        m_dy = direction.d.dy;
+                        m_x += m_dx;
+                        m_y += m_dy;
+                        break;
+                    }
+                }
+                state_handler.addTween({
+                    targets: pawn_overlay,
+                    alpha: 1,
+                    yoyo: true,
+                    repeat: 1,
+                    duration: 50
+                });
+                state_handler.addTween({
+                    targets: pawn,
+                    alpha: 0.25,
+                    yoyo: true,
+                    duration: 50,
+                    repeat: -1,
+                });
+                state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.MOVING]);
             };
 
-            let change_state = function(new_state) {
-                //clear async calls
-                async_handler.clear();
+            let enter_dead = function() {
+                pawn.destroy();
+                shadow.destroy();
+                bounding_box.destroy();
+                health_bar.destroy();
+                health_bar_frame.destroy();
+            }
 
-                exit_state();
-                current_state = new_state;
-                enter_state();
+            let exit_stunned = function() {
+                pawn_overlay.alpha = 0;
+                pawn.alpha = 1;
+            };
+
+            let exit_pre_attack = function() {
+              m_z = 0;
             };
 
             let swap_direction = function(directions, a, b) {
@@ -725,7 +740,7 @@ let GameScene = new Phaser.Class({
                     if (isGridPassable(m_x+direction.dx, m_y+direction.dy)) {
                         m_dx = direction.dx;
                         m_dy = direction.dy;
-                        async_handler.addTweenParallel(
+                        state_handler.addTweenParallel(
                             [{
                                 targets: { x: m_x},
                                 props: { x: m_x+m_dx },
@@ -741,35 +756,47 @@ let GameScene = new Phaser.Class({
                                     m_y = this.getValue();
                                 },
                             }],
-                            function() { change_state(STATES.IDLE); }
+                            function() { state_handler.changeState(STATES.IDLE); }
                         );
                         return; //<------ RETURN to end function
                     }
                 }
                 //no direction worked?
-                change_state(STATES.IDLE);
+                state_handler.changeState(STATES.IDLE);
             };
+
+            let STATES = {
+                MOVING: {enter: enter_move, exit: null},
+                IDLE: {enter: enter_idle, exit: null},
+                PRE_ATTACK: {enter: enter_pre_attack, exit: exit_pre_attack},
+                ATTACK: {enter: enter_attack, exit: null},
+                POST_ATTACK_IDLE: {enter: enter_post_attack_idle, exit: null},
+                STUNNED: {enter: enter_stunned, exit: exit_stunned},
+                DEAD: {enter: enter_dead, exit: null}
+            };
+            let state_handler = stateHandler(scene, STATES, STATES.IDLE);
+            state_handler.start();
 
             let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
             hittables.add(bounding_box);
             dangerous_touchables.add(bounding_box);
             scene.__updateables.add(pawn);
             bounding_box.setData('onHit',function(dx, dy) {
-                if (current_state !== STATES.STUNNED) {
+                if (state_handler.getState() !== STATES.STUNNED) {
                     m_impact_x = dx;
                     m_impact_y = dy;
                     if (--life <= 0) {
-                        change_state(STATES.DEAD);
+                        state_handler.changeState(STATES.DEAD);
                         return;
                     }
-                    change_state(STATES.STUNNED);
+                    state_handler.changeState(STATES.STUNNED);
                 }
             });
             bounding_box.setData('registerDangerousTouch',function() {
                 return {dx: m_dx, dy: m_dy};
             });
             bounding_box.setData('isDangerous',function() {
-                return current_state !== STATES.STUNNED;
+                return state_handler.getState() !== STATES.STUNNED;
             });
 
             let shadow = scene.add.ellipse(0, 0,
@@ -785,13 +812,13 @@ let GameScene = new Phaser.Class({
                     - Math.round(m_x);
                 let deltaY = Math.round(scene.__character.data.values.y)
                     - Math.round(m_y);
-                if (current_state === STATES.IDLE &&
+                if (state_handler.getState() === STATES.IDLE &&
                     scene.__character.data.values.isVulnerable()) {
                     if ((deltaX === -1 && deltaY === -1) ||
                         (deltaX === 1 && deltaY === 1) ||
                         (deltaX === 1 && deltaY === -1) ||
                         (deltaX === -1 && deltaY === 1)) {
-                        change_state(STATES.PRE_ATTACK);
+                        state_handler.changeState(STATES.PRE_ATTACK);
                     }
                 }
                 pawn.setPosition(gridX(m_x),characterY(m_y) + m_z);
@@ -805,16 +832,6 @@ let GameScene = new Phaser.Class({
                 //health_bar_mask.setPosition(gridX(m_x) - 64 * (1-(life/full_life)),gridY(m_y-1));
             });
 
-            let destroy = function() {
-                pawn.destroy();
-                shadow.destroy();
-                bounding_box.destroy();
-                health_bar.destroy();
-                health_bar_frame.destroy();
-                //health_bar_mask.destroy();
-            }
-
-            enter_state();
             pawn.data.values.update();
             return pawn;
         };
