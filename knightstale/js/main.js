@@ -502,20 +502,6 @@ let GameScene = new Phaser.Class({
         };
 
         let addPawn = function(x,y) {
-            let pawn = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12);
-            let pawn_overlay = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12)
-                .setTintFill(0xffffff)
-                .setAlpha(0);
-            let m_x = x;
-            let m_y = y;
-            let m_z = 0;
-            let m_dx = 0;
-            let m_dy = 0;
-            let full_life = 2;
-            let life = full_life;
-            let m_impact_x = 0;
-            let m_impact_y = 0;
-            let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
 
             let enter_idle = function() {
                 state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVING]);
@@ -539,6 +525,10 @@ let GameScene = new Phaser.Class({
                         state_handler.changeState(STATES.ATTACK);
                     },
                 });
+            };
+
+            let exit_pre_attack = function() {
+                m_z = 0;
             };
 
             let enter_attack = function() {
@@ -628,21 +618,17 @@ let GameScene = new Phaser.Class({
                 state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.MOVING]);
             };
 
+            let exit_stunned = function() {
+                pawn_overlay.alpha = 0;
+                pawn.alpha = 1;
+            };
+
             let enter_dead = function() {
                 pawn.destroy();
                 shadow.destroy();
                 bounding_box.destroy();
                 health_bar.destroy();
                 health_bar_frame.destroy();
-            }
-
-            let exit_stunned = function() {
-                pawn_overlay.alpha = 0;
-                pawn.alpha = 1;
-            };
-
-            let exit_pre_attack = function() {
-              m_z = 0;
             };
 
             let swap_direction = function(directions, a, b) {
@@ -650,7 +636,7 @@ let GameScene = new Phaser.Class({
                 directions[a] =
                     directions[b];
                 directions[b] = temp;
-            }
+            };
 
             let general_move_ai = function(deltaX, deltaY, directions) {
                 if (Phaser.Math.Between(0, 99) < 80) {
@@ -765,6 +751,10 @@ let GameScene = new Phaser.Class({
                 state_handler.changeState(STATES.IDLE);
             };
 
+            //----------------------------------------------------------------------
+            //SETUP STATES AND OBJECTS
+            //----------------------------------------------------------------------
+
             let STATES = {
                 MOVING: {enter: enter_move, exit: null},
                 IDLE: {enter: enter_idle, exit: null},
@@ -775,8 +765,22 @@ let GameScene = new Phaser.Class({
                 DEAD: {enter: enter_dead, exit: null}
             };
             let state_handler = stateHandler(scene, STATES, STATES.IDLE);
-            state_handler.start();
 
+            let m_x = x;
+            let m_y = y;
+            let m_z = 0;
+            let m_dx = 0;
+            let m_dy = 0;
+            let full_life = 2;
+            let life = full_life;
+            let m_impact_x = 0;
+            let m_impact_y = 0;
+            let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
+
+            let pawn = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12);
+            let pawn_overlay = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12)
+                .setTintFill(0xffffff)
+                .setAlpha(0);
             let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
             hittables.add(bounding_box);
             dangerous_touchables.add(bounding_box);
@@ -832,6 +836,7 @@ let GameScene = new Phaser.Class({
                 //health_bar_mask.setPosition(gridX(m_x) - 64 * (1-(life/full_life)),gridY(m_y-1));
             });
 
+            state_handler.start();
             pawn.data.values.update();
             return pawn;
         };
