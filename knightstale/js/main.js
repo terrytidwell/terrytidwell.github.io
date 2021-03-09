@@ -8,6 +8,7 @@ const DEPTHS = {
     BOARD: 0,
     SURFACE: 1,
     ENTITIES: 1000,
+    UI: 2000,
 }
 const DIRECTIONS = {
     RIGHT: {dx: 1, dy: 0},
@@ -43,6 +44,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('white_pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('health_bars', 'assets/health_bars.png', { frameWidth: 80, frameHeight: 9 });
         this.load.image('frame', 'assets/frame.png');
 
         scene.load.on('progress', function(percentage) {
@@ -407,7 +409,8 @@ let GameScene = new Phaser.Class({
             let m_z = 0;
             let m_dx = 0;
             let m_dy = 0;
-            let life = 2;
+            let full_life = 2;
+            let life = full_life;
             let m_impact_x = 0;
             let m_impact_y = 0;
             let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
@@ -735,6 +738,11 @@ let GameScene = new Phaser.Class({
             let shadow = scene.add.ellipse(0, 0,
                 GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
 
+            let health_bar_frame = scene.add.sprite(0,0,'health_bars',2).setDepth(DEPTHS.UI);
+            let health_bar = scene.add.sprite(0,0,'health_bars',3).setDepth(DEPTHS.UI);
+            //let health_bar_mask = scene.add.sprite(0,0,'health_bars',3).setDepth(DEPTHS.UI).setVisible(false);
+            //health_bar.mask = new Phaser.Display.Masks.BitmapMask(scene, health_bar_mask);
+
             pawn.setData('update', function() {
                 let deltaX = Math.round(scene.__character.data.values.x)
                     - Math.round(m_x);
@@ -755,12 +763,18 @@ let GameScene = new Phaser.Class({
                 shadow.setVisible(m_z < 0);
                 pawn.setDepth(DEPTHS.ENTITIES + m_y);
                 bounding_box.setPosition(gridX(Math.round(m_x)),gridY(Math.round(m_y)));
+                health_bar_frame.setPosition(gridX(m_x),gridY(m_y-1));
+                health_bar.setPosition(gridX(m_x) - 32 * (1 - (life/full_life)),gridY(m_y-1)).setScale(life/full_life,1);
+                //health_bar_mask.setPosition(gridX(m_x) - 64 * (1-(life/full_life)),gridY(m_y-1));
             });
 
             let destroy = function() {
                 pawn.destroy();
                 shadow.destroy();
                 bounding_box.destroy();
+                health_bar.destroy();
+                health_bar_frame.destroy();
+                //health_bar_mask.destroy();
             }
 
             enter_state();
