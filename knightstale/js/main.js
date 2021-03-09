@@ -399,6 +399,63 @@ let GameScene = new Phaser.Class({
             return character;
         };
 
+        let asyncHandler = function(scene) {
+            let self = this;
+            let m_tweens = [];
+            let m_timelines = [];
+            let m_delayedCalls = [];
+
+            //clear async calls
+            let clear = function () {
+                Phaser.Utils.Array.Each(m_tweens, function(tween) { tween.remove(); }, self);
+                Phaser.Utils.Array.Each(m_timelines, function(timeline) { timeline.stop(); }, self);
+                Phaser.Utils.Array.Each(m_delayedCalls, function(delayedCall) { delayedCall.remove(false); }, self);
+                m_tweens = [];
+                m_timelines = [];
+                m_delayedCalls = [];
+            };
+
+            let addTween = function(tween) {
+                m_tweens.push(scene.tweens.add(tween));
+            };
+
+            let addTweenSequence = function(tweens) {
+                let timeline = scene.tweens.createTimeline();
+                m_timelines.push(timeline);
+                for (let tween of tweens) {
+                    timeline.add(tween);
+                }
+                timeline.play();
+            };
+
+            let addTweenParallel = function(tweens, onComplete) {
+                let target_rendevous = tweens.length;
+                let current_rendevous = 0;
+                let check_rendevous = function() {
+                    current_rendevous++;
+                    if (current_rendevous === target_rendevous) {
+                        onComplete();
+                    }
+                };
+                for (let tween of tweens) {
+                    tween.onComplete = check_rendevous;
+                    m_tweens.push(scene.tweens.add(tween));
+                }
+            };
+
+            let addDelayedCall = function(delay, callback, args, scope) {
+                m_delayedCalls.push(scene.time.delayedCall(delay, callback, args, scope));
+            };
+
+            return {
+                clear: clear,
+                addTween: addTween,
+                addTweenParallel: addTweenParallel,
+                addTweenSequence: addTweenSequence,
+                addDelayedCall: addDelayedCall
+            }
+        };
+
         let addPawn = function(x,y) {
             let pawn = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12);
             let pawn_overlay = scene.add.sprite(gridX(0), characterY(0), 'white_pieces', 12)
@@ -418,9 +475,7 @@ let GameScene = new Phaser.Class({
             //cancel timeline with timeline.stop();
             //cancel with delayedCall.remove(false) <-- if you don't want callback
 
-            let tweens = [];
-            let timelines = [];
-            let delayedCalls = [];
+            let async_handler = asyncHandler(scene);
 
             let STATES = {
                 MOVING: 0,
@@ -439,14 +494,14 @@ let GameScene = new Phaser.Class({
                         enter_move();
                         break;
                     case STATES.IDLE:
-                        delayedCalls.push(scene.time.delayedCall(1000, change_state, [STATES.MOVING]));
+                        async_handler.addDelayedCall(1000, change_state, [STATES.MOVING]);
                         break;
                     case STATES.POST_ATTACK_IDLE:
                         //like idle, but can't attack
-                        delayedCalls.push(scene.time.delayedCall(1000, change_state, [STATES.MOVING]));
+                        async_handler.addDelayedCall(1000, change_state, [STATES.MOVING]);
                         break;
                     case STATES.PRE_ATTACK:
-                        tweens.push(scene.tweens.add({
+                        async_handler.addTween({
                                 targets: {z : 0},
                                 props: {z: -8},
                                 yoyo: true,
@@ -458,7 +513,7 @@ let GameScene = new Phaser.Class({
                                 onComplete: function () {
                                     change_state(STATES.ATTACK);
                                 },
-                        }));
+                        });
                         break;
                     case STATES.ATTACK:
                         let deltaX = Math.round(scene.__character.data.values.x)
@@ -472,33 +527,24 @@ let GameScene = new Phaser.Class({
                                 m_dx = deltaX;
                                 m_dy = deltaY;
                                 if (isGridPassable(m_x + m_dx, m_y + m_dy)) {
-                                    let rendevous = 0;
-                                    let rendevous_complete = function() {
-                                        rendevous++;
-                                        if (rendevous === 2) {
-                                            change_state(STATES.POST_ATTACK_IDLE);
-                                        }
-                                    };
-                                    tweens.push(scene.tweens.add({
-                                        targets: { x: m_x},
-                                        props: { x: m_x+m_dx },
-                                        duration: 100,
-                                        yoyo: false,
-                                        onUpdate: function() {
-                                            m_x = this.getValue();
-                                        },
-                                        onComplete: rendevous_complete
-                                    }));
-                                    tweens.push(scene.tweens.add({
-                                        targets: { y: m_y},
-                                        props: { y: m_y+m_dy },
-                                        duration: 100,
-                                        yoyo: false,
-                                        onUpdate: function() {
-                                            m_y = this.getValue();
-                                        },
-                                        onComplete: rendevous_complete
-                                    }));
+                                    async_handler.addTweenParallel(
+                                        [{
+                                            targets: { x: m_x},
+                                            props: { x: m_x+m_dx },
+                                            duration: 100,
+                                            onUpdate: function() {
+                                                m_x = this.getValue();
+                                            },
+                                        },{
+                                            targets: { y: m_y},
+                                            props: { y: m_y+m_dy },
+                                            duration: 100,
+                                            onUpdate: function() {
+                                                m_y = this.getValue();
+                                            },
+                                        }],
+                                        function() { change_state(STATES.POST_ATTACK_IDLE); }
+                                    );
                                     return;
                                 }
                         }
@@ -538,21 +584,21 @@ let GameScene = new Phaser.Class({
                                 break;
                             }
                         }
-                        scene.tweens.add({
+                        async_handler.addTween({
                             targets: pawn_overlay,
                             alpha: 1,
                             yoyo: true,
                             repeat: 1,
                             duration: 50
                         });
-                        tweens.push(scene.tweens.add({
+                        async_handler.addTween({
                             targets: pawn,
                             alpha: 0.25,
                             yoyo: true,
                             duration: 50,
                             repeat: -1,
-                        }));
-                        delayedCalls.push(scene.time.delayedCall(2000, change_state, [STATES.MOVING]));
+                        });
+                        async_handler.addDelayedCall(2000, change_state, [STATES.MOVING]);
                         break;
                     case STATES.DEAD:
                         destroy();
@@ -565,8 +611,11 @@ let GameScene = new Phaser.Class({
             let exit_state = function() {
                 switch(current_state) {
                     case STATES.STUNNED:
+                        pawn_overlay.alpha = 0;
                         pawn.alpha = 1;
                         break;
+                    case STATES.PRE_ATTACK:
+                        m_z = 0;
                     default:
                         break;
                 }
@@ -574,12 +623,7 @@ let GameScene = new Phaser.Class({
 
             let change_state = function(new_state) {
                 //clear async calls
-                Phaser.Utils.Array.Each(tweens, function(tween) { tween.remove(); }, pawn);
-                Phaser.Utils.Array.Each(timelines, function(timeline) { timeline.stop(); }, pawn);
-                Phaser.Utils.Array.Each(delayedCalls, function(delayedCall) { delayedCall.remove(false); }, pawn);
-                tweens = [];
-                timelines = [];
-                delayedCalls = [];
+                async_handler.clear();
 
                 exit_state();
                 current_state = new_state;
@@ -681,31 +725,24 @@ let GameScene = new Phaser.Class({
                     if (isGridPassable(m_x+direction.dx, m_y+direction.dy)) {
                         m_dx = direction.dx;
                         m_dy = direction.dy;
-                        let rendevous = 0;
-                        let rendevous_complete = function() {
-                            rendevous++;
-                            if (rendevous === 2) {
-                                change_state(STATES.IDLE);
-                            }
-                        };
-                        tweens.push(scene.tweens.add({
-                            targets: { x: m_x},
-                            props: { x: m_x+m_dx },
-                            duration: 200,
-                            onUpdate: function() {
-                                m_x = this.getValue();
-                            },
-                            onComplete: rendevous_complete
-                        }));
-                        tweens.push(scene.tweens.add({
-                            targets: { y: m_y},
-                            props: { y: m_y+m_dy },
-                            duration: 200,
-                            onUpdate: function() {
-                                m_y = this.getValue();
-                            },
-                            onComplete: rendevous_complete
-                        }));
+                        async_handler.addTweenParallel(
+                            [{
+                                targets: { x: m_x},
+                                props: { x: m_x+m_dx },
+                                duration: 200,
+                                onUpdate: function() {
+                                    m_x = this.getValue();
+                                },
+                            },{
+                                targets: { y: m_y},
+                                props: { y: m_y+m_dy },
+                                duration: 200,
+                                onUpdate: function() {
+                                    m_y = this.getValue();
+                                },
+                            }],
+                            function() { change_state(STATES.IDLE); }
+                        );
                         return; //<------ RETURN to end function
                     }
                 }
