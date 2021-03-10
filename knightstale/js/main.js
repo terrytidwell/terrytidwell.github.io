@@ -115,6 +115,11 @@ let GameScene = new Phaser.Class({
             return scene.__gridY(y - .5);
         };
 
+        scene.__setPhysicsBodyPosition = function(object, x, y) {
+            object.body.x = scene.__gridX(x) - GRID_SIZE/2 + (GRID_SIZE - object.body.width) / 2;
+            object.body.y = scene.__gridY(y) - GRID_SIZE/2 + (GRID_SIZE - object.body.height) / 2;
+        }
+
         scene.__isGridPassable = function(x,y) {
             return x >= 0 && x < 12 &&
                 y >= 0 && y < 12 &&
@@ -122,12 +127,11 @@ let GameScene = new Phaser.Class({
         };
 
         let mobChecker = scene.add.rectangle(0, 0,
-            GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0).setDepth(DEPTHS.SURFACE);
+            GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0).setDepth(DEPTHS.SURFACE);
         scene.physics.add.existing(mobChecker);
         scene.__isGridMobFree = function(x,y) {
             //physics body origins are 0,0 as opposed to sprites which are 0.5,0.5
-            mobChecker.body.x = scene.__gridX(x) - GRID_SIZE/2;
-            mobChecker.body.y = scene.__gridY(y) - GRID_SIZE/2;
+            scene.__setPhysicsBodyPosition(mobChecker, x, y);
             let result = !scene.physics.overlap(mobChecker, scene.__mobs);
             return result;
         };

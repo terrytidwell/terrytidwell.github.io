@@ -139,10 +139,10 @@ let addPawn = function(scene, x,y) {
             (deltaX === 1 && deltaY === 1) ||
             (deltaX === 1 && deltaY === -1) ||
             (deltaX === -1 && deltaY === 1)) {
-            m_dx = deltaX;
-            m_dy = deltaY;
-            if (scene.__isGridPassable(m_x + m_dx, m_y + m_dy) &&
-                scene.__isGridMobFree(m_x + m_dx, m_y + m_dy)) {
+            if (scene.__isGridPassable(m_x + deltaX, m_y + deltaY) &&
+                scene.__isGridMobFree(m_x + deltaX, m_y + deltaY)) {
+                m_dx = deltaX;
+                m_dy = deltaY;
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
@@ -166,6 +166,11 @@ let addPawn = function(scene, x,y) {
         }
         //so we didn't do it, return to idle
         state_handler.changeState(STATES.IDLE);
+    };
+
+    let exit_attack = function () {
+        m_dx = 0;
+        m_dy = 0;
     };
 
     let enter_stunned = function() {
@@ -222,12 +227,15 @@ let addPawn = function(scene, x,y) {
     let exit_stunned = function() {
         pawn_overlay.alpha = 0;
         pawn.alpha = 1;
+        m_dx = 0;
+        m_dy = 0;
     };
 
     let enter_dead = function() {
         pawn.destroy();
         shadow.destroy();
         bounding_box.destroy();
+        move_box.destroy();
         health_bar.destroy();
         health_bar_frame.destroy();
     };
@@ -353,15 +361,20 @@ let addPawn = function(scene, x,y) {
         state_handler.changeState(STATES.IDLE);
     };
 
+    let exit_move = function() {
+      m_dx = 0;
+      m_dy = 0;
+    };
+
     //----------------------------------------------------------------------
     //SETUP STATES AND OBJECTS
     //----------------------------------------------------------------------
 
     let STATES = {
-        MOVING: {enter: enter_move, exit: null},
+        MOVING: {enter: enter_move, exit: exit_move},
         IDLE: {enter: enter_idle, exit: null},
         PRE_ATTACK: {enter: enter_pre_attack, exit: exit_pre_attack},
-        ATTACK: {enter: enter_attack, exit: null},
+        ATTACK: {enter: enter_attack, exit: exit_attack},
         POST_ATTACK_IDLE: {enter: enter_post_attack_idle, exit: null},
         STUNNED: {enter: enter_stunned, exit: exit_stunned},
         DEAD: {enter: enter_dead, exit: null}
@@ -383,9 +396,11 @@ let addPawn = function(scene, x,y) {
     let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12)
         .setTintFill(0xffffff)
         .setAlpha(0);
-    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
+    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
+    let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     scene.__hittables.add(bounding_box);
     scene.__mobs.add(bounding_box);
+    scene.__mobs.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(pawn);
     bounding_box.setData('onHit',function(dx, dy) {
@@ -433,7 +448,8 @@ let addPawn = function(scene, x,y) {
         shadow.setPosition(scene.__gridX(m_x),scene.__gridY(m_y));
         shadow.setVisible(m_z < 0);
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
-        bounding_box.setPosition(scene.__gridX(Math.round(m_x)),scene.__gridY(Math.round(m_y)));
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_x + m_dx), Math.round(m_y + m_dy));
+        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar_frame.setPosition(scene.__gridX(m_x),scene.__gridY(m_y-1))
             .setVisible(life < full_life);
         health_bar.setPosition(scene.__gridX(m_x) - 32 * (1 - (life/full_life)),scene.__gridY(m_y-1))
@@ -448,7 +464,7 @@ let addPawn = function(scene, x,y) {
 };
 
 let addPlayer = function(scene, x,y) {
-    let character = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
+    let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
     let full_life = 10;
     let life = full_life;
     let health_bar_frame = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
@@ -475,7 +491,7 @@ let addPlayer = function(scene, x,y) {
         sprite_overlay.setDepth(DEPTHS.ENTITIES + y);
         shadow.setPosition(scene.__gridX(x),scene.__gridY(y));
         shadow.setVisible(z < 0);
-        character.setPosition(scene.__gridX(Math.round(x)),scene.__gridY(Math.round(y)));
+        scene.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
         for (let i = 0; i < frames.length; i++) {
             let frame = frames[i];
             let frame_x = x + frame.data.values.dx;
