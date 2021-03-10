@@ -174,8 +174,9 @@ let GameScene = new Phaser.Class({
         }
 
         scene.__character = addPlayer(scene,5,7);
-        scene.__pawn = addPawn(scene,9,9);
-        scene.__pawn = addPawn(scene,2,2);
+        addPawn(scene,9,9);
+        addPawn(scene,2,2);
+        addBishop(scene,4,4);
 
 
         //----------------------------------------------------------------------

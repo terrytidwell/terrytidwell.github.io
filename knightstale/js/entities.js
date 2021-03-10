@@ -230,17 +230,19 @@ let addPawn = function(scene, x,y) {
                 scene.__isGridMobFree(m_x + deltaX, m_y + deltaY)) {
                 m_dx = deltaX;
                 m_dy = deltaY;
+                m_targetx = m_x + m_dx;
+                m_targety = m_y + m_dy;
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
-                        props: { x: m_x+m_dx },
+                        props: { x: m_targetx },
                         duration: 100,
                         onUpdate: function() {
                             m_x = this.getValue();
                         },
                     },{
                         targets: { y: m_y},
-                        props: { y: m_y+m_dy },
+                        props: { y: m_targety },
                         duration: 100,
                         onUpdate: function() {
                             m_y = this.getValue();
@@ -258,6 +260,8 @@ let addPawn = function(scene, x,y) {
     let exit_attack = function () {
         m_dx = 0;
         m_dy = 0;
+        m_targetx = m_x;
+        m_targety = m_y;
     };
 
     let enter_stunned = function() {
@@ -425,17 +429,19 @@ let addPawn = function(scene, x,y) {
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.dx;
                 m_dy = direction.dy;
+                m_targetx = m_x+m_dx;
+                m_targety = m_y+m_dy;
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
-                        props: { x: m_x+m_dx },
+                        props: { x: m_targetx },
                         duration: 200,
                         onUpdate: function() {
                             m_x = this.getValue();
                         },
                     },{
                         targets: { y: m_y},
-                        props: { y: m_y+m_dy },
+                        props: { y: m_targety },
                         duration: 200,
                         onUpdate: function() {
                             m_y = this.getValue();
@@ -451,8 +457,10 @@ let addPawn = function(scene, x,y) {
     };
 
     let exit_move = function() {
-      m_dx = 0;
-      m_dy = 0;
+        m_dx = 0;
+        m_dy = 0;
+        m_targetx = m_x;
+        m_targety = m_y;
     };
 
     //----------------------------------------------------------------------
@@ -475,6 +483,8 @@ let addPawn = function(scene, x,y) {
     let m_z = 0;
     let m_dx = 0;
     let m_dy = 0;
+    let m_targetx = 0;
+    let m_targety = 0;
     let full_life = 2;
     let life = full_life;
     let m_impact_x = 0;
@@ -534,7 +544,8 @@ let addPawn = function(scene, x,y) {
         shadow.setPosition(scene.__gridX(m_x),scene.__gridY(m_y));
         shadow.setVisible(m_z < 0);
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_x + m_dx), Math.round(m_y + m_dy));
+        pawn_overlay.setDepth(DEPTHS.ENTITIES + m_y);
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
     });
@@ -543,6 +554,133 @@ let addPawn = function(scene, x,y) {
     pawn.data.values.update();
     return pawn;
 };
+
+let addBishop = function(scene, x, y) {
+    let m_x = x;
+    let m_y = y;
+    let m_z = 0;
+    let m_dx = 0;
+    let m_dy = 0;
+    let m_impact_x = 0;
+    let m_impact_y = 0;
+    let full_life = 5;
+    let life = full_life;
+
+    let enter_stunned = function() {
+        m_z = 0;
+        m_y = Math.round(m_y);
+        m_x = Math.round(m_x);
+        sprite.alpha = 0.75;
+        health_bar.updateLife(life/full_life);
+        let directions = [
+            {d:DIRECTIONS.UP_LEFT, m:0},
+            {d:DIRECTIONS.UP_RIGHT, m:0},
+            {d:DIRECTIONS.DOWN_LEFT, m:0},
+            {d:DIRECTIONS.DOWN_RIGHT, m:0}
+        ];
+        for(let direction of directions) {
+            direction.m = direction.d.dx * m_impact_x +
+                direction.d.dy * m_impact_y;
+        }
+        directions.sort(function(a,b) {
+            if(a.m > b.m) {
+                return -1;
+            }
+            if (a.m < b.m) {
+                return 1;
+            }
+            return 0;
+        });
+        for(let direction of directions) {
+            if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+                m_dx = direction.d.dx;
+                m_dy = direction.d.dy;
+                m_x += m_dx;
+                m_y += m_dy;
+                break;
+            }
+        }
+        state_handler.addTween({
+            targets: sprite_overlay,
+            alpha: 1,
+            yoyo: true,
+            repeat: 1,
+            duration: 50
+        });
+        state_handler.addTween({
+            targets: sprite,
+            alpha: 0.25,
+            yoyo: true,
+            duration: 50,
+            repeat: -1,
+        });
+        state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.IDLE]);
+    };
+
+    exit_stunned = function() {
+        sprite_overlay.alpha = 0;
+        sprite.alpha = 1;
+        m_dx = 0;
+        m_dy = 0;
+    };
+
+    let enter_dead = function() {
+        sprite.destroy();
+        sprite_overlay.destroy();
+        bounding_box.destroy();
+        move_box.destroy();
+        health_bar.destroy();
+    };
+
+    let STATES = {
+        IDLE: {enter: null, exit: null},
+        STUNNED: {enter: enter_stunned, exit: exit_stunned},
+        DEAD: {enter: enter_dead, exit: null}
+    };
+    let state_handler = stateHandler(scene, STATES, STATES.IDLE);
+
+    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 2);
+    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 2)
+        .setAlpha(0)
+        .setTintFill(0xffffff);
+    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
+    let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
+    let health_bar = addHealthBar(scene, 1, 0, 0, true);
+    bounding_box.setData('onHit',function(dx, dy) {
+        if (state_handler.getState() !== STATES.STUNNED) {
+            m_impact_x = dx;
+            m_impact_y = dy;
+            if (--life <= 0) {
+                state_handler.changeState(STATES.DEAD);
+                return;
+            }
+            state_handler.changeState(STATES.STUNNED);
+        }
+    });
+    bounding_box.setData('registerDangerousTouch',function() {
+        return {dx: m_dx, dy: m_dy};
+    });
+    bounding_box.setData('isDangerous',function() {
+        return true;
+    });
+    scene.__hittables.add(bounding_box);
+    scene.__mobs.add(bounding_box);
+    scene.__mobs.add(move_box);
+    scene.__dangerous_touchables.add(bounding_box);
+    scene.__updateables.add(bounding_box);
+    bounding_box.setData('update', function() {
+        sprite.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
+        sprite.setDepth(DEPTHS.ENTITIES + m_y);
+        sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
+        sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_x + m_dx), Math.round(m_y + m_dy));
+        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
+        health_bar.updatePosition(m_x, m_y - 1);
+    });
+    return bounding_box;
+}
 
 let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
@@ -714,6 +852,7 @@ let addPlayer = function(scene, x,y) {
             {d:DIRECTIONS.UP_RIGHT, m:0},
 
         ];
+        Phaser.Utils.Array.Shuffle(directions);
         for(let direction of directions) {
             direction.m = direction.d.dx * impact_x +
                 direction.d.dy * impact_y;
@@ -729,7 +868,9 @@ let addPlayer = function(scene, x,y) {
         });
         for(let direction of directions) {
             if (scene.__isGridPassable(character.data.values.x+direction.d.dx,
-                character.data.values.y+direction.d.dy)) {
+                character.data.values.y+direction.d.dy) &&
+                scene.__isGridMobFree(character.data.values.x+direction.d.dx,
+                    character.data.values.y+direction.d.dy)) {
                 character.setData('x', character.data.values.x += direction.d.dx);
                 character.setData('y', character.data.values.y += direction.d.dy);
                 character.setData('dx', direction.d.dx);
@@ -759,7 +900,7 @@ let addPlayer = function(scene, x,y) {
                     playerGracePeriod = false;
                 });
             }
-        })
+        });
     });
 
     let moves = [
