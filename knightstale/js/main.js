@@ -18,7 +18,7 @@ const DIRECTIONS = {
 
     UP_LEFT : {dx: -1, dy: -1},
     UP_RIGHT : {dx: 1, dy: -1},
-    DOWN_LEFT : {dx: 1, dy: -1},
+    DOWN_LEFT : {dx: -1, dy: 1},
     DOWN_RIGHT : {dx: 1, dy: 1},
 };
 
