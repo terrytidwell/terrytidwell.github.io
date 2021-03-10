@@ -141,7 +141,8 @@ let addPawn = function(scene, x,y) {
             (deltaX === -1 && deltaY === 1)) {
             m_dx = deltaX;
             m_dy = deltaY;
-            if (scene.__isGridPassable(m_x + m_dx, m_y + m_dy)) {
+            if (scene.__isGridPassable(m_x + m_dx, m_y + m_dy) &&
+                scene.__isGridMobFree(m_x + m_dx, m_y + m_dy)) {
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
@@ -192,7 +193,8 @@ let addPawn = function(scene, x,y) {
             return 0;
         });
         for(let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy)) {
+            if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy)) {
                 m_dx = direction.d.dx;
                 m_dy = direction.d.dy;
                 m_x += m_dx;
@@ -322,7 +324,8 @@ let addPawn = function(scene, x,y) {
         m_dx = 0;
         m_dy = 0;
         for (let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy)) {
+            if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy) &&
+                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.dx;
                 m_dy = direction.dy;
                 state_handler.addTweenParallel(
@@ -382,6 +385,7 @@ let addPawn = function(scene, x,y) {
         .setAlpha(0);
     let bounding_box = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
     scene.__hittables.add(bounding_box);
+    scene.__mobs.add(bounding_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(pawn);
     bounding_box.setData('onHit',function(dx, dy) {
@@ -431,7 +435,8 @@ let addPawn = function(scene, x,y) {
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
         bounding_box.setPosition(scene.__gridX(Math.round(m_x)),scene.__gridY(Math.round(m_y)));
         health_bar_frame.setPosition(scene.__gridX(m_x),scene.__gridY(m_y-1));
-        health_bar.setPosition(scene.__gridX(m_x) - 32 * (1 - (life/full_life)),scene.__gridY(m_y-1)).setScale(life/full_life,1);
+        health_bar.setPosition(scene.__gridX(m_x) - 32 * (1 - (life/full_life)),scene.__gridY(m_y-1))
+            .setScale(life/full_life,1);
         //health_bar_mask.setPosition(scene.__gridX(m_x) - 64 * (1-(life/full_life)),scene.__gridY(m_y-1));
     });
 

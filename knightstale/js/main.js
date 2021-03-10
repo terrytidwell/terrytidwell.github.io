@@ -121,12 +121,23 @@ let GameScene = new Phaser.Class({
                 grid[x][y].visible;
         };
 
+        let mobChecker = scene.add.rectangle(0, 0,
+            GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0).setDepth(DEPTHS.SURFACE);
+        scene.physics.add.existing(mobChecker);
+        scene.__isGridMobFree = function(x,y) {
+            //physics body origins are 0,0 as opposed to sprites which are 0.5,0.5
+            mobChecker.body.x = scene.__gridX(x) - GRID_SIZE/2;
+            mobChecker.body.y = scene.__gridY(y) - GRID_SIZE/2;
+            let result = !scene.physics.overlap(mobChecker, scene.__mobs);
+            return result;
+        };
+
         //----------------------------------------------------------------------
         //GAME SETUP
         //----------------------------------------------------------------------
 
         let grid = [];
-        scene.__mob_grid = [];
+        scene.__mobs = scene.physics.add.group();
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
         scene.__updateables = scene.physics.add.group();
