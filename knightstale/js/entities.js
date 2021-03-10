@@ -434,9 +434,11 @@ let addPawn = function(scene, x,y) {
         shadow.setVisible(m_z < 0);
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
         bounding_box.setPosition(scene.__gridX(Math.round(m_x)),scene.__gridY(Math.round(m_y)));
-        health_bar_frame.setPosition(scene.__gridX(m_x),scene.__gridY(m_y-1));
+        health_bar_frame.setPosition(scene.__gridX(m_x),scene.__gridY(m_y-1))
+            .setVisible(life < full_life);
         health_bar.setPosition(scene.__gridX(m_x) - 32 * (1 - (life/full_life)),scene.__gridY(m_y-1))
-            .setScale(life/full_life,1);
+            .setScale(life/full_life,1)
+            .setVisible(life < full_life);
         //health_bar_mask.setPosition(scene.__gridX(m_x) - 64 * (1-(life/full_life)),scene.__gridY(m_y-1));
     });
 
@@ -447,11 +449,22 @@ let addPawn = function(scene, x,y) {
 
 let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE-2,GRID_SIZE-2,0x00ff00,0.0);
+    let full_life = 10;
+    let life = full_life;
+    let health_bar_frame = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
+        'health_bars',2)
+        .setDepth(DEPTHS.UI)
+        .setScale(3);
+    let health_bar = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
+        'health_bars',3)
+        .setDepth(DEPTHS.UI)
+        .setScale(3);
     character.setData('x',x);
     character.setData('dx',0);
     character.setData('y',y);
     character.setData('dy',0);
     character.setData('z',-1000);
+
     character.setData('update', function() {
         let x = character.data.values.x;
         let y = character.data.values.y;
@@ -472,6 +485,8 @@ let addPlayer = function(scene, x,y) {
             frame.setVisible(playerMoveAllowed &&
                 scene.__isGridPassable(frame_x,frame_y));
         }
+        health_bar.setPosition(scene.__gridX(2) - 32 * 3 * (1 - (life/full_life)),scene.__gridY(0))
+            .setScale(3*life/full_life,3);
     });
 
     let impact = function() {
@@ -592,6 +607,7 @@ let addPlayer = function(scene, x,y) {
     });
 
     character.setData('onHit', function(impact_x, impact_y) {
+        life = Math.max(--life, 0);
         character.setData('z', 0);
         character.setData('y', Math.round(character.data.values.y));
         character.setData('x', Math.round(character.data.values.x));
