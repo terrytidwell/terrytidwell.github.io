@@ -467,10 +467,17 @@ let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
     let full_life = 10;
     let life = full_life;
+    let display_life = full_life;
     let health_bar_frame = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
         'health_bars',2)
         .setDepth(DEPTHS.UI)
         .setScale(3);
+    let health_bar_under = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
+        'health_bars',3)
+        .setDepth(DEPTHS.UI)
+        .setScale(3)
+        .setTintFill(0xffffff)
+        .setAlpha(0.95);
     let health_bar = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
         'health_bars',3)
         .setDepth(DEPTHS.UI)
@@ -480,6 +487,9 @@ let addPlayer = function(scene, x,y) {
     character.setData('y',y);
     character.setData('dy',0);
     character.setData('z',-1000);
+
+
+    let health_bar_tween = null;
 
     character.setData('update', function() {
         let x = character.data.values.x;
@@ -501,8 +511,24 @@ let addPlayer = function(scene, x,y) {
             frame.setVisible(playerMoveAllowed &&
                 scene.__isGridPassable(frame_x,frame_y));
         }
+        if (life < display_life && !health_bar_tween) {
+            health_bar_tween = scene.tweens.add({
+                targets: {d : display_life},
+                props: {d: life},
+                duration: (display_life - life) * 350,
+                delay: 500,
+                onUpdate: function() {
+                    display_life = health_bar_tween.getValue();
+                },
+                onComplete: function() {
+                    health_bar_tween = null;
+                }
+            });
+        }
         health_bar.setPosition(scene.__gridX(2) - 32 * 3 * (1 - (life/full_life)),scene.__gridY(0))
             .setScale(3*life/full_life,3);
+        health_bar_under.setPosition(scene.__gridX(2) - 32 * 3 * (1 - (display_life/full_life)),scene.__gridY(0))
+            .setScale(3*display_life/full_life,3);
     });
 
     let impact = function() {
