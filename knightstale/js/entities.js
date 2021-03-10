@@ -100,6 +100,93 @@ let stateHandler = function(scene, states, start_state) {
     };
 };
 
+let addHealthBar = function(scene, scale, x, y, hide_on_full) {
+    let m_x = x;
+    let m_y = y;
+    let health_bar_frame = scene.add.sprite(0, 0,
+        'health_bars',2)
+        .setDepth(DEPTHS.UI)
+        .setScale(scale)
+        .setVisible(!hide_on_full);
+    let health_bar_under = scene.add.sprite(0, 0,
+        'health_bars',3)
+        .setDepth(DEPTHS.UI)
+        .setScale(scale)
+        .setTintFill(0xffffff)
+        .setAlpha(0.95)
+        .setVisible(!hide_on_full);
+    let health_bar = scene.add.sprite(0, 0,
+        'health_bars',3)
+        .setDepth(DEPTHS.UI)
+        .setScale(scale)
+        .setVisible(!hide_on_full);
+
+
+    let display_life = 1;
+    let life = 1;
+    let health_bar_tween = null;
+    let updateLife = function(new_total) {
+        if (new_total < 1) {
+            health_bar_frame.setVisible(true);
+            health_bar_under.setVisible(true);
+            health_bar.setVisible(true);
+        }
+        life = new_total;
+        health_bar.setX(barX(life));
+        health_bar.setScale(calculate_scale(life), scale);
+        if (health_bar_tween) {
+            health_bar_tween.remove();
+        }
+        health_bar_tween = scene.tweens.add({
+            targets: {d : display_life},
+            props: {d: life},
+            duration: 350,
+            delay: 500,
+            onUpdate: function() {
+                display_life = health_bar_tween.getValue();
+                health_bar_under.setX(barX(display_life));
+                health_bar_under.setScale(calculate_scale(display_life), scale);
+            },
+            onComplete: function() {
+                health_bar_tween = null;
+            }
+        });
+    };
+
+    let barX = function(metric) {
+        return scene.__gridX(m_x) - 32 * scale * (1 - (metric));
+    };
+
+    let calculate_scale = function(metric) {
+        return scale*metric;
+    };
+
+    let updatePosition = function(x, y) {
+        m_x = x;
+        m_y = y;
+        health_bar.setPosition(barX(life),scene.__gridY(m_y));
+        health_bar_under.setPosition(barX(display_life), scene.__gridY(m_y));
+        health_bar_frame.setPosition(scene.__gridX(m_x), scene.__gridY(m_y))
+    };
+
+    let destroy = function() {
+        if (health_bar_tween) {
+            health_bar_tween.remove();
+        }
+        health_bar_frame.destroy();
+        health_bar_under.destroy();
+        health_bar.destroy();
+    };
+
+    updatePosition(x, y)
+
+    return {
+        updateLife: updateLife,
+        updatePosition: updatePosition,
+        destroy: destroy
+    }
+};
+
 let addPawn = function(scene, x,y) {
 
     let enter_idle = function() {
@@ -178,6 +265,7 @@ let addPawn = function(scene, x,y) {
         m_y = Math.round(m_y);
         m_x = Math.round(m_x);
         pawn.alpha = 0.75;
+        health_bar.updateLife(life/full_life);
         let directions = [
             {d:DIRECTIONS.UP, m:0},
             {d:DIRECTIONS.LEFT, m:0},
@@ -237,7 +325,6 @@ let addPawn = function(scene, x,y) {
         bounding_box.destroy();
         move_box.destroy();
         health_bar.destroy();
-        health_bar_frame.destroy();
     };
 
     let swap_direction = function(directions, a, b) {
@@ -424,10 +511,7 @@ let addPawn = function(scene, x,y) {
     let shadow = scene.add.ellipse(0, 0,
         GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
 
-    let health_bar_frame = scene.add.sprite(0,0,'health_bars',2).setDepth(DEPTHS.UI);
-    let health_bar = scene.add.sprite(0,0,'health_bars',3).setDepth(DEPTHS.UI);
-    //let health_bar_mask = scene.add.sprite(0,0,'health_bars',3).setDepth(DEPTHS.UI).setVisible(false);
-    //health_bar.mask = new Phaser.Display.Masks.BitmapMask(scene, health_bar_mask);
+    let health_bar = addHealthBar(scene, 1, 0, 0, true);
 
     pawn.setData('update', function() {
         let deltaX = Math.round(scene.__character.data.values.x)
@@ -450,12 +534,7 @@ let addPawn = function(scene, x,y) {
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_x + m_dx), Math.round(m_y + m_dy));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
-        health_bar_frame.setPosition(scene.__gridX(m_x),scene.__gridY(m_y-1))
-            .setVisible(life < full_life);
-        health_bar.setPosition(scene.__gridX(m_x) - 32 * (1 - (life/full_life)),scene.__gridY(m_y-1))
-            .setScale(life/full_life,1)
-            .setVisible(life < full_life);
-        //health_bar_mask.setPosition(scene.__gridX(m_x) - 64 * (1-(life/full_life)),scene.__gridY(m_y-1));
+        health_bar.updatePosition(m_x, m_y - 1);
     });
 
     state_handler.start();
@@ -467,29 +546,12 @@ let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
     let full_life = 10;
     let life = full_life;
-    let display_life = full_life;
-    let health_bar_frame = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
-        'health_bars',2)
-        .setDepth(DEPTHS.UI)
-        .setScale(3);
-    let health_bar_under = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
-        'health_bars',3)
-        .setDepth(DEPTHS.UI)
-        .setScale(3)
-        .setTintFill(0xffffff)
-        .setAlpha(0.95);
-    let health_bar = scene.add.sprite(scene.__gridX(2),scene.__gridY(0),
-        'health_bars',3)
-        .setDepth(DEPTHS.UI)
-        .setScale(3);
+    let health_bar = addHealthBar(scene, 3, 2, 0, false);
     character.setData('x',x);
     character.setData('dx',0);
     character.setData('y',y);
     character.setData('dy',0);
     character.setData('z',-1000);
-
-
-    let health_bar_tween = null;
 
     character.setData('update', function() {
         let x = character.data.values.x;
@@ -511,24 +573,6 @@ let addPlayer = function(scene, x,y) {
             frame.setVisible(playerMoveAllowed &&
                 scene.__isGridPassable(frame_x,frame_y));
         }
-        if (life < display_life && !health_bar_tween) {
-            health_bar_tween = scene.tweens.add({
-                targets: {d : display_life},
-                props: {d: life},
-                duration: (display_life - life) * 350,
-                delay: 500,
-                onUpdate: function() {
-                    display_life = health_bar_tween.getValue();
-                },
-                onComplete: function() {
-                    health_bar_tween = null;
-                }
-            });
-        }
-        health_bar.setPosition(scene.__gridX(2) - 32 * 3 * (1 - (life/full_life)),scene.__gridY(0))
-            .setScale(3*life/full_life,3);
-        health_bar_under.setPosition(scene.__gridX(2) - 32 * 3 * (1 - (display_life/full_life)),scene.__gridY(0))
-            .setScale(3*display_life/full_life,3);
     });
 
     let impact = function() {
@@ -650,6 +694,7 @@ let addPlayer = function(scene, x,y) {
 
     character.setData('onHit', function(impact_x, impact_y) {
         life = Math.max(--life, 0);
+        health_bar.updateLife(life/full_life);
         character.setData('z', 0);
         character.setData('y', Math.round(character.data.values.y));
         character.setData('x', Math.round(character.data.values.x));
