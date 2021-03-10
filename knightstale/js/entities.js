@@ -287,7 +287,8 @@ let addPawn = function(scene, x,y) {
         });
         for(let direction of directions) {
             if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy)) {
+                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.d.dx;
                 m_dy = direction.d.dy;
                 m_x += m_dx;
@@ -420,7 +421,8 @@ let addPawn = function(scene, x,y) {
         m_dy = 0;
         for (let direction of directions) {
             if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy) &&
-                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy)) {
+                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy) &&
+                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.dx;
                 m_dy = direction.dy;
                 state_handler.addTweenParallel(

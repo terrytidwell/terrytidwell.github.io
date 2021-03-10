@@ -136,6 +136,13 @@ let GameScene = new Phaser.Class({
             return result;
         };
 
+        scene.__checkPlayerCollision = function(x,y) {
+            return Math.round(scene.__character.data.values.x) ===
+                Math.round(x) &&
+                Math.round(scene.__character.data.values.y) ===
+                Math.round(y);
+        };
+
         //----------------------------------------------------------------------
         //GAME SETUP
         //----------------------------------------------------------------------
