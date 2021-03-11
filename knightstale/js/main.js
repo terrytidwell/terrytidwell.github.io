@@ -11,6 +11,8 @@ const DEPTHS = {
     UI: 2000,
 }
 const DIRECTIONS = {
+    NONE: {dx: 0, dy: 0},
+
     RIGHT: {dx: 1, dy: 0},
     LEFT: {dx: -1, dy: 0},
     UP: {dx: 0, dy: -1},
@@ -20,6 +22,15 @@ const DIRECTIONS = {
     UP_RIGHT : {dx: 1, dy: -1},
     DOWN_LEFT : {dx: -1, dy: 1},
     DOWN_RIGHT : {dx: 1, dy: 1},
+    turnClockwise : function(direction) {
+        return {dx: -direction.dy, dy: direction.dx};
+    },
+    turnCounterClockwise : function (direction) {
+        return {dx: direction.dy, dy: -direction.dx}
+    },
+    opposite : function(direction) {
+        return {dx: -direction.dx, dy: -direction.dy}
+    }
 };
 
 let LoadScene = new Phaser.Class({
@@ -175,9 +186,11 @@ let GameScene = new Phaser.Class({
 
         scene.__character = addPlayer(scene,5,7);
         addPawn(scene,9,9);
-        addPawn(scene,2,2);
+        //addPawn(scene,4,6);
+        //addPawn(scene,6,8);
+        //addPawn(scene,7,9);
+        //addPawn(scene,2,2);
         addBishop(scene,4,4);
-
 
         //----------------------------------------------------------------------
         //SETUP INPUTS

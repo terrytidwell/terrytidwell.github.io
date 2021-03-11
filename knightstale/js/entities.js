@@ -230,8 +230,7 @@ let addPawn = function(scene, x,y) {
                 scene.__isGridMobFree(m_x + deltaX, m_y + deltaY)) {
                 m_dx = deltaX;
                 m_dy = deltaY;
-                m_targetx = m_x + m_dx;
-                m_targety = m_y + m_dy;
+                change_move_target(m_x + m_dx, m_y + m_dy);
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
@@ -260,8 +259,7 @@ let addPawn = function(scene, x,y) {
     let exit_attack = function () {
         m_dx = 0;
         m_dy = 0;
-        m_targetx = m_x;
-        m_targety = m_y;
+        change_move_target(m_x, m_y);
     };
 
     let enter_stunned = function() {
@@ -330,6 +328,12 @@ let addPawn = function(scene, x,y) {
         bounding_box.destroy();
         move_box.destroy();
         health_bar.destroy();
+    };
+
+    let change_move_target = function(x, y) {
+        m_targetx = x;
+        m_targety = y;
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
     };
 
     let swap_direction = function(directions, a, b) {
@@ -429,8 +433,7 @@ let addPawn = function(scene, x,y) {
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.dx;
                 m_dy = direction.dy;
-                m_targetx = m_x+m_dx;
-                m_targety = m_y+m_dy;
+                change_move_target(m_x + m_dx, m_y + m_dy);
                 state_handler.addTweenParallel(
                     [{
                         targets: { x: m_x},
@@ -459,8 +462,7 @@ let addPawn = function(scene, x,y) {
     let exit_move = function() {
         m_dx = 0;
         m_dy = 0;
-        m_targetx = m_x;
-        m_targety = m_y;
+        change_move_target(m_x, m_y);
     };
 
     //----------------------------------------------------------------------
@@ -483,8 +485,8 @@ let addPawn = function(scene, x,y) {
     let m_z = 0;
     let m_dx = 0;
     let m_dy = 0;
-    let m_targetx = 0;
-    let m_targety = 0;
+    let m_targetx = x;
+    let m_targety = y;
     let full_life = 2;
     let life = full_life;
     let m_impact_x = 0;
@@ -550,8 +552,9 @@ let addPawn = function(scene, x,y) {
         health_bar.updatePosition(m_x, m_y - 1);
     });
 
-    state_handler.start();
     pawn.data.values.update();
+    state_handler.start();
+
     return pawn;
 };
 
@@ -559,12 +562,15 @@ let addBishop = function(scene, x, y) {
     let m_x = x;
     let m_y = y;
     let m_z = 0;
-    let m_dx = 0;
-    let m_dy = 0;
+    let m_targetx = 0;
+    let m_targety = 0;
     let m_impact_x = 0;
     let m_impact_y = 0;
     let full_life = 5;
     let life = full_life;
+    let current_direction = DIRECTIONS.NONE;
+    let max_move_count = 4;
+    let current_move_count = 0;
 
     let enter_stunned = function() {
         m_z = 0;
@@ -619,7 +625,7 @@ let addBishop = function(scene, x, y) {
         state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.IDLE]);
     };
 
-    exit_stunned = function() {
+    let exit_stunned = function() {
         sprite_overlay.alpha = 0;
         sprite.alpha = 1;
         m_dx = 0;
@@ -634,8 +640,74 @@ let addBishop = function(scene, x, y) {
         health_bar.destroy();
     };
 
+    let enter_idle = function() {
+        current_direction = DIRECTIONS.NONE;
+        current_move_count = 0;
+        state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVE]);
+    };
+
+    let exit_idle = function() {
+        current_direction = Phaser.Utils.Array.GetRandom([
+            DIRECTIONS.DOWN_LEFT,
+            DIRECTIONS.UP_RIGHT,
+            DIRECTIONS.UP_LEFT,
+            DIRECTIONS.DOWN_RIGHT
+        ]);
+    };
+
+    let change_move_target = function(x, y) {
+        m_targetx = x;
+        m_targety = y;
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
+    };
+
+    let enter_move = function() {
+        let directions = [
+            current_direction,
+            DIRECTIONS.turnCounterClockwise(current_direction),
+            DIRECTIONS.turnClockwise(current_direction),
+            DIRECTIONS.opposite(current_direction),
+        ];
+        for (let direction of directions) {
+            if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy) &&
+                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy)) {
+                current_direction = direction;
+                change_move_target(m_x + direction.dx, m_y + direction.dy);
+                state_handler.addTweenParallel(
+                    [{
+                        targets: { x: m_x},
+                        props: { x: m_targetx },
+                        duration: 200,
+                        onUpdate: function() {
+                            m_x = this.getValue();
+                        },
+                    },{
+                        targets: { y: m_y},
+                        props: { y: m_targety },
+                        duration: 200,
+                        onUpdate: function() {
+                            m_y = this.getValue();
+                        },
+                    }],
+                    function() {
+                        current_move_count++;
+                        state_handler.changeState(current_move_count < max_move_count ?
+                            STATES.MOVE : STATES.IDLE); }
+                );
+                return; //<------ RETURN to end function
+            }
+        }
+        //no direction worked?
+        state_handler.changeState(STATES.IDLE);
+    };
+
+    let exit_move = function() {
+        change_move_target(m_x, m_y);
+    };
+
     let STATES = {
-        IDLE: {enter: null, exit: null},
+        IDLE: {enter: enter_idle, exit: exit_idle},
+        MOVE: {enter: enter_move, exit: exit_move},
         STUNNED: {enter: enter_stunned, exit: exit_stunned},
         DEAD: {enter: enter_dead, exit: null}
     };
@@ -660,10 +732,10 @@ let addBishop = function(scene, x, y) {
         }
     });
     bounding_box.setData('registerDangerousTouch',function() {
-        return {dx: m_dx, dy: m_dy};
+        return {dx: current_direction.dx, dy: current_direction.dy};
     });
     bounding_box.setData('isDangerous',function() {
-        return true;
+        return state_handler.getState() !== STATES.STUNNED;
     });
     scene.__hittables.add(bounding_box);
     scene.__mobs.add(bounding_box);
@@ -675,10 +747,14 @@ let addBishop = function(scene, x, y) {
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
         sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
         sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_x + m_dx), Math.round(m_y + m_dy));
+        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
     });
+
+    bounding_box.data.values.update();
+    state_handler.start();
+
     return bounding_box;
 }
 
