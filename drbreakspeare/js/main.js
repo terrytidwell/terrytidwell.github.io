@@ -20,7 +20,7 @@ let LoadScene = new Phaser.Class({
             "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        this.load.json("story", "ink/story.json");
+        this.load.json("story", "ink/storybook_rpg_draft_2.json");
         this.load.image('book', 'assets/open_storybook.png')
         this.load.spritesheet('hero', 'assets/16x16 knight 1 v3.png',
             { frameWidth: 64, frameHeight: 64 });
@@ -123,7 +123,7 @@ let GameScene = new Phaser.Class({
         // set up the style for the text
         this.textStyle = {
             fill: "#000000",
-            font: GRID_SIZE/2 + "px Arial",
+            font: GRID_SIZE/2 + "px SpecialElite",
             align: "left",
             wordWrap: { width: 400, useAdvancedWrap: true }
         }

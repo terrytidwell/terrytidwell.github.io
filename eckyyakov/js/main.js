@@ -414,6 +414,7 @@ let GameScene = new Phaser.Class({
                     onUpdate: function() {
 
                         if(!scene.physics.overlap(character, capture_point)) {
+                            text_tween.remove();
                             capture_tween.remove();
                             capture_tween = null;
                             capture_text.destroy();
@@ -422,6 +423,7 @@ let GameScene = new Phaser.Class({
                         capture_text.setText('' + Math.round(capture_tween.getValue()) + "%");
                     },
                     onComplete: function() {
+                        text_tween.remove();
                         capture_text.destroy();
                         platform.setFillStyle(COLORS.DARK_PLAYER[character.data.values.player], 1.0);
                         capture_tween = null;
