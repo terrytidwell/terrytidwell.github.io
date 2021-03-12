@@ -31,6 +31,7 @@ let LoadScene = new Phaser.Class({
 
         this.load.image('assault_rifle', 'assets/assault_rifle.png');
         this.load.image('shotgun', 'assets/shotgun.png');
+        this.load.image('ammo', 'assets/ammo.png');
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -339,12 +340,12 @@ let GameScene = new Phaser.Class({
         let add_ammo = function(x,y, length) {
             let rx = Phaser.Math.Between((x - length/2) * GRID_SIZE,
                 (x + length/2)*GRID_SIZE);
-            let ammo = scene.add.rectangle(rx, y*GRID_SIZE, GRID_SIZE/8, GRID_SIZE/8,
-                0xff8000, 1.0);
+            let ammo = scene.add.sprite(rx, y*GRID_SIZE, 'ammo').setScale(2);
             scene.__touchables.add(ammo);
             scene.__ammos.add(ammo);
             scene.__platform_colliders.add(ammo);
-            ammo.body.gravity.y = 900;
+            ammo.body.gravity.y =  GRID_SIZE * 14.0625;
+            ammo.body.velocity.y = -GRID_SIZE * 2.5;
             ammo.setData('onTouch', function(character, ammo) {
                 let x_target = character.data.values.ammo_text.x;
                 let y_target = character.data.values.ammo_text.y;
