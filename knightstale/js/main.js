@@ -226,8 +226,8 @@ let GameScene = new Phaser.Class({
 
         scene.__character.data.values.update();
 
-        scene.__updateables.children.each(function(updatable) {
-            updatable.data.values.update();
+        scene.__updateables.children.each(function(updateable) {
+            updateable.data.values.update();
         }, this);
 
     },

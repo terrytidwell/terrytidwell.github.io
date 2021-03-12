@@ -622,7 +622,7 @@ let addBishop = function(scene, x, y) {
             duration: 50,
             repeat: -1,
         });
-        state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.IDLE]);
+        state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.START_SLIDE]);
     };
 
     let exit_stunned = function() {
@@ -642,17 +642,18 @@ let addBishop = function(scene, x, y) {
 
     let enter_idle = function() {
         current_direction = DIRECTIONS.NONE;
-        current_move_count = 0;
-        state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVE]);
+        state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
     };
 
-    let exit_idle = function() {
+    let enter_start_slide = function() {
+        current_move_count = 0;
         current_direction = Phaser.Utils.Array.GetRandom([
             DIRECTIONS.DOWN_LEFT,
             DIRECTIONS.UP_RIGHT,
             DIRECTIONS.UP_LEFT,
             DIRECTIONS.DOWN_RIGHT
         ]);
+        state_handler.changeState(STATES.MOVE);
     };
 
     let change_move_target = function(x, y) {
@@ -706,7 +707,8 @@ let addBishop = function(scene, x, y) {
     };
 
     let STATES = {
-        IDLE: {enter: enter_idle, exit: exit_idle},
+        IDLE: {enter: enter_idle, exit: null},
+        START_SLIDE: {enter: enter_start_slide, exit: null},
         MOVE: {enter: enter_move, exit: exit_move},
         STUNNED: {enter: enter_stunned, exit: exit_stunned},
         DEAD: {enter: enter_dead, exit: null}
