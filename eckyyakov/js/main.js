@@ -5,7 +5,9 @@ const SCREEN_ROWS = 9;
 const SCREEN_WIDTH = SCREEN_COLS * GRID_SIZE; //1025
 const SCREEN_HEIGHT = SCREEN_ROWS * GRID_SIZE; //576
 const COLORS = {
-    PLAYER : [0x00ff00, 0xff8000]
+    PLAYER : [0x00ff00, 0xff8000],
+    DARK_PLAYER : [0x008000, 0x804000],
+    TEXT_PLAYER : ['#008000', '#804000']
 };
 
 let LoadScene = new Phaser.Class({
@@ -79,6 +81,7 @@ let GameScene = new Phaser.Class({
 
         let character = scene.add.rectangle(x_offset * GRID_SIZE, 8.5 * GRID_SIZE
             ,GRID_SIZE/4,GRID_SIZE*3/4,color, 1.0);
+        character.setData('player', player);
 
         //character.play('hero_run');
         let current_gun_index = 0;
@@ -116,7 +119,7 @@ let GameScene = new Phaser.Class({
         character.setData('ammo_text',
             scene.add.text(ammo_text_x_offset * GRID_SIZE,SCREEN_HEIGHT,
                 "" + character.data.values.ammo + "",
-                { font: '' + GRID_SIZE/2 + 'px SigmarOne-Regular', fill: '#000' })
+                { font: '' + GRID_SIZE/2 + 'px SigmarOne-Regular', fill: COLORS.TEXT_PLAYER[player] })
                 .setOrigin(ammo_text_x_origin,1));
         character.setData('addAmmo',function(ammount) {
             character.data.values.ammo += ammount;
@@ -347,7 +350,8 @@ let GameScene = new Phaser.Class({
                 let y_target = character.data.values.ammo_text.y;
                 let start_y = ammo.body.y + ammo.body.height/2;
                 let text = scene.add.text(ammo.body.x + ammo.body.width/2,
-                    start_y,"+3", { font: GRID_SIZE/2 + 'px SigmarOne-Regular', fill: '#000' })
+                    start_y,"+3", { font: GRID_SIZE/2 + 'px SigmarOne-Regular',
+                    fill: COLORS.TEXT_PLAYER[character.data.values.player] })
                     .setOrigin(0.5,1);
 
                 let timeline = scene.tweens.createTimeline();
@@ -373,19 +377,64 @@ let GameScene = new Phaser.Class({
             scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y, length]);
         };
 
-        let add_left_platform= function(x, y, length) {
+        let add_platform = function(x, y, length) {
             let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
                 length * GRID_SIZE, GRID_SIZE/8,
                 0x000000, 1.0);
             addToPhysics(platform);
+            let capture_point = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE-GRID_SIZE/8,
+                length * GRID_SIZE, GRID_SIZE/8, 0x000000, 0.25);
+            scene.__touchables.add(capture_point);
+            scene.__capture_points.add(capture_point);
+            let CAPTURE_STATUS = {
+                PLAYER0 : 0,
+                PLAYER1 : 1,
+                NONE: 2,
+            };
+            capture_point.setData('capture_status', CAPTURE_STATUS.NONE);
+            let capture_tween = null;
+            capture_point.setData('onTouch', function(character, capture_point) {
+                if (capture_tween || character.data.values.player === capture_point.data.values.capture_status) {
+                    //already being captured or is already captured by player
+                    return;
+                };
+                let capture_text = scene.add.text(x*GRID_SIZE,y*GRID_SIZE,"0%",
+                    { font: GRID_SIZE/2 + 'px SigmarOne-Regular',
+                    fill: COLORS.TEXT_PLAYER[character.data.values.player] })
+                    .setOrigin(0.5,1);
+                let text_tween = scene.tweens.add({
+                    targets: capture_text,
+                    y: y*GRID_SIZE - GRID_SIZE*3/4,
+                    duration: 3000
+                });
+                capture_tween = scene.tweens.add({
+                    targets: {progress: 0},
+                    props: {progress: 100},
+                    duration: 3000,
+                    onUpdate: function() {
 
-            platform = scene.add.rectangle((SCREEN_COLS - x)*GRID_SIZE, y*GRID_SIZE,
-                length * GRID_SIZE, GRID_SIZE/8,
-                0x000000, 1.0);
-            addToPhysics(platform);
-
+                        if(!scene.physics.overlap(character, capture_point)) {
+                            capture_tween.remove();
+                            capture_tween = null;
+                            capture_text.destroy();
+                            return;
+                        }
+                        capture_text.setText('' + Math.round(capture_tween.getValue()) + "%");
+                    },
+                    onComplete: function() {
+                        capture_text.destroy();
+                        platform.setFillStyle(COLORS.DARK_PLAYER[character.data.values.player], 1.0);
+                        capture_tween = null;
+                        capture_point.setData('capture_status', character.data.values.player);
+                    }
+                })
+            });
             scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y-1, length]);
-            scene.time.delayedCall(ammo_randomizer(), add_ammo, [SCREEN_COLS - x, y-1, length]);
+        };
+
+        let add_left_platform= function(x, y, length) {
+            add_platform(x,y,length);
+            add_platform(SCREEN_COLS - x,y,length);
         };
 
         add_left_platform(3.5, 7, 3);
@@ -423,7 +472,7 @@ let GameScene = new Phaser.Class({
             goal.setData('player', player);
 
             scene.__goals.add(goal);
-        };
+        }
 
         addGoal(0);
         addGoal(1);
@@ -441,6 +490,7 @@ let GameScene = new Phaser.Class({
         //SETUP PHYSICS GROUPS
 
         scene.__touchables = scene.physics.add.group();
+        scene.__capture_points = scene.physics.add.group();
         scene.__platform_colliders = scene.physics.add.group();
         scene.__platforms = scene.physics.add.staticGroup();
         scene.__ball_platforms = scene.physics.add.staticGroup();
@@ -496,6 +546,14 @@ let GameScene = new Phaser.Class({
         });
         scene.physics.add.collider(ball, scene.__ball_platforms);
         scene.physics.add.collider(scene.__ammos, scene.__ammos);
+        scene.physics.add.overlap(scene.__ammos, scene.__capture_points, function(ammo, capture_point) {
+            if (capture_point.data.values.capture_status !== 0 &&
+                capture_point.data.values.capture_status !== 1)
+            {
+                return;
+            }
+            ammo.data.values.onTouch(scene.__player_objects[capture_point.data.values.capture_status], ammo);
+        });
         scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
             ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
             ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
