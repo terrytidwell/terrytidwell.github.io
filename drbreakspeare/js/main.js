@@ -119,7 +119,7 @@ let GameScene = new Phaser.Class({
             .setOutlineStyle()
             .setAlpha(0.25);
          */
-        
+
         // set up the style for the text
         this.textStyle = {
             fill: "#000000",

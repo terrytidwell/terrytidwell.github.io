@@ -1,9 +1,12 @@
-const GRID_SIZE = 64;
+const GRID_SIZE = 96;
 const SPRITE_SCALE = GRID_SIZE/32;
 const SCREEN_COLS = 17;
 const SCREEN_ROWS = 9;
 const SCREEN_WIDTH = SCREEN_COLS * GRID_SIZE; //1025
 const SCREEN_HEIGHT = SCREEN_ROWS * GRID_SIZE; //576
+const COLORS = {
+    PLAYER : [0x00ff00, 0xff8000]
+};
 
 let LoadScene = new Phaser.Class({
 
@@ -20,18 +23,12 @@ let LoadScene = new Phaser.Class({
 
         let loading_text = scene.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-            "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
+            "0%", { font: GRID_SIZE/2 + 'px SigmarOne-Regular', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
 
         this.load.image('assault_rifle', 'assets/assault_rifle.png');
         this.load.image('shotgun', 'assets/shotgun.png');
-        this.load.spritesheet('hero', 'assets/Adventurer Female Sprite Sheet.png',
-            { frameWidth: 32, frameHeight: 32 });
-        this.load.spritesheet('slash', 'assets/slash.png',
-            { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('slime_medium', 'assets/Slime_Medium_Blue.png',
-            { frameWidth: 32, frameHeight: 32 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -71,31 +68,30 @@ let GameScene = new Phaser.Class({
         let scene = this;
 
         let x_offset = 0.5;
-        let color = 0x00ff00;
+        let color = COLORS.PLAYER[player];
         let ammo_text_x_offset = 0;
         let ammo_text_x_origin = 0;
         if (player === 1) {
             x_offset = SCREEN_COLS - x_offset;
             ammo_text_x_offset = SCREEN_COLS - ammo_text_x_offset;
-            color = 0xff8000;
             ammo_text_x_origin = 1;
         }
 
         let character = scene.add.rectangle(x_offset * GRID_SIZE, 8.5 * GRID_SIZE
-            ,16,48,color, 1.0);
+            ,GRID_SIZE/4,GRID_SIZE*3/4,color, 1.0);
 
         //character.play('hero_run');
         let current_gun_index = 0;
         let gun_array = ['assault_rifle','shotgun'];
         let gun = scene.add.sprite(0, 0, gun_array[current_gun_index])
-            .setScale(2)
+            .setScale(SPRITE_SCALE)
             .setVisible(true);
         character.setData('gun', gun);
 
         scene.__players.add(character);
         scene.__platform_colliders.add(character);
-        character.body.gravity.y = 900;
-        character.setData('jump_strength', -550);
+        character.body.gravity.y = GRID_SIZE * 14.0625;
+        character.setData('jump_strength', GRID_SIZE * -8.6);
         character.setData('jump_deadening', 0.75);
         character.setData('ammo', 3);
 
@@ -117,14 +113,14 @@ let GameScene = new Phaser.Class({
                 Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
 
-        let ammo_text =
+        character.setData('ammo_text',
             scene.add.text(ammo_text_x_offset * GRID_SIZE,SCREEN_HEIGHT,
                 "" + character.data.values.ammo + "",
-                { fontSize: GRID_SIZE/2 + 'px', fill: '#000' })
-                .setOrigin(ammo_text_x_origin,1);
+                { font: '' + GRID_SIZE/2 + 'px SigmarOne-Regular', fill: '#000' })
+                .setOrigin(ammo_text_x_origin,1));
         character.setData('addAmmo',function(ammount) {
             character.data.values.ammo += ammount;
-            ammo_text.setText("" + character.data.values.ammo + "" );
+            character.data.values.ammo_text.setText("" + character.data.values.ammo + "" );
         });
 
         let allow_fire = true;
@@ -144,7 +140,7 @@ let GameScene = new Phaser.Class({
             mouse_vector.rotate(Phaser.Math.DegToRad(
                 character.data.values.gun.angle));
             let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
-                2, 2, 0x000000);
+                GRID_SIZE/32, GRID_SIZE/32, 0x000000);
             //.setDepth(DEPTHS.MOBS);
             scene.__bullets.add(bullet);
             bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
@@ -318,19 +314,20 @@ let GameScene = new Phaser.Class({
             scene.__ball_platforms.add(platform);
         };
 
-        let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + 8,
-            SCREEN_WIDTH, 16, 0xff0000, 1.0);
+        let platform_size = GRID_SIZE/4
+        let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + platform_size/2,
+            SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
         addToPhysics(floor);
 
-        floor = scene.add.rectangle(SCREEN_WIDTH/2, - 8,
-            SCREEN_WIDTH, 16, 0xff0000, 1.0);
+        floor = scene.add.rectangle(SCREEN_WIDTH/2, - platform_size/2,
+            SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
         addToPhysics(floor);
 
-        let wall = scene.add.rectangle(SCREEN_WIDTH + 8, SCREEN_HEIGHT/2,
-            16, SCREEN_HEIGHT, 0xff0000, 1.0);
+        let wall = scene.add.rectangle(SCREEN_WIDTH + platform_size/2, SCREEN_HEIGHT/2,
+            platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
         addToPhysics(wall);
-        wall = scene.add.rectangle(- 8, SCREEN_HEIGHT/2,
-            16, SCREEN_HEIGHT, 0xff0000, 1.0);
+        wall = scene.add.rectangle(- platform_size/2, SCREEN_HEIGHT/2,
+            platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
         addToPhysics(wall);
 
         let ammo_randomizer = function() {
@@ -347,6 +344,30 @@ let GameScene = new Phaser.Class({
             ammo.body.gravity.y = 900;
             ammo.setData('onTouch', function(character, ammo) {
                 character.data.values.addAmmo(3);
+                let x_target = character.data.values.ammo_text.x;
+                let y_target = character.data.values.ammo_text.y;
+                let start_y = ammo.body.y + ammo.body.height/2;
+                let text = scene.add.text(ammo.body.x + ammo.body.width/2,
+                    start_y,"+3", { font: GRID_SIZE/2 + 'px SigmarOne-Regular', fill: '#000' })
+                    .setOrigin(0.5,1);
+
+                let timeline = scene.tweens.createTimeline();
+                timeline.add({
+                    targets: text,
+                    y: start_y-GRID_SIZE/2,
+                    duration: 500});
+                timeline.add({
+                    targets: text,
+                    alpha: 0.5,
+                    scale: 0.5,
+                    x : x_target,
+                    y : y_target,
+                    duration: 500,
+                    onComplete: function () {
+                        text.destroy();
+                    }
+                });
+                timeline.play();
                 ammo.destroy();
             });
             scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y, length]);
@@ -354,12 +375,12 @@ let GameScene = new Phaser.Class({
 
         let add_left_platform= function(x, y, length) {
             let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
-                length * GRID_SIZE, 8,
+                length * GRID_SIZE, GRID_SIZE/8,
                 0x000000, 1.0);
             addToPhysics(platform);
 
             platform = scene.add.rectangle((SCREEN_COLS - x)*GRID_SIZE, y*GRID_SIZE,
-                length * GRID_SIZE, 8,
+                length * GRID_SIZE, GRID_SIZE/8,
                 0x000000, 1.0);
             addToPhysics(platform);
 
