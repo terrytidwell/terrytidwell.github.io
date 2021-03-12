@@ -343,7 +343,6 @@ let GameScene = new Phaser.Class({
             scene.__platform_colliders.add(ammo);
             ammo.body.gravity.y = 900;
             ammo.setData('onTouch', function(character, ammo) {
-                character.data.values.addAmmo(3);
                 let x_target = character.data.values.ammo_text.x;
                 let y_target = character.data.values.ammo_text.y;
                 let start_y = ammo.body.y + ammo.body.height/2;
@@ -365,6 +364,7 @@ let GameScene = new Phaser.Class({
                     duration: 500,
                     onComplete: function () {
                         text.destroy();
+                        character.data.values.addAmmo(3);
                     }
                 });
                 timeline.play();
