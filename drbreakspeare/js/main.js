@@ -1,6 +1,6 @@
-const GRID_SIZE = 50;
-const SCREEN_WIDTH = 1200; //1025
-const SCREEN_HEIGHT = 800; //576
+const GRID_SIZE = 64;
+const SCREEN_WIDTH = 20*GRID_SIZE; //1025
+const SCREEN_HEIGHT = 12*GRID_SIZE; //576
 
 let LoadScene = new Phaser.Class({
 
@@ -22,8 +22,6 @@ let LoadScene = new Phaser.Class({
 
         this.load.json("story", "ink/storybook_rpg_draft_2.json");
         this.load.image('book', 'assets/open_storybook.png')
-        this.load.spritesheet('hero', 'assets/16x16 knight 1 v3.png',
-            { frameWidth: 64, frameHeight: 64 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -37,52 +35,6 @@ let LoadScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
-        let scene = this;
-        scene.anims.create({
-            key: 'hero_idle',
-            frames: [
-                { key: 'hero', frame: 0 },
-                { key: 'hero', frame: 1 },
-                { key: 'hero', frame: 2 },
-                { key: 'hero', frame: 3 },
-                { key: 'hero', frame: 4 },
-            ],
-            skipMissedFrames: false,
-            frameRate: 12,
-            repeat: -1
-        });
-
-        scene.anims.create({
-            key: 'hero_run',
-            frames: [
-                { key: 'hero', frame: 8 },
-                { key: 'hero', frame: 9 },
-                { key: 'hero', frame: 10 },
-                { key: 'hero', frame: 11 },
-                { key: 'hero', frame: 12 },
-                { key: 'hero', frame: 13 },
-                { key: 'hero', frame: 14 },
-                { key: 'hero', frame: 15 },
-            ],
-            skipMissedFrames: false,
-            frameRate: 12,
-            repeat: -1
-        });
-
-        scene.anims.create({
-            key: 'hero_attack',
-            frames: [
-                { key: 'hero', frame: 32 },
-                { key: 'hero', frame: 33 },
-                { key: 'hero', frame: 34 },
-                { key: 'hero', frame: 35 },
-                { key: 'hero', frame: 36 },
-                { key: 'hero', frame: 37 },
-            ],
-            skipMissedFrames: false,
-            frameRate: 12,
-            repeat: 0
-        });
     },
 
     //--------------------------------------------------------------------------
@@ -110,8 +62,9 @@ let GameScene = new Phaser.Class({
 
         scene.input.addPointer(5);
 
-        this.story = new inkjs.Story(this.cache.json.get("story"));
+        scene.__story = new inkjs.Story(this.cache.json.get("story"));
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, "book").setScale(2);
+
         /*
         let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0xFFFFFF)
@@ -121,86 +74,70 @@ let GameScene = new Phaser.Class({
          */
 
         // set up the style for the text
-        this.textStyle = {
+        scene.__textStyle = {
             fill: "#000000",
             font: GRID_SIZE/2 + "px SpecialElite",
             align: "left",
-            wordWrap: { width: 400, useAdvancedWrap: true }
-        }
+            wordWrap: { width: 6*GRID_SIZE, useAdvancedWrap: true }
+        };
 
         // set up the main text
-        this.mainText = this.add.text(150, 100, "", this.textStyle);
+        scene.__mainText = scene.add.text(3*GRID_SIZE, 2*GRID_SIZE, "", scene.__textStyle);
 
         // create the button group
-        this.buttonGroup = this.add.group();
+        scene.__buttonGroup = scene.add.group();
 
         // start the story
-        this.continueStory();
+        scene.__continueStory();
     },
 
     // custom functions for dealing with phaser & ink start here!
 
-    continueStory: function() {
+    __continueStory: function() {
+        let scene = this;
         let txt = ""; // holds all of the main paragraph text
 
         // fetch story data from json until there's nothing left, then show the choices
         // using a do...while loop to make sure single-line paragraphs are displayed
         do {
             // add lines to the text letiable
-            txt += this.story.Continue(); // add the next line to the txt let
+            txt += scene.__story.Continue(); // add the next line to the txt let
 
             // if this is the last line, render the text & the choices
-            if (!this.story.canContinue) {
+            if (!scene.__story.canContinue) {
                 // update the main paragraph text
-                this.mainText.text = txt;
-
-                // update the list of possible choices
-                this.choiceList = this.story.currentChoices;
+                scene.__mainText.text = txt;
 
                 // create the choices
-                this.createChoices();
+                scene.__createChoices(scene.__story.currentChoices);
             }
-        } while (this.story.canContinue);
+        } while (scene.__story.canContinue);
     },
 
-    createChoices: function() {
+    __createChoices: function(choiceList) {
+        let scene = this
         // loop through the list of current choices
         let offset = 0;
-        for (let i = 0; i < this.choiceList.length; i++) {
-            // get a reference to the current choice
-            let choice = this.choiceList[i];
-
+        for (let choice of choiceList) {
             // create a button for each choice
-            let topMargin = this.mainText.height;
-            //let button = this.add.text(10, topMargin + (36 * i), "button", this.choiceClick, this, 1, 0, 0, 0, this.buttonGroup);
-            // set a let on the button to keep track of which choice that button represents
-            //button.choiceIndex = choice.index;
+            let topMargin = scene.__mainText.height;
 
             // create a text object for each choice
-            let choiceText = this.add.text(650, 100 + offset, choice.text, this.textStyle);
+            let choiceText = scene.add.text(11*GRID_SIZE, 2*GRID_SIZE + offset, choice.text, scene.__textStyle);
             offset += choiceText.getBounds().height + GRID_SIZE/2;
             choiceText.choiceIndex = choice.index;
             choiceText.setInteractive();
             choiceText.alpha = 0.5;
-            choiceText.on('pointerover',function(pointer){
-                {
-                    this.alpha = 1;
-                }
-            });
-            choiceText.on('pointerout',function(pointer){
-                {
-                    this.alpha = 0.5;
-                }
-            });
-            let scene = this;
+            choiceText.on('pointerover',function(){ this.alpha = 1;  });
+            choiceText.on('pointerout',function(){ this.alpha = 0.5; });
             choiceText.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP,
                 function () {
-                    scene.story.ChooseChoiceIndex(choiceText.choiceIndex);
-                    scene.buttonGroup.clear(true,true);
-                    scene.continueStory();
+                    scene.__story.ChooseChoiceIndex(choiceText.choiceIndex);
+                    scene.__buttonGroup.clear(true,true);
+                    scene.__continueStory();
                 }
             );
-            scene.buttonGroup.add(choiceText);
+            scene.__buttonGroup.add(choiceText);
         }
     },
 
