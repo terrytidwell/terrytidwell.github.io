@@ -56,6 +56,8 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
         this.load.spritesheet('health_bars', 'assets/health_bars.png', { frameWidth: 80, frameHeight: 9 });
+        this.load.spritesheet('fire', 'assets/fire_column_medium_1.png', { frameWidth: 40, frameHeight: 80 });
+        this.load.spritesheet('death_effect','assets/death_effect.png', { frameWidth: 128,  frameHeight: 128});
         this.load.image('frame', 'assets/frame.png');
 
         scene.load.on('progress', function(percentage) {
@@ -84,6 +86,48 @@ let LoadScene = new Phaser.Class({
             ],
             skipMissedFrames: false,
             frameRate: 24,
+            repeat: 0
+        });
+        scene.anims.create({
+            key: 'fire_anim',
+            frames: [
+                { key: 'fire', frame: 0 },
+                { key: 'fire', frame: 1 },
+                { key: 'fire', frame: 2 },
+                { key: 'fire', frame: 3 },
+                { key: 'fire', frame: 4 },
+                { key: 'fire', frame: 5 },
+                { key: 'fire', frame: 6 },
+                { key: 'fire', frame: 7 },
+                { key: 'fire', frame: 8 },
+                { key: 'fire', frame: 9 },
+                { key: 'fire', frame: 10},
+                { key: 'fire', frame: 11},
+                { key: 'fire', frame: 12},
+            ],
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'death_effect_anim',
+            frames: [
+                { key: 'death_effect', frame: 0 },
+                { key: 'death_effect', frame: 1 },
+                { key: 'death_effect', frame: 2 },
+                { key: 'death_effect', frame: 3 },
+                { key: 'death_effect', frame: 4 },
+                { key: 'death_effect', frame: 5 },
+                { key: 'death_effect', frame: 6 },
+                { key: 'death_effect', frame: 7 },
+                { key: 'death_effect', frame: 8 },
+                { key: 'death_effect', frame: 9 },
+                { key: 'death_effect', frame: 10},
+                { key: 'death_effect', frame: 11}
+            ],
+            skipMissedFrames: false,
+            frameRate: 12,
             repeat: 0
         });
     },
@@ -191,6 +235,7 @@ let GameScene = new Phaser.Class({
         //addPawn(scene,7,9);
         //addPawn(scene,2,2);
         addBishop(scene,4,4);
+        //addFlameWave(scene, 2, 9);
 
         //----------------------------------------------------------------------
         //SETUP INPUTS

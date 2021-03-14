@@ -55,6 +55,18 @@ let asyncHandler = function(scene) {
     };
 };
 
+let addDeathEffect = function(scene, x, y) {
+    let death_effect = scene.add.sprite(scene.__gridX(Math.round(x)),
+        scene.__characterY(Math.round(y)),'death_effect',0)
+        .setDepth(DEPTHS.ENTITIES + y + .25)
+        .play('death_effect_anim')
+        .setFlipX(Phaser.Utils.Array.GetRandom([false,true]))
+        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function() {
+            death_effect.destroy();
+        });
+    return death_effect;
+};
+
 let stateHandler = function(scene, states, start_state) {
     let async_handler = asyncHandler(scene);
     let current_state = start_state;
@@ -323,6 +335,7 @@ let addPawn = function(scene, x,y) {
     };
 
     let enter_dead = function() {
+        addDeathEffect(scene, m_x, m_y);
         pawn.destroy();
         shadow.destroy();
         bounding_box.destroy();
@@ -558,6 +571,79 @@ let addPawn = function(scene, x,y) {
     return pawn;
 };
 
+let addFlameWave = function(scene, x, y) {
+    //let bounding_box = scene.add.rectangle(x,y,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
+    //12 frames - 8 dangerous, 4 cool down
+    //radius 0 = 1 square
+    //radius 1 = 4 square
+    //radius 2 = 8 square
+    //radius 3 = 12 square
+
+    let createPoint = function(x, y) {
+        if (!scene.__isGridPassable(x,y)) {
+            return;
+        }
+        sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'fire', 0)
+            .setScale(2)
+            .play('fire_anim')
+            .setDepth(DEPTHS.ENTITIES + y - 0.25));
+        let bounding_box = scene.add.rectangle(scene.__gridX(x),scene.__gridY(y),
+            GRID_SIZE/2,GRID_SIZE/2,0xffff00, 0.0);
+        scene.__dangerous_touchables.add(bounding_box);
+        scene.__setPhysicsBodyPosition(bounding_box, x, y);
+        let dx = x - center_x;
+        let dy = y - center_y;
+        bounding_box.setData('registerDangerousTouch',function() {
+            return {dx: dx, dy: dy};
+        });
+        bounding_box.setData('isDangerous',function() {
+            return true;
+        });
+        bounding_boxes.push(bounding_box);
+    };
+
+    let createPoints = function() {
+        if (0 === radius) {
+            createPoint(center_x, center_y);
+            return;
+        }
+        let offset = {dx: -radius, dy: 0};
+        for (i = 0; i < radius; i++, offset.dx++, offset.dy++) {
+            createPoint(center_x + offset.dx, center_y + offset.dy);
+            let rotated_offset = DIRECTIONS.turnClockwise(offset);
+            createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
+            rotated_offset = DIRECTIONS.turnClockwise(rotated_offset);
+            createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
+            rotated_offset =DIRECTIONS.turnClockwise(rotated_offset);
+            createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
+        }
+    }
+
+    let sprites = [];
+    let bounding_boxes = [];
+    let radius = 0;
+    let center_x = x;
+    let center_y = y;
+    let reap_bounding_boxes = function() {
+        for (let bounding_box of bounding_boxes) {
+            bounding_box.destroy();
+        }
+    };
+    let start_wave = function() {
+        createPoints()
+        scene.time.delayedCall(1000, update_points);
+        scene.time.delayedCall(750, reap_bounding_boxes);
+    };
+    let update_points = function() {
+        for(let sprite of sprites) {
+            sprite.destroy();
+        }
+        radius++;
+        start_wave();
+    };
+    start_wave();
+}
+
 let addBishop = function(scene, x, y) {
     let m_x = x;
     let m_y = y;
@@ -633,6 +719,7 @@ let addBishop = function(scene, x, y) {
     };
 
     let enter_dead = function() {
+        addDeathEffect(scene, m_x, m_y);
         sprite.destroy();
         sprite_overlay.destroy();
         bounding_box.destroy();
