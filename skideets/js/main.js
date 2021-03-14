@@ -125,11 +125,15 @@ let LoadScene = new Phaser.Class({
 
         this.load.spritesheet('boxes', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
         this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
+        this.load.image('start_01', 'assets/Play Grid/Start_01.png');
+        this.load.image('start_02', 'assets/Play Grid/Start_02.png');
+        this.load.image('start_03', 'assets/Play Grid/Start_03.png');
+        this.load.image('start_start', 'assets/Play Grid/Start_start.png');
         this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
         this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
         this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
-        this.load.image('menu', 'assets/ScanlineMenu_v2.png')
+        this.load.image('menu', 'assets/ScanlineMenu_v2.png');
         this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
 
         scene.load.on('progress', function(percentage) {
@@ -144,7 +148,7 @@ let LoadScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
-        let scene = this;
+        //let scene = this;
     },
 
     //--------------------------------------------------------------------------
@@ -213,7 +217,7 @@ let GameScene = new Phaser.Class({
 
         let yLegal = function(y) {
             return y >= 0 && y < GRID_ROWS;
-        }
+        };
 
         let xLegal = function(x) {
             return x >= 0 && x < GRID_COLS;
@@ -316,11 +320,9 @@ let GameScene = new Phaser.Class({
                     COLORS.randomColorExcluding(grid[x-2][y].data.values.color);
             }
             if (Phaser.Math.Between(0, 100) < 10) {
-                chosen_arrow = ARROW.LEFT;
+                chosen_arrow = Phaser.Utils.Array.GetRandom(
+                    [ARROW.LEFT, ARROW.RIGHT]);
                 chosen_color = COLORS.COLORLESS;
-                if (Phaser.Math.Between(0,1) === 0) {
-                    chosen_arrow = ARROW.RIGHT;
-                }
             }
             square.setData('arrow', chosen_arrow);
             square.setData('color', chosen_color);
@@ -330,7 +332,7 @@ let GameScene = new Phaser.Class({
             let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
             let path_color = grid[x][y].data.values.color;
             let preferred_direction = ARROW.RIGHT === arrow ?
-                DIRECTION.RIGHT : DIRECTION.LEFT
+                DIRECTION.RIGHT : DIRECTION.LEFT;
             let dx = path.steps[0].dx;
             let dy = path.steps[0].dy;
             let previous_direction = DIRECTION.opposite(path.steps[0].d1);
@@ -383,7 +385,7 @@ let GameScene = new Phaser.Class({
                 }
             }
             return path;
-        }
+        };
 
         let find_line = function(x, y) {
             let arrow = grid[x][y].data.values.arrow;
@@ -503,7 +505,7 @@ let GameScene = new Phaser.Class({
                     set_block_texture(square);
                 }
             }
-        }
+        };
 
         let try_swap_squares = function(square1, square2) {
             if (square1.data.values.locked || square2.data.values.locked) {
@@ -546,7 +548,7 @@ let GameScene = new Phaser.Class({
                 grid[x][GRID_ROWS - 2].setData('locked',true);
             }
             scan_grid();
-        }
+        };
 
         let add_line = function() {
             for (let y = 0; y < GRID_ROWS; y++) {
@@ -570,7 +572,7 @@ let GameScene = new Phaser.Class({
         let remove_n_blocks_from_line = function(y, number) {
             let indexes = Phaser.Utils.Array.NumberArray(0, GRID_COLS-1);
             Phaser.Utils.Array.Shuffle(indexes);
-            number = Math.min(number, indexes.length)
+            number = Math.min(number, indexes.length);
             for (let i = 0; i < number; i++) {
                 let square = grid[indexes[i]][y];
                 clear_block(square);
@@ -614,7 +616,7 @@ let GameScene = new Phaser.Class({
                 active_lines.filter(function(active_line) {
                 let end_x = direction === DIRECTION.LEFT ?
                     active_line.path.min_x :
-                    active_line.path.max_x
+                    active_line.path.max_x;
                 if (x !== end_x) {
                     //keep this around
                     return true;
@@ -643,7 +645,7 @@ let GameScene = new Phaser.Class({
                     scale: 0.75,
                     alpha: 0.5,
                     duration: 1000,
-                })
+                });
                 timeline.add({
                     targets: text,
                     scale: 0,
@@ -714,7 +716,7 @@ let GameScene = new Phaser.Class({
         let grid = [];
         let afterglow_pool = [];
 
-        let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
+        scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
 
         for (let x = 0; x < GRID_COLS; x++)
@@ -756,8 +758,6 @@ let GameScene = new Phaser.Class({
         //reconcile sprite to scanelineX
         set_scanline();
 
-
-
         let addScore = function(delta) {
             scene.tweens.add({
                 targets: {score: score},
@@ -774,7 +774,8 @@ let GameScene = new Phaser.Class({
                 duration: 125,
                 yoyo: true
             });
-        }
+        };
+
         let score = 0;
         let score_text = scene.add.text(
             0,
@@ -786,25 +787,24 @@ let GameScene = new Phaser.Class({
 
         let fade_screen = scene.add.rectangle(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5);
-        let start_text = scene.add.text(
+        let start_images = ['start_03','start_02','start_01','start_start'];
+        let start_text = scene.add.sprite(
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2,
-            '3',
-            {font: '' + 4*GRID_SIZE + 'px xolonium', fill: '#FFFFFF'})
-            .setOrigin(0.5, 0.5);
+            'start_03');
 
         scene.time.delayedCall(1000,function() {
-            start_text.setText('2');
+            start_text.setTexture('start_02');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
         });
         scene.time.delayedCall(2000,function() {
-            start_text.setText('1');
+            start_text.setTexture('start_01');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
         });
         scene.time.delayedCall(3000,function() {
-            start_text.setText('START');
+            start_text.setTexture('start_start');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
         });
