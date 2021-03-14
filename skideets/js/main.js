@@ -756,11 +756,7 @@ let GameScene = new Phaser.Class({
         //reconcile sprite to scanelineX
         set_scanline();
 
-        scene.time.addEvent({
-            "delay": 60 * 1000 / BPM,
-            "loop": true,
-            "callback": update_scanline
-        });
+
 
         let addScore = function(delta) {
             scene.tweens.add({
@@ -788,23 +784,64 @@ let GameScene = new Phaser.Class({
             .setOrigin(0, 0.5)
             .setAlpha(0.7);
 
+        let fade_screen = scene.add.rectangle(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5);
+        let start_text = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2,
+            '3',
+            {font: '' + 4*GRID_SIZE + 'px xolonium', fill: '#FFFFFF'})
+            .setOrigin(0.5, 0.5);
+
+        scene.time.delayedCall(1000,function() {
+            start_text.setText('2');
+            fade_screen.height -= 4*GRID_SIZE;
+            fade_screen.y += 2*GRID_SIZE;
+        });
+        scene.time.delayedCall(2000,function() {
+            start_text.setText('1');
+            fade_screen.height -= 4*GRID_SIZE;
+            fade_screen.y += 2*GRID_SIZE;
+        });
+        scene.time.delayedCall(3000,function() {
+            start_text.setText('START');
+            fade_screen.height -= 4*GRID_SIZE;
+            fade_screen.y += 2*GRID_SIZE;
+        });
+        scene.time.delayedCall(4000,function() {
+            start_text.destroy();
+            fade_screen.destroy();
+            start();
+        });
+
         //----------------------------------------------------------------------
         //SETUP INPUTS
         //----------------------------------------------------------------------
 
-        scene.input.addPointer(5);
 
-        scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
-        scene.m_cursor_keys.down.on('down', function(event) {
-            move_character(DIRECTION.DOWN)});
-        scene.m_cursor_keys.up.on('down', function(event) {
-            move_character(DIRECTION.UP)});
-        scene.m_cursor_keys.left.on('down', function(event) {
-            move_character(DIRECTION.LEFT)});
-        scene.m_cursor_keys.right.on('down', function(event) {
-            move_character(DIRECTION.RIGHT)});
-        scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        scene.space_key.on('down', try_selection);
+        let start = function () {
+            scene.time.addEvent({
+                "delay": 60 * 1000 / BPM,
+                "loop": true,
+                "callback": update_scanline
+            });
+            scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
+            scene.m_cursor_keys.down.on('down', function (event) {
+                move_character(DIRECTION.DOWN)
+            });
+            scene.m_cursor_keys.up.on('down', function (event) {
+                move_character(DIRECTION.UP)
+            });
+            scene.m_cursor_keys.left.on('down', function (event) {
+                move_character(DIRECTION.LEFT)
+            });
+            scene.m_cursor_keys.right.on('down', function (event) {
+                move_character(DIRECTION.RIGHT)
+            });
+            scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            scene.space_key.on('down', try_selection);
+        }
+
     },
 
     //--------------------------------------------------------------------------
