@@ -357,7 +357,8 @@ let addPawn = function(scene, x,y) {
     };
 
     let general_move_ai = function(deltaX, deltaY, directions) {
-        if (Phaser.Math.Between(0, 99) < 80) {
+        if (Phaser.Utils.Array.GetRandom(
+            [true, true, true, true, false])) {
             m_prefer_horizontal = !m_prefer_horizontal;
         }
         let primary_vertical_index = 0;
@@ -380,12 +381,12 @@ let addPawn = function(scene, x,y) {
                 DIRECTIONS.RIGHT,
                 DIRECTIONS.DOWN];
         }
-        if (deltaX > 0 || (deltaX === 0 && Phaser.Math.Between(0, 99) < 50)) {
+        if (deltaX > 0 || (deltaX === 0 && Phaser.Utils.Array.GetRandom([true,false]))) {
             //swap horizontals
             swap_direction(directions, primary_horizontal_index,
                 secondary_horizontal_index);
         }
-        if (deltaY > 0 || (deltaY === 0 && Phaser.Math.Between(0, 99) < 50)) {
+        if (deltaY > 0 || (deltaY === 0 && Phaser.Utils.Array.GetRandom([true,false]))) {
             //swap vertical
             swap_direction(directions, primary_vertical_index,
                 secondary_vertical_index);
@@ -428,10 +429,10 @@ let addPawn = function(scene, x,y) {
                 ];
             }
             //now randomize
-            if (Phaser.Math.Between(0,99) < 50) {
+            if (Phaser.Utils.Array.GetRandom([true,false])) {
                 swap_direction(directions, 0, 1);
             }
-            if (Phaser.Math.Between(0,99) < 50) {
+            if (Phaser.Utils.Array.GetRandom([true,false])) {
                 swap_direction(directions, 2, 3);
             }
         } else {
@@ -504,7 +505,7 @@ let addPawn = function(scene, x,y) {
     let life = full_life;
     let m_impact_x = 0;
     let m_impact_y = 0;
-    let m_prefer_horizontal = Phaser.Math.Between(0,99) < 50;
+    let m_prefer_horizontal = Phaser.Utils.Array.GetRandom([true,false]);
 
     let pawn = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12);
     let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12)
@@ -657,8 +658,11 @@ let addBishop = function(scene, x, y) {
     let current_direction = DIRECTIONS.NONE;
     let max_move_count = 4;
     let current_move_count = 0;
+    let max_slide_count = 4;
+    let current_slide_count = 0;
 
     let enter_stunned = function() {
+        current_slide_count = 0;
         m_z = 0;
         m_y = Math.round(m_y);
         m_x = Math.round(m_x);
@@ -729,7 +733,53 @@ let addBishop = function(scene, x, y) {
 
     let enter_idle = function() {
         current_direction = DIRECTIONS.NONE;
+        if (current_slide_count >= max_slide_count) {
+            current_slide_count = 0;
+            state_handler.changeState(STATES.CAST);
+            return;
+        }
+        current_slide_count++;
         state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
+    }
+
+    let active_sparkles = [];
+    let enter_cast = function() {
+        current_direction = DIRECTIONS.NONE;
+        //state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
+        let add_sparkle = function(delay) {
+            let x = Phaser.Math.Between(scene.__gridX(m_x-0.25),scene.__gridX(m_x+0.25));
+            let z = Phaser.Math.Between(-GRID_SIZE* .5,0);
+            let y = Phaser.Utils.Array.GetRandom(
+                [scene.__gridY(m_y + 0.25), scene.__gridY(m_y - 0.25)]);
+            let sparkle = scene.add.ellipse(x, y + z, GRID_SIZE/8,GRID_SIZE/4,
+                0xffffff, 1.0)
+                .setVisible(false)
+                .setDepth(DEPTHS.ENTITIES + y);
+            state_handler.addDelayedCall(delay,function() {
+                sparkle.setVisible(true);
+            })
+            state_handler.addTween({
+                targets: sparkle,
+                y: sparkle.y - GRID_SIZE,
+                scaleY: 2,
+                scaleX: 0,
+                delay: delay,
+                duration: 500
+            });
+            active_sparkles.push(sparkle);
+        };
+
+        for (let i = 0; i < 3500; i += 100) {
+            add_sparkle(i);
+        }
+        state_handler.addTween({
+            targets: sprite_overlay,
+            alpha: 0.25,
+            yoyo: true,
+            repeat: 8,
+            duration: 500
+        });
+        state_handler.addDelayedCall(4000, state_handler.changeState, [STATES.RELEASE]);
     };
 
     let enter_start_slide = function() {
@@ -742,6 +792,18 @@ let addBishop = function(scene, x, y) {
         ]);
         state_handler.changeState(STATES.MOVE);
     };
+
+    let exit_cast = function() {
+        for (let active_sparkle of active_sparkles) {
+            active_sparkle.destroy();
+        }
+        sprite_overlay.setAlpha(0);
+    };
+
+    let enter_release = function() {
+        addFlameWave(scene, m_x, m_y);
+        state_handler.changeState(STATES.START_SLIDE);
+    }
 
     let change_move_target = function(x, y) {
         m_targetx = x;
@@ -798,7 +860,9 @@ let addBishop = function(scene, x, y) {
         START_SLIDE: {enter: enter_start_slide, exit: null},
         MOVE: {enter: enter_move, exit: exit_move},
         STUNNED: {enter: enter_stunned, exit: exit_stunned},
-        DEAD: {enter: enter_dead, exit: null}
+        DEAD: {enter: enter_dead, exit: null},
+        CAST: {enter: enter_cast, exit: exit_cast},
+        RELEASE: {enter: enter_release, exit: null}
     };
     let state_handler = stateHandler(scene, STATES, STATES.IDLE);
 
