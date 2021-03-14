@@ -787,7 +787,6 @@ let GameScene = new Phaser.Class({
 
         let fade_screen = scene.add.rectangle(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5);
-        let start_images = ['start_03','start_02','start_01','start_start'];
         let start_text = scene.add.sprite(
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2,
@@ -826,16 +825,16 @@ let GameScene = new Phaser.Class({
                 "callback": update_scanline
             });
             scene.m_cursor_keys = scene.input.keyboard.createCursorKeys();
-            scene.m_cursor_keys.down.on('down', function (event) {
+            scene.m_cursor_keys.down.on('down', function () {
                 move_character(DIRECTION.DOWN)
             });
-            scene.m_cursor_keys.up.on('down', function (event) {
+            scene.m_cursor_keys.up.on('down', function () {
                 move_character(DIRECTION.UP)
             });
-            scene.m_cursor_keys.left.on('down', function (event) {
+            scene.m_cursor_keys.left.on('down', function () {
                 move_character(DIRECTION.LEFT)
             });
-            scene.m_cursor_keys.right.on('down', function (event) {
+            scene.m_cursor_keys.right.on('down', function () {
                 move_character(DIRECTION.RIGHT)
             });
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);

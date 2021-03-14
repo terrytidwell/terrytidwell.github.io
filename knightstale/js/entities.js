@@ -94,12 +94,12 @@ let stateHandler = function(scene, states, start_state) {
 
     let getState = function () {
         return current_state;
-    }
+    };
 
     //do the initial state enter
     let start = function () {
         enter_state();
-    }
+    };
 
     return {
         changeState: changeState,
@@ -190,7 +190,7 @@ let addHealthBar = function(scene, scale, x, y, hide_on_full) {
         health_bar.destroy();
     };
 
-    updatePosition(x, y)
+    updatePosition(x, y);
 
     return {
         updateLife: updateLife,
@@ -609,7 +609,7 @@ let addFlameWave = function(scene, x, y) {
             return;
         }
         let offset = {dx: -radius, dy: 0};
-        for (i = 0; i < radius; i++, offset.dx++, offset.dy++) {
+        for (let i = 0; i < radius; i++, offset.dx++, offset.dy++) {
             createPoint(center_x + offset.dx, center_y + offset.dy);
             let rotated_offset = DIRECTIONS.turnClockwise(offset);
             createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
@@ -618,7 +618,7 @@ let addFlameWave = function(scene, x, y) {
             rotated_offset =DIRECTIONS.turnClockwise(rotated_offset);
             createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
         }
-    }
+    };
 
     let sprites = [];
     let bounding_boxes = [];
@@ -631,7 +631,7 @@ let addFlameWave = function(scene, x, y) {
         }
     };
     let start_wave = function() {
-        createPoints()
+        createPoints();
         scene.time.delayedCall(1000, update_points);
         scene.time.delayedCall(750, reap_bounding_boxes);
     };
@@ -643,7 +643,7 @@ let addFlameWave = function(scene, x, y) {
         start_wave();
     };
     start_wave();
-}
+};
 
 let addBishop = function(scene, x, y) {
     let m_x = x;
@@ -718,8 +718,7 @@ let addBishop = function(scene, x, y) {
     let exit_stunned = function() {
         sprite_overlay.alpha = 0;
         sprite.alpha = 1;
-        m_dx = 0;
-        m_dy = 0;
+        current_direction = DIRECTIONS.NONE;
     };
 
     let enter_dead = function() {
@@ -740,7 +739,7 @@ let addBishop = function(scene, x, y) {
         }
         current_slide_count++;
         state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
-    }
+    };
 
     let active_sparkles = [];
     let enter_cast = function() {
@@ -757,7 +756,7 @@ let addBishop = function(scene, x, y) {
                 .setDepth(DEPTHS.ENTITIES + y);
             state_handler.addDelayedCall(delay,function() {
                 sparkle.setVisible(true);
-            })
+            });
             state_handler.addTween({
                 targets: sparkle,
                 y: sparkle.y - GRID_SIZE,
@@ -803,7 +802,7 @@ let addBishop = function(scene, x, y) {
     let enter_release = function() {
         addFlameWave(scene, m_x, m_y);
         state_handler.changeState(STATES.START_SLIDE);
-    }
+    };
 
     let change_move_target = function(x, y) {
         m_targetx = x;
@@ -909,7 +908,7 @@ let addBishop = function(scene, x, y) {
     state_handler.start();
 
     return bounding_box;
-}
+};
 
 let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
@@ -1023,7 +1022,7 @@ let addPlayer = function(scene, x,y) {
     let setOrientation = function(orientation) {
         sprite.setTexture('black_pieces', 4 + orientation);
         sprite_overlay.setTexture('black_pieces', 4 + orientation);
-    }
+    };
 
     let tryMovePlayer = function(x, y) {
         if (!playerMoveAllowed) {

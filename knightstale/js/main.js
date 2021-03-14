@@ -3,13 +3,13 @@ const GRID_SIZE = 64;
 const GRID_COLS = 12;
 const GRID_ROWS = 12;
 const SCREEN_WIDTH = GRID_SIZE * GRID_COLS; //845 + 400; //845; //1025
-const SCREEN_HEIGHT = GRID_SIZE * GRID_COLS; //542 + 150; //542; //576
+const SCREEN_HEIGHT = GRID_SIZE * GRID_ROWS; //542 + 150; //542; //576
 const DEPTHS = {
     BOARD: 0,
     SURFACE: 1,
     ENTITIES: 1000,
     UI: 2000,
-}
+};
 const DIRECTIONS = {
     NONE: {dx: 0, dy: 0},
 
@@ -173,11 +173,11 @@ let GameScene = new Phaser.Class({
         scene.__setPhysicsBodyPosition = function(object, x, y) {
             object.body.x = scene.__gridX(x) - GRID_SIZE/2 + (GRID_SIZE - object.body.width) / 2;
             object.body.y = scene.__gridY(y) - GRID_SIZE/2 + (GRID_SIZE - object.body.height) / 2;
-        }
+        };
 
         scene.__isGridPassable = function(x,y) {
-            return x >= 0 && x < 12 &&
-                y >= 0 && y < 12 &&
+            return x >= 0 && x < GRID_COLS &&
+                y >= 0 && y < GRID_ROWS &&
                 grid[x][y].visible;
         };
 
@@ -187,8 +187,7 @@ let GameScene = new Phaser.Class({
         scene.__isGridMobFree = function(x,y) {
             //physics body origins are 0,0 as opposed to sprites which are 0.5,0.5
             scene.__setPhysicsBodyPosition(mobChecker, x, y);
-            let result = !scene.physics.overlap(mobChecker, scene.__mobs);
-            return result;
+            return !scene.physics.overlap(mobChecker, scene.__mobs);
         };
 
         scene.__checkPlayerCollision = function(x,y) {
@@ -209,10 +208,10 @@ let GameScene = new Phaser.Class({
         scene.__updateables = scene.physics.add.group();
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
-        for (let x = 0; x < 12; x++)
+        for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
-            for (let y = 0; y < 12; y++)
+            for (let y = 0; y < GRID_ROWS; y++)
             {
                 let offset = 4 * ((x + y) % 2);
                 let tile = Phaser.Utils.Array.Shuffle(index_image)[0] + offset;
