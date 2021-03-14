@@ -58,7 +58,7 @@ let asyncHandler = function(scene) {
 let addDeathEffect = function(scene, x, y) {
     let death_effect = scene.add.sprite(scene.__gridX(Math.round(x)),
         scene.__characterY(Math.round(y)),'death_effect',0)
-        .setDepth(DEPTHS.ENTITIES + y + .25)
+        .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('death_effect_anim')
         .setFlipX(Phaser.Utils.Array.GetRandom([false,true]))
         .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function() {
