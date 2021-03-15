@@ -328,6 +328,25 @@ let GameScene = new Phaser.Class({
             square.setData('color', chosen_color);
         };
 
+        let legal_to_add = function(x, y, path_color = COLORS.COLORLESS) {
+            if (!gridLegal(x, y)) {
+                return false;
+            }
+            if (!COLORS.isColor(grid[x][y].data.values.color)) {
+                return false;
+            }
+            if (COLORS.isColor(path_color) && grid[x][y].data.values.color !== path_color) {
+                return false;
+            }
+            if (grid[x][y].data.values.connection !== CONNECTION.NONE) {
+                return false;
+            }
+            if (grid[x][y].data.values.locked) {
+                return false;
+            }
+            return true;
+        };
+
         let line_algorithm = function(path, x, y) {
             let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
             let path_color = grid[x][y].data.values.color;
@@ -350,16 +369,8 @@ let GameScene = new Phaser.Class({
                     }
                     let test_x = x + DIRECTION.dx(direction);
                     let test_y = y + DIRECTION.dy(direction);
-                    if (!gridLegal(test_x, test_y)) {
-                        continue;
-                    }
-                    if (grid[test_x][test_y].data.values.color !== path_color) {
-                        continue;
-                    }
-                    if (grid[test_x][test_y].data.values.connection !== CONNECTION.NONE) {
-                        continue;
-                    }
-                    if (grid[test_x][test_y].data.values.locked) {
+                    if (!legal_to_add(test_x, test_y, path_color))
+                    {
                         continue;
                     }
 
@@ -410,13 +421,10 @@ let GameScene = new Phaser.Class({
             x += dx;
             y += dy;
 
-            if (!gridLegal(x,y)) {
+            if (!legal_to_add(x,y)) {
                 return path;
             }
             let path_color = grid[x][y].data.values.color;
-            if (!COLORS.isColor(path_color)) {
-                return path;
-            }
             path.steps.unshift({
                 square: grid[x][y],
                 dx: dx,
