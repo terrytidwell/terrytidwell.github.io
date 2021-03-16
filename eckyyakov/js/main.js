@@ -45,7 +45,6 @@ let LoadScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
-        let scene = this;
     },
 
     //--------------------------------------------------------------------------
@@ -69,8 +68,9 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     addPlayer: function (player) {
         let scene = this;
-
+        
         let x_offset = 0.5;
+        let y_offset = 8.5;
         let color = COLORS.PLAYER[player];
         let ammo_text_x_offset = 0;
         let ammo_text_x_origin = 0;
@@ -80,9 +80,13 @@ let GameScene = new Phaser.Class({
             ammo_text_x_origin = 1;
         }
 
-        let character = scene.add.rectangle(x_offset * GRID_SIZE, 8.5 * GRID_SIZE
+        let character = scene.add.rectangle(x_offset * GRID_SIZE, y_offset * GRID_SIZE
             ,GRID_SIZE/4,GRID_SIZE*3/4,color, 1.0);
         character.setData('player', player);
+
+        character.setData('onShot', () => {
+           console.log('Player ' + player + ' shot');
+        });
 
         //character.play('hero_run');
         let current_gun_index = 0;
@@ -145,12 +149,11 @@ let GameScene = new Phaser.Class({
                 character.data.values.gun.angle));
             let bullet = scene.add.rectangle(x + mouse_vector.x, y + mouse_vector.y,
                 GRID_SIZE/32, GRID_SIZE/32, 0x000000);
+            bullet.setData('player', character.data.values.player);
             //.setDepth(DEPTHS.MOBS);
             scene.__bullets.add(bullet);
             bullet.body.setVelocity(mouse_vector.x * GRID_SIZE, mouse_vector.y * GRID_SIZE);
-            scene.time.delayedCall(1000, function() {
-                bullet.destroy();
-            });
+            scene.time.delayedCall(1000, () => bullet.destroy() );
             //scene.cameras.main.shake(50, 0.005, true);
             return;
         };
@@ -252,7 +255,7 @@ let GameScene = new Phaser.Class({
         let bullet_velocity_trajectory = new Phaser.Math.Vector2(0,0);
         let bullet_trajectory_line = new Phaser.Geom.Line(0,0,0,0);
         let bullet_trajectory_nearest_point = new Phaser.Geom.Point(0,0);
-        let ball_center_point = new Phaser.Geom.Point(0,0)
+        let ball_center_point = new Phaser.Geom.Point(0,0);
         ball.setData('onShot', function(bullet) {
 
             let impact = bullet.body.velocity.length()/10;
@@ -285,7 +288,7 @@ let GameScene = new Phaser.Class({
             ball.body.velocity.y += working_vector.y;
 
             working_vector.negate();
-            working_vector.rotate(-Math.PI/4)
+            working_vector.rotate(-Math.PI/4);
             for (let n = 0; n < 10; n++) {
                 let casing = scene.add.rectangle(
                     impact_x, impact_y, bullet.body.width, bullet.body.height,
@@ -318,7 +321,7 @@ let GameScene = new Phaser.Class({
             scene.__ball_platforms.add(platform);
         };
 
-        let platform_size = GRID_SIZE/4
+        let platform_size = GRID_SIZE/4;
         let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + platform_size/2,
             SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
         addToPhysics(floor);
@@ -398,7 +401,7 @@ let GameScene = new Phaser.Class({
                 if (capture_tween || character.data.values.player === capture_point.data.values.capture_status) {
                     //already being captured or is already captured by player
                     return;
-                };
+                }
                 let capture_rectangle = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
                 length * GRID_SIZE, GRID_SIZE/8, COLORS.DARK_PLAYER[character.data.values.player], 1.0).setScale(0,1);
                 let capture_text = scene.add.text(x*GRID_SIZE,y*GRID_SIZE,"0%",
@@ -443,7 +446,7 @@ let GameScene = new Phaser.Class({
                             scaleY: 3,
                             duration: 150,
                             onComplete: () => capture_rectangle.destroy()
-                        })
+                        });
                         platform.setFillStyle(COLORS.DARK_PLAYER[character.data.values.player], 1.0);
                         capture_tween = null;
                         capture_point.setData('capture_status', character.data.values.player);
@@ -493,7 +496,7 @@ let GameScene = new Phaser.Class({
             goal.setData('player', player);
 
             scene.__goals.add(goal);
-        }
+        };
 
         addGoal(0);
         addGoal(1);
@@ -555,9 +558,14 @@ let GameScene = new Phaser.Class({
 
         scene.physics.add.collider(scene.__platform_colliders, scene.__platforms);
         scene.physics.add.overlap(scene.__players, scene.__touchables,
-            function(character, touchable) {
-                touchable.data.values.onTouch(character, touchable);
-        });
+            (character, touchable) => touchable.data.values.onTouch(character, touchable));
+        scene.physics.add.overlap(scene.__players, scene.__bullets,
+            function(character, bullet) {
+                if (bullet.data.values.player !== character.data.values.player) {
+                    character.data.values.onShot();
+                    bullet.destroy();
+                }
+            });
         scene.physics.add.overlap(scene.__bullets, scene.__shootables, function(bullet, shootable) {
             shootable.data.values.onShot(bullet);
             bullet.destroy();
