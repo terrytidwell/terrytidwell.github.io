@@ -403,6 +403,67 @@ let GameScene = new Phaser.Class({
             return path;
         };
 
+        let new_line_algorithm = function(path, x, y) {
+            let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
+            let path_color = grid[x][y].data.values.color;
+            let preferred_direction = ARROW.RIGHT === arrow ?
+                DIRECTION.RIGHT : DIRECTION.LEFT;
+            let directions = [
+                preferred_direction,
+                DIRECTION.UP, //up
+                DIRECTION.DOWN, //down
+            ];
+            let start_point = path.steps[0];
+            let start_x = x - start_point.dx;
+            let start_y = y - start_point.dy;
+            let current_end_points = [start_point];
+            let current_winner = start_point;
+            while (current_end_points.length !== 0) {
+                let current_point = current_end_points.pop();
+                let previous_direction = DIRECTION.opposite(current_point.d1)
+                for (let direction of directions) {
+                    if (direction === DIRECTION.opposite(previous_direction)) {
+                        continue;
+                    }
+                    let test_x = start_x + current_point.dx + DIRECTION.dx(direction);
+                    let test_y = start_y + current_point.dy + DIRECTION.dy(direction);
+                    if (!legal_to_add(test_x, test_y, path_color))
+                    {
+                        continue;
+                    }
+
+                    let new_point = {
+                        square: grid[test_x][test_y],
+                        dx: current_point.dx + DIRECTION.dx(direction),
+                        dy: current_point.dy + DIRECTION.dy(direction),
+                        d1: DIRECTION.opposite(direction),
+                        d2: DIRECTION.NONE,
+                        parent: current_point,
+                        length: current_point.length + 1}
+                    current_end_points.unshift(new_point);
+                    if (new_point.length > current_winner.length) {
+                        current_winner = new_point;
+                    }
+                }
+            }
+            let reverse_array = [];
+            let tail = current_winner;
+            while(tail !== start_point) {
+                reverse_array.push(tail);
+                tail.parent.d2 = DIRECTION.opposite(tail.d1);
+                tail = tail.parent;
+            }
+            while (reverse_array.length > 0) {
+                let item = reverse_array.pop();
+                path.steps.unshift(item);
+                path.min_x = Math.min(path.min_x, start_x + item.dx);
+                path.min_y = Math.min(path.min_y, start_y + item.dy);
+                path.max_x = Math.max(path.max_x, start_x + item.dx);
+                path.max_y = Math.max(path.max_y, start_y + item.dy);
+            }
+            return path;
+        };
+
         let find_line = function(x, y) {
             let arrow = grid[x][y].data.values.arrow;
             let dx = 0;
@@ -419,7 +480,9 @@ let GameScene = new Phaser.Class({
                 dx: dx,
                 dy: dy,
                 d1: DIRECTION.NONE,
-                d2: preferred_direction
+                d2: preferred_direction,
+                parent: null,
+                length: 1,
             });
             dx += DIRECTION.dx(preferred_direction);
             dy += DIRECTION.dy(preferred_direction);
@@ -435,18 +498,21 @@ let GameScene = new Phaser.Class({
                 dx: dx,
                 dy: dy,
                 d1: DIRECTION.opposite(preferred_direction),
-                d2: DIRECTION.NONE});
+                d2: DIRECTION.NONE,
+                parent: path.steps[0],
+                length: 2
+            });
             path.min_x = Math.min(path.min_x, x);
             path.min_y = Math.min(path.min_y, y);
             path.max_x = Math.max(path.max_x, x);
             path.max_y = Math.max(path.max_y, y);
 
-            return line_algorithm(path, x, y);
+            return new_line_algorithm(path, x, y);
         };
 
         let continue_line = function(x, y) {
             let path = grid[x][y].data.values.path;
-            return line_algorithm(path, x, y);
+            return new_line_algorithm(path, x, y);
         };
 
         let scan_grid = function() {
