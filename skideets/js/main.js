@@ -588,8 +588,22 @@ let GameScene = new Phaser.Class({
             scan_grid();
         };
 
-        let set_scanline = function() {
-            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
+        let set_scanline = function(supress_shadow = false) {
+            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2);
+            scanline_overlay.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
+                .setScale(1)
+                .setAlpha(1);
+            if (supress_shadow) {
+                return;
+            }
+            scene.tweens.add({
+                targets: scanline_overlay,
+                alpha: 0,
+                scaleY: 1.25,
+                scaleX: 3,
+                duration: 60 * 1000 / BPM / 2
+            });
+
         };
 
         let active_lines = [];
@@ -616,6 +630,72 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let clear_line = function(active_line) {
+            let delta = active_line.path.steps.length * 100;
+            let mid_x = (active_line.path.min_x + active_line.path.max_x)/2;
+            let mid_y = (active_line.path.min_y + active_line.path.max_y)/2;
+            let text = scene.add.text(
+                gridX(mid_x),
+                gridY(mid_y),
+                '+' + delta,
+                {font: '' + GRID_SIZE*2 + 'px the_ovd', fill: '#FFFFFF'})
+                .setOrigin(0.5, 0.5)
+                .setAlpha(0)
+                .setScale(0);
+            let timeline = scene.tweens.createTimeline();
+            timeline.add({
+                targets: text,
+                scale: 1,
+                alpha: 1,
+                duration: 100,
+            });
+            timeline.add({
+                targets: text,
+                scale: 0.75,
+                alpha: 0.5,
+                duration: 1000,
+            });
+            timeline.add({
+                targets: text,
+                scale: 0,
+                alpha: 0,
+                duration: 200,
+                x: 0,
+                y: 0,
+                onComplete: function() {
+                    addScore(delta);
+                    text.destroy();
+                }
+            });
+            timeline.play();
+            for (let step of active_line.path.steps) {
+
+                let afterglow = afterglow_pool.length === 0 ? create_block(0, 0) : afterglow_pool.pop();
+                clear_block(afterglow);
+                afterglow.setPosition(gridX(active_line.start_x + step.dx),
+                    gridY(active_line.start_y + step.dy));
+                swap_squares(afterglow, step.square);
+                set_block_texture(afterglow);
+                afterglow.setAlpha(0);
+                afterglow.setTintFill(0xffffff);
+                let timeline2 = scene.tweens.createTimeline();
+                timeline2.add({
+                    targets: afterglow,
+                    alpha: 1,
+                    duration: 100,
+                });
+                timeline2.add({
+                    targets: afterglow,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: function() {
+                        afterglow_pool.push(afterglow);
+                    }
+                });
+                timeline2.play();
+            }
+        };
+
         let scan_line_exit = function(x, direction) {
             if (!xLegal(x)) {
                 return;
@@ -629,70 +709,8 @@ let GameScene = new Phaser.Class({
                     //keep this around
                     return true;
                 }
+                clear_line(active_line);
 
-                let delta = active_line.path.steps.length * 100;
-                let mid_x = (active_line.path.min_x + active_line.path.max_x)/2;
-                let mid_y = (active_line.path.min_y + active_line.path.max_y)/2;
-                let text = scene.add.text(
-                    gridX(mid_x),
-                    gridY(mid_y),
-                    '+' + delta,
-                    {font: '' + GRID_SIZE*2 + 'px xolonium', fill: '#FFFFFF'})
-                    .setOrigin(0.5, 0.5)
-                    .setAlpha(0)
-                    .setScale(0);
-                let timeline = scene.tweens.createTimeline();
-                timeline.add({
-                    targets: text,
-                    scale: 1,
-                    alpha: 1,
-                    duration: 100,
-                });
-                timeline.add({
-                    targets: text,
-                    scale: 0.75,
-                    alpha: 0.5,
-                    duration: 1000,
-                });
-                timeline.add({
-                    targets: text,
-                    scale: 0,
-                    alpha: 0,
-                    duration: 200,
-                    x: 0,
-                    y: 0,
-                    onComplete: function() {
-                        addScore(delta);
-                        text.destroy();
-                    }
-                });
-                timeline.play();
-                for (let step of active_line.path.steps) {
-
-                    let afterglow = afterglow_pool.length === 0 ? create_block(0, 0) : afterglow_pool.pop();
-                    clear_block(afterglow);
-                    afterglow.setPosition(gridX(active_line.start_x + step.dx),
-                        gridY(active_line.start_y + step.dy));
-                    swap_squares(afterglow, step.square);
-                    set_block_texture(afterglow);
-                    afterglow.setAlpha(0);
-                    afterglow.setTintFill(0xffffff);
-                    let timeline2 = scene.tweens.createTimeline();
-                    timeline2.add({
-                        targets: afterglow,
-                        alpha: 1,
-                        duration: 100,
-                    });
-                    timeline2.add({
-                        targets: afterglow,
-                        alpha: 0,
-                        duration: 500,
-                        onComplete: function() {
-                            afterglow_pool.push(afterglow);
-                        }
-                    });
-                    timeline2.play();
-                }
                 return false;
             });
             scan_grid();
@@ -712,6 +730,7 @@ let GameScene = new Phaser.Class({
             }
 
             scanline.setFlipX(DIRECTION.LEFT === scanlineDirection);
+            scanline_overlay.setFlipX(DIRECTION.LEFT === scanlineDirection);
 
             set_scanline();
             scan_line_enter(scanlineX, scanlineDirection);
@@ -747,6 +766,7 @@ let GameScene = new Phaser.Class({
         let scanlineX = 0;
         let scanlineDirection = DIRECTION.RIGHT;
         let scanline = scene.add.sprite(0,0,'scanline');
+        let scanline_overlay = scene.add.sprite(0,0,'scanline');
 
         //add_test_line();
 
@@ -764,7 +784,7 @@ let GameScene = new Phaser.Class({
          */
 
         //reconcile sprite to scanelineX
-        set_scanline();
+        set_scanline(true);
 
         let addScore = function(delta) {
             scene.tweens.add({
@@ -789,7 +809,7 @@ let GameScene = new Phaser.Class({
             0,
             GRID_SIZE/2,
             '' +  score + '',
-            {font: '' + GRID_SIZE + 'px xolonium', fill: '#FFFFFF'})
+            {font: '' + GRID_SIZE + 'px the_ovd', fill: '#FFFFFF'})
             .setOrigin(0, 0.5)
             .setAlpha(0.7);
 
