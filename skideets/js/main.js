@@ -134,6 +134,9 @@ let LoadScene = new Phaser.Class({
         this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
         this.load.image('menu', 'assets/ScanlineMenu_v2.png');
+        this.load.image('bonus_box', 'assets/Play Grid/BonusBox.png');
+        this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
+        this.load.image('score_box', 'assets/Play Grid/ScoreBox.png');
         this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
 
         scene.load.on('progress', function(percentage) {
@@ -201,7 +204,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-
+        let grid_offset = 1.5 * GRID_SIZE;
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
@@ -212,7 +215,7 @@ let GameScene = new Phaser.Class({
 
         let gridY = function(y) {
             let dy = y - GRID_ROWS / 2;
-            return SCREEN_HEIGHT/2 + dy * GRID_SIZE + 27;
+            return SCREEN_HEIGHT/2 + dy * GRID_SIZE + 27 + grid_offset;
         };
 
         let yLegal = function(y) {
@@ -589,8 +592,8 @@ let GameScene = new Phaser.Class({
         };
 
         let set_scanline = function(supress_shadow = false) {
-            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2);
-            scanline_overlay.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2)
+            scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2 + grid_offset);
+            scanline_overlay.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2 + grid_offset)
                 .setScale(1)
                 .setAlpha(1);
             if (supress_shadow) {
@@ -660,8 +663,8 @@ let GameScene = new Phaser.Class({
                 scale: 0,
                 alpha: 0,
                 duration: 200,
-                x: 0,
-                y: 0,
+                x: SCREEN_WIDTH/2,
+                y: grid_offset + GRID_SIZE/2,
                 onComplete: function() {
                     addScore(delta);
                     text.destroy();
@@ -744,7 +747,10 @@ let GameScene = new Phaser.Class({
         let afterglow_pool = [];
 
         scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
-        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'grid');
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + grid_offset, 'grid');
+        scene.add.sprite(SCREEN_WIDTH/2, grid_offset,'score_box');
+        scene.add.sprite(SCREEN_WIDTH/2 + 9 * GRID_SIZE, grid_offset,'bonus_box').setScale(0.75);
+        scene.add.sprite(SCREEN_WIDTH/2 - 9 * GRID_SIZE, grid_offset,'combo_box').setScale(0.75);
 
         for (let x = 0; x < GRID_COLS; x++)
         {
@@ -806,11 +812,11 @@ let GameScene = new Phaser.Class({
 
         let score = 0;
         let score_text = scene.add.text(
-            0,
-            GRID_SIZE/2,
+            SCREEN_WIDTH/2,
+            grid_offset + GRID_SIZE/2,
             '' +  score + '',
             {font: '' + GRID_SIZE + 'px the_ovd', fill: '#FFFFFF'})
-            .setOrigin(0, 0.5)
+            .setOrigin(0.5, 0.5)
             .setAlpha(0.7);
 
         let fade_screen = scene.add.rectangle(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
