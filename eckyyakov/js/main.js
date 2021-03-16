@@ -475,6 +475,7 @@ let GameScene = new Phaser.Class({
         let addGoal = function (player) {
             let x_offset = 1.5;
             let x_back_offset = - GRID_SIZE/8 - GRID_SIZE/16;
+            let goal_height = GRID_SIZE*2;
             if (player === 1) {
                 x_offset = SCREEN_COLS - x_offset;
                 x_back_offset = -x_back_offset;
@@ -482,21 +483,21 @@ let GameScene = new Phaser.Class({
 
             let goal_exterior = scene.add.rectangle(
                 x_offset * GRID_SIZE + x_back_offset, SCREEN_HEIGHT / 2,
-                GRID_SIZE/8, GRID_SIZE - GRID_SIZE/4,
+                GRID_SIZE/8, goal_height - GRID_SIZE/4,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2 + GRID_SIZE/2 - GRID_SIZE/8/2,
+                SCREEN_HEIGHT / 2 + goal_height/2 - GRID_SIZE/8/2,
                 GRID_SIZE/2, GRID_SIZE/8,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2 - GRID_SIZE/2 + GRID_SIZE/8/2,
+                SCREEN_HEIGHT / 2 - goal_height/2 + GRID_SIZE/8/2,
                 GRID_SIZE/2, GRID_SIZE/8,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             let goal = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, GRID_SIZE - GRID_SIZE/4,
+                SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, goal_height - GRID_SIZE/4,
                 0x0000ff, 1.0);
             goal.setData('player', player);
 
