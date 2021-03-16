@@ -68,7 +68,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     addPlayer: function (player) {
         let scene = this;
-        
+
         let x_offset = 0.5;
         let y_offset = 8.5;
         let color = COLORS.PLAYER[player];
@@ -143,7 +143,7 @@ let GameScene = new Phaser.Class({
             });
             let x = character.x;
             let y = character.y;
-            mouse_vector.x = GRID_SIZE/4;
+            mouse_vector.x = GRID_SIZE/8;
             mouse_vector.y = 0;
             mouse_vector.rotate(Phaser.Math.DegToRad(
                 character.data.values.gun.angle));
