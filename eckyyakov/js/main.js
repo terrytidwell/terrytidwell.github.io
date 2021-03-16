@@ -97,7 +97,6 @@ let GameScene = new Phaser.Class({
         character.setData('gun', gun);
 
         scene.__players.add(character);
-        scene.__platform_colliders.add(character);
         character.body.gravity.y = GRID_SIZE * 14.0625;
         character.setData('jump_strength', GRID_SIZE * -8.6);
         character.setData('jump_deadening', 0.75);
@@ -197,16 +196,11 @@ let GameScene = new Phaser.Class({
             }
             if (character.data.values.down)
             {
-                if (character.body.blocked.down) {
-                    //character.body.y += 8;
+                if (character.body.blocked.down &&
+                    scene.physics.overlap(scene.__capture_points, character)) {
+                    character.body.y += 8;
                 }
             }
-            /*
-            if (scene.__cursor_keys.down.isDown ||
-                scene.__cursor_keys.letter_down.isDown) {
-                dy += 1;
-            }
-            */
 
             //normalize
             let d = Math.sqrt(dx * dx + dy * dy);
@@ -316,7 +310,7 @@ let GameScene = new Phaser.Class({
     setupField : function() {
         let scene = this;
 
-        let addToPhysics = function(platform) {
+        let addWallToPhysics = function(platform) {
             scene.__platforms.add(platform);
             scene.__ball_platforms.add(platform);
         };
@@ -324,18 +318,18 @@ let GameScene = new Phaser.Class({
         let platform_size = GRID_SIZE/4;
         let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + platform_size/2,
             SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
-        addToPhysics(floor);
+        addWallToPhysics(floor);
 
         floor = scene.add.rectangle(SCREEN_WIDTH/2, - platform_size/2,
             SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
-        addToPhysics(floor);
+        addWallToPhysics(floor);
 
         let wall = scene.add.rectangle(SCREEN_WIDTH + platform_size/2, SCREEN_HEIGHT/2,
             platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
-        addToPhysics(wall);
+        addWallToPhysics(wall);
         wall = scene.add.rectangle(- platform_size/2, SCREEN_HEIGHT/2,
             platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
-        addToPhysics(wall);
+        addWallToPhysics(wall);
 
         let ammo_randomizer = function() {
             return Phaser.Math.Between(1000,30000);
@@ -346,7 +340,6 @@ let GameScene = new Phaser.Class({
             let ammo = scene.add.sprite(rx, y*GRID_SIZE, 'ammo').setScale(2);
             scene.__touchables.add(ammo);
             scene.__ammos.add(ammo);
-            scene.__platform_colliders.add(ammo);
             ammo.body.gravity.y =  GRID_SIZE * 14.0625;
             ammo.body.velocity.y = -GRID_SIZE * 2.5;
             ammo.setData('onTouch', function(character, ammo) {
@@ -381,13 +374,25 @@ let GameScene = new Phaser.Class({
             scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y, length]);
         };
 
+        let createPlatforms = function(x, y, width, height, color, alpha) {
+            let player_platform = scene.add.rectangle(x, y,
+                width, height, alpha, 0);
+            let visible_platform = scene.add.rectangle(x, y,
+                width, height, color, alpha);
+            scene.__platforms.add(player_platform);
+            player_platform.body.checkCollision.down = false;
+            player_platform.body.checkCollision.left = false;
+            player_platform.body.checkCollision.right = false;
+            scene.__ball_platforms.add(visible_platform);
+            return visible_platform;
+        };
+
         let add_platform = function(x, y, length) {
-            let platform = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
+            let platform = createPlatforms(x*GRID_SIZE, y*GRID_SIZE,
                 length * GRID_SIZE, GRID_SIZE/8,
                 0x000000, 1.0);
-            addToPhysics(platform);
             let capture_point = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE-GRID_SIZE/8,
-                length * GRID_SIZE, GRID_SIZE/8, 0x000000, 0.25);
+                length * GRID_SIZE, GRID_SIZE/8, 0x000000, 0.0);
             scene.__touchables.add(capture_point);
             scene.__capture_points.add(capture_point);
             let CAPTURE_STATUS = {
@@ -515,7 +520,6 @@ let GameScene = new Phaser.Class({
 
         scene.__touchables = scene.physics.add.group();
         scene.__capture_points = scene.physics.add.group();
-        scene.__platform_colliders = scene.physics.add.group();
         scene.__platforms = scene.physics.add.staticGroup();
         scene.__ball_platforms = scene.physics.add.staticGroup();
         scene.__bullets = scene.physics.add.group();
@@ -556,7 +560,7 @@ let GameScene = new Phaser.Class({
 
         //SETUP PHYSICS INTERACTIONS
 
-        scene.physics.add.collider(scene.__platform_colliders, scene.__platforms);
+        scene.physics.add.collider(scene.__players, scene.__platforms);
         scene.physics.add.overlap(scene.__players, scene.__touchables,
             (character, touchable) => touchable.data.values.onTouch(character, touchable));
         scene.physics.add.overlap(scene.__players, scene.__bullets,
@@ -570,10 +574,11 @@ let GameScene = new Phaser.Class({
             shootable.data.values.onShot(bullet);
             bullet.destroy();
         });
-        scene.physics.add.collider(scene.__bullets, scene.__platforms, function(bullet, platform) {
+        scene.physics.add.collider(scene.__bullets, scene.__ball_platforms, function(bullet, platform) {
             bullet.destroy();
         });
         scene.physics.add.collider(ball, scene.__ball_platforms);
+        scene.physics.add.collider(scene.__ammos, scene.__ball_platforms)
         scene.physics.add.collider(scene.__ammos, scene.__ammos);
         scene.physics.add.overlap(scene.__ammos, scene.__capture_points, function(ammo, capture_point) {
             if (capture_point.data.values.capture_status !== 0 &&
