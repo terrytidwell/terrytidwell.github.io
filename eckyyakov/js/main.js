@@ -399,6 +399,8 @@ let GameScene = new Phaser.Class({
                     //already being captured or is already captured by player
                     return;
                 };
+                let capture_rectangle = scene.add.rectangle(x*GRID_SIZE, y*GRID_SIZE,
+                length * GRID_SIZE, GRID_SIZE/8, COLORS.DARK_PLAYER[character.data.values.player], 1.0).setScale(0,1);
                 let capture_text = scene.add.text(x*GRID_SIZE,y*GRID_SIZE,"0%",
                     { font: GRID_SIZE/2 + 'px SigmarOne-Regular',
                     fill: COLORS.TEXT_PLAYER[character.data.values.player] })
@@ -406,6 +408,11 @@ let GameScene = new Phaser.Class({
                 let text_tween = scene.tweens.add({
                     targets: capture_text,
                     y: y*GRID_SIZE - GRID_SIZE*3/4,
+                    duration: 3000
+                });
+                let capture_rectangle_tween = scene.tweens.add({
+                    targets: capture_rectangle,
+                    scaleX: 1,
                     duration: 3000
                 });
                 capture_tween = scene.tweens.add({
@@ -416,16 +423,27 @@ let GameScene = new Phaser.Class({
 
                         if(!scene.physics.overlap(character, capture_point)) {
                             text_tween.remove();
+                            capture_rectangle_tween.remove();
                             capture_tween.remove();
                             capture_tween = null;
                             capture_text.destroy();
+                            capture_rectangle.destroy();
                             return;
                         }
                         capture_text.setText('' + Math.round(capture_tween.getValue()) + "%");
                     },
                     onComplete: function() {
                         text_tween.remove();
+                        capture_rectangle_tween.remove();
                         capture_text.destroy();
+                        scene.add.tween({
+                            targets: capture_rectangle,
+                            alpha: 0,
+                            scaleX: 1.25,
+                            scaleY: 3,
+                            duration: 150,
+                            onComplete: () => capture_rectangle.destroy()
+                        })
                         platform.setFillStyle(COLORS.DARK_PLAYER[character.data.values.player], 1.0);
                         capture_tween = null;
                         capture_point.setData('capture_status', character.data.values.player);
