@@ -204,7 +204,9 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-        let grid_offset = 1.5 * GRID_SIZE;
+        let grid_offset = 1 * GRID_SIZE;
+        let score_strip_offset = grid_offset + GRID_SIZE/2;
+
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
@@ -664,7 +666,7 @@ let GameScene = new Phaser.Class({
                 alpha: 0,
                 duration: 200,
                 x: SCREEN_WIDTH/2,
-                y: grid_offset + GRID_SIZE/2,
+                y: score_strip_offset + GRID_SIZE/2,
                 onComplete: function() {
                     addScore(delta);
                     text.destroy();
@@ -748,9 +750,9 @@ let GameScene = new Phaser.Class({
 
         scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + grid_offset, 'grid');
-        scene.add.sprite(SCREEN_WIDTH/2, grid_offset,'score_box');
-        scene.add.sprite(SCREEN_WIDTH/2 + 9 * GRID_SIZE, grid_offset,'bonus_box').setScale(0.75);
-        scene.add.sprite(SCREEN_WIDTH/2 - 9 * GRID_SIZE, grid_offset,'combo_box').setScale(0.75);
+        scene.add.sprite(SCREEN_WIDTH/2, score_strip_offset,'score_box').setScale(0.75);
+        scene.add.sprite(SCREEN_WIDTH/2 + 8 * GRID_SIZE, score_strip_offset,'bonus_box').setScale(0.75);
+        scene.add.sprite(SCREEN_WIDTH/2 - 8 * GRID_SIZE, score_strip_offset,'combo_box').setScale(0.75);
 
         for (let x = 0; x < GRID_COLS; x++)
         {
@@ -813,9 +815,9 @@ let GameScene = new Phaser.Class({
         let score = 0;
         let score_text = scene.add.text(
             SCREEN_WIDTH/2,
-            grid_offset + GRID_SIZE/2,
+            score_strip_offset + GRID_SIZE/4,
             '' +  score + '',
-            {font: '' + GRID_SIZE + 'px the_ovd', fill: '#FFFFFF'})
+            {font: '' + GRID_SIZE*3/4 + 'px the_ovd', fill: '#FFFFFF'})
             .setOrigin(0.5, 0.5)
             .setAlpha(0.7);
 
