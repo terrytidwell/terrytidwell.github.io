@@ -19,6 +19,12 @@ let game_options = {
     gravity : GRID_SIZE * 14.0625,
     ammo_value : 3,
     starting_ammo : 3,
+    defeat_time : 3000,
+    health : 30, // health_time / fire_delay
+    bullet_speed: GRID_SIZE/8,
+    respawn_delay : function(respawns) {
+        return respawns * 500 + 2500;
+    }
 };
 let LoadScene = new Phaser.Class({
 
@@ -79,11 +85,14 @@ let GameScene = new Phaser.Class({
     addPlayer: function (player) {
         let scene = this;
 
+        let respawns = 0;
+        let current_health = game_options.health;
         let x_offset = 0.5;
         let y_offset = 8.5;
         let color = COLORS.PLAYER[player];
         let ammo_text_x_offset = 0;
         let ammo_text_x_origin = 0;
+
         if (player === 1) {
             x_offset = SCREEN_COLS - x_offset;
             ammo_text_x_offset = SCREEN_COLS - ammo_text_x_offset;
@@ -94,8 +103,34 @@ let GameScene = new Phaser.Class({
             ,GRID_SIZE/4,GRID_SIZE*3/4,color, 1.0);
         character.setData('player', player);
 
+        character.setData('shootable', true);
         character.setData('onShot', () => {
-           console.log('Player ' + player + ' shot');
+            if (current_health <= 0) {
+                return;
+            }
+            current_health = Math.max(0, current_health - 1);
+            life_text.setText("" + current_health + "/" + game_options.health);
+            if (current_health > 0) {
+                return;
+            }
+            respawns++;
+            character.setData('shootable', false);
+            character.setVisible(false);
+            gun.setVisible(false);
+            life_text.setVisible(false);
+            character.data.values.ammo_text.setVisible(false);
+            scene.time.delayedCall(game_options.respawn_delay(respawns), () => {
+                character.setPosition(x_offset * GRID_SIZE, y_offset * GRID_SIZE);
+                character.body.setVelocity(0,0);
+                character.setVisible(true);
+                character.setData('shootable', true);
+                current_health = game_options.health;
+                life_text.setText("" + current_health + "/" + game_options.health);
+                life_text.setVisible(true);
+                gun.setVisible(true);
+                character.data.values.ammo_text.setVisible(true);
+                character.data.values.addAmmo(game_options.starting_ammo - character.data.values.ammo);
+            })
         });
 
         //character.play('hero_run');
@@ -128,6 +163,11 @@ let GameScene = new Phaser.Class({
                 Phaser.Math.RadToDeg(mouse_vector.angle()));
         });
 
+        let life_text = scene.add.text(ammo_text_x_offset * GRID_SIZE,SCREEN_HEIGHT - GRID_SIZE/2,
+            "" + current_health + "/" + game_options.health,
+            { font: '' + GRID_SIZE/2 + 'px SigmarOne-Regular', fill: COLORS.TEXT_PLAYER[player] })
+            .setOrigin(ammo_text_x_origin,1);
+
         character.setData('ammo_text',
             scene.add.text(ammo_text_x_offset * GRID_SIZE,SCREEN_HEIGHT,
                 "" + character.data.values.ammo + "",
@@ -150,7 +190,7 @@ let GameScene = new Phaser.Class({
             });
             let x = character.x;
             let y = character.y;
-            mouse_vector.x = GRID_SIZE/8;
+            mouse_vector.x = game_options.bullet_speed;
             mouse_vector.y = 0;
             mouse_vector.rotate(Phaser.Math.DegToRad(
                 character.data.values.gun.angle));
@@ -179,6 +219,9 @@ let GameScene = new Phaser.Class({
         character.setData('fire', false);
 
         character.setData('update', function () {
+            if (current_health === 0) {
+                return;
+            }
             let dx = 0;
             let dy = 0;
             if (character.data.values.left) {
@@ -573,7 +616,8 @@ let GameScene = new Phaser.Class({
             (character, touchable) => touchable.data.values.onTouch(character, touchable));
         scene.physics.add.overlap(scene.__players, scene.__bullets,
             function(character, bullet) {
-                if (bullet.data.values.player !== character.data.values.player) {
+                if (bullet.data.values.player !== character.data.values.player &&
+                    character.data.values.shootable) {
                     character.data.values.onShot();
                     bullet.destroy();
                 }
