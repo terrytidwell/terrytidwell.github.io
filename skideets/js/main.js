@@ -352,57 +352,6 @@ let GameScene = new Phaser.Class({
             return true;
         };
 
-        let line_algorithm = function(path, x, y) {
-            let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
-            let path_color = grid[x][y].data.values.color;
-            let preferred_direction = ARROW.RIGHT === arrow ?
-                DIRECTION.RIGHT : DIRECTION.LEFT;
-            let dx = path.steps[0].dx;
-            let dy = path.steps[0].dy;
-            let previous_direction = DIRECTION.opposite(path.steps[0].d1);
-            let directions = [
-                preferred_direction,
-                DIRECTION.UP, //up
-                DIRECTION.DOWN, //down
-            ];
-            let finished = false;
-            while (!finished) {
-                finished = true;
-                for (let direction of directions) {
-                    if (direction === DIRECTION.opposite(previous_direction)) {
-                        continue;
-                    }
-                    let test_x = x + DIRECTION.dx(direction);
-                    let test_y = y + DIRECTION.dy(direction);
-                    if (!legal_to_add(test_x, test_y, path_color))
-                    {
-                        continue;
-                    }
-
-                    dx += DIRECTION.dx(direction);
-                    dy += DIRECTION.dy(direction);
-                    x = test_x;
-                    y = test_y;
-                    previous_direction = direction;
-                    path.steps[0].d2 = direction;
-                    path.steps.unshift({
-                        square: grid[x][y],
-                        dx: dx,
-                        dy: dy,
-                        d1: DIRECTION.opposite(direction),
-                        d2: DIRECTION.NONE});
-                    path.min_x = Math.min(path.min_x, x);
-                    path.min_y = Math.min(path.min_y, y);
-                    path.max_x = Math.max(path.max_x, x);
-                    path.max_y = Math.max(path.max_y, y);
-
-                    finished = false;
-                    break;
-                }
-            }
-            return path;
-        };
-
         let new_line_algorithm = function(path, x, y) {
             let arrow = path.steps[path.steps.length-1].square.data.values.arrow;
             let path_color = grid[x][y].data.values.color;
