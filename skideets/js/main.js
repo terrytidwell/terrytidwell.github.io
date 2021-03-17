@@ -803,7 +803,7 @@ let GameScene = new Phaser.Class({
             scanline.setFlipX(DIRECTION.LEFT === scanlineDirection);
             scanline_overlay.setFlipX(DIRECTION.LEFT === scanlineDirection);
 
-            set_scanline();
+            set_scanline(true);
             scan_line_enter(scanlineX, scanlineDirection);
         };
 
