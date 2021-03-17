@@ -9,7 +9,17 @@ const COLORS = {
     DARK_PLAYER : [0x008000, 0x804000],
     TEXT_PLAYER : ['#008000', '#804000']
 };
-
+let game_options = {
+    goal_height : 2*GRID_SIZE,
+    capture_time : 3000,
+    fire_delay : 100,
+    jump_strength : GRID_SIZE * -8.6,
+    jump_deadening : 0.75,
+    ball_bounce : 0.75,
+    gravity : GRID_SIZE * 14.0625,
+    ammo_value : 3,
+    starting_ammo : 3,
+};
 let LoadScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -97,17 +107,15 @@ let GameScene = new Phaser.Class({
         character.setData('gun', gun);
 
         scene.__players.add(character);
-        character.body.gravity.y = GRID_SIZE * 14.0625;
-        character.setData('jump_strength', GRID_SIZE * -8.6);
-        character.setData('jump_deadening', 0.75);
-        character.setData('ammo', 3);
+        character.body.gravity.y = game_options.gravity;
+        character.setData('ammo', game_options.starting_ammo);
 
         let align_player_group = function () {
             let center_x = character.body.x + character.width / 2;
             let center_y = character.body.y + character.height / 2;
 
             character.data.values.gun.x = center_x;
-            character.data.values.gun.y =  center_y;
+            character.data.values.gun.y = center_y;
         };
         align_player_group();
 
@@ -137,7 +145,7 @@ let GameScene = new Phaser.Class({
             }
             character.data.values.addAmmo(-1);
             allow_fire = false;
-            scene.time.delayedCall(100, function () {
+            scene.time.delayedCall(game_options.fire_delay, function () {
                 allow_fire = true;
             });
             let x = character.x;
@@ -182,7 +190,7 @@ let GameScene = new Phaser.Class({
             if (character.data.values.up) {
                 if (character.body.blocked.down) {
                     character.body.setVelocityY(
-                        character.data.values.jump_strength
+                        game_options.jump_strength
                     );
                 }
             }
@@ -191,7 +199,7 @@ let GameScene = new Phaser.Class({
                 if (character.body.velocity.y < 0)
                 {
                     character.body.setVelocityY(character.body.velocity.y *
-                        character.data.values.jump_deadening);
+                        game_options.jump_deadening);
                 }
             }
             if (character.data.values.down)
@@ -302,7 +310,7 @@ let GameScene = new Phaser.Class({
                 })
             }
         });
-        ball.body.setBounce(0.75);
+        ball.body.setBounce(game_options.ball_bounce);
 
         return ball;
     },
@@ -340,7 +348,7 @@ let GameScene = new Phaser.Class({
             let ammo = scene.add.sprite(rx, y*GRID_SIZE, 'ammo').setScale(2);
             scene.__touchables.add(ammo);
             scene.__ammos.add(ammo);
-            ammo.body.gravity.y =  GRID_SIZE * 14.0625;
+            ammo.body.gravity.y = game_options.gravity;
             ammo.body.velocity.y = -GRID_SIZE * 2.5;
             ammo.setData('onTouch', function(character, ammo) {
                 let x_target = character.data.values.ammo_text.x;
@@ -365,7 +373,7 @@ let GameScene = new Phaser.Class({
                     duration: 500,
                     onComplete: function () {
                         text.destroy();
-                        character.data.values.addAmmo(3);
+                        character.data.values.addAmmo(game_options.ammo_value);
                     }
                 });
                 timeline.play();
@@ -416,17 +424,17 @@ let GameScene = new Phaser.Class({
                 let text_tween = scene.tweens.add({
                     targets: capture_text,
                     y: y*GRID_SIZE - GRID_SIZE*3/4,
-                    duration: 3000
+                    duration: game_options.capture_time
                 });
                 let capture_rectangle_tween = scene.tweens.add({
                     targets: capture_rectangle,
                     scaleX: 1,
-                    duration: 3000
+                    duration: game_options.capture_time
                 });
                 capture_tween = scene.tweens.add({
                     targets: {progress: 0},
                     props: {progress: 100},
-                    duration: 3000,
+                    duration: game_options.capture_time,
                     onUpdate: function() {
 
                         if(!scene.physics.overlap(character, capture_point)) {
@@ -475,7 +483,6 @@ let GameScene = new Phaser.Class({
         let addGoal = function (player) {
             let x_offset = 1.5;
             let x_back_offset = - GRID_SIZE/8 - GRID_SIZE/16;
-            let goal_height = GRID_SIZE*2;
             if (player === 1) {
                 x_offset = SCREEN_COLS - x_offset;
                 x_back_offset = -x_back_offset;
@@ -483,21 +490,21 @@ let GameScene = new Phaser.Class({
 
             let goal_exterior = scene.add.rectangle(
                 x_offset * GRID_SIZE + x_back_offset, SCREEN_HEIGHT / 2,
-                GRID_SIZE/8, goal_height - GRID_SIZE/4,
+                GRID_SIZE/8, game_options.goal_height - GRID_SIZE/4,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2 + goal_height/2 - GRID_SIZE/8/2,
+                SCREEN_HEIGHT / 2 + game_options.goal_height/2 - GRID_SIZE/8/2,
                 GRID_SIZE/2, GRID_SIZE/8,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             goal_exterior = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2 - goal_height/2 + GRID_SIZE/8/2,
+                SCREEN_HEIGHT / 2 - game_options.goal_height/2 + GRID_SIZE/8/2,
                 GRID_SIZE/2, GRID_SIZE/8,
                 0x000080, 1.0);
             scene.__ball_platforms.add(goal_exterior);
             let goal = scene.add.rectangle(x_offset * GRID_SIZE,
-                SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, goal_height - GRID_SIZE/4,
+                SCREEN_HEIGHT / 2, GRID_SIZE/2 - GRID_SIZE/4, game_options.goal_height - GRID_SIZE/4,
                 0x0000ff, 1.0);
             goal.setData('player', player);
 
