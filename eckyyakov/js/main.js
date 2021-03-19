@@ -571,6 +571,87 @@ let GameScene = new Phaser.Class({
         addGoal(1);
     },
 
+    add_outro : function(player_label) {
+        let scene = this;
+
+        scene.tweens.add({
+            targets: scene.__ball,
+            alpha: 0,
+            scale: 2,
+            duration: 500
+        });
+        let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            ["PLAYER " + player_label, "SCORES!"],
+            { font: GRID_SIZE*2 + 'px SigmarOne-Regular', fill: '#000000' })
+            .setOrigin(0.5)
+            .setStroke("#F0F0F0", GRID_SIZE*2/4)
+            .setScrollFactor(0)
+            .setOrigin(0.5)
+            //.setDepth(DEPTHS.HUD)
+            .setScale(3)
+            .setAlpha(0)
+            .setAlign('center');
+        scene.__marquee_timeline = scene.tweens.createTimeline();
+        scene.__marquee_timeline.add({
+            targets: text,
+            scale: 1,
+            alpha: 1,
+            duration: 500,
+            onComplete: function() {
+                scene.cameras.main.shake(250, 0.007, true);
+            }
+        });
+        scene.__marquee_timeline.add({
+            targets: text,
+            scale: 2,
+            alpha: 0,
+            delay: 1500,
+            duration: 100,
+            onComplete: function() {
+                scene.scene.restart();
+            }
+        });
+        scene.__marquee_timeline.play();
+    },
+
+    add_intro : function() {
+        let scene = this;
+
+        let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            ["GAME START",
+                "" + GameState.player_scores[0] + "-" + GameState.player_scores[1]],
+            { font: GRID_SIZE*2 + 'px SigmarOne-Regular', fill: '#000000' })
+            .setOrigin(0.5)
+            .setStroke("#F0F0F0", GRID_SIZE*2/4)
+            .setScrollFactor(0)
+            .setOrigin(0.5)
+            //.setDepth(DEPTHS.HUD)
+            .setScale(3)
+            .setAlpha(0)
+            .setAlign('center');
+        scene.__marquee_timeline = scene.tweens.createTimeline();
+        scene.__marquee_timeline.add({
+            targets: text,
+            scale: 1,
+            alpha: 1,
+            duration: 500,
+            onComplete: function() {
+                scene.cameras.main.shake(250, 0.007, true);
+            }
+        });
+        scene.__marquee_timeline.add({
+            targets: text,
+            scale: 2,
+            alpha: 0,
+            delay: 1500,
+            duration: 100,
+            onComplete: function() {
+                scene.__marquee_timeline = null;
+            }
+        });
+        scene.__marquee_timeline.play();
+    },
+
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
@@ -609,7 +690,7 @@ let GameScene = new Phaser.Class({
             scene.addPlayer(0),
             scene.addPlayer(1)
         ];
-        let ball = scene.addBall();
+        scene.__ball = scene.addBall();
 
         //SETUP INPUTS
 
@@ -668,7 +749,7 @@ let GameScene = new Phaser.Class({
         scene.physics.add.collider(scene.__bullets, scene.__ball_platforms, function(bullet, platform) {
             bullet.destroy();
         });
-        scene.physics.add.collider(ball, scene.__ball_platforms);
+        scene.physics.add.collider(scene.__ball, scene.__ball_platforms);
         scene.physics.add.collider(scene.__ammos, scene.__ball_platforms)
         scene.physics.add.collider(scene.__ammos, scene.__ammos);
         scene.physics.add.overlap(scene.__ammos, scene.__capture_points, function(ammo, capture_point) {
@@ -679,55 +760,23 @@ let GameScene = new Phaser.Class({
             }
             ammo.data.values.onTouch(scene.__player_objects[capture_point.data.values.capture_status], ammo);
         });
-        scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
+        scene.physics.add.overlap(scene.__ball, scene.__goals, function(ball, goal) {
+            if (scene.__marquee_timeline) {
+                return;
+            }
             GameState.player_scores[goal.data.values.player]++;
-            scene.scene.restart('GameScene');
+            scene.add_outro(goal.data.values.player+1);
         });
 
-        scene.__intro_timeline = null;
-        let add_intro = function() {
-            let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
-                ["GAME START",
-                    "" + GameState.player_scores[0] + "-" + GameState.player_scores[1]],
-                { font: GRID_SIZE*2 + 'px SigmarOne-Regular', fill: '#000000' })
-                .setOrigin(0.5)
-                .setStroke("#F0F0F0", GRID_SIZE*2/4)
-                .setScrollFactor(0)
-                .setOrigin(0.5)
-                //.setDepth(DEPTHS.HUD)
-                .setScale(3)
-                .setAlpha(0)
-                .setAlign('center');
-            scene.__intro_timeline = scene.tweens.createTimeline();
-            scene.__intro_timeline.add({
-                targets: text,
-                scale: 1,
-                alpha: 1,
-                duration: 500,
-                onComplete: function() {
-                    scene.cameras.main.shake(250, 0.007, true);
-                }
-            });
-            scene.__intro_timeline.add({
-                targets: text,
-                scale: 2,
-                alpha: 0,
-                delay: 1500,
-                duration: 100,
-                onComplete: function() {
-                    scene.__intro_timeline = null;
-                }
-            });
-            scene.__intro_timeline.play();
-        };
-        add_intro();
+        scene.__marquee_timeline = null;
+        scene.add_intro();
     },
 
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
 
-        if (scene.__intro_timeline) {
+        if (scene.__marquee_timeline) {
             return;
         }
 
