@@ -100,6 +100,8 @@ let GameScene = new Phaser.Class({
         let color = COLORS.PLAYER[player];
         let ammo_text_x_offset = 0;
         let ammo_text_x_origin = 0;
+        let character_width = GRID_SIZE/4;
+        let character_height=GRID_SIZE*3/4;
 
         if (player === 1) {
             x_offset = SCREEN_COLS - x_offset;
@@ -107,8 +109,9 @@ let GameScene = new Phaser.Class({
             ammo_text_x_origin = 1;
         }
 
+
         let character = scene.add.rectangle(x_offset * GRID_SIZE, y_offset * GRID_SIZE
-            ,GRID_SIZE/4,GRID_SIZE*3/4,color, 1.0);
+            ,character_width,character_height,color, 1.0);
         character.setData('player', player);
 
         character.setData('shootable', true);
@@ -118,6 +121,14 @@ let GameScene = new Phaser.Class({
             }
             current_health = Math.max(0, current_health - 1);
             life_text.setText("" + current_health + "/" + game_options.health);
+            let flash = scene.add.rectangle(x_offset * GRID_SIZE, y_offset * GRID_SIZE
+                ,character_width,character_height,0xff0000, 1.0);
+            scene.tweens.add({
+                targets: flash,
+                alpha: 0,
+                scale: 2,
+                duration: 250
+            });
             if (current_health > 0) {
                 return;
             }
