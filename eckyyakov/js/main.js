@@ -662,9 +662,7 @@ let GameScene = new Phaser.Class({
             ammo.data.values.onTouch(scene.__player_objects[capture_point.data.values.capture_status], ammo);
         });
         scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
-            ball.body.x = SCREEN_WIDTH / 2 - ball.width/2;
-            ball.body.y = SCREEN_HEIGHT / 2 - ball.height/2;
-            ball.body.setVelocity(0,0);
+            scene.scene.restart();
         });
     },
 
