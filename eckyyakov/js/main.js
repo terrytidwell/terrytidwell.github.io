@@ -72,6 +72,10 @@ let LoadScene = new Phaser.Class({
     },
 });
 
+let GameState = {
+    player_scores : [0,0],
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -372,18 +376,18 @@ let GameScene = new Phaser.Class({
 
         let platform_size = GRID_SIZE/4;
         let floor = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT + platform_size/2,
-            SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
+            SCREEN_WIDTH, platform_size, 0x000000, 1.0);
         addWallToPhysics(floor);
 
         floor = scene.add.rectangle(SCREEN_WIDTH/2, - platform_size/2,
-            SCREEN_WIDTH, platform_size, 0xff0000, 1.0);
+            SCREEN_WIDTH, platform_size, 0x000000, 1.0);
         addWallToPhysics(floor);
 
         let wall = scene.add.rectangle(SCREEN_WIDTH + platform_size/2, SCREEN_HEIGHT/2,
-            platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
+            platform_size, SCREEN_HEIGHT, 0x000000, 1.0);
         addWallToPhysics(wall);
         wall = scene.add.rectangle(- platform_size/2, SCREEN_HEIGHT/2,
-            platform_size, SCREEN_HEIGHT, 0xff0000, 1.0);
+            platform_size, SCREEN_HEIGHT, 0x000000, 1.0);
         addWallToPhysics(wall);
 
         let ammo_randomizer = function() {
@@ -535,7 +539,7 @@ let GameScene = new Phaser.Class({
         let addGoal = function (player) {
             let x_offset = 1.5;
             let x_back_offset = - GRID_SIZE/8 - GRID_SIZE/16;
-            if (player === 1) {
+            if (player === 0) {
                 x_offset = SCREEN_COLS - x_offset;
                 x_back_offset = -x_back_offset;
             }
@@ -596,7 +600,7 @@ let GameScene = new Phaser.Class({
                 ammos_spawned++;
             }
             scene.time.delayedCall(game_options.ammo_spawn_delay(ammos_spawned), spawn_ammo);
-        }
+        };
         scene.time.delayedCall(game_options.ammo_spawn_delay(ammos_spawned), spawn_ammo);
 
 
@@ -611,15 +615,6 @@ let GameScene = new Phaser.Class({
 
         scene.input.addPointer(5);
 
-        scene.input.on(Phaser.Input.Events.POINTER_MOVE, function(pointer) {
-            let dx = pointer.worldX - scene.__player_objects[0].data.values.gun.x;
-            let dy = pointer.worldY - scene.__player_objects[0].data.values.gun.y;
-            let d = Math.sqrt(dx * dx + dy * dy);
-            dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
-            dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
-            scene.__player_objects[0].data.values.setAngle(dx, dy);
-        });
-
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
         scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
@@ -627,8 +622,31 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
         scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
 
-        scene.__cursor_keys.letter_one.on(Phaser.Input.Keyboard.Events.UP,
+        let shutdown_handler = [];
+
+        let bind_event = function(key, event, handler) {
+            key.on(event, handler);
+
+            shutdown_handler.push(function() {
+                key.off(event);
+            })
+        }
+        scene.events.once('shutdown', function() {
+            for (let handler of shutdown_handler) {
+                handler();
+            }
+        });
+
+        bind_event(scene.__cursor_keys.letter_one, Phaser.Input.Keyboard.Events.DOWN,
             scene.__player_objects[0].data.values.toggleGun);
+        bind_event(scene.input, Phaser.Input.Events.POINTER_MOVE, function(pointer) {
+            let dx = pointer.worldX - scene.__player_objects[0].data.values.gun.x;
+            let dy = pointer.worldY - scene.__player_objects[0].data.values.gun.y;
+            let d = Math.sqrt(dx * dx + dy * dy);
+            dx = dx / d * GRID_SIZE/SPRITE_SCALE/2;
+            dy = dy / d * GRID_SIZE/SPRITE_SCALE/2;
+            scene.__player_objects[0].data.values.setAngle(dx, dy);
+        });
 
         //SETUP PHYSICS INTERACTIONS
 
@@ -662,13 +680,56 @@ let GameScene = new Phaser.Class({
             ammo.data.values.onTouch(scene.__player_objects[capture_point.data.values.capture_status], ammo);
         });
         scene.physics.add.overlap(ball, scene.__goals, function(ball, goal) {
-            scene.scene.restart();
+            GameState.player_scores[goal.data.values.player]++;
+            scene.scene.restart('GameScene');
         });
+
+        scene.__intro_timeline = null;
+        let add_intro = function() {
+            let text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                ["GAME START",
+                    "" + GameState.player_scores[0] + "-" + GameState.player_scores[1]],
+                { font: GRID_SIZE*2 + 'px SigmarOne-Regular', fill: '#000000' })
+                .setOrigin(0.5)
+                .setStroke("#F0F0F0", GRID_SIZE*2/4)
+                .setScrollFactor(0)
+                .setOrigin(0.5)
+                //.setDepth(DEPTHS.HUD)
+                .setScale(3)
+                .setAlpha(0)
+                .setAlign('center');
+            scene.__intro_timeline = scene.tweens.createTimeline();
+            scene.__intro_timeline.add({
+                targets: text,
+                scale: 1,
+                alpha: 1,
+                duration: 500,
+                onComplete: function() {
+                    scene.cameras.main.shake(250, 0.007, true);
+                }
+            });
+            scene.__intro_timeline.add({
+                targets: text,
+                scale: 2,
+                alpha: 0,
+                delay: 1500,
+                duration: 100,
+                onComplete: function() {
+                    scene.__intro_timeline = null;
+                }
+            });
+            scene.__intro_timeline.play();
+        };
+        add_intro();
     },
 
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
+
+        if (scene.__intro_timeline) {
+            return;
+        }
 
         let gamepad_input = {
             left : false,
