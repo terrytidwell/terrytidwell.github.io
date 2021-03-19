@@ -22,8 +22,12 @@ let game_options = {
     defeat_time : 3000,
     health : 30, // health_time / fire_delay
     bullet_speed: GRID_SIZE/8,
+    max_concurrent_ammos : 5,
     respawn_delay : function(respawns) {
         return respawns * 500 + 2500;
+    },
+    ammo_spawn_delay : function(ammos_created) {
+        return Phaser.Math.Between(1000, 3000);
     }
 };
 let LoadScene = new Phaser.Class({
@@ -385,44 +389,49 @@ let GameScene = new Phaser.Class({
         let ammo_randomizer = function() {
             return Phaser.Math.Between(1000,30000);
         };
-        let add_ammo = function(x,y, length) {
-            let rx = Phaser.Math.Between((x - length/2) * GRID_SIZE,
-                (x + length/2)*GRID_SIZE);
-            let ammo = scene.add.sprite(rx, y*GRID_SIZE, 'ammo').setScale(2);
-            scene.__touchables.add(ammo);
-            scene.__ammos.add(ammo);
-            ammo.body.gravity.y = game_options.gravity;
-            ammo.body.velocity.y = -GRID_SIZE * 2.5;
-            ammo.setData('onTouch', function(character, ammo) {
-                let x_target = character.data.values.ammo_text.x;
-                let y_target = character.data.values.ammo_text.y;
-                let start_y = ammo.body.y + ammo.body.height/2;
-                let text = scene.add.text(ammo.body.x + ammo.body.width/2,
-                    start_y,"+3", { font: GRID_SIZE/2 + 'px SigmarOne-Regular',
-                    fill: COLORS.TEXT_PLAYER[character.data.values.player] })
-                    .setOrigin(0.5,1);
+        let add_ammo_function = function(x,y, length) {
+            let add_ammo = function() {
+                let rx = Phaser.Math.Between((x - length / 2) * GRID_SIZE,
+                    (x + length / 2) * GRID_SIZE);
+                let ammo = scene.add.sprite(rx, y * GRID_SIZE, 'ammo').setScale(2);
+                scene.__touchables.add(ammo);
+                scene.__ammos.add(ammo);
+                ammo.body.gravity.y = game_options.gravity;
+                ammo.body.velocity.y = -GRID_SIZE * 2.5;
+                ammo.setData('onTouch', function (character, ammo) {
+                    let x_target = character.data.values.ammo_text.x;
+                    let y_target = character.data.values.ammo_text.y;
+                    let start_y = ammo.body.y + ammo.body.height / 2;
+                    let text = scene.add.text(ammo.body.x + ammo.body.width / 2,
+                        start_y, "+3", {
+                            font: GRID_SIZE / 2 + 'px SigmarOne-Regular',
+                            fill: COLORS.TEXT_PLAYER[character.data.values.player]
+                        })
+                        .setOrigin(0.5, 1);
 
-                let timeline = scene.tweens.createTimeline();
-                timeline.add({
-                    targets: text,
-                    y: start_y-GRID_SIZE/2,
-                    duration: 500});
-                timeline.add({
-                    targets: text,
-                    alpha: 0.5,
-                    scale: 0.5,
-                    x : x_target,
-                    y : y_target,
-                    duration: 500,
-                    onComplete: function () {
-                        text.destroy();
-                        character.data.values.addAmmo(game_options.ammo_value);
-                    }
+                    let timeline = scene.tweens.createTimeline();
+                    timeline.add({
+                        targets: text,
+                        y: start_y - GRID_SIZE / 2,
+                        duration: 500
+                    });
+                    timeline.add({
+                        targets: text,
+                        alpha: 0.5,
+                        scale: 0.5,
+                        x: x_target,
+                        y: y_target,
+                        duration: 500,
+                        onComplete: function () {
+                            text.destroy();
+                            character.data.values.addAmmo(game_options.ammo_value);
+                        }
+                    });
+                    timeline.play();
+                    ammo.destroy();
                 });
-                timeline.play();
-                ammo.destroy();
-            });
-            scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y, length]);
+            }
+            scene.__ammo_spawn_points.push(add_ammo);
         };
 
         let createPlatforms = function(x, y, width, height, color, alpha) {
@@ -509,7 +518,7 @@ let GameScene = new Phaser.Class({
                     }
                 })
             });
-            scene.time.delayedCall(ammo_randomizer(), add_ammo, [x,y-1, length]);
+            add_ammo_function(x, y-1, length);
         };
 
         let add_left_platform= function(x, y, length) {
@@ -578,6 +587,18 @@ let GameScene = new Phaser.Class({
         scene.__goals = scene.physics.add.group();
         scene.__players = scene.physics.add.group();
         scene.__ammos = scene.physics.add.group();
+        scene.__ammo_spawn_points = [];
+        let ammos_spawned = 0;
+
+        let spawn_ammo = function() {
+            if (scene.__ammos.getLength() < game_options.max_concurrent_ammos) {
+                Phaser.Utils.Array.GetRandom(scene.__ammo_spawn_points)();
+                ammos_spawned++;
+            }
+            scene.time.delayedCall(game_options.ammo_spawn_delay(ammos_spawned), spawn_ammo);
+        }
+        scene.time.delayedCall(game_options.ammo_spawn_delay(ammos_spawned), spawn_ammo);
+
 
         scene.setupField();
         scene.__player_objects = [
