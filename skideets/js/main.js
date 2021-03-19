@@ -659,8 +659,12 @@ let GameScene = new Phaser.Class({
             }
         };
 
+        let calculate_score = function(length) {
+            return 300 + (length-3) * 50 + (length-3)*(length-3)*50;
+        };
+
         let clear_line = function(active_line) {
-            let delta = active_line.path.steps.length * 100;
+            let delta = calculate_score(active_line.path.steps.length);
             let mid_x = (active_line.path.min_x + active_line.path.max_x)/2;
             let mid_y = (active_line.path.min_y + active_line.path.max_y)/2;
             let text = scene.add.text(
