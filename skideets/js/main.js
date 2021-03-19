@@ -133,6 +133,8 @@ let LoadScene = new Phaser.Class({
         this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
         this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
+        this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v3_Bar.png');
+        this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v3_Trail.png');
         this.load.image('menu', 'assets/ScanlineMenu_v2.png');
         this.load.image('bonus_box', 'assets/Play Grid/BonusBox.png');
         this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
@@ -610,20 +612,27 @@ let GameScene = new Phaser.Class({
 
         let set_scanline = function(supress_shadow = false) {
             scanline.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2 + grid_offset);
-            scanline_overlay.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2 + grid_offset)
-                .setScale(1)
-                .setAlpha(1);
+            scanline_tail.setPosition(gridX(scanlineX), SCREEN_HEIGHT/2 + grid_offset);
             if (supress_shadow) {
                 return;
             }
             scene.tweens.add({
-                targets: scanline_overlay,
-                alpha: 0,
-                scaleY: 1.25,
-                scaleX: 3,
+                targets: [scanline, scanline_tail],
+                x: gridX(scanlineX + DIRECTION.dx(scanlineDirection)),
+                duration: 60 * 1000 / BPM
+            });
+            scene.tweens.add({
+                targets: [scanline],
+                alpha: 0.85,
+                yoyo: true,
                 duration: 60 * 1000 / BPM / 2
             });
-
+            scene.tweens.add({
+                targets: [scanline_tail],
+                alpha: 0.65,
+                yoyo: true,
+                duration: 60 * 1000 / BPM / 2
+            });
         };
 
         let active_lines = [];
@@ -750,9 +759,11 @@ let GameScene = new Phaser.Class({
             }
 
             scanline.setFlipX(DIRECTION.LEFT === scanlineDirection);
-            scanline_overlay.setFlipX(DIRECTION.LEFT === scanlineDirection);
+            scanline_tail.setFlipX(DIRECTION.LEFT === scanlineDirection);
+            scanline_tail.setOrigin(DIRECTION.LEFT === scanlineDirection ? 0 : 1,
+                0.5)
 
-            set_scanline(true);
+            set_scanline(false);
             scan_line_enter(scanlineX, scanlineDirection);
         };
 
@@ -788,8 +799,12 @@ let GameScene = new Phaser.Class({
 
         let scanlineX = 0;
         let scanlineDirection = DIRECTION.RIGHT;
-        let scanline = scene.add.sprite(0,0,'scanline');
-        let scanline_overlay = scene.add.sprite(0,0,'scanline');
+        let scanline_tail = scene.add.sprite(0,0,'scanline_tail')
+            .setOrigin(1, 0.5)
+            .setScale(583/818);
+        let scanline = scene.add.sprite(0,0,'scanline_bar')
+            .setScale(583/818);
+
 
         //add_test_line();
 
@@ -870,6 +885,7 @@ let GameScene = new Phaser.Class({
 
 
         let start = function () {
+            set_scanline();
             scene.time.addEvent({
                 "delay": 60 * 1000 / BPM,
                 "loop": true,
