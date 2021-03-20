@@ -912,11 +912,11 @@ let GameScene = new Phaser.Class({
             scene.space_key.on('down', try_selection);
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                'Going Home',{ font: GRID_SIZE + 'px xolonium', fill: '#FFF' })
+                'Going Home',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let artist_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                'By Arinity',{ font: GRID_SIZE + 'px xolonium', fill: '#FFF' })
+                'By Arinity',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let title_timeline = scene.tweens.createTimeline()
