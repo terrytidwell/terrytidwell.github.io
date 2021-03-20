@@ -928,12 +928,14 @@ let GameScene = new Phaser.Class({
             title_timeline.add({
                 targets: title_text,
                 x: 0,
-                duration: 2000
-            });
-            title_timeline.add({
-                targets: title_text,
-                x: -SCREEN_WIDTH,
-                alpha: 0
+                duration: 2000,
+                onComplete: () => {
+                    scene.tweens.add({
+                        targets: title_text,
+                        x: -SCREEN_WIDTH,
+                        alpha: 0
+                    });
+                }
             });
             title_timeline.add({
                 targets: artist_text,
