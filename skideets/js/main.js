@@ -120,7 +120,7 @@ let LoadScene = new Phaser.Class({
 
         let loading_text = scene.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-            "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
+            "0%", { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
         this.load.spritesheet('boxes', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
@@ -910,6 +910,47 @@ let GameScene = new Phaser.Class({
             });
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             scene.space_key.on('down', try_selection);
+
+            let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
+                'Going Home',{ font: GRID_SIZE + 'px xolonium', fill: '#FFF' })
+                .setOrigin(0,1)
+                .setAlpha(0);
+            let artist_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
+                'By Arinity',{ font: GRID_SIZE + 'px xolonium', fill: '#FFF' })
+                .setOrigin(0,1)
+                .setAlpha(0);
+            let title_timeline = scene.tweens.createTimeline()
+            title_timeline.add({
+                targets: title_text,
+                x: GRID_SIZE,
+                alpha: 0.7
+            });
+            title_timeline.add({
+                targets: title_text,
+                x: 0,
+                duration: 2000
+            });
+            title_timeline.add({
+                targets: title_text,
+                x: -SCREEN_WIDTH,
+                alpha: 0
+            });
+            title_timeline.add({
+                targets: artist_text,
+                x: GRID_SIZE,
+                alpha: 0.7
+            });
+            title_timeline.add({
+                targets: artist_text,
+                x: 0,
+                duration: 2000
+            });
+            title_timeline.add({
+                targets: artist_text,
+                x: -SCREEN_WIDTH,
+                alpha: 0
+            });
+            title_timeline.play();
         }
 
     },
