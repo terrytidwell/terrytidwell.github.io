@@ -3,7 +3,7 @@ const GRID_COLS = 16;
 const GRID_ROWS = 10;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 768;
-const BPM = 133;
+const BPM = 116;
 
 const ARROW = {
     NONE: 0,
