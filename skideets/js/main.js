@@ -140,6 +140,7 @@ let LoadScene = new Phaser.Class({
         this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
         this.load.image('score_box', 'assets/Play Grid/ScoreBox.png');
         this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
+        this.load.audio('bg_music', ['assets/Arinity - Going Home.mp3']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -910,6 +911,8 @@ let GameScene = new Phaser.Class({
             });
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             scene.space_key.on('down', try_selection);
+
+            scene.sound.add('bg_music', {loop: true }).play();
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
                 'Going Home',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
