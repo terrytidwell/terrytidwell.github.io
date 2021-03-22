@@ -65,7 +65,7 @@ let LoadScene = new Phaser.Class({
             loading_text.setText(Math.round(percentage) + "%");
         });
         scene.load.once('complete',  function() {
-            scene.scene.start('GameScene');
+            scene.scene.start('ControllerScene');
             scene.scene.stop('LoadScene');
         });
     },
@@ -137,13 +137,13 @@ let LoadScene = new Phaser.Class({
     },
 });
 
-let GameScene = new Phaser.Class({
+let ControllerScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'GameScene', active: false});
+        Phaser.Scene.call(this, {key: 'ControllerScene', active: false});
     },
 
     //--------------------------------------------------------------------------
@@ -154,6 +154,125 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+        scene.__gridX = function(x) {
+            return x * GRID_SIZE + GRID_SIZE/2;
+        };
+
+        scene.__gridY = function(y) {
+            return y * GRID_SIZE + GRID_SIZE/2;
+        };
+
+        scene.__player_status = {
+            orientation: 0,
+            full_life: 10,
+            life: 10,
+            health_bar: addHealthBar(scene, 3, 2, 0, false),
+            do_enter_animation: false,
+        };
+        scene.__world_info = {
+            world_x : 8,
+            world_y : 8,
+            area : 'TestArea',
+            current_scene: null,
+        };
+        scene.__getlabel = function() {
+            return 'gamescene-'+scene.__world_info.area+'' + scene.__world_info.world_x +
+                '-' + scene.__world_info.world_y;
+        };
+        scene.__world_info.current_scene = scene.scene.add(
+            scene.__getlabel(),
+            GameScene, true, {text:"Scene Example"});
+
+        scene.__transitionCallback = function(new_scene, direction) {
+            scene.scene.bringToTop('CollectorScene');
+            let old_scene = scene.__world_info.current_scene;
+            scene.scene.moveAbove(new_scene.scene.key, old_scene.scene.key);
+            new_scene.scene.pause();
+
+
+            let shift_x = direction.dx * SCREEN_WIDTH - GRID_SIZE * 2 * direction.dx;
+            let shift_y = direction.dy * SCREEN_HEIGHT - GRID_SIZE * 2 * direction.dy
+            new_scene.cameras.main.x = shift_x;
+            new_scene.cameras.main.y = shift_y;
+            scene.add.tween({
+                targets: new_scene.cameras.main,
+                x: 0,
+                y: 0,
+                onComplete: function() {
+                    new_scene.scene.resume();
+                    old_scene.scene.sleep();
+                }
+            });
+            scene.add.tween({
+                targets: scene.__world_info.current_scene.cameras.main,
+                x: -shift_x,
+                y: -shift_y,
+            });
+            scene.__world_info.current_scene = new_scene;
+        };
+
+        scene.__transition = function() {
+            let scene = this;
+
+            scene.__world_info.current_scene.scene.pause();
+
+            let player_x = scene.__world_info.current_scene.__character.data.values.x;
+            let player_y = scene.__world_info.current_scene.__character.data.values.y;
+            let direction = {dx: 0, dy: 0};
+            if (player_x < 2) {
+                direction.dx = -1;
+            }
+            if (player_x > 9) {
+                direction.dx = 1;
+            }
+            if (player_y < 2) {
+                direction.dy = -1;
+            }
+            if (player_y > 9) {
+                direction.dy = 1;
+            }
+            scene.__world_info.world_x += direction.dx;
+            scene.__world_info.world_y += direction.dy;
+            let label = scene.__getlabel();
+            let new_scene = scene.scene.get(label);
+            if (!new_scene) {
+                scene.scene.add(label, GameScene, true,
+                    {
+                        parent: scene.__world_info.current_scene,
+                        parent_direction: direction
+                    });
+            } else {
+                new_scene.scene.wake();
+                scene.__transitionCallback(new_scene, direction);
+            }
+
+        };
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
+let GameScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    initialize: function Demo () {
+        Phaser.Scene.call(this);
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function (data) {
+        let scene = this;
+
+        if (data.parent) {
+            scene.scene.get('ControllerScene').__transitionCallback(scene, data.parent_direction);
+        }
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
@@ -179,6 +298,10 @@ let GameScene = new Phaser.Class({
             return x >= 0 && x < GRID_COLS &&
                 y >= 0 && y < GRID_ROWS &&
                 grid[x][y].visible;
+        };
+
+        scene.__shouldTransition = function(x,y) {
+            return x < 2 || x > 9 || y < 2 || y > 9;
         };
 
         let mobChecker = scene.add.rectangle(0, 0,
@@ -222,6 +345,12 @@ let GameScene = new Phaser.Class({
                     y >= 2 && y < 10)
                 {
                     square.setVisible(true);
+                }
+                if (y === 5 || y === 6) {
+                    //square.setVisible(true);
+                }
+                if (x === 5 || x === 6) {
+                    //square.setVisible(true);
                 }
                 grid[x].push(square);
             }
@@ -297,7 +426,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, GameScene ]
+    scene: [ LoadScene, ControllerScene ]
 };
 
 game = new Phaser.Game(config);

@@ -912,14 +912,15 @@ let addBishop = function(scene, x, y) {
 
 let addPlayer = function(scene, x,y) {
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
-    let full_life = 10;
-    let life = full_life;
-    let health_bar = addHealthBar(scene, 3, 2, 0, false);
+    let player_status = scene.scene.get('ControllerScene').__player_status;
     character.setData('x',x);
     character.setData('dx',0);
     character.setData('y',y);
     character.setData('dy',0);
-    character.setData('z',-1000);
+    character.setData('z',0);
+    let playerMoveAllowed = true;
+    let playerDangerous = false;
+    let playerGracePeriod = true;
 
     character.setData('update', function() {
         let x = character.data.values.x;
@@ -1008,6 +1009,9 @@ let addPlayer = function(scene, x,y) {
                 impact();
                 playerMoveAllowed = true;
                 playerDangerous = false;
+                if (scene.__shouldTransition(character.data.values.x, character.data.values.y)) {
+                    scene.scene.get('ControllerScene').__transition();
+                }
             }
         });
         timeline.play();
@@ -1020,6 +1024,7 @@ let addPlayer = function(scene, x,y) {
         LEFT: 3
     };
     let setOrientation = function(orientation) {
+        player_status.orientation = orientation;
         sprite.setTexture('black_pieces', 4 + orientation);
         sprite_overlay.setTexture('black_pieces', 4 + orientation);
     };
@@ -1036,22 +1041,6 @@ let addPlayer = function(scene, x,y) {
         }
     };
 
-    let playerMoveAllowed = false;
-    let playerDangerous = false;
-    let playerGracePeriod = false;
-    let tweenZ = scene.tweens.add({
-        targets: { z: character.data.values.z},
-        props: { z: 0 },
-        duration: 1000,
-        onUpdate: function() {
-            character.setData('z', tweenZ.getValue());
-        },
-        onComplete: function() {
-            impact();
-            playerMoveAllowed = true;
-        }
-    });
-
     character.setData('isHitting', function() {
         return playerDangerous;
     });
@@ -1061,8 +1050,8 @@ let addPlayer = function(scene, x,y) {
     });
 
     character.setData('onHit', function(impact_x, impact_y) {
-        life = Math.max(--life, 0);
-        health_bar.updateLife(life/full_life);
+        player_status.life = Math.max(--player_status.life, 0);
+        player_status.health_bar.updateLife(player_status.life/player_status.full_life);
         character.setData('z', 0);
         character.setData('y', Math.round(character.data.values.y));
         character.setData('x', Math.round(character.data.values.x));
@@ -1163,6 +1152,28 @@ let addPlayer = function(scene, x,y) {
     let shadow = scene.add.ellipse(0, 0,
         GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
     shadow.setDepth(DEPTHS.SURFACE);
+
+    setOrientation(player_status.orientation);
+
+    if (player_status.do_enter_animation) {
+        player_status.do_enter_animation = false;
+        character.setData('z', -1000);
+        playerMoveAllowed = false;
+        let tweenZ = scene.tweens.add({
+            targets: {z: character.data.values.z},
+            props: {z: 0},
+            duration: 1000,
+            onUpdate: function () {
+                character.setData('z', tweenZ.getValue());
+            },
+            onComplete: function () {
+                impact();
+                playerMoveAllowed = true;
+            }
+        });
+    } else {
+        scene.time.delayedCall(50, () => playerGracePeriod = false);
+    }
 
     character.data.values.update();
     return character;
