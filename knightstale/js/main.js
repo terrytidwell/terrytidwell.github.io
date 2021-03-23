@@ -169,7 +169,7 @@ let ControllerScene = new Phaser.Class({
             full_life: 10,
             life: 10,
             health_bar: addHealthBar(scene, 3, 2, 0, false),
-            do_enter_animation: false,
+            do_enter_animation: true,
             x: 5,
             y: 7,
             dx: 0,
@@ -314,6 +314,10 @@ let GameScene = new Phaser.Class({
             return x >= 0 && x < GRID_COLS &&
                 y >= 0 && y < GRID_ROWS &&
                 grid[x][y].visible;
+        };
+
+        scene.__isGridMobPassable = function(x,y) {
+            return scene.__isGridPassable(x,y) && !scene.__shouldTransition(x,y);
         };
 
         scene.__shouldTransition = function(x,y) {

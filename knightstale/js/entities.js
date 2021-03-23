@@ -253,7 +253,7 @@ let addPawn = function(scene, x,y) {
             (deltaX === 1 && deltaY === 1) ||
             (deltaX === 1 && deltaY === -1) ||
             (deltaX === -1 && deltaY === 1)) {
-            if (scene.__isGridPassable(m_x + deltaX, m_y + deltaY) &&
+            if (scene.__isGridMobPassable(m_x + deltaX, m_y + deltaY) &&
                 scene.__isGridMobFree(m_x + deltaX, m_y + deltaY)) {
                 m_dx = deltaX;
                 m_dy = deltaY;
@@ -315,7 +315,7 @@ let addPawn = function(scene, x,y) {
             return 0;
         });
         for(let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
+            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.d.dx;
@@ -458,7 +458,7 @@ let addPawn = function(scene, x,y) {
         m_dx = 0;
         m_dy = 0;
         for (let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy) &&
+            if (scene.__isGridMobPassable(m_x+direction.dx, m_y+direction.dy) &&
                 scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy) &&
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.dx;
@@ -598,7 +598,7 @@ let addFlameWave = function(scene, x, y) {
     //radius 3 = 12 square
 
     let createPoint = function(x, y) {
-        if (!scene.__isGridPassable(x,y)) {
+        if (!scene.__isGridMobPassable(x,y)) {
             return;
         }
         sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'fire', 0)
@@ -705,7 +705,7 @@ let addBishop = function(scene, x, y) {
             return 0;
         });
         for(let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
+            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
                 m_dx = direction.d.dx;
@@ -835,7 +835,7 @@ let addBishop = function(scene, x, y) {
             DIRECTIONS.opposite(current_direction),
         ];
         for (let direction of directions) {
-            if (scene.__isGridPassable(m_x+direction.dx, m_y+direction.dy) &&
+            if (scene.__isGridMobPassable(m_x+direction.dx, m_y+direction.dy) &&
                 scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy)) {
                 current_direction = direction;
                 change_move_target(m_x + direction.dx, m_y + direction.dy);
@@ -1188,7 +1188,7 @@ let addPlayer = function(scene, x,y) {
         player_status.z = -1000;
         player_status.playerMoveAllowed = false;
         let tweenZ = scene.tweens.add({
-            targets: {z: character.data.values.z},
+            targets: {z: player_status.z},
             props: {z: 0},
             duration: 1000,
             onUpdate: function () {
