@@ -137,6 +137,8 @@ let LoadScene = new Phaser.Class({
     },
 });
 
+
+
 let ControllerScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -168,6 +170,17 @@ let ControllerScene = new Phaser.Class({
             life: 10,
             health_bar: addHealthBar(scene, 3, 2, 0, false),
             do_enter_animation: false,
+            x: 5,
+            y: 7,
+            dx: 0,
+            dy: 0,
+            z: 0,
+            parity : 1,
+            playerMoveAllowed : true,
+            playerDangerous : false,
+            playerGracePeriod : true,
+            isVulnerable : () => !scene.__player_status.playerGracePeriod &&
+                scene.__player_status.playerMoveAllowed,
         };
         scene.__world_info = {
             world_x : 8,
@@ -183,10 +196,14 @@ let ControllerScene = new Phaser.Class({
             scene.__getlabel(),
             GameScene, true, {text:"Scene Example"});
 
+
         scene.__transitionCallback = function(new_scene, direction) {
             scene.scene.bringToTop('CollectorScene');
             let old_scene = scene.__world_info.current_scene;
-            scene.scene.moveAbove(new_scene.scene.key, old_scene.scene.key);
+            scene.scene.sendToBack(old_scene.scene.key);
+            new_scene.__character =
+                addPlayer(new_scene, scene.__player_status.x, scene.__player_status.y);
+            new_scene.__player_group.add(new_scene.__character);
             new_scene.scene.pause();
 
 
@@ -216,8 +233,8 @@ let ControllerScene = new Phaser.Class({
 
             scene.__world_info.current_scene.scene.pause();
 
-            let player_x = scene.__world_info.current_scene.__character.data.values.x;
-            let player_y = scene.__world_info.current_scene.__character.data.values.y;
+            let player_x = scene.__player_status.x;
+            let player_y = scene.__player_status.y;
             let direction = {dx: 0, dy: 0};
             if (player_x < 2) {
                 direction.dx = -1;
@@ -231,6 +248,8 @@ let ControllerScene = new Phaser.Class({
             if (player_y > 9) {
                 direction.dy = 1;
             }
+            scene.__player_status.x -= (GRID_COLS - 2) * direction.dx;
+            scene.__player_status.y -= (GRID_ROWS - 2) * direction.dy;
             scene.__world_info.world_x += direction.dx;
             scene.__world_info.world_y += direction.dy;
             let label = scene.__getlabel();
@@ -270,9 +289,6 @@ let GameScene = new Phaser.Class({
     create: function (data) {
         let scene = this;
 
-        if (data.parent) {
-            scene.scene.get('ControllerScene').__transitionCallback(scene, data.parent_direction);
-        }
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
@@ -314,9 +330,10 @@ let GameScene = new Phaser.Class({
         };
 
         scene.__checkPlayerCollision = function(x,y) {
-            return Math.round(scene.__character.data.values.x) ===
+            let player_status = scene.scene.get('ControllerScene').__player_status;
+            return Math.round(player_status.x) ===
                 Math.round(x) &&
-                Math.round(scene.__character.data.values.y) ===
+                Math.round(player_status.y) ===
                 Math.round(y);
         };
 
@@ -325,6 +342,7 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
 
         let grid = [];
+        scene.__player_group = scene.physics.add.group();
         scene.__mobs = scene.physics.add.group();
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
@@ -347,16 +365,23 @@ let GameScene = new Phaser.Class({
                     square.setVisible(true);
                 }
                 if (y === 5 || y === 6) {
-                    //square.setVisible(true);
+                    square.setVisible(true);
                 }
                 if (x === 5 || x === 6) {
-                    //square.setVisible(true);
+                    square.setVisible(true);
                 }
                 grid[x].push(square);
             }
         }
 
-        scene.__character = addPlayer(scene,5,7);
+        if (data.parent) {
+            scene.scene.get('ControllerScene').__transitionCallback(scene, data.parent_direction);
+        } else {
+            //HACK!!!
+            scene.__character = addPlayer(scene,5,7);
+            scene.__player_group.add(scene.__character);
+        }
+
         addPawn(scene,9,9);
         //addPawn(scene,4,6);
         //addPawn(scene,6,8);
@@ -375,20 +400,22 @@ let GameScene = new Phaser.Class({
         //SETUP PHYSICS
         //----------------------------------------------------------------------
 
-        scene.physics.add.overlap(scene.__character, scene.__hittables, function(character, hittable) {
+        scene.physics.add.overlap(scene.__player_group, scene.__hittables, function(character, hittable) {
+            let player_status = scene.scene.get('ControllerScene').__player_status;
             if (character.data.values.isHitting()) {
-                hittable.data.values.onHit(character.data.values.dx,
-                    character.data.values.dy);
+                hittable.data.values.onHit(player_status.dx,
+                    player_status.dy);
             }
         });
-        scene.physics.add.overlap(scene.__character, scene.__dangerous_touchables,
+        scene.physics.add.overlap(scene.__player_group, scene.__dangerous_touchables,
             function(character, dangerous_touchable) {
-            if (character.data.values.isVulnerable() &&
-                dangerous_touchable.data.values.isDangerous()) {
-                let touch_info = dangerous_touchable.data.values.registerDangerousTouch();
-                character.data.values.onHit(
-                    touch_info.dx,
-                    touch_info.dy);
+                let player_status = scene.scene.get('ControllerScene').__player_status;
+                if (player_status.isVulnerable() &&
+                    dangerous_touchable.data.values.isDangerous()) {
+                    let touch_info = dangerous_touchable.data.values.registerDangerousTouch();
+                    character.data.values.onHit(
+                        touch_info.dx,
+                        touch_info.dy);
             }
         });
     },
@@ -396,8 +423,6 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     update: function() {
         let scene = this;
-
-        scene.__character.data.values.update();
 
         scene.__updateables.children.each(function(updateable) {
             updateable.data.values.update();

@@ -14,6 +14,18 @@ let asyncHandler = function(scene) {
         m_delayedCalls = [];
     };
 
+    let pause = function() {
+        Phaser.Utils.Array.Each(m_tweens, (tween) => tween.pause(), self);
+        Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.pause(), self);
+        Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = true, self);
+    };
+
+    let resume = function() {
+        Phaser.Utils.Array.Each(m_tweens, (tween) => tween.resume(), self);
+        Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.resume(), self);
+        Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = false, self);
+    };
+
     let addTween = function(tween) {
         m_tweens.push(scene.tweens.add(tween));
     };
@@ -48,6 +60,8 @@ let asyncHandler = function(scene) {
 
     return {
         clear: clear,
+        pause: pause,
+        resume: resume,
         addTween: addTween,
         addTweenParallel: addTweenParallel,
         addTweenSequence: addTweenSequence,
@@ -230,9 +244,10 @@ let addPawn = function(scene, x,y) {
     };
 
     let enter_attack = function() {
-        let deltaX = Math.round(scene.__character.data.values.x)
+        let player_status = scene.scene.get('ControllerScene').__player_status;
+        let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
-        let deltaY = Math.round(scene.__character.data.values.y)
+        let deltaY = Math.round(player_status.y)
             - Math.round(m_y);
         if ((deltaX === -1 && deltaY === -1) ||
             (deltaX === 1 && deltaY === 1) ||
@@ -400,9 +415,10 @@ let addPawn = function(scene, x,y) {
             DIRECTIONS.LEFT,
             DIRECTIONS.DOWN,
             DIRECTIONS.RIGHT];
-        let deltaX = Math.round(scene.__character.data.values.x)
+        let player_status = scene.scene.get('ControllerScene').__player_status;
+        let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
-        let deltaY = Math.round(scene.__character.data.values.y)
+        let deltaY = Math.round(player_status.y)
             - Math.round(m_y);
         if (deltaX === 0 && deltaY === 0) {
             //on top movement AI
@@ -542,12 +558,13 @@ let addPawn = function(scene, x,y) {
     let health_bar = addHealthBar(scene, 1, 0, 0, true);
 
     pawn.setData('update', function() {
-        let deltaX = Math.round(scene.__character.data.values.x)
+        let player_status = scene.scene.get('ControllerScene').__player_status;
+        let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
-        let deltaY = Math.round(scene.__character.data.values.y)
+        let deltaY = Math.round(player_status.y)
             - Math.round(m_y);
         if (state_handler.getState() === STATES.IDLE &&
-            scene.__character.data.values.isVulnerable()) {
+            player_status.isVulnerable()) {
             if ((deltaX === -1 && deltaY === -1) ||
                 (deltaX === 1 && deltaY === 1) ||
                 (deltaX === 1 && deltaY === -1) ||
@@ -911,21 +928,32 @@ let addBishop = function(scene, x, y) {
 };
 
 let addPlayer = function(scene, x,y) {
+
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
+    scene.__updateables.add(character);
     let player_status = scene.scene.get('ControllerScene').__player_status;
-    character.setData('x',x);
-    character.setData('dx',0);
-    character.setData('y',y);
-    character.setData('dy',0);
-    character.setData('z',0);
-    let playerMoveAllowed = true;
-    let playerDangerous = false;
-    let playerGracePeriod = true;
+    player_status.x = x;
+    player_status.y = y;
+    player_status.dx = 0;
+    player_status.dy = 0;
+    player_status.z = 0;
+    player_status.playerMoveAllowed = true;
+    player_status.playerDangerous = false;
+    player_status.playerGracePeriod = true;
+
+    let tearDown = function() {
+        sprite.destroy();
+        sprite_overlay.destroy();
+        shadow.destroy();
+        character.destroy();
+        impact_sprite.destroy();
+        Phaser.Utils.Array.Each(frames, (frame) => frame.destroy(), self);
+    };
 
     character.setData('update', function() {
-        let x = character.data.values.x;
-        let y = character.data.values.y;
-        let z = character.data.values.z;
+        let x = player_status.x;
+        let y = player_status.y;
+        let z = player_status.z;
         sprite.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
         sprite.setDepth(DEPTHS.ENTITIES + y);
         sprite_overlay.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
@@ -939,62 +967,62 @@ let addPlayer = function(scene, x,y) {
             let frame_y = y + frame.data.values.dy;
             frame.setPosition(scene.__gridX(frame_x),
                 scene.__gridY(frame_y));
-            frame.setVisible(playerMoveAllowed &&
+            frame.setVisible(player_status.playerMoveAllowed &&
                 scene.__isGridPassable(frame_x,frame_y));
         }
     });
 
     let impact = function() {
         impact_sprite.setPosition(
-            scene.__gridX(Math.round(character.data.values.x)),
-            scene.__gridY(Math.round(character.data.values.y)));
+            scene.__gridX(Math.round(player_status.x)),
+            scene.__gridY(Math.round(player_status.y)));
         impact_sprite.play('impact_anim');
     };
 
     let movePlayer = function(x, y) {
-        character.setData('dx', x - character.data.values.x);
-        character.setData('dy', y - character.data.values.y);
-        if (character.data.values.dx === 2) {
+        player_status.dx = x - player_status.x;
+        player_status.dy = y - player_status.y;
+        if (player_status.dx === 2) {
             setOrientation(orientation.RIGHT);
         }
-        if (character.data.values.dy === -2) {
+        if (player_status.dy === -2) {
             setOrientation(orientation.UP);
         }
-        if (character.data.values.dy === 2) {
+        if (player_status.dy === 2) {
             setOrientation(orientation.DOWN);
         }
-        if (character.data.values.dx === -2) {
+        if (player_status.dx === -2) {
             setOrientation(orientation.LEFT);
         }
 
-        playerMoveAllowed = false;
+        player_status.playerMoveAllowed = false;
         let z_height = -64;
         let tweenX = scene.tweens.add({
-            targets: { x: character.data.values.x},
+            targets: { x: player_status.x},
             props: { x: x },
             duration: 100,
             onUpdate: function() {
-                character.setData('x',tweenX.getValue());
+                player_status.x = tweenX.getValue();
             }
         });
         let tweenY = scene.tweens.add({
-            targets: { y: character.data.values.y},
+            targets: { y: player_status.y},
             props: { y: y },
             duration: 100,
             onUpdate: function() {
-                character.setData('y',tweenY.getValue());
+                player_status.y = tweenY.getValue();
             }
         });
         let timeline = scene.tweens.createTimeline();
         timeline.add({
-            targets: { z: character.data.values.z},
+            targets: { z: player_status.z},
             props: { z: z_height },
             duration: 100,
             onUpdate: function() {
-                character.setData('z',this.getValue());
+                player_status.z = this.getValue();
             },
             onComplete: function() {
-                playerDangerous = true;
+                player_status.playerDangerous = true;
             }
         });
         timeline.add({
@@ -1002,15 +1030,17 @@ let addPlayer = function(scene, x,y) {
             props: { z: 0 },
             duration: 50,
             onUpdate: function() {
-                character.setData('z',this.getValue());
+                player_status.z = this.getValue();
             },
             onComplete: function()
             {
-                impact();
-                playerMoveAllowed = true;
-                playerDangerous = false;
-                if (scene.__shouldTransition(character.data.values.x, character.data.values.y)) {
+                player_status.playerMoveAllowed = true;
+                player_status.playerDangerous = false;
+                if (scene.__shouldTransition(player_status.x, player_status.y)) {
+                    tearDown();
                     scene.scene.get('ControllerScene').__transition();
+                } else {
+                    impact();
                 }
             }
         });
@@ -1025,36 +1055,33 @@ let addPlayer = function(scene, x,y) {
     };
     let setOrientation = function(orientation) {
         player_status.orientation = orientation;
-        sprite.setTexture('black_pieces', 4 + orientation);
-        sprite_overlay.setTexture('black_pieces', 4 + orientation);
+        let sprite_type = player_status.parity ? 'black_pieces' : 'white_pieces';
+        sprite.setTexture(sprite_type, 4 + orientation);
+        sprite_overlay.setTexture(sprite_type, 4 + orientation);
     };
 
     let tryMovePlayer = function(x, y) {
-        if (!playerMoveAllowed) {
+        if (!player_status.playerMoveAllowed) {
             return;
         }
-        if (x !== character.data.values.x &&
-            y !== character.data.values.y &&
+        if (x !== player_status.x &&
+            y !== player_status.y &&
             3 === Phaser.Math.Distance.Snake(x, y,
-                character.data.values.x, character.data.values.y) ) {
+                player_status.x, player_status.y) ) {
             movePlayer(x, y);
         }
     };
 
     character.setData('isHitting', function() {
-        return playerDangerous;
-    });
-
-    character.setData('isVulnerable', function() {
-        return !playerGracePeriod && playerMoveAllowed ;
+        return player_status.playerDangerous;
     });
 
     character.setData('onHit', function(impact_x, impact_y) {
         player_status.life = Math.max(--player_status.life, 0);
         player_status.health_bar.updateLife(player_status.life/player_status.full_life);
-        character.setData('z', 0);
-        character.setData('y', Math.round(character.data.values.y));
-        character.setData('x', Math.round(character.data.values.x));
+        player_status.z = 0;
+        player_status.y = Math.round(player_status.y);
+        player_status.x = Math.round(player_status.x);
         let directions = [
             {d:DIRECTIONS.UP, m:0},
             {d:DIRECTIONS.UP_LEFT, m:0},
@@ -1084,20 +1111,21 @@ let addPlayer = function(scene, x,y) {
             return 0;
         });
         for(let direction of directions) {
-            if (scene.__isGridPassable(character.data.values.x+direction.d.dx,
-                character.data.values.y+direction.d.dy) &&
-                scene.__isGridMobFree(character.data.values.x+direction.d.dx,
-                    character.data.values.y+direction.d.dy)) {
-                character.setData('x', character.data.values.x += direction.d.dx);
-                character.setData('y', character.data.values.y += direction.d.dy);
-                character.setData('dx', direction.d.dx);
-                character.setData('dy', direction.d.dy);
+            if (scene.__isGridPassable(player_status.x+direction.d.dx,
+                player_status.y+direction.d.dy) &&
+                scene.__isGridMobFree(player_status.x+direction.d.dx,
+                    player_status.y+direction.d.dy)) {
+                player_status.x = player_status.x += direction.d.dx;
+                player_status.y = player_status.y += direction.d.dy;
+                player_status.dx = direction.d.dx;
+                player_status.dy = direction.d.dy;
+
                 break;
             }
         }
         scene.cameras.main.shake(50, 0.005, true);
         sprite.setAlpha(0.75);
-        playerGracePeriod = true;
+        player_status.playerGracePeriod = true;
         scene.tweens.add({
             targets: sprite_overlay,
             alpha: 1,
@@ -1114,7 +1142,7 @@ let addPlayer = function(scene, x,y) {
             onComplete: function() {
                 sprite.alpha = 1;
                 scene.time.delayedCall(500, function() {
-                    playerGracePeriod = false;
+                    player_status.playerGracePeriod = false;
                 });
             }
         });
@@ -1140,8 +1168,8 @@ let addPlayer = function(scene, x,y) {
         frame.setDepth(DEPTHS.SURFACE);
         frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
             function () {
-                tryMovePlayer(character.data.values.x + frame.data.values.dx,
-                    character.data.values.y + frame.data.values.dy);
+                tryMovePlayer(player_status.x + frame.data.values.dx,
+                    player_status.y + frame.data.values.dy);
             }
         );
     }
@@ -1157,22 +1185,23 @@ let addPlayer = function(scene, x,y) {
 
     if (player_status.do_enter_animation) {
         player_status.do_enter_animation = false;
-        character.setData('z', -1000);
-        playerMoveAllowed = false;
+        player_status.z = -1000;
+        player_status.playerMoveAllowed = false;
         let tweenZ = scene.tweens.add({
             targets: {z: character.data.values.z},
             props: {z: 0},
             duration: 1000,
             onUpdate: function () {
-                character.setData('z', tweenZ.getValue());
+                player_status.z = tweenZ.getValue();
             },
             onComplete: function () {
                 impact();
-                playerMoveAllowed = true;
+                player_status.playerMoveAllowed = true;
+                player_status.playerGracePeriod = false;
             }
         });
     } else {
-        scene.time.delayedCall(50, () => playerGracePeriod = false);
+        scene.time.delayedCall(50, () => player_status.playerGracePeriod = false);
     }
 
     character.data.values.update();
