@@ -947,6 +947,7 @@ let addPlayer = function(scene, x,y) {
         shadow.destroy();
         character.destroy();
         impact_sprite.destroy();
+        frame.destroy();
         Phaser.Utils.Array.Each(frames, (frame) => frame.destroy(), self);
     };
 
@@ -961,6 +962,25 @@ let addPlayer = function(scene, x,y) {
         shadow.setPosition(scene.__gridX(x),scene.__gridY(y));
         shadow.setVisible(z < 0);
         scene.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
+        frame.setPosition(scene.__gridX(player_status.x),
+            scene.__gridY(player_status.y));
+        frame.setVisible(player_status.playerMoveAllowed &&
+            scene.__shouldTransition(player_status.x, player_status.y));
+        if (frame.visible) {
+            let direction = scene.__getTransitionDireciton(player_status.x, player_status.y);
+            if (DIRECTIONS.equals(direction, DIRECTIONS.LEFT)) {
+                frame.rotation = 0;
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.RIGHT)) {
+                frame.rotation = Math.PI
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.UP)) {
+                frame.rotation = Math.PI/2
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.DOWN)) {
+                frame.rotation = -Math.PI/2
+            }
+        }
         for (let i = 0; i < frames.length; i++) {
             let frame = frames[i];
             let frame_x = x + frame.data.values.dx;
@@ -1159,8 +1179,19 @@ let addPlayer = function(scene, x,y) {
         {dx: 1, dy: 2}
     ];
     let frames = [];
+    let frame = scene.add.sprite(0,0,'frame',1).setScale(2);
+    frame.setData('dx', 0);
+    frame.setData('dy', 0);
+    frame.setInteractive();
+    frame.setDepth(DEPTHS.UI);
+    frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function() {
+        if (scene.__shouldTransition(player_status.x, player_status.y)) {
+            tearDown();
+            scene.scene.get('ControllerScene').__transition();
+        }
+    });
     for (let i = 0; i < moves.length; i++) {
-        let frame = scene.add.sprite(0,0,'frame').setScale(2);
+        let frame = scene.add.sprite(0,0,'frame',0).setScale(2);
         frames.push(frame);
         frame.setData('dx', moves[i].dx);
         frame.setData('dy', moves[i].dy);

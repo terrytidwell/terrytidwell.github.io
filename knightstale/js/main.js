@@ -1,9 +1,8 @@
 const GRID_SIZE = 64;
-//const SPRITE_SCALE = GRID_SIZE/32;
 const GRID_COLS = 12;
 const GRID_ROWS = 12;
-const SCREEN_WIDTH = GRID_SIZE * GRID_COLS; //845 + 400; //845; //1025
-const SCREEN_HEIGHT = GRID_SIZE * GRID_ROWS; //542 + 150; //542; //576
+const SCREEN_WIDTH = GRID_SIZE * GRID_COLS;
+const SCREEN_HEIGHT = GRID_SIZE * GRID_ROWS;
 const DEPTHS = {
     BOARD: 0,
     SURFACE: 1,
@@ -30,7 +29,11 @@ const DIRECTIONS = {
     },
     opposite : function(direction) {
         return {dx: -direction.dx, dy: -direction.dy}
-    }
+    },
+    equals : function(directionA, directionB) {
+        return directionA.dx === directionB.dx &&
+            directionA.dy === directionB.dy;
+    },
 };
 
 let LoadScene = new Phaser.Class({
@@ -58,7 +61,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('health_bars', 'assets/health_bars.png', { frameWidth: 80, frameHeight: 9 });
         this.load.spritesheet('fire', 'assets/fire_column_medium_1.png', { frameWidth: 40, frameHeight: 80 });
         this.load.spritesheet('death_effect','assets/death_effect.png', { frameWidth: 128,  frameHeight: 128});
-        this.load.image('frame', 'assets/frame.png');
+        this.load.spritesheet('frame', 'assets/frame.png', { frameWidth: 32,  frameHeight: 32});
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -194,7 +197,6 @@ let ControllerScene = new Phaser.Class({
             scene.__getlabel(),
             GameScene, true, {text:"Scene Example"});
 
-
         scene.__transitionCallback = function(new_scene, direction) {
             scene.scene.bringToTop('CollectorScene');
             let old_scene = scene.__world_info.current_scene;
@@ -233,19 +235,8 @@ let ControllerScene = new Phaser.Class({
 
             let player_x = scene.__player_status.x;
             let player_y = scene.__player_status.y;
-            let direction = {dx: 0, dy: 0};
-            if (player_x < 2) {
-                direction.dx = -1;
-            }
-            if (player_x > 9) {
-                direction.dx = 1;
-            }
-            if (player_y < 2) {
-                direction.dy = -1;
-            }
-            if (player_y > 9) {
-                direction.dy = 1;
-            }
+            let direction = scene.__world_info.current_scene.__getTransitionDireciton(
+                player_x, player_y);
             scene.__player_status.x -= (GRID_COLS - 2) * direction.dx;
             scene.__player_status.y -= (GRID_ROWS - 2) * direction.dy;
             scene.__world_info.world_x += direction.dx;
@@ -320,6 +311,23 @@ let GameScene = new Phaser.Class({
 
         scene.__shouldTransition = function(x,y) {
             return x < 2 || x > 9 || y < 2 || y > 9;
+        };
+
+        scene.__getTransitionDireciton = function(x,y) {
+            let direction = {dx: 0, dy: 0};
+            if (x < 2) {
+                direction.dx = -1;
+            }
+            if (x > 9) {
+                direction.dx = 1;
+            }
+            if (y < 2) {
+                direction.dy = -1;
+            }
+            if (y > 9) {
+                direction.dy = 1;
+            }
+            return direction;
         };
 
         let mobChecker = scene.add.rectangle(0, 0,
@@ -456,4 +464,4 @@ let config = {
     scene: [ LoadScene, ControllerScene ]
 };
 
-game = new Phaser.Game(config);
+let game = new Phaser.Game(config);
