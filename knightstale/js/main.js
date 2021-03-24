@@ -198,7 +198,7 @@ let ControllerScene = new Phaser.Class({
             GameScene, true, {text:"Scene Example"});
 
         scene.__transitionCallback = function(new_scene, direction) {
-            scene.scene.bringToTop('CollectorScene');
+            scene.scene.bringToTop('ControllerScene');
             let old_scene = scene.__world_info.current_scene;
             scene.scene.sendToBack(old_scene.scene.key);
             new_scene.__character =
