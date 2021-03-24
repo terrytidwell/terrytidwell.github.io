@@ -79,35 +79,16 @@ let LoadScene = new Phaser.Class({
 
         scene.anims.create({
             key: 'impact_anim',
-            frames: [
-                { key: 'impact', frame: 0 },
-                { key: 'impact', frame: 1 },
-                { key: 'impact', frame: 2 },
-                { key: 'impact', frame: 3 },
-                { key: 'impact', frame: 4 },
-                { key: 'impact', frame: 5 },
-            ],
+            frames: scene.anims.generateFrameNumbers('impact',
+                Phaser.Utils.Array.NumberArray(0,5)),
             skipMissedFrames: false,
             frameRate: 24,
             repeat: 0
         });
         scene.anims.create({
             key: 'fire_anim',
-            frames: [
-                { key: 'fire', frame: 0 },
-                { key: 'fire', frame: 1 },
-                { key: 'fire', frame: 2 },
-                { key: 'fire', frame: 3 },
-                { key: 'fire', frame: 4 },
-                { key: 'fire', frame: 5 },
-                { key: 'fire', frame: 6 },
-                { key: 'fire', frame: 7 },
-                { key: 'fire', frame: 8 },
-                { key: 'fire', frame: 9 },
-                { key: 'fire', frame: 10},
-                { key: 'fire', frame: 11},
-                { key: 'fire', frame: 12},
-            ],
+            frames: scene.anims.generateFrameNumbers('fire',
+                Phaser.Utils.Array.NumberArray(0,12)),
             skipMissedFrames: false,
             frameRate: 12,
             repeat: -1
@@ -115,20 +96,8 @@ let LoadScene = new Phaser.Class({
 
         scene.anims.create({
             key: 'death_effect_anim',
-            frames: [
-                { key: 'death_effect', frame: 0 },
-                { key: 'death_effect', frame: 1 },
-                { key: 'death_effect', frame: 2 },
-                { key: 'death_effect', frame: 3 },
-                { key: 'death_effect', frame: 4 },
-                { key: 'death_effect', frame: 5 },
-                { key: 'death_effect', frame: 6 },
-                { key: 'death_effect', frame: 7 },
-                { key: 'death_effect', frame: 8 },
-                { key: 'death_effect', frame: 9 },
-                { key: 'death_effect', frame: 10},
-                { key: 'death_effect', frame: 11}
-            ],
+            frames: scene.anims.generateFrameNumbers('death_effect',
+                Phaser.Utils.Array.NumberArray(0,11)),
             skipMissedFrames: false,
             frameRate: 12,
             repeat: 0
