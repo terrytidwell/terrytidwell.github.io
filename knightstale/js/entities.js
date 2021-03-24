@@ -322,6 +322,8 @@ let addPawn = function(scene, x,y) {
                 m_dy = direction.d.dy;
                 m_x += m_dx;
                 m_y += m_dy;
+                m_targetx = m_x;
+                m_targety = m_y;
                 break;
             }
         }
@@ -557,7 +559,7 @@ let addPawn = function(scene, x,y) {
 
     let health_bar = addHealthBar(scene, 1, 0, 0, true);
 
-    pawn.setData('update', function() {
+    pawn.update = function() {
         let player_status = scene.scene.get('ControllerScene').__player_status;
         let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
@@ -581,9 +583,9 @@ let addPawn = function(scene, x,y) {
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
-    });
+    };
 
-    pawn.data.values.update();
+    pawn.update();
     state_handler.start();
 
     return pawn;
@@ -708,10 +710,10 @@ let addBishop = function(scene, x, y) {
             if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
                 !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
-                m_dx = direction.d.dx;
-                m_dy = direction.d.dy;
-                m_x += m_dx;
-                m_y += m_dy;
+                m_x += direction.d.dx;
+                m_y += direction.d.dy;
+                m_targetx = m_x;
+                m_targety = m_y;
                 break;
             }
         }
@@ -911,7 +913,7 @@ let addBishop = function(scene, x, y) {
     scene.__mobs.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(bounding_box);
-    bounding_box.setData('update', function() {
+    bounding_box.update = function() {
         sprite.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
         sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
@@ -919,9 +921,9 @@ let addBishop = function(scene, x, y) {
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
-    });
+    };
 
-    bounding_box.data.values.update();
+    bounding_box.update();
     state_handler.start();
 
     return bounding_box;
@@ -939,7 +941,7 @@ let addPlayer = function(scene, x,y) {
     player_status.z = 0;
     player_status.playerMoveAllowed = true;
     player_status.playerDangerous = false;
-    player_status.playerGracePeriod = true;
+    player_status.playerGracePeriod = false;
 
     let tearDown = function() {
         sprite.destroy();
@@ -951,7 +953,7 @@ let addPlayer = function(scene, x,y) {
         Phaser.Utils.Array.Each(frames, (frame) => frame.destroy(), self);
     };
 
-    character.setData('update', function() {
+    character.update = function() {
         let x = player_status.x;
         let y = player_status.y;
         let z = player_status.z;
@@ -990,7 +992,7 @@ let addPlayer = function(scene, x,y) {
             frame.setVisible(player_status.playerMoveAllowed &&
                 scene.__isGridPassable(frame_x,frame_y));
         }
-    });
+    };
 
     let impact = function() {
         impact_sprite.setPosition(
@@ -1231,10 +1233,8 @@ let addPlayer = function(scene, x,y) {
                 player_status.playerGracePeriod = false;
             }
         });
-    } else {
-        scene.time.delayedCall(50, () => player_status.playerGracePeriod = false);
     }
 
-    character.data.values.update();
+    character.update();
     return character;
 };

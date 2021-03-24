@@ -136,8 +136,7 @@ let LoadScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    update: function() {
-    },
+    update: function() {},
 });
 
 let ControllerScene = new Phaser.Class({
@@ -150,8 +149,7 @@ let ControllerScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    preload: function () {
-    },
+    preload: function () {},
 
     //--------------------------------------------------------------------------
     create: function () {
@@ -258,21 +256,19 @@ let ControllerScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    update: function() {
-    },
+    update: function() {},
 });
 
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
-    initialize: function Demo () {
+    initialize: function () {
         Phaser.Scene.call(this);
     },
 
     //--------------------------------------------------------------------------
-    preload: function () {
-    },
+    preload: function () {},
 
     //--------------------------------------------------------------------------
     create: function (data) {
@@ -295,6 +291,7 @@ let GameScene = new Phaser.Class({
         };
 
         scene.__setPhysicsBodyPosition = function(object, x, y) {
+            object.setPosition(scene.__gridX(x),  scene.__gridX(y));
             object.body.x = scene.__gridX(x) - GRID_SIZE/2 + (GRID_SIZE - object.body.width) / 2;
             object.body.y = scene.__gridY(y) - GRID_SIZE/2 + (GRID_SIZE - object.body.height) / 2;
         };
@@ -356,7 +353,9 @@ let GameScene = new Phaser.Class({
         scene.__mobs = scene.physics.add.group();
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
-        scene.__updateables = scene.physics.add.group();
+        scene.__updateables = scene.add.group({
+            runChildUpdate: true,
+        });
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
         for (let x = 0; x < GRID_COLS; x++)
@@ -431,14 +430,7 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    update: function() {
-        let scene = this;
-
-        scene.__updateables.children.each(function(updateable) {
-            updateable.data.values.update();
-        }, this);
-
-    },
+    update: function() {},
 });
 
 let config = {
