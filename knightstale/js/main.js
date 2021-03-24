@@ -137,8 +137,6 @@ let LoadScene = new Phaser.Class({
     },
 });
 
-
-
 let ControllerScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
