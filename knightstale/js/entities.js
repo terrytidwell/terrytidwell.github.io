@@ -81,6 +81,56 @@ let addDeathEffect = function(scene, x, y) {
     return death_effect;
 };
 
+let addLaserEffect = function(scene, x, y) {
+    let self = this;
+    let laser_effects = [];
+    let laser_flip = Phaser.Utils.Array.GetRandom([false,true]);
+    laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
+        scene.__gridY(Math.round(y-1)),'laser_column',0)
+        .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
+        .play('laser_effect_anim')
+        .setAlpha(.75)
+        .setScale(2)
+        .setFlipX(laser_flip)
+        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function() {
+            Phaser.Utils.Array.Each(laser_effects, function(laser_effect) { laser_effect.destroy(); }, self);
+            laser_tween.remove();
+            avatar.destroy();
+            avatar_tween.remove();
+            addPawn(scene,x,y);
+        }));
+    let y_offset = y - 2.5;
+    while(y_offset > -2) {
+        laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
+            scene.__gridY(Math.round(y_offset-1)),'laser_column_cont',0)
+            .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
+            .play('laser_effect_cont_anim')
+            .setAlpha(.75)
+            .setScale(2)
+            .setFlipX(laser_flip));
+        y_offset -= 2;
+    }
+    let laser_tween = scene.tweens.add({
+        targets: laser_effects,
+        alpha: .9,
+        yoyo: true,
+        duration: 300,
+        repeat: -1
+    });
+    let avatar = scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'white_pieces', 12)
+        .setAlpha(0);
+    let avatar_tween = scene.tweens.add({
+        targets: avatar,
+        alpha: 0.25,
+        yoyo: true,
+        duration: 50,
+        repeat: -1,
+        delay: 1000,
+        onStart : () => avatar.setAlpha(0.75),
+    });
+    return laser_effects;
+};
+
 let stateHandler = function(scene, states, start_state) {
     let async_handler = asyncHandler(scene);
     let current_state = start_state;

@@ -62,6 +62,8 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('fire', 'assets/fire_column_medium_1.png', { frameWidth: 40, frameHeight: 80 });
         this.load.spritesheet('death_effect','assets/death_effect.png', { frameWidth: 128,  frameHeight: 128});
         this.load.spritesheet('frame', 'assets/frame.png', { frameWidth: 32,  frameHeight: 32});
+        this.load.spritesheet('laser_column', 'assets/laser_column.png', { frameWidth: 32,  frameHeight: 96});
+        this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -80,7 +82,7 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'impact_anim',
             frames: scene.anims.generateFrameNumbers('impact',
-                Phaser.Utils.Array.NumberArray(0,5)),
+                { start: 0, end: 5 }),
             skipMissedFrames: false,
             frameRate: 24,
             repeat: 0
@@ -88,7 +90,7 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'fire_anim',
             frames: scene.anims.generateFrameNumbers('fire',
-                Phaser.Utils.Array.NumberArray(0,12)),
+                { start: 0, end: 12 }),
             skipMissedFrames: false,
             frameRate: 12,
             repeat: -1
@@ -97,8 +99,28 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'death_effect_anim',
             frames: scene.anims.generateFrameNumbers('death_effect',
-                Phaser.Utils.Array.NumberArray(0,11)),
+                { start: 0, end: 11 }),
             skipMissedFrames: false,
+            frameRate: 12,
+            repeat: 0
+        });
+
+        scene.anims.create({
+            key: 'laser_effect_anim',
+            frames: scene.anims.generateFrameNumbers('laser_column',
+                { start: 0, end: 12 }),
+            skipMissedFrames: false,
+            yoyo: true,
+            frameRate: 12,
+            repeat: 0
+        });
+
+        scene.anims.create({
+            key: 'laser_effect_cont_anim',
+            frames: scene.anims.generateFrameNumbers('laser_column_cont',
+                { start: 0, end: 12 }),
+            skipMissedFrames: false,
+            yoyo: true,
             frameRate: 12,
             repeat: 0
         });
@@ -175,7 +197,7 @@ let ControllerScene = new Phaser.Class({
 
 
             let shift_x = direction.dx * SCREEN_WIDTH - GRID_SIZE * 2 * direction.dx;
-            let shift_y = direction.dy * SCREEN_HEIGHT - GRID_SIZE * 2 * direction.dy
+            let shift_y = direction.dy * SCREEN_HEIGHT - GRID_SIZE * 2 * direction.dy;
             new_scene.cameras.main.x = shift_x;
             new_scene.cameras.main.y = shift_y;
             scene.add.tween({
@@ -360,7 +382,8 @@ let GameScene = new Phaser.Class({
             scene.__player_group.add(scene.__character);
         }
 
-        addPawn(scene,9,9);
+        addLaserEffect(scene, 9, 9);
+        //addPawn(scene,9,9);
         //addPawn(scene,4,6);
         //addPawn(scene,6,8);
         //addPawn(scene,7,9);
