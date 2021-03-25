@@ -582,8 +582,8 @@ let addPawn = function(scene, x,y) {
     let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
     let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     scene.__hittables.add(bounding_box);
-    scene.__mobs.add(bounding_box);
-    scene.__mobs.add(move_box);
+    scene.__mob_collision_boxes.add(bounding_box);
+    scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(pawn);
     bounding_box.setData('onHit',function(dx, dy) {
@@ -642,12 +642,6 @@ let addPawn = function(scene, x,y) {
 };
 
 let addFlameWave = function(scene, x, y) {
-    //let bounding_box = scene.add.rectangle(x,y,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
-    //12 frames - 8 dangerous, 4 cool down
-    //radius 0 = 1 square
-    //radius 1 = 4 square
-    //radius 2 = 8 square
-    //radius 3 = 12 square
 
     let createPoint = function(x, y) {
         if (!scene.__isGridMobPassable(x,y)) {
@@ -689,28 +683,36 @@ let addFlameWave = function(scene, x, y) {
         }
     };
 
+    let old_sprites = [];
     let sprites = [];
     let bounding_boxes = [];
     let radius = 0;
     let center_x = x;
     let center_y = y;
-    let reap_bounding_boxes = function() {
+
+    let start_wave = function() {
+        createPoints();
+        scene.time.delayedCall(750, update_points);
+        scene.time.delayedCall(1000, reap_old_points);
+    };
+
+    let reap_old_points = function() {
+        for(let old_sprite of old_sprites) {
+            old_sprite.destroy();
+        }
+    };
+
+    let update_points = function() {
+        old_sprites = sprites;
         for (let bounding_box of bounding_boxes) {
             bounding_box.destroy();
         }
-    };
-    let start_wave = function() {
-        createPoints();
-        scene.time.delayedCall(1000, update_points);
-        scene.time.delayedCall(750, reap_bounding_boxes);
-    };
-    let update_points = function() {
-        for(let sprite of sprites) {
-            sprite.destroy();
-        }
+        bounding_boxes = [];
+        sprites = [];
         radius++;
         start_wave();
     };
+
     start_wave();
 };
 
@@ -959,8 +961,8 @@ let addBishop = function(scene, x, y) {
         return state_handler.getState() !== STATES.STUNNED;
     });
     scene.__hittables.add(bounding_box);
-    scene.__mobs.add(bounding_box);
-    scene.__mobs.add(move_box);
+    scene.__mob_collision_boxes.add(bounding_box);
+    scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(bounding_box);
     bounding_box.update = function() {

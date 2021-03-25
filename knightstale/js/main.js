@@ -324,7 +324,7 @@ let GameScene = new Phaser.Class({
         scene.__isGridMobFree = function(x,y) {
             //physics body origins are 0,0 as opposed to sprites which are 0.5,0.5
             scene.__setPhysicsBodyPosition(mobChecker, x, y);
-            return !scene.physics.overlap(mobChecker, scene.__mobs);
+            return !scene.physics.overlap(mobChecker, scene.__mob_collision_boxes);
         };
 
         scene.__checkPlayerCollision = function(x,y) {
@@ -341,7 +341,7 @@ let GameScene = new Phaser.Class({
 
         let grid = [];
         scene.__player_group = scene.physics.add.group();
-        scene.__mobs = scene.physics.add.group();
+        scene.__mob_collision_boxes = scene.physics.add.group();
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
         scene.__updateables = scene.add.group({
