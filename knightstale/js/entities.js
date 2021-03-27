@@ -1026,6 +1026,11 @@ let addPlayer = function(scene, x,y) {
     player_status.playerGracePeriod = false;
 
     let tearDown = function() {
+        sprite_remnant.setPosition(scene.__gridX(player_status.x),
+            scene.__characterY(player_status.y)+player_status.z)
+            .setVisible(true);
+        sprite_remnant.setDepth(DEPTHS.ENTITIES + player_status.y);
+        scene.events.once(Phaser.Scenes.Events.SLEEP,() => sprite_remnant.destroy());
         sprite.destroy();
         sprite_overlay.destroy();
         shadow.destroy();
@@ -1162,6 +1167,7 @@ let addPlayer = function(scene, x,y) {
         let sprite_type = player_status.parity ? 'black_pieces' : 'white_pieces';
         sprite.setTexture(sprite_type, 4 + orientation);
         sprite_overlay.setTexture(sprite_type, 4 + orientation);
+        sprite_remnant.setTexture(sprite_type, 4 + orientation);
     };
 
     let tryMovePlayer = function(x, y) {
@@ -1293,6 +1299,7 @@ let addPlayer = function(scene, x,y) {
         );
     }
     let sprite = scene.add.sprite(0, 0, 'black_pieces', 4);
+    let sprite_remnant = scene.add.sprite(0, 0, 'black_pieces', 4).setVisible(false);
     let sprite_overlay = scene.add.sprite(0, 0, 'black_pieces', 4).setTintFill(0xffffff).setAlpha(0);
     scene.physics.add.existing(character);
     let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
