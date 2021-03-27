@@ -337,6 +337,24 @@ let GameScene = new Phaser.Class({
             return direction;
         };
 
+        let removed_exits = [];
+        scene.__removeExits = function() {
+           for (let x = 0; x < GRID_COLS; x++) {
+               for (let y = 0; y < GRID_ROWS; y++) {
+                   if (scene.__isGridPassable(x,y) && scene.__shouldTransition(x,y)) {
+                       removed_exits.push({x: x, y: y});
+                       grid[x][y].setVisible(false);
+                   }
+               }
+           }
+        };
+
+        scene.__restoreExits = function() {
+            for (let exit of removed_exits) {
+                grid[exit.x][exit.y].setVisible(true);
+            }
+        };
+
         let mobChecker = scene.add.rectangle(0, 0,
             GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0).setDepth(DEPTHS.SURFACE);
         scene.physics.add.existing(mobChecker);
@@ -363,6 +381,7 @@ let GameScene = new Phaser.Class({
         scene.__mob_collision_boxes = scene.physics.add.group();
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
+        scene.__touchables = scene.physics.add.group();
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
@@ -422,6 +441,12 @@ let GameScene = new Phaser.Class({
                         touch_info.dy);
             }
         });
+        scene.physics.add.overlap(scene.__player_group, scene.__touchables,
+            function(character, touchable) {
+                if (character.data.values.isTouching()) {
+                    touchable.data.values.onTouch();
+                }
+            });
     },
 
     //--------------------------------------------------------------------------

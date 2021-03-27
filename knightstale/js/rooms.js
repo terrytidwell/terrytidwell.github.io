@@ -11,10 +11,11 @@ let WORLD = {
             "----0000----",
             "-----00-----",
             "-----00-----",
-            "------------",
-            "------------"
+            "-----00-----",
+            "-----00-----"
         ],
         west_exit: 'beginner_1',
+        south_exit: 'fights_1',
         create: (scene) => {},
     },
     'beginner_1': {
@@ -119,6 +120,78 @@ let WORLD = {
         east_exit: 'beginner_2',
         create: (scene) => {
             addBishop(scene, 4, 7)
+        },
+    },
+    'fights_1': {
+        map: [
+            "-----00-----",
+            "-----00-----",
+            "-----00-----",
+            "-----00-----",
+            "----0000----",
+            "000000000000",
+            "000000000000",
+            "----0000----",
+            "-----00-----",
+            "-----00-----",
+            "------------",
+            "------------"
+        ],
+        east_exit: 'fights_2',
+        west_exit: 'fights_3',
+        north_exit: 'entrance_room',
+        create: (scene) => {},
+    },
+    'fights_2': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "0000000000--",
+            "0000000000--",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'fights_1',
+        create: (scene) => {
+            addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
+                scene.__removeExits();
+                addTeleportAtRandomSpot(scene, addBishopTeleport);
+                addTeleportAtRandomSpot(scene, addBishopTeleport);
+                addMobWatch(scene, 0, scene.__restoreExits)
+            });
+        },
+    },
+    'fights_3': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "--0000000000",
+            "--0000000000",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "------------"
+        ],
+        east_exit: 'fights_1',
+        create: (scene) => {
+            addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
+                scene.__removeExits();
+                addTeleportAtRandomSpot(scene, addPawnTeleport);
+                addTeleportAtRandomSpot(scene, addPawnTeleport);
+                addTeleportAtRandomSpot(scene, addPawnTeleport);
+                addTeleportAtRandomSpot(scene, addPawnTeleport);
+                addMobWatch(scene, 0, scene.__restoreExits)
+            });
         },
     },
 };

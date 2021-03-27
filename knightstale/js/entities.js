@@ -81,7 +81,29 @@ let addDeathEffect = function(scene, x, y) {
     return death_effect;
 };
 
-let addLaserEffect = function(scene, x, y) {
+let addTeleportAtRandomSpot = function(scene, teleporter) {
+   let squares = Phaser.Utils.Array.NumberArray(0, GRID_COLS*GRID_ROWS-1);
+   Phaser.Utils.Array.Shuffle(squares);
+   for (let square of squares) {
+       let x = Math.floor(square/GRID_COLS);
+       let y = Math.floor(square % GRID_COLS);
+       if (scene.__isGridMobPassable(x,y) && scene.__isGridMobFree(x,y)) {
+           teleporter(scene, x, y);
+           return;
+       }
+   }
+   return;
+};
+
+let addPawnTeleport = function(scene, x, y) {
+    addLaserEffect(scene, x, y, addPawn, 'white_pieces', 12)
+};
+
+let addBishopTeleport = function(scene, x, y) {
+    addLaserEffect(scene, x, y, addBishop, 'white_pieces', 2)
+};
+
+let addLaserEffect = function(scene, x, y, create, avatar_sprite, avatar_sprite_frame) {
     let self = this;
     let laser_effects = [];
     let laser_flip = Phaser.Utils.Array.GetRandom([false,true]);
@@ -103,7 +125,7 @@ let addLaserEffect = function(scene, x, y) {
             avatar.destroy();
             avatar_tween.remove();
             bounding_box.destroy();
-            addPawn(scene,x,y);
+            create(scene,x,y);
         }));
     let y_offset = y - 2.5;
     while(y_offset > -2) {
@@ -123,7 +145,7 @@ let addLaserEffect = function(scene, x, y) {
         duration: 300,
         repeat: -1
     });
-    let avatar = scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'white_pieces', 12)
+    let avatar = scene.add.sprite(scene.__gridX(x), scene.__characterY(y), avatar_sprite, avatar_sprite_frame)
         .setAlpha(0);
     let avatar_tween = scene.tweens.add({
         targets: avatar,
@@ -1315,10 +1337,10 @@ let addMobWatch = function(scene, threshold, handler) {
 };
 
 let addZoneTrigger = function(scene, x, y, width, height, handler) {
-    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__grid(y),
+    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
         width * GRID_SIZE - GRID_SIZE/2, height * GRID_SIZE - GRID_SIZE/2);
     scene.__touchables.add(zone_trigger);
-    scene.setData('onTouch', function() {
+    zone_trigger.setData('onTouch', function() {
         handler();
         zone_trigger.destroy();
     });
