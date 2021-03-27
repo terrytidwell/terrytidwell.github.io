@@ -379,7 +379,7 @@ let GameScene = new Phaser.Class({
                 let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
                 let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
                 square.setDepth(DEPTHS.BOARD);
-                square.setVisible(room_info.map[y][x] === 1);
+                square.setVisible(room_info.map[y][x] === '0');
                 grid[x].push(square);
             }
         }
