@@ -173,18 +173,19 @@ let ControllerScene = new Phaser.Class({
                 scene.__player_status.playerMoveAllowed,
         };
         scene.__world_info = {
-            world_x : 8,
-            world_y : 8,
-            area : 'TestArea',
+            current_room: 'entrance_room',
+            current_info: null,
             current_scene: null,
         };
-        scene.__getlabel = function() {
-            return 'gamescene-'+scene.__world_info.area+'' + scene.__world_info.world_x +
-                '-' + scene.__world_info.world_y;
+        let get_current_room_info = () => {
+            scene.__world_info.current_info =
+                WORLD[scene.__world_info.current_room];
         };
+        get_current_room_info();
+
         scene.__world_info.current_scene = scene.scene.add(
-            scene.__getlabel(),
-            GameScene, true, {text:"Scene Example"});
+            scene.__world_info.current_room,
+            GameScene, true);
 
         scene.__transitionCallback = function(new_scene, direction) {
             scene.scene.bringToTop('ControllerScene');
@@ -217,6 +218,22 @@ let ControllerScene = new Phaser.Class({
             scene.__world_info.current_scene = new_scene;
         };
 
+        let next_scene = (direction) => {
+            if (DIRECTIONS.equals(direction, DIRECTIONS.UP)) {
+                return scene.__world_info.current_info.north_exit;
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.DOWN)) {
+                return scene.__world_info.current_info.south_exit;
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.LEFT)) {
+                return scene.__world_info.current_info.west_exit;
+            }
+            if (DIRECTIONS.equals(direction, DIRECTIONS.RIGHT)) {
+                return scene.__world_info.current_info.east_exit;
+            }
+            return null;
+        };
+
         scene.__transition = function() {
             let scene = this;
 
@@ -230,10 +247,13 @@ let ControllerScene = new Phaser.Class({
             scene.__player_status.y -= (GRID_ROWS - 2) * direction.dy;
             scene.__world_info.world_x += direction.dx;
             scene.__world_info.world_y += direction.dy;
-            let label = scene.__getlabel();
-            let new_scene = scene.scene.get(label);
+
+            scene.__world_info.current_room = next_scene(direction);
+            get_current_room_info();
+
+            let new_scene = scene.scene.get(scene.__world_info.current_room);
             if (!new_scene) {
-                scene.scene.add(label, GameScene, true,
+                scene.scene.add(scene.__world_info.current_room, GameScene, true,
                     {
                         parent: scene.__world_info.current_scene,
                         parent_direction: direction
@@ -242,7 +262,6 @@ let ControllerScene = new Phaser.Class({
                 new_scene.scene.wake();
                 scene.__transitionCallback(new_scene, direction);
             }
-
         };
     },
 
@@ -347,29 +366,20 @@ let GameScene = new Phaser.Class({
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
+        scene.__mobs = scene.add.group();
 
         let index_image = Phaser.Utils.Array.NumberArray(0,3);
+        let room_info = scene.scene.get('ControllerScene').__world_info.current_info;
         for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
             {
                 let offset = 4 * ((x + y) % 2);
-                let tile = Phaser.Utils.Array.Shuffle(index_image)[0] + offset;
+                let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
                 let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
                 square.setDepth(DEPTHS.BOARD);
-                square.setVisible(false);
-                if (x >= 2 && x < 10 &&
-                    y >= 2 && y < 10)
-                {
-                    square.setVisible(true);
-                }
-                if (y === 5 || y === 6) {
-                    square.setVisible(true);
-                }
-                if (x === 5 || x === 6) {
-                    square.setVisible(true);
-                }
+                square.setVisible(room_info.map[y][x] === 1);
                 grid[x].push(square);
             }
         }
@@ -382,14 +392,7 @@ let GameScene = new Phaser.Class({
             scene.__player_group.add(scene.__character);
         }
 
-        addLaserEffect(scene, 9, 9);
-        //addPawn(scene,9,9);
-        //addPawn(scene,4,6);
-        //addPawn(scene,6,8);
-        //addPawn(scene,7,9);
-        //addPawn(scene,2,2);
-        addBishop(scene,4,4);
-        //addFlameWave(scene, 2, 9);
+        room_info.create(scene);
 
         //----------------------------------------------------------------------
         //SETUP INPUTS

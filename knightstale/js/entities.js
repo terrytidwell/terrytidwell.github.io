@@ -85,6 +85,11 @@ let addLaserEffect = function(scene, x, y) {
     let self = this;
     let laser_effects = [];
     let laser_flip = Phaser.Utils.Array.GetRandom([false,true]);
+    let bounding_box = scene.add.rectangle(scene.__gridX(x),scene.__gridY(y),
+        GRID_SIZE/2,GRID_SIZE/2,0xffff00, 0.0);
+    scene.__mobs.add(bounding_box);
+    scene.__mob_collision_boxes.add(bounding_box);
+    scene.__setPhysicsBodyPosition(bounding_box, x, y);
     laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
         scene.__gridY(Math.round(y-1)),'laser_column',0)
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
@@ -97,6 +102,7 @@ let addLaserEffect = function(scene, x, y) {
             laser_tween.remove();
             avatar.destroy();
             avatar_tween.remove();
+            bounding_box.destroy();
             addPawn(scene,x,y);
         }));
     let y_offset = y - 2.5;
@@ -582,6 +588,7 @@ let addPawn = function(scene, x,y) {
     let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
     let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     scene.__hittables.add(bounding_box);
+    scene.__mobs.add(pawn);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
@@ -961,6 +968,7 @@ let addBishop = function(scene, x, y) {
         return state_handler.getState() !== STATES.STUNNED;
     });
     scene.__hittables.add(bounding_box);
+    scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
@@ -1146,6 +1154,10 @@ let addPlayer = function(scene, x,y) {
         }
     };
 
+    character.setData('isTouching', function() {
+        return player_status.playerMoveAllowed;
+    });
+
     character.setData('isHitting', function() {
         return player_status.playerDangerous;
     });
@@ -1289,4 +1301,26 @@ let addPlayer = function(scene, x,y) {
 
     character.update();
     return character;
+};
+
+let addMobWatch = function(scene, threshold, handler) {
+    let mob_watch = scene.add.zone(0, 0);
+    mob_watch.update = function() {
+        if (scene.__mobs.getLength() <= threshold) {
+            handler();
+            mob_watch.destroy();
+        }};
+    scene.__updateables.add(mob_watch);
+    return mob_watch;
+};
+
+let addZoneTrigger = function(scene, x, y, width, height, handler) {
+    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__grid(y),
+        width * GRID_SIZE - GRID_SIZE/2, height * GRID_SIZE - GRID_SIZE/2);
+    scene.__touchables.add(zone_trigger);
+    scene.setData('onTouch', function() {
+        handler();
+        zone_trigger.destroy();
+    });
+    return zone_trigger;
 };
