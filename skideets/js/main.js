@@ -3,7 +3,9 @@ const GRID_COLS = 16;
 const GRID_ROWS = 10;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 768;
-const BPM = 116;
+const BPM = 123;
+const ARTIST = "Doctor Vox";
+const SONG_NAME = "Frontier";
 
 const ARROW = {
     NONE: 0,
@@ -123,24 +125,32 @@ let LoadScene = new Phaser.Class({
             "0%", { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        this.load.spritesheet('boxes', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
-        this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
+        //this.load.spritesheet('boxes', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
+        this.load.spritesheet('boxes', 'assets/Play Grid/SpriteSheet2.png', { frameWidth: 50, frameHeight: 50 });
+        //this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
+        this.load.image('grid', 'assets/Play Grid/EmptyGrid2.png');
         this.load.image('start_01', 'assets/Play Grid/Start_01.png');
         this.load.image('start_02', 'assets/Play Grid/Start_02.png');
         this.load.image('start_03', 'assets/Play Grid/Start_03.png');
         this.load.image('start_start', 'assets/Play Grid/Start_start.png');
-        this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
-        this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
+        //this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
+        this.load.image('player_controller', 'assets/Play Grid/PlayerController2.png');
+        //this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
+        this.load.image('grey_arrow', 'assets/Play Grid/GreyArrow.png');
         this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
-        this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v3_Bar.png');
-        this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v3_Trail.png');
+        //this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v3_Bar.png');
+        this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v2_Bar.png');
+        //this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v3_Trail.png');
+        this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v2_Trail.png');
         this.load.image('menu', 'assets/ScanlineMenu_v2.png');
         this.load.image('bonus_box', 'assets/Play Grid/BonusBox.png');
         this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
         this.load.image('score_box', 'assets/Play Grid/ScoreBox.png');
-        this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
-        this.load.audio('bg_music', ['assets/Arinity - Going Home.mp3']);
+        //this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
+        this.load.video('bg_video','assets/Play Grid/Background Video/Lo-Fi City 720.mp4');
+        //this.load.audio('bg_music', ['assets/Arinity - Going Home.mp3']);
+        this.load.audio('bg_music', ['assets/DOCTOR VOX - Frontier - (123bpm).mp3']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -915,11 +925,11 @@ let GameScene = new Phaser.Class({
             scene.sound.add('bg_music', {loop: true }).play();
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                'Going Home',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
+                SONG_NAME,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let artist_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                'By Arinity',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
+                'By ' + ARTIST,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let title_timeline = scene.tweens.createTimeline()
