@@ -17,7 +17,15 @@ let WORLD = {
         west_exit: 'beginner_1',
         south_exit: 'fights_1',
         create: (scene) => {
-            addButton(scene, 4, 4, scene.__removeExits, 3000, scene.__restoreExits);
+            let toggle_blocks = function() {
+                scene.__toggleGrid(3, 3);
+                scene.__toggleGrid(5, 2);
+                scene.__toggleGrid(7, 3);
+            };
+            addButton(scene, 4, 4,
+                toggle_blocks,
+                3000,
+                toggle_blocks);
         },
     },
     'beginner_1': {

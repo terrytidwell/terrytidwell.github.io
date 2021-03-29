@@ -1024,6 +1024,7 @@ let addPlayer = function(scene, x,y) {
     player_status.playerMoveAllowed = true;
     player_status.playerDangerous = false;
     player_status.playerGracePeriod = false;
+    let move_history = [{x: x, y: y}];
 
     let tearDown = function() {
         sprite_remnant.setPosition(scene.__gridX(player_status.x),
@@ -1040,14 +1041,54 @@ let addPlayer = function(scene, x,y) {
         Phaser.Utils.Array.Each(frames, (frame) => frame.destroy(), self);
     };
 
+    let reset_player_after_fall = function () {
+        while (move_history.length !== 0)
+        {
+            let prev = move_history.pop();
+            if (scene.__isGridPassable(prev.x,prev.y)) {
+                player_status.x = prev.x;
+                player_status.y = prev.y;
+                current_depths = DEPTHS.ENTITIES;
+                return;
+            }
+        }
+    };
+
+    let character_fall = function () {
+        if (!player_status.playerMoveAllowed) {
+            return;
+        }
+
+        player_status.playerMoveAllowed = false;
+        let fallTween = scene.tweens.add({
+            targets: {z: player_status.z},
+            props: {z: 1000},
+            duration: 1000,
+            onUpdate: function () {
+                player_status.z = fallTween.getValue();
+            },
+            onComplete: function () {
+                reset_player_after_fall();
+                decrement_life();
+                player_status.playerMoveAllowed = true;
+                fallTween = null;
+            }
+        });
+        current_depths = DEPTHS.BOARD;
+    };
+
+    let current_depths = DEPTHS.ENTITIES;
     character.update = function() {
         let x = player_status.x;
         let y = player_status.y;
         let z = player_status.z;
+        if (!scene.__isGridPassable(Math.round(x),Math.round(y))) {
+            character_fall();
+        }
         sprite.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
-        sprite.setDepth(DEPTHS.ENTITIES + y);
+        sprite.setDepth(current_depths + y);
         sprite_overlay.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
-        sprite_overlay.setDepth(DEPTHS.ENTITIES + y);
+        sprite_overlay.setDepth(current_depths + y);
         shadow.setPosition(scene.__gridX(x),scene.__gridY(y));
         shadow.setVisible(z < 0);
         scene.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
@@ -1090,6 +1131,7 @@ let addPlayer = function(scene, x,y) {
     };
 
     let movePlayer = function(x, y) {
+        move_history.push({x:x, y:y});
         player_status.dx = x - player_status.x;
         player_status.dy = y - player_status.y;
         if (player_status.dx === 2) {
@@ -1191,12 +1233,37 @@ let addPlayer = function(scene, x,y) {
         return player_status.playerDangerous;
     });
 
-    character.setData('onHit', function(impact_x, impact_y) {
+    let decrement_life = function() {
         player_status.life = Math.max(--player_status.life, 0);
         player_status.health_bar.updateLife(player_status.life/player_status.full_life);
         player_status.z = 0;
         player_status.y = Math.round(player_status.y);
         player_status.x = Math.round(player_status.x);
+        sprite.setAlpha(0.75);
+        player_status.playerGracePeriod = true;
+        scene.tweens.add({
+            targets: sprite_overlay,
+            alpha: 1,
+            yoyo: true,
+            repeat: 1,
+            duration: 50
+        });
+        scene.tweens.add({
+            targets: sprite,
+            alpha: 0.25,
+            yoyo: true,
+            duration: 50,
+            repeat: 1500/50,
+            onComplete: function() {
+                sprite.alpha = 1;
+                scene.time.delayedCall(500, function() {
+                    player_status.playerGracePeriod = false;
+                });
+            }
+        });
+    };
+
+    let player_knockback = function(impact_x, impact_y) {
         let directions = [
             {d:DIRECTIONS.UP, m:0},
             {d:DIRECTIONS.UP_LEFT, m:0},
@@ -1239,28 +1306,11 @@ let addPlayer = function(scene, x,y) {
             }
         }
         scene.cameras.main.shake(50, 0.005, true);
-        sprite.setAlpha(0.75);
-        player_status.playerGracePeriod = true;
-        scene.tweens.add({
-            targets: sprite_overlay,
-            alpha: 1,
-            yoyo: true,
-            repeat: 1,
-            duration: 50
-        });
-        scene.tweens.add({
-            targets: sprite,
-            alpha: 0.25,
-            yoyo: true,
-            duration: 50,
-            repeat: 1500/50,
-            onComplete: function() {
-                sprite.alpha = 1;
-                scene.time.delayedCall(500, function() {
-                    player_status.playerGracePeriod = false;
-                });
-            }
-        });
+    };
+
+    character.setData('onHit', function(impact_x, impact_y) {
+        decrement_life();
+        player_knockback(impact_x, impact_y);
     });
 
     let moves = [

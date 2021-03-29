@@ -170,6 +170,7 @@ let ControllerScene = new Phaser.Class({
             playerMoveAllowed : true,
             playerDangerous : false,
             playerGracePeriod : true,
+            characterFalling : true,
             isVulnerable : () => {
                 return !scene.__player_status.playerGracePeriod &&
                     scene.__player_status.playerMoveAllowed
@@ -321,6 +322,10 @@ let GameScene = new Phaser.Class({
 
         scene.__shouldTransition = function(x,y) {
             return x < 2 || x > 9 || y < 2 || y > 9;
+        };
+
+        scene.__toggleGrid = function(x,y) {
+            grid[x][y].setVisible(!grid[x][y].visible);
         };
 
         scene.__getTransitionDireciton = function(x,y) {
