@@ -16,7 +16,9 @@ let WORLD = {
         ],
         west_exit: 'beginner_1',
         south_exit: 'fights_1',
-        create: (scene) => {},
+        create: (scene) => {
+            addButton(scene, 4, 4, scene.__removeExits, 3000, scene.__restoreExits);
+        },
     },
     'beginner_1': {
         map: [
@@ -36,7 +38,8 @@ let WORLD = {
         east_exit: 'entrance_room',
         west_exit: 'beginner_2',
         create: (scene) => {
-            addPawn(scene, 3, 4)
+            addPawn(scene, 3, 4);
+            addButton(scene, 5, 4, scene.__removeExits, 3000, scene.__restoreExits);
         },
     },
     'beginner_2': {

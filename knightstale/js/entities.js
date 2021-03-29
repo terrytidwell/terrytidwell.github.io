@@ -610,7 +610,7 @@ let addPawn = function(scene, x,y) {
     let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
     let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     scene.__hittables.add(bounding_box);
-    scene.__mobs.add(pawn);
+    scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
@@ -1085,6 +1085,7 @@ let addPlayer = function(scene, x,y) {
         impact_sprite.setPosition(
             scene.__gridX(Math.round(player_status.x)),
             scene.__gridY(Math.round(player_status.y)));
+        impact_sprite.setDepth(DEPTHS.SURFACE + player_status.y)
         impact_sprite.play('impact_anim');
     };
 
@@ -1352,4 +1353,46 @@ let addZoneTrigger = function(scene, x, y, width, height, handler) {
         zone_trigger.destroy();
     });
     return zone_trigger;
+};
+
+let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger) {
+    let offset = (x + y) % 2;
+    let button_pressed = false;
+    let calculate_texture = function() {
+        let result = offset * 2 + (button_pressed?1:0);
+        return result;
+    };
+    let button = scene.add.sprite(scene.__gridX(x), scene.__gridY(y),
+        'button', calculate_texture())
+        .setDepth(DEPTHS.BOARD + y);
+    let set_texture = function () {
+        button.setTexture('button', calculate_texture());
+    };
+    scene.__touchables.add(button);
+    scene.__mob_touchables.add(button);
+    let delayed_call = null;
+    let reset_or_create = function () {
+        if (reset_delay === -1) {
+            return;
+        }
+
+        if (delayed_call) {
+            delayed_call.remove();
+        }
+
+        delayed_call = scene.time.delayedCall(reset_delay, () => {
+            button_pressed = false;
+            set_texture();
+            reset_trigger();
+        });
+    };
+    button.setData('onTouch', function() {
+        if (!button_pressed) {
+            trigger();
+        }
+        button_pressed = true;
+        reset_or_create();
+        set_texture();
+    });
+    return button;
 };

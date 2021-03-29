@@ -5,9 +5,9 @@ const SCREEN_WIDTH = GRID_SIZE * GRID_COLS;
 const SCREEN_HEIGHT = GRID_SIZE * GRID_ROWS;
 const DEPTHS = {
     BOARD: 0,
-    SURFACE: 1,
-    ENTITIES: 1000,
-    UI: 2000,
+    SURFACE: 1000,
+    ENTITIES: 2000,
+    UI: 3000,
 };
 const DIRECTIONS = {
     NONE: {dx: 0, dy: 0},
@@ -64,6 +64,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('frame', 'assets/frame.png', { frameWidth: 32,  frameHeight: 32});
         this.load.spritesheet('laser_column', 'assets/laser_column.png', { frameWidth: 32,  frameHeight: 96});
         this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
+        this.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -169,8 +170,10 @@ let ControllerScene = new Phaser.Class({
             playerMoveAllowed : true,
             playerDangerous : false,
             playerGracePeriod : true,
-            isVulnerable : () => !scene.__player_status.playerGracePeriod &&
-                scene.__player_status.playerMoveAllowed,
+            isVulnerable : () => {
+                return !scene.__player_status.playerGracePeriod &&
+                    scene.__player_status.playerMoveAllowed
+            },
         };
         scene.__world_info = {
             current_room: 'entrance_room',
@@ -382,6 +385,7 @@ let GameScene = new Phaser.Class({
         scene.__hittables = scene.physics.add.group();
         scene.__dangerous_touchables = scene.physics.add.group();
         scene.__touchables = scene.physics.add.group();
+        scene.__mob_touchables = scene.physics.add.group();
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
@@ -397,7 +401,7 @@ let GameScene = new Phaser.Class({
                 let offset = 4 * ((x + y) % 2);
                 let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
                 let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
-                square.setDepth(DEPTHS.BOARD);
+                square.setDepth(DEPTHS.BOARD+y);
                 square.setVisible(room_info.map[y][x] === '0');
                 grid[x].push(square);
             }
@@ -423,13 +427,14 @@ let GameScene = new Phaser.Class({
         //SETUP PHYSICS
         //----------------------------------------------------------------------
 
-        scene.physics.add.overlap(scene.__player_group, scene.__hittables, function(character, hittable) {
-            let player_status = scene.scene.get('ControllerScene').__player_status;
-            if (character.data.values.isHitting()) {
-                hittable.data.values.onHit(player_status.dx,
-                    player_status.dy);
-            }
-        });
+        scene.physics.add.overlap(scene.__player_group, scene.__hittables,
+            function(character, hittable) {
+                let player_status = scene.scene.get('ControllerScene').__player_status;
+                if (character.data.values.isHitting()) {
+                    hittable.data.values.onHit(player_status.dx,
+                        player_status.dy);
+                }
+            });
         scene.physics.add.overlap(scene.__player_group, scene.__dangerous_touchables,
             function(character, dangerous_touchable) {
                 let player_status = scene.scene.get('ControllerScene').__player_status;
@@ -439,13 +444,17 @@ let GameScene = new Phaser.Class({
                     character.data.values.onHit(
                         touch_info.dx,
                         touch_info.dy);
-            }
-        });
+                }
+            });
         scene.physics.add.overlap(scene.__player_group, scene.__touchables,
             function(character, touchable) {
                 if (character.data.values.isTouching()) {
                     touchable.data.values.onTouch();
                 }
+            });
+        scene.physics.add.overlap(scene.__mobs, scene.__mob_touchables,
+            function(mob, mob_touchable) {
+                mob_touchable.data.values.onTouch();
             });
     },
 
