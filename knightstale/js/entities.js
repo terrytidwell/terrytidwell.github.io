@@ -1405,7 +1405,7 @@ let addZoneTrigger = function(scene, x, y, width, height, handler) {
     return zone_trigger;
 };
 
-let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger) {
+let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger, hold_trigger) {
     let offset = (x + y) % 2;
     let button_pressed = false;
     let calculate_texture = function() {
@@ -1428,17 +1428,24 @@ let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger) {
 
         if (delayed_call) {
             delayed_call.remove();
+            if (hold_trigger) {
+                hold_trigger();
+            }
         }
 
         delayed_call = scene.time.delayedCall(reset_delay, () => {
             button_pressed = false;
             set_texture();
-            reset_trigger();
+            if (reset_trigger) {
+                reset_trigger();
+            }
         });
     };
     button.setData('onTouch', function() {
         if (!button_pressed) {
-            trigger();
+            if (trigger) {
+                trigger();
+            }
         }
         button_pressed = true;
         reset_or_create();
@@ -1446,3 +1453,46 @@ let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger) {
     });
     return button;
 };
+
+let addDisappearingPlatform = function(scene, x, y, delay) {
+    let square = scene.__getGridSquare(x, y);
+    let safety_delay = 1000;
+    let tween = null;
+
+    let create_or_reset = function() {
+        if (tween) {
+            tween.restart();
+
+            return;
+        }
+        tween = scene.tweens.add({
+            targets: square,
+            alpha: 0.25,
+            yoyo: true,
+            delay: Math.max(delay - safety_delay, 0),
+            duration: 50,
+            repeat: safety_delay/100,
+            onActive: () => {
+                console.log('onActive');
+            },
+            onStart: () => {
+                console.log('onStart');
+                square.alpha = 0.75;
+            },
+            onComplete: () => {
+                console.log('onComplete');
+                square.setVisible(false);
+                square.alpha = 1;
+                tween.remove();
+                tween = null;
+            }
+        });
+    };
+
+    square.setData('beginCountdown', () => {
+        create_or_reset();
+        square.setVisible(true);
+        square.alpha = 1;
+    });
+    return square;
+}

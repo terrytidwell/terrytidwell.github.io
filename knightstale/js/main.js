@@ -328,6 +328,10 @@ let GameScene = new Phaser.Class({
             grid[x][y].setVisible(!grid[x][y].visible);
         };
 
+        scene.__getGridSquare = function(x,y) {
+            return grid[x][y];
+        };
+
         scene.__getTransitionDireciton = function(x,y) {
             let direction = {dx: 0, dy: 0};
             if (x < 2) {

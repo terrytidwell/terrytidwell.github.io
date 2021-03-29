@@ -6,8 +6,8 @@ let WORLD = {
             "------------",
             "------------",
             "----0000----",
-            "0000000000--",
-            "0000000000--",
+            "000000000000",
+            "000000000000",
             "----0000----",
             "-----00-----",
             "-----00-----",
@@ -15,18 +15,9 @@ let WORLD = {
             "-----00-----"
         ],
         west_exit: 'beginner_1',
+        east_exit: 'dungeon_1',
         south_exit: 'fights_1',
-        create: (scene) => {
-            let toggle_blocks = function() {
-                scene.__toggleGrid(3, 3);
-                scene.__toggleGrid(5, 2);
-                scene.__toggleGrid(7, 3);
-            };
-            addButton(scene, 4, 4,
-                toggle_blocks,
-                3000,
-                toggle_blocks);
-        },
+        create: (scene) => {},
     },
     'beginner_1': {
         map: [
@@ -47,7 +38,6 @@ let WORLD = {
         west_exit: 'beginner_2',
         create: (scene) => {
             addPawn(scene, 3, 4);
-            addButton(scene, 5, 4, scene.__removeExits, 3000, scene.__restoreExits);
         },
     },
     'beginner_2': {
@@ -203,6 +193,44 @@ let WORLD = {
                 addTeleportAtRandomSpot(scene, addPawnTeleport);
                 addMobWatch(scene, 0, scene.__restoreExits)
             });
+        },
+    },
+    'dungeon_1': {
+        map: [
+            "------------",
+            "------------",
+            "--0---0000--",
+            "--00--0000--",
+            "--00--0000--",
+            "0000---000--",
+            "00000--000--",
+            "--000--000--",
+            "--000---00--",
+            "--000---00--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'entrance_room',
+        create: (scene) => {
+            let squares = [
+                addDisappearingPlatform(scene, 6, 9, 20000),
+            ];
+
+            let reset_blocks = function() {
+                Phaser.Utils.Array.Each(squares,
+                    (square) => square.data.values.beginCountdown(),
+                    scene);
+            };
+            addButton(scene, 2, 2,
+                reset_blocks,
+                20000,
+                null,
+                reset_blocks);
+            addButton(scene, 9, 2,
+                reset_blocks,
+                20000,
+                null,
+                reset_blocks);
         },
     },
 };
