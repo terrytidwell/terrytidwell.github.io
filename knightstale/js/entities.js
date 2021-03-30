@@ -1583,3 +1583,21 @@ let addDisappearingPlatform = function(scene, x, y, delay) {
     });
     return square;
 }
+
+let addDisapperaingPlatformSequence = function(scene, point_groups, platform_time, platform_overlap_time, start_delay) {
+    let loop_time = point_groups.length * (platform_time - platform_overlap_time);
+    let current_delay = start_delay;
+    for (let point_group of point_groups ) {
+        let platform_group = [];
+        for (let point of point_group) {
+            platform_group.push(addDisappearingPlatform(scene, point.x, point.y, platform_time))
+        }
+        let reveal_blocks = function () {
+            Phaser.Utils.Array.Each(platform_group,
+                (platform) => platform.data.values.beginCountdown(), scene)
+            scene.time.delayedCall(loop_time, reveal_blocks);
+        };
+        scene.time.delayedCall(current_delay, reveal_blocks);
+        current_delay += platform_time - platform_overlap_time;
+    }
+};
