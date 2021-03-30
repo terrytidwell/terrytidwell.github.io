@@ -221,12 +221,7 @@ let WORLD = {
                     (square) => square.data.values.beginCountdown(),
                     scene);
             };
-            addButton(scene, 2, 2,
-                reset_blocks,
-                20000,
-                null,
-                reset_blocks);
-            addButton(scene, 9, 2,
+            addButton(scene, [{x:2, y:2}, {x:9, y:2}],
                 reset_blocks,
                 20000,
                 null,

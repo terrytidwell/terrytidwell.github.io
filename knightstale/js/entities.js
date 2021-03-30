@@ -1405,7 +1405,7 @@ let addZoneTrigger = function(scene, x, y, width, height, handler) {
     return zone_trigger;
 };
 
-let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger, hold_trigger) {
+let addBasicButton = function(scene, x, y) {
     let offset = (x + y) % 2;
     let button_pressed = false;
     let calculate_texture = function() {
@@ -1418,8 +1418,21 @@ let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger, hold_
     let set_texture = function () {
         button.setTexture('button', calculate_texture());
     };
-    scene.__touchables.add(button);
-    scene.__mob_touchables.add(button);
+    button.setData('isPressed', () => button_pressed);
+    button.setData('press', () => {
+        button_pressed = true;
+        set_texture();
+    });
+    button.setData('unpress', () => {
+        button_pressed = false;
+        set_texture();
+    });
+    return button;
+};
+
+let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hold_trigger) {
+    let buttons = [];
+
     let delayed_call = null;
     let reset_or_create = function () {
         if (reset_delay === -1) {
@@ -1434,24 +1447,30 @@ let addButton = function(scene, x, y, trigger, reset_delay, reset_trigger, hold_
         }
 
         delayed_call = scene.time.delayedCall(reset_delay, () => {
-            button_pressed = false;
-            set_texture();
+            Phaser.Utils.Array.Each(buttons, (button) => button.data.values.unpress(), buttons);;
             if (reset_trigger) {
                 reset_trigger();
             }
         });
     };
-    button.setData('onTouch', function() {
-        if (!button_pressed) {
-            if (trigger) {
-                trigger();
+
+    for (let point of points) {
+        let button = addBasicButton(scene, point.x, point.y);
+        buttons.push(button);
+        scene.__touchables.add(button);
+        scene.__mob_touchables.add(button);
+        button.setData('onTouch', function() {
+            if (!buttons.some((button) => button.data.values.isPressed())) {
+                if (trigger) {
+                    trigger();
+                }
             }
-        }
-        button_pressed = true;
-        reset_or_create();
-        set_texture();
-    });
-    return button;
+            Phaser.Utils.Array.Each(buttons, (button) => button.data.values.press(), this);
+            reset_or_create();
+        });
+    }
+
+
 };
 
 let addDisappearingPlatform = function(scene, x, y, delay) {
