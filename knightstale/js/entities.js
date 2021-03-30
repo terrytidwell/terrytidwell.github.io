@@ -1469,9 +1469,82 @@ let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hol
             reset_or_create();
         });
     }
-
-
 };
+
+let addButtonGroup = function(scene, points, completed_trigger) {
+    let buttons = [];
+    let pressed_button_count = 0;
+
+    let delayed_call = null;
+    let stop_timer = function () {
+        if (delayed_call) {
+            delayed_call.remove();
+        }
+    }
+    let start_timer = function () {
+        stop_timer();
+
+        delayed_call = scene.time.delayedCall(200, () => {
+            Phaser.Utils.Array.Each(buttons, (button) => button.data.values.unpress(), buttons);
+            pressed_button_count = 0;
+        });
+    };
+
+    let is_triggered = function() {
+        return pressed_button_count === buttons.length
+    };
+
+    let maybe_fire_trigger = function() {
+        if (is_triggered()) {
+            completed_trigger();
+            return true;
+        }
+        return false;
+    };
+
+    for (let point of points) {
+        let button = addBasicButton(scene, point.x, point.y);
+        buttons.push(button);
+        scene.__touchables.add(button);
+        scene.__mob_touchables.add(button);
+        scene.__updateables.add(button);
+        let watch_for_release = false;
+        button.setData('onTouch', function() {
+            if (is_triggered()) { return; }
+
+            if (button.data.values.isPressed()) {
+                return;
+            }
+
+            stop_timer();
+            pressed_button_count++;
+            button.data.values.press();
+
+            if (maybe_fire_trigger()) {
+                return;
+            }
+
+            watch_for_release = true;
+        });
+        button.update = function() {
+            if (is_triggered()) {
+                return;
+            }
+            if (!watch_for_release) {
+                return;
+            }
+
+            let touching = scene.physics.overlap(scene.__mobs, button) ||
+                scene.physics.overlap(scene.__player_group, button);
+            if (touching) {
+                return;
+            }
+
+            watch_for_release = false;
+            start_timer();
+        };
+    }
+}
 
 let addDisappearingPlatform = function(scene, x, y, delay) {
     let square = scene.__getGridSquare(x, y);
@@ -1491,15 +1564,10 @@ let addDisappearingPlatform = function(scene, x, y, delay) {
             delay: Math.max(delay - safety_delay, 0),
             duration: 50,
             repeat: safety_delay/100,
-            onActive: () => {
-                console.log('onActive');
-            },
             onStart: () => {
-                console.log('onStart');
                 square.alpha = 0.75;
             },
             onComplete: () => {
-                console.log('onComplete');
                 square.setVisible(false);
                 square.alpha = 1;
                 tween.remove();
