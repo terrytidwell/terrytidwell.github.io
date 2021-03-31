@@ -1011,6 +1011,100 @@ let addBishop = function(scene, x, y) {
     return bounding_box;
 };
 
+let addPawnStatue = function(scene, x, y) {
+    return addStatue(scene, x, y, 12,
+        [
+            {d:DIRECTIONS.UP, m:0},
+            {d:DIRECTIONS.LEFT, m:0},
+            {d:DIRECTIONS.RIGHT, m:0},
+            {d:DIRECTIONS.DOWN, m:0}
+        ]);
+};
+
+let addBishopStatue = function(scene, x, y) {
+    return addStatue(scene, x, y, 2,
+    [
+        {d:DIRECTIONS.UP_LEFT, m:0},
+        {d:DIRECTIONS.UP_RIGHT, m:0},
+        {d:DIRECTIONS.DOWN_LEFT, m:0},
+        {d:DIRECTIONS.DOWN_RIGHT, m:0}
+        ]);
+};
+
+let addStatue = function(scene, x, y, frame, directions) {
+    let m_x = x;
+    let m_y = y;
+
+    let enter_stunned = function(impact_x, impact_y) {
+        m_y = Math.round(m_y);
+        m_x = Math.round(m_x);
+        sprite.alpha = 0.75;
+        for(let direction of directions) {
+            direction.m = direction.d.dx * impact_x +
+                direction.d.dy * impact_y;
+        }
+        directions.sort(function(a,b) {
+            if(a.m > b.m) {
+                return -1;
+            }
+            if (a.m < b.m) {
+                return 1;
+            }
+            return 0;
+        });
+        for(let direction of directions) {
+            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+                m_x += direction.d.dx;
+                m_y += direction.d.dy;
+                break;
+            }
+        }
+        scene.tweens.add({
+            targets: sprite_overlay,
+            alpha: 1,
+            yoyo: true,
+            repeat: 1,
+            duration: 50
+        });
+    };
+
+    let exit_stunned = function() {
+        sprite_overlay.alpha = 0;
+    };
+
+    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame);
+    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame)
+        .setAlpha(0)
+        .setTintFill(0xffffff);
+    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
+    bounding_box.setData('onHit',function(dx, dy) {
+        enter_stunned(dx, dy);
+        exit_stunned();
+    });
+    scene.__hittables.add(bounding_box);
+    scene.__mobs.add(bounding_box);
+    scene.__mob_collision_boxes.add(bounding_box);
+    scene.__updateables.add(bounding_box);
+    scene.events.on(Phaser.Scenes.Events.SLEEP,() => {
+        m_x = x;
+        m_y = y;
+        bounding_box.update();
+    });
+    bounding_box.update = function() {
+        sprite.setPosition(scene.__gridX(m_x),scene.__characterY(m_y));
+        sprite.setDepth(DEPTHS.ENTITIES + m_y);
+        sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y));
+        sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
+        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
+    };
+
+    bounding_box.update();
+
+    return bounding_box;
+};
+
 let addPlayer = function(scene, x,y) {
 
     let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
@@ -1543,7 +1637,7 @@ let addButtonGroup = function(scene, points, completed_trigger) {
             start_timer();
         };
     }
-}
+};
 
 let addDisappearingPlatform = function(scene, x, y, delay) {
     let square = scene.__getGridSquare(x, y);

@@ -18,7 +18,8 @@ let WORLD = {
         east_exit: 'dungeon_1',
         south_exit: 'fights_1',
         north_exit: 'puzzles_1',
-        create: (scene) => {},
+        create: (scene) => {
+        },
     },
     'beginner_1': {
         map: [
@@ -320,8 +321,8 @@ let WORLD = {
             "--00000000--",
             "--00000000--",
             "--00----00--",
-            "0000----00--",
-            "0000----00--",
+            "0000----0000",
+            "0000----0000",
             "--00----00--",
             "--00000000--",
             "--00000000--",
@@ -331,6 +332,7 @@ let WORLD = {
         south_exit: 'entrance_room',
         north_exit: 'puzzles_2',
         west_exit: 'puzzles_3',
+        east_exit: 'puzzles_4',
         create: (scene) => {},
     },
     'puzzles_2': {
@@ -399,4 +401,28 @@ let WORLD = {
             ], () => console.log('COMPLETED!'));
         },
     },
+    'puzzles_4': {
+        map: [
+            "------------",
+            "------------",
+            "----000000--",
+            "----000000--",
+            "--0-000000--",
+            "000-000000--",
+            "000-000000--",
+            "--0-000000--",
+            "----000000--",
+            "----000000--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'puzzles_1',
+        create: (scene) => {
+            addPawnStatue(scene, 7, 4);
+            addButton(scene,[{x:8,y:4}], () => {}, 50);
+            addButton(scene,[{x:6,y:7}], () => {}, 50);
+            addBishopStatue(scene, 7, 7);
+        },
+    },
+
 };
