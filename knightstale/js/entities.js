@@ -1130,10 +1130,12 @@ let addPlayer = function(scene, x,y) {
         impact_sprite.play('impact_anim');
     };
 
-    let movePlayer = function(x, y) {
+    let movePlayer = function(dx, dy) {
+        let x = Math.round(player_status.x) + dx;
+        let y = Math.round(player_status.y) + dy;
         move_history.push({x:x, y:y});
-        player_status.dx = x - player_status.x;
-        player_status.dy = y - player_status.y;
+        player_status.dx = dx;
+        player_status.dy = dy;
         if (player_status.dx === 2) {
             setOrientation(orientation.RIGHT);
         }
@@ -1213,15 +1215,13 @@ let addPlayer = function(scene, x,y) {
         sprite_remnant.setTexture(sprite_type, 4 + orientation);
     };
 
-    let tryMovePlayer = function(x, y) {
+    let tryMovePlayer = function(dx, dy) {
         if (!player_status.playerMoveAllowed) {
             return;
         }
-        if (x !== player_status.x &&
-            y !== player_status.y &&
-            3 === Phaser.Math.Distance.Snake(x, y,
-                player_status.x, player_status.y) ) {
-            movePlayer(x, y);
+        if (scene.__isGridPassable(Math.round(player_status.x) + dx,
+            Math.round(player_status.y) + dy) ) {
+            movePlayer(dx, dy);
         }
     };
 
@@ -1276,7 +1276,6 @@ let addPlayer = function(scene, x,y) {
 
             {d:DIRECTIONS.RIGHT, m:0},
             {d:DIRECTIONS.UP_RIGHT, m:0},
-
         ];
         Phaser.Utils.Array.Shuffle(directions);
         for(let direction of directions) {
@@ -1344,8 +1343,8 @@ let addPlayer = function(scene, x,y) {
         frame.setDepth(DEPTHS.SURFACE);
         frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
             function () {
-                tryMovePlayer(player_status.x + frame.data.values.dx,
-                    player_status.y + frame.data.values.dy);
+                tryMovePlayer(frame.data.values.dx,
+                    frame.data.values.dy);
             }
         );
     }
