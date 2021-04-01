@@ -245,7 +245,23 @@ let WORLD = {
                 addFightSequence(scene, scene.__restoreExits)
                     .addTimerGuard(4000, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
                     .addMobCountGuard(0, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
-                    .addMobCountGuard(0, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(0, () => {
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                    })
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(1, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(0, () => {
+                        addTeleportAtRandomSpot(scene, addPawnTeleport)
+                        addTeleportAtRandomSpot(scene, addPawnTeleport)
+                        addTeleportAtRandomSpot(scene, addPawnTeleport)
+                        addTeleportAtRandomSpot(scene, addPawnTeleport)
+                    })
+                    .addMobCountGuard(0, () => addTeleportAtRandomSpot(scene, addBishopTeleport))
                     .start();
             });
         },

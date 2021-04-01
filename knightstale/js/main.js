@@ -54,6 +54,7 @@ let LoadScene = new Phaser.Class({
             "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
+        this.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
         this.load.spritesheet('floor', 'assets/Wood 1 TD 64x72.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('white_pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
@@ -66,7 +67,6 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
         this.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
         this.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
-        this.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
