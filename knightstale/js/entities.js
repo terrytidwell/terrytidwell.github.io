@@ -1476,6 +1476,49 @@ let addPlayer = function(scene, x,y) {
     return character;
 };
 
+let addFightSequence = function(scene, victory_condition) {
+    let fight_sequence_events = [];
+    let fight_sequence_guards = [];
+    let do_next_event = function() {
+        fight_sequence_guards.shift();
+        fight_sequence_events[0]();
+        fight_sequence_events.shift();
+        if (fight_sequence_guards.length > 0) {
+            fight_sequence_guards[0]();
+        }
+    };
+    let fight_end = function () {
+        fight_music.stop();
+        victory_condition();
+    };
+    let fight_music = scene.sound.add('fight_music', {loop: true });
+    let start = function() {
+        addMobCountGuard(0, fight_end);
+        fight_music.play();
+        fight_sequence_guards[0]();
+    };
+    let addTimerGuard = function(time, event) {
+        fight_sequence_guards.push(() => {
+            scene.time.delayedCall(time, do_next_event)
+        });
+        fight_sequence_events.push(event);
+        return result;
+    };
+    let addMobCountGuard = function(threshold, event) {
+        fight_sequence_guards.push(() => {
+            addMobWatch(scene, threshold, do_next_event);
+        });
+        fight_sequence_events.push(event);
+        return result;
+    };
+    let result = {
+        addTimerGuard : addTimerGuard,
+        addMobCountGuard : addMobCountGuard,
+        start: start,
+    };
+    return result;
+};
+
 let addMobWatch = function(scene, threshold, handler) {
     let mob_watch = scene.add.zone(0, 0);
     mob_watch.update = function() {

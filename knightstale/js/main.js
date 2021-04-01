@@ -66,6 +66,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
         this.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
         this.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;

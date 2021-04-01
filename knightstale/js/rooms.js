@@ -16,7 +16,7 @@ let WORLD = {
         ],
         west_exit: 'beginner_1',
         east_exit: 'dungeon_1',
-        south_exit: 'fights_1',
+        south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
         },
@@ -142,7 +142,7 @@ let WORLD = {
         ],
         east_exit: 'fights_2',
         west_exit: 'fights_3',
-        north_exit: 'entrance_room',
+        north_exit: 'fights_4',
         create: (scene) => {},
     },
     'fights_2': {
@@ -194,6 +194,53 @@ let WORLD = {
                 addTeleportAtRandomSpot(scene, addPawnTeleport);
                 addTeleportAtRandomSpot(scene, addPawnTeleport);
                 addMobWatch(scene, 0, scene.__restoreExits)
+            });
+        },
+    },
+    'fights_4': {
+        map: [
+            "-----00-----",
+            "-----00-----",
+            "-----00-----",
+            "-----00-----",
+            "----0000----",
+            "----00000000",
+            "----00000000",
+            "----0000----",
+            "-----00-----",
+            "-----00-----",
+            "-----00-----",
+            "-----00-----"
+        ],
+        east_exit: 'fights_5',
+        north_exit: 'entrance_room',
+        south_exit: 'fights_1',
+        create: (scene) => {},
+    },
+    'fights_5': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "0000000000--",
+            "0000000000--",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'fights_4',
+        create: (scene) => {
+            addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
+                scene.__removeExits();
+                addFightSequence(scene, scene.__restoreExits)
+                    .addTimerGuard(4000, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(0, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .addMobCountGuard(0, () => addTeleportAtRandomSpot(scene, addPawnTeleport))
+                    .start();
             });
         },
     },
