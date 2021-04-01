@@ -164,9 +164,12 @@ let WORLD = {
         create: (scene) => {
             addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
                 scene.__removeExits();
-                addTeleportAtRandomSpot(scene, addBishopTeleport);
-                addTeleportAtRandomSpot(scene, addBishopTeleport);
-                addMobWatch(scene, 0, scene.__restoreExits)
+                addFightSequence(scene, scene.__restoreExits)
+                    .addTimerGuard(4000, () => {
+                        addTeleportAtRandomSpot(scene, addBishopTeleport);
+                        addTeleportAtRandomSpot(scene, addBishopTeleport);
+                    })
+                    .start();
             });
         },
     },
@@ -189,11 +192,14 @@ let WORLD = {
         create: (scene) => {
             addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
                 scene.__removeExits();
-                addTeleportAtRandomSpot(scene, addPawnTeleport);
-                addTeleportAtRandomSpot(scene, addPawnTeleport);
-                addTeleportAtRandomSpot(scene, addPawnTeleport);
-                addTeleportAtRandomSpot(scene, addPawnTeleport);
-                addMobWatch(scene, 0, scene.__restoreExits)
+                addFightSequence(scene, scene.__restoreExits)
+                    .addTimerGuard(4000, () => {
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                    })
+                    .start();
             });
         },
     },

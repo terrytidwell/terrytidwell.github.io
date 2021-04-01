@@ -474,7 +474,7 @@ let GameScene = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: '#000000',
+    backgroundColor: '#202020',
     type: Phaser.AUTO,
     render: {
         pixelArt: true
