@@ -67,6 +67,8 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
         this.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
         this.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gems', 'assets/gems.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.spritesheet('keys', 'assets/keys.png', { frameWidth: 16, frameHeight: 16 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -127,6 +129,18 @@ let LoadScene = new Phaser.Class({
             frameRate: 12,
             repeat: 0
         });
+
+        for (let i = 0; i < 4; i++) {
+           scene.anims.create({
+                key: 'gem_' + i + '_anim',
+                frames: scene.anims.generateFrameNumbers('gems',
+                    {start: i*6, end: i*6 + 5}),
+                skipMissedFrames: false,
+                frameRate: 12,
+                repeatDelay: 1000,
+                repeat: -1
+            });
+        }
     },
 
     //--------------------------------------------------------------------------

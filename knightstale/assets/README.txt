@@ -8,6 +8,8 @@ https://kvsr.itch.io/fx062
 
 https://adwitr.itch.io/pixel-health-bar-asset-pack-2
 
+https://greatdocbrown.itch.io/coins-gems-etc
+
 Crunk Knight by Kevin MacLeod
 https://incompetech.filmmusic.io/song/3566-crunk-knight
 

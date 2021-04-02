@@ -1011,8 +1011,8 @@ let addBishop = function(scene, x, y) {
     return bounding_box;
 };
 
-let addPawnStatue = function(scene, x, y) {
-    return addStatue(scene, x, y, 12,
+let addRookStatue = function(scene, x, y) {
+    return addStatue(scene, x, y, 11,
         [
             {d:DIRECTIONS.UP, m:0},
             {d:DIRECTIONS.LEFT, m:0},
@@ -1528,6 +1528,35 @@ let addMobWatch = function(scene, threshold, handler) {
         }};
     scene.__updateables.add(mob_watch);
     return mob_watch;
+};
+
+let addKey = function(scene, x, y) {
+    let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
+        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5).setDepth(DEPTHS.UI);
+    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.4 - GRID_ROWS), 'keys', 0)
+        .setDepth(DEPTHS.UI)
+        .setScale(3);
+    scene.tweens.add({
+        targets: gem,
+        y: scene.__gridY(y - 0.4),
+        ease: 'Bounce.easeOut',
+        duration: 1500,
+    });
+};
+
+let addGem = function(scene, x, y, flavor) {
+    let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
+        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5).setDepth(DEPTHS.UI);
+    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.25 - GRID_ROWS), 'gems', flavor*6)
+        .setDepth(DEPTHS.UI)
+        .setScale(2);
+    gem.play('gem_' + flavor + '_anim');
+    scene.tweens.add({
+        targets: gem,
+        y: scene.__gridY(y - 0.25),
+        ease: 'Bounce.easeOut',
+        duration: 1500,
+    });
 };
 
 let addZoneTrigger = function(scene, x, y, width, height, handler) {

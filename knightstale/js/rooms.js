@@ -19,6 +19,8 @@ let WORLD = {
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
+            //addGem(scene,7, 7, 0);
+            //addKey(scene,6, 7);
         },
     },
     'beginner_1': {
@@ -487,7 +489,7 @@ let WORLD = {
         ],
         west_exit: 'puzzles_1',
         create: (scene) => {
-            addPawnStatue(scene, 7, 4);
+            addRookStatue(scene, 7, 4);
             addButton(scene,[{x:8,y:4}], () => {}, 50);
             addButton(scene,[{x:6,y:7}], () => {}, 50);
             addBishopStatue(scene, 7, 7);
