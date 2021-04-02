@@ -1530,7 +1530,24 @@ let addMobWatch = function(scene, threshold, handler) {
     return mob_watch;
 };
 
+let addKeyHole = function(scene, x, y, handler) {
+    let player_status = scene.scene.get('ControllerScene').__player_status;
+    let keyhole = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'keyhole')
+        .setScale(2)
+        .setDepth(DEPTHS.SURFACE);
+    scene.__touchables.add(keyhole);
+    keyhole.setData('onTouch', function() {
+        if (player_status.keys <= 0) {
+            return;
+        }
+        player_status.keys--;
+        keyhole.destroy();
+        handler();
+    });
+};
+
 let addKey = function(scene, x, y) {
+    let player_status = scene.scene.get('ControllerScene').__player_status;
     let depth = DEPTHS.ENTITIES + y - .25;
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
         GRID_SIZE - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
@@ -1548,9 +1565,11 @@ let addKey = function(scene, x, y) {
     });
     scene.__touchables.add(zone_trigger);
     zone_trigger.setData('onTouch', function() {
+        player_status.keys++;
         shadow.destroy();
         key.destroy();
         zone_trigger.destroy();
+
     });
 };
 

@@ -388,6 +388,13 @@ let WORLD = {
         ],
         south_exit: 'dungeon_3',
         create: (scene) => {
+            let unlock = function() {
+                scene.__toggleGrid(11, 5);
+                scene.__toggleGrid(10, 5);
+                scene.__toggleGrid(10, 6);
+                scene.__toggleGrid(11, 6);
+            }
+            addKeyHole(scene, 9,5, unlock);
         },
     },
     'puzzles_1': {

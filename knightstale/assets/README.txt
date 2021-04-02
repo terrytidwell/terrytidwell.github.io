@@ -10,6 +10,8 @@ https://adwitr.itch.io/pixel-health-bar-asset-pack-2
 
 https://greatdocbrown.itch.io/coins-gems-etc
 
+https://aekae13.itch.io/16x16-dungeon-walls-reconfig
+
 Crunk Knight by Kevin MacLeod
 https://incompetech.filmmusic.io/song/3566-crunk-knight
 

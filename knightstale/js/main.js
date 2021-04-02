@@ -51,7 +51,7 @@ let LoadScene = new Phaser.Class({
 
         let loading_text = scene.add.text(
             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-            "0%", { fontSize: GRID_SIZE/2 + 'px', fill: '#FFF' })
+            "0%", { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
         this.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
@@ -69,6 +69,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('gems', 'assets/gems.png', { frameWidth: 16, frameHeight: 16 });
         this.load.spritesheet('keys', 'assets/keys.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.spritesheet('keyhole', 'assets/keyhole.png', { frameWidth: 16, frameHeight: 16 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -187,6 +188,7 @@ let ControllerScene = new Phaser.Class({
             playerDangerous : false,
             playerGracePeriod : true,
             characterFalling : true,
+            keys: 0,
             isVulnerable : () => {
                 return !scene.__player_status.playerGracePeriod &&
                     scene.__player_status.playerMoveAllowed
