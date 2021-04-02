@@ -373,8 +373,8 @@ let WORLD = {
     },
     'dungeon_4': {
         map: [
-            "------------",
-            "------------",
+            "-----00-----",
+            "-----00-----",
             "-----00-----",
             "-----00-----",
             "-----00-----",
@@ -387,6 +387,8 @@ let WORLD = {
             "-----00-----"
         ],
         south_exit: 'dungeon_3',
+        north_exit: 'dungeon_6',
+        east_exit: 'dungeon_5',
         create: (scene) => {
             let unlock = function() {
                 scene.__toggleGrid(11, 5);
@@ -394,7 +396,47 @@ let WORLD = {
                 scene.__toggleGrid(10, 6);
                 scene.__toggleGrid(11, 6);
             }
-            addKeyHole(scene, 9,5, unlock);
+            addKeyHole(scene, [{x:9,y:5},{x:9,y:6}], unlock);
+        },
+    },
+    'dungeon_5': {
+        map: [
+            "------------",
+            "------------",
+            "------------",
+            "-----00-----",
+            "----0000----",
+            "000000000---",
+            "000000000---",
+            "----0000----",
+            "-----00-----",
+            "------------",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'dungeon_4',
+        create: (scene) => {},
+    },
+    'dungeon_6': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--0--00--0--",
+            "--0--00--0--",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "-----00-----",
+            "-----00-----"
+        ],
+        south_exit: 'dungeon_4',
+        create: (scene) => {
+            addPawn(scene, 3, 8);
+            addPawn(scene, 8, 6);
+            addMobWatch(scene, 0, () => addKey(scene, 9, 9));
         },
     },
     'puzzles_1': {
@@ -502,10 +544,10 @@ let WORLD = {
         west_exit: 'puzzles_1',
         create: (scene) => {
             addRookStatue(scene, 7, 4);
-            addButton(scene,[{x:8,y:4}], () => {}, 50);
-            addButton(scene,[{x:6,y:7}], () => {}, 50);
+            addSimultaneousButtonGroup(scene,
+                [{x:8,y:4}, {x:6,y:7}, {x: 2, y:4}],
+                () =>  addGem(scene, 9,9, 0))
             addBishopStatue(scene, 7, 7);
         },
     },
-
 };

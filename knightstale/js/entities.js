@@ -1530,20 +1530,26 @@ let addMobWatch = function(scene, threshold, handler) {
     return mob_watch;
 };
 
-let addKeyHole = function(scene, x, y, handler) {
+let addKeyHole = function(scene, points, handler) {
     let player_status = scene.scene.get('ControllerScene').__player_status;
-    let keyhole = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'keyhole')
-        .setScale(2)
-        .setDepth(DEPTHS.SURFACE);
-    scene.__touchables.add(keyhole);
-    keyhole.setData('onTouch', function() {
-        if (player_status.keys <= 0) {
-            return;
-        }
-        player_status.keys--;
-        keyhole.destroy();
-        handler();
-    });
+    let keyholes = [];
+    for (let point of points) {
+        let keyhole = scene.add.sprite(scene.__gridX(point.x), scene.__gridY(point.y), 'keyhole')
+            .setScale(2)
+            .setDepth(DEPTHS.SURFACE);
+        scene.__touchables.add(keyhole);
+        keyhole.setData('onTouch', function() {
+            if (player_status.keys <= 0) {
+                return;
+            }
+            player_status.keys--;
+            for (let keyhole of keyholes) {
+                keyhole.destroy();
+            }
+            handler();
+        });
+        keyholes.push(keyhole);
+    }
 };
 
 let addKey = function(scene, x, y) {
@@ -1673,6 +1679,41 @@ let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hol
             reset_or_create();
         });
     }
+
+    return buttons;
+};
+
+let addSimultaneousButtonGroup = function(scene, points, complete_trigger) {
+    let total_count = points.length;
+    let current_count = 0;
+    let buttons = [];
+
+    let finalize = function() {
+        complete_trigger();
+        for (let button of buttons) {
+            button.destroy();
+        }
+        for (let point of points) {
+            addBasicButton(scene, point.x, point.y).data.values.press();
+        }
+    };
+
+    let press = function() {
+        current_count++;
+        if (total_count === current_count) {
+            finalize();
+        }
+    };
+
+    let unpress = function() {
+        current_count--;
+    }
+
+    for (let point of points) {
+        let button = addButton(scene, [{x: point.x, y: point.y}], press, 200, unpress);
+        buttons.concat(button);
+    }
+    return buttons;
 };
 
 let addButtonGroup = function(scene, points, completed_trigger) {
