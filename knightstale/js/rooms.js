@@ -19,8 +19,13 @@ let WORLD = {
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
-            //addGem(scene,7, 7, 0);
-            //addKey(scene,6, 7);
+            /*
+            addGem(scene,7, 7, 0);
+            addGem(scene,7, 6, 1);
+            addGem(scene,7, 5, 2);
+            addGem(scene,7, 4, 3);
+            addKey(scene,6, 7);
+            */
         },
     },
     'beginner_1': {
@@ -333,7 +338,7 @@ let WORLD = {
                 {x:7,y:4},
                 {x:5,y:3},
                 {x:6,y:3},
-            ], () => console.log('COMPLETED!'));
+            ], () => addKey(scene, 9, 9));
         },
     },
     'dungeon_3': {
@@ -433,7 +438,7 @@ let WORLD = {
                 {x:6,y:5},
                 {x:6,y:6},
                 {x:7,y:6},
-            ], () => console.log('COMPLETED!'));
+            ], () => addGem(scene, 2,2, 0));
         },
     },
     'puzzles_3': {
@@ -469,7 +474,7 @@ let WORLD = {
                 {x:7,y:5},
                 {x:7,y:6},
                 {x:7,y:7},
-            ], () => console.log('COMPLETED!'));
+            ], () =>  addGem(scene, 2,9, 0));
         },
     },
     'puzzles_4': {

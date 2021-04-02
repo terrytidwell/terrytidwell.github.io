@@ -1531,24 +1531,38 @@ let addMobWatch = function(scene, threshold, handler) {
 };
 
 let addKey = function(scene, x, y) {
+    let depth = DEPTHS.ENTITIES + y - .25;
+    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
+        GRID_SIZE - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
     let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5).setDepth(DEPTHS.UI);
-    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.4 - GRID_ROWS), 'keys', 0)
-        .setDepth(DEPTHS.UI)
+        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5)
+        .setDepth(depth);
+    let key = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.4 - GRID_ROWS), 'keys', 0)
+        .setDepth(depth)
         .setScale(3);
     scene.tweens.add({
-        targets: gem,
+        targets: key,
         y: scene.__gridY(y - 0.4),
         ease: 'Bounce.easeOut',
         duration: 1500,
     });
+    scene.__touchables.add(zone_trigger);
+    zone_trigger.setData('onTouch', function() {
+        shadow.destroy();
+        key.destroy();
+        zone_trigger.destroy();
+    });
 };
 
 let addGem = function(scene, x, y, flavor) {
+    let depth = DEPTHS.ENTITIES + y - .25;
+    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
+        GRID_SIZE - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
     let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5).setDepth(DEPTHS.UI);
+        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5)
+        .setDepth(depth)
     let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.25 - GRID_ROWS), 'gems', flavor*6)
-        .setDepth(DEPTHS.UI)
+        .setDepth(depth)
         .setScale(2);
     gem.play('gem_' + flavor + '_anim');
     scene.tweens.add({
@@ -1556,6 +1570,12 @@ let addGem = function(scene, x, y, flavor) {
         y: scene.__gridY(y - 0.25),
         ease: 'Bounce.easeOut',
         duration: 1500,
+    });
+    scene.__touchables.add(zone_trigger);
+    zone_trigger.setData('onTouch', function() {
+        shadow.destroy();
+        gem.destroy();
+        zone_trigger.destroy();
     });
 };
 
