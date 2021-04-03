@@ -1072,6 +1072,7 @@ let addStatue = function(scene, x, y, frame, directions) {
 
     let exit_stunned = function() {
         sprite_overlay.alpha = 0;
+        sprite.alpha = 1;
     };
 
     let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame);
