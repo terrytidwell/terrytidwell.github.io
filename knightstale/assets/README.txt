@@ -17,6 +17,10 @@ https://opengameart.org/content/2-seamless-lava-tiles
 Crunk Knight by Kevin MacLeod
 https://incompetech.filmmusic.io/song/3566-crunk-knight
 
+Crunk Knight Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 3.0
+http://creativecommons.org/licenses/by/3.0/
+
 Purchased:
 
 https://retsnail-assets.itch.io/laserbeamfx
