@@ -70,6 +70,7 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('gems', 'assets/gems.png', { frameWidth: 16, frameHeight: 16 });
         this.load.spritesheet('keys', 'assets/keys.png', { frameWidth: 16, frameHeight: 16 });
         this.load.spritesheet('keyhole', 'assets/keyhole.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.spritesheet('lava', 'assets/lava.png', { frameWidth: 64, frameHeight: 64 });
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;

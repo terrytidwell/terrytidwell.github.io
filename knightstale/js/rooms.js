@@ -387,8 +387,8 @@ let WORLD = {
             "-----00-----"
         ],
         south_exit: 'dungeon_3',
-        north_exit: 'dungeon_6',
-        east_exit: 'dungeon_5',
+        north_exit: 'dungeon_5',
+        east_exit: 'dungeon_6',
         create: (scene) => {
             let unlock = function() {
                 scene.__toggleGrid(11, 5);
@@ -400,24 +400,6 @@ let WORLD = {
         },
     },
     'dungeon_5': {
-        map: [
-            "------------",
-            "------------",
-            "------------",
-            "-----00-----",
-            "----0000----",
-            "000000000---",
-            "000000000---",
-            "----0000----",
-            "-----00-----",
-            "------------",
-            "------------",
-            "------------"
-        ],
-        west_exit: 'dungeon_4',
-        create: (scene) => {},
-    },
-    'dungeon_6': {
         map: [
             "------------",
             "------------",
@@ -437,6 +419,82 @@ let WORLD = {
             addPawn(scene, 3, 8);
             addPawn(scene, 8, 6);
             addMobWatch(scene, 0, () => addKey(scene, 9, 9));
+        },
+    },
+    'dungeon_6': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00----00--",
+            "0000----0000",
+            "0000----0000",
+            "--00----00--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'dungeon_4',
+        east_exit: 'dungeon_7',
+        create: (scene) => {
+            addLavaPool(scene,4,4,4,4);
+        },
+    },
+    'dungeon_7': {
+        map: [
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00000-00--",
+            "000000000000",
+            "000000000000",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'dungeon_6',
+        east_exit: 'dungeon_8',
+        create: (scene) => {
+            let lava = addLavaPool(scene,7,4,1,1);
+            lava.stop();
+            addZoneTrigger(scene, 5.5, 5.5, 8, 8, () => {
+                scene.__removeExits();
+                lava.start();
+                addFightSequence(scene, () => {
+                    scene.__restoreExits();
+                    lava.stop();
+                })
+                    .addTimerGuard(4000, () => {
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                    })
+                    .start();
+            });
+        },
+    },
+    'dungeon_8': {
+        map: [
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "-----00-----",
+            "00000000----",
+            "00000000----",
+            "-----00-----",
+            "------------",
+            "------------",
+            "------------",
+            "------------"
+        ],
+        west_exit: 'dungeon_7',
+        create: (scene) => {
+            addGem(scene, 6, 6, 1);
         },
     },
     'puzzles_1': {

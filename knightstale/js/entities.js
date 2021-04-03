@@ -673,10 +673,14 @@ let addPawn = function(scene, x,y) {
 let addFlameWave = function(scene, x, y) {
 
     let createPoint = function(x, y) {
-        if (!scene.__isGridMobPassable(x,y)) {
+        if (scene.__shouldTransition(x,y)) {
             return;
         }
-        sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'fire', 0)
+        let z_offset = 0;
+        if (!scene.__isGridPassable(x,y)) {
+            z_offset = 8;
+        }
+        sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y) + z_offset, 'fire', 0)
             .setScale(2)
             .play('fire_anim')
             .setDepth(DEPTHS.ENTITIES + y - 0.25));
@@ -1846,4 +1850,37 @@ let addDisapperaingPlatformSequence = function(scene, point_groups, platform_tim
         scene.time.delayedCall(current_delay, reveal_blocks);
         current_delay += platform_time - platform_overlap_time;
     }
+};
+
+let addLavaPool = function(scene, x, y, width, height) {
+    for (let i = x; i < x + width; i++) {
+        for (let j = y; j < y + height; j++) {
+            scene.add.sprite(scene.__gridX(i), scene.__gridY(j) + 8, 'lava', 0)
+                .setDepth(DEPTHS.BOARD+j);
+        }
+    }
+    let delayed_call = null;
+    let spawn_flame_wave = function() {
+        let rx = x + Phaser.Math.Between(0, width - 1);
+        let ry = y + Phaser.Math.Between(0, height - 1);
+        addFlameWave(scene, rx, ry);
+        delayed_call = scene.time.delayedCall(8000, spawn_flame_wave);
+    };
+
+    let start = function() {
+        delayed_call = scene.time.delayedCall(1000, spawn_flame_wave);
+    };
+
+    let stop = function() {
+        if (delayed_call) {
+            delayed_call.remove(false);
+        }
+    };
+
+    start();
+
+    return {
+        start: start,
+        stop: stop,
+    };
 };
