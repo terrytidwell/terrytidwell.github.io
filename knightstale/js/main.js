@@ -419,17 +419,13 @@ let GameScene = new Phaser.Class({
         });
         scene.__mobs = scene.add.group();
 
-        let index_image = Phaser.Utils.Array.NumberArray(0,3);
         let room_info = scene.scene.get('ControllerScene').__world_info.current_info;
         for (let x = 0; x < GRID_COLS; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
             {
-                let offset = 4 * ((x + y) % 2);
-                let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
-                let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
-                square.setDepth(DEPTHS.BOARD+y);
+                let square = addGroundSquare(scene, x, y);
                 square.setVisible(room_info.map[y][x] === '0');
                 grid[x].push(square);
             }

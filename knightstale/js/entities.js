@@ -81,6 +81,18 @@ let addDeathEffect = function(scene, x, y) {
     return death_effect;
 };
 
+let addGroundSquare = (function() {
+    let index_image = Phaser.Utils.Array.NumberArray(0,3);
+
+    return function(scene, x, y) {
+        let offset = 4 * ((x + y) % 2);
+        let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
+        let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
+        square.setDepth(DEPTHS.BOARD+y);
+        return square;
+    }
+}());
+
 let addTeleportAtRandomSpot = function(scene, teleporter) {
    let squares = Phaser.Utils.Array.NumberArray(0, GRID_COLS*GRID_ROWS-1);
    Phaser.Utils.Array.Shuffle(squares);

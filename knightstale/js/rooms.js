@@ -206,6 +206,15 @@ let WORLD = {
                         addTeleportAtRandomSpot(scene, addPawnTeleport);
                         addTeleportAtRandomSpot(scene, addPawnTeleport);
                     })
+                    .addTimerGuard(8000, () => {
+                        addTeleportAtRandomSpot(scene, addBishopTeleport);
+                    })
+                    .addTimerGuard(8000, () => {
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                        addTeleportAtRandomSpot(scene, addPawnTeleport);
+                    })
                     .start();
             });
         },
