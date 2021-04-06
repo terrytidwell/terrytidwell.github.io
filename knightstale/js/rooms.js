@@ -19,7 +19,15 @@ let WORLD = {
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
-            addNpc(scene, 7, 4);
+            addNpc(scene, 7, 4).add_diag([
+                'Gwen!? What are you doing all the way out here?',
+                'Thank goodness you are here - not that I was scared mind you!',
+                'I scouted the place out for you - you should probably start heading west, it looks ' +
+                'pretty safe that way.',
+                'I tried going north, but was stopped by some tricky puzzles.',
+                'Out east there seems to be some sort of fiery spooky place.',
+                'And I would NOT recommend going south, that place is crawling with baddies!'
+            ]);
         },
     },
     'beginner_1': {

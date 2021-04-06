@@ -196,29 +196,29 @@ let addDialogue = function (scene, dialogue_lines) {
 
 let addNpc = function (scene, x, y) {
     let square = addGroundSquare(scene, x, y);
-    let zone = scene.add.zone(scene.__gridX(x), scene.__gridY(y), GRID_SIZE, GRID_SIZE)
-        .setInteractive();
+    let zone = scene.add.zone(scene.__gridX(x), scene.__gridY(y), GRID_SIZE, GRID_SIZE);
     let diag_box = scene.add.sprite(scene.__gridX(x+.5), scene.__gridY(y-1), 'speech_bubbles', 8)
-        .setInteractive()
         .setScale(2)
-        .setDepth(DEPTHS.UI + y);
+        .setDepth(DEPTHS.UI + y)
+        .setInteractive()
+        .setVisible(false);
     diag_box.play('speech_bubbles_anim');
     scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', 12)
         .setDepth(DEPTHS.ENTITIES + y);
+    let current_dialogue = [];
+    let add_diag = function(text) {
+        current_dialogue = text;
+        zone.setInteractive();
+        diag_box.setVisible(true);
+        return result;
+    };
     let start_dialogue = function() {
         let player_status = scene.scene.get('ControllerScene').__player_status;
         if (!player_status.playerMoveAllowed) {
             return;
         }
         diag_box.setVisible(false);
-        addDialogue(scene, ['Alex!? What are you doing all the way out here?',
-            'Thank goodness you are here - not that I was scared mind you!',
-            'I scouted the place out for you - you should probably start heading west, it looks ' +
-            'pretty safe that way.',
-            'I tried going north, but was stopped by some tricky puzzles.',
-            'Out east there seems to be some sort of fiery spooky place.',
-            'And I would NOT recommend going south, that place is crawling with baddies!'
-        ]);
+        addDialogue(scene, current_dialogue);
         scene.time.delayedCall(50, () => {
             diag_box.setVisible(true);
             diag_box.play('speech_bubbles_anim');
@@ -226,6 +226,10 @@ let addNpc = function (scene, x, y) {
     };
     zone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, start_dialogue);
     diag_box.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, start_dialogue);
+    let result = {
+        add_diag: add_diag,
+    };
+    return result;
 };
 
 let addGroundSquare = (function () {
