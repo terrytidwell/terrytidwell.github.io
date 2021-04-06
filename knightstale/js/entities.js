@@ -206,10 +206,19 @@ let addNpc = function (scene, x, y) {
     scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', 12)
         .setDepth(DEPTHS.ENTITIES + y);
     let start_dialogue = function() {
+        let player_status = scene.scene.get('ControllerScene').__player_status;
+        if (!player_status.playerMoveAllowed) {
+            return;
+        }
         diag_box.setVisible(false);
-        addDialogue(scene, ['Welcome stranger!', 'If you are a beginner you should head west. If you are ' +
-            'looking for puzzles head north. If you are looking to explore a dungeon head east. And if you are brave ' +
-            'enough to battle, head south.']);
+        addDialogue(scene, ['Alex!? What are you doing all the way out here?',
+            'Thank goodness you are here - not that I was scared mind you!',
+            'I scouted the place out for you - you should probably start heading west, it looks ' +
+            'pretty safe that way.',
+            'I tried going north, but was stopped by some tricky puzzles.',
+            'Out east there seems to be some sort of fiery spooky place.',
+            'And I would NOT recommend going south, that place is crawling with baddies!'
+        ]);
         scene.time.delayedCall(50, () => {
             diag_box.setVisible(true);
             diag_box.play('speech_bubbles_anim');
