@@ -87,7 +87,7 @@ let addDeathEffect = function (scene, x, y) {
     return death_effect;
 };
 
-let addDialogue = function (scene, text) {
+let addDialogue = function (scene, dialogue_lines) {
     scene.scene.pause();
     let ui_scene = scene.scene.get('ControllerScene');
     //ui_scene.
@@ -100,33 +100,41 @@ let addDialogue = function (scene, text) {
     let text_background = ui_scene.add.rectangle(ui_scene.__gridX(GRID_COLS / 2 - 0.5), ui_scene.__gridY(1.5),
         (GRID_COLS - 1) * GRID_SIZE, 3 * GRID_SIZE, 0x000000, 0.75)
         .setDepth(DEPTHS.UI);
-    let text_object = ui_scene.add.text(ui_scene.__gridX(0.5), ui_scene.__gridY(0.125), text,
+    let text_object = ui_scene.add.text(ui_scene.__gridX(0.5), ui_scene.__gridY(0.125), "",
         textStyle)
         .setOrigin(0, 0)
         .setDepth(DEPTHS.UI);
-    let text_lines = text_object.getWrappedText();
-    text_object.setText("");
-    let dialogue_texts = [[]];
-    for (let text_line of text_lines) {
-        let current_diag = dialogue_texts.length - 1;
-        if (dialogue_texts[current_diag].length === 5) {
-            dialogue_texts.push([]);
-            current_diag++;
+    let text_sections = [];
+    for (let dialogue_line of dialogue_lines) {
+        text_object.setText(dialogue_line);
+        let text_lines = text_object.getWrappedText();
+        let current_section = [];
+        text_sections.push(current_section);
+        for (let text_line of text_lines) {
+            if (current_section.length === 5) {
+                current_section = [];
+                text_sections.push(current_section);
+            }
+            current_section.push(text_line);
         }
-        dialogue_texts[current_diag].push(text_line);
+        while (current_section.length < 5) {
+            current_section.push('');
+        }
     }
+    text_object.setText("");
     text_background.setInteractive();
     ui_scene.input.on(Phaser.Input.Events.POINTER_DOWN, () => {
         if (!next_arrow.visible) {
+            end_current_text_section();
             return;
         }
 
         current_dialogue++;
-        if (current_dialogue >= dialogue_texts.length) {
+        if (current_dialogue >= text_sections.length) {
             close_dialogue();
             return;
         }
-        present_dialogue(dialogue_texts[current_dialogue]);
+        present_dialogue(text_sections[current_dialogue]);
     });
     let current_dialogue = 0;
     let next_arrow = ui_scene.add.sprite(ui_scene.__gridX(10.5), ui_scene.__gridY(2.75), 'frame', 1)
@@ -152,30 +160,38 @@ let addDialogue = function (scene, text) {
         ui_scene.input.off(Phaser.Input.Events.POINTER_DOWN);
     };
 
+    let end_current_text_section = function() {
+        text_object.setText(text_sections[current_dialogue]);
+        next_arrow.setVisible(true);
+        if (next_letter) {
+            next_letter.remove();
+        }
+    };
+
+    let next_letter = null;
     let present_dialogue = function (text_lines) {
         text_object.setText("");
         next_arrow.setVisible(false);
         let actual_lines = ["", "", "", "", ""];
         let current_line = 0;
         let add_text = function () {
-            if (text_lines[current_line].length === actual_lines[current_line].length) {
+            while (text_lines[current_line].length === actual_lines[current_line].length) {
                 current_line++;
                 if (text_lines.length === current_line || current_line > 4) {
-                    next_arrow.setVisible(true);
+                    end_current_text_section();
                     return;
                 }
             }
             if (text_lines[current_line].length > actual_lines[current_line].length) {
                 actual_lines[current_line % 5] += text_lines[current_line]
                     [actual_lines[current_line % 5].length];
-                ui_scene.time.delayedCall(12, add_text);
+                next_letter = ui_scene.time.delayedCall(12, add_text);
                 text_object.setText(actual_lines);
             }
         };
-        ui_scene.time.delayedCall(12, add_text);
+        next_letter = ui_scene.time.delayedCall(12, add_text);
     };
-    present_dialogue(dialogue_texts[current_dialogue]);
-
+    present_dialogue(text_sections[current_dialogue]);
 };
 
 let addNpc = function (scene, x, y) {
@@ -191,9 +207,9 @@ let addNpc = function (scene, x, y) {
         .setDepth(DEPTHS.ENTITIES + y);
     let start_dialogue = function() {
         diag_box.setVisible(false);
-        addDialogue(scene, 'Welcome stranger! If you are a beginner you should head west. If you are ' +
+        addDialogue(scene, ['Welcome stranger!', 'If you are a beginner you should head west. If you are ' +
             'looking for puzzles head north. If you are looking to explore a dungeon head east. And if you are brave ' +
-            'enough to battle, head south.');
+            'enough to battle, head south.']);
         scene.time.delayedCall(50, () => {
             diag_box.setVisible(true);
             diag_box.play('speech_bubbles_anim');
