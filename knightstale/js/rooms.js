@@ -5,7 +5,7 @@ let WORLD = {
             "-----00-----",
             "-----00-----",
             "-----00-----",
-            "----0000----",
+            "----000-----",
             "000000000000",
             "000000000000",
             "----0000----",
@@ -19,13 +19,7 @@ let WORLD = {
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
-            /*
-            addGem(scene,7, 7, 0);
-            addGem(scene,7, 6, 1);
-            addGem(scene,7, 5, 2);
-            addGem(scene,7, 4, 3);
-            addKey(scene,6, 7);
-            */
+            addNpc(scene, 7, 4);
         },
     },
     'beginner_1': {

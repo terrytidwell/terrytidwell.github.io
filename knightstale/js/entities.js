@@ -1,4 +1,4 @@
-let asyncHandler = function(scene) {
+let asyncHandler = function (scene) {
     let self = this;
     let m_tweens = [];
     let m_timelines = [];
@@ -6,31 +6,37 @@ let asyncHandler = function(scene) {
 
     //clear async calls
     let clear = function () {
-        Phaser.Utils.Array.Each(m_tweens, function(tween) { tween.remove(); }, self);
-        Phaser.Utils.Array.Each(m_timelines, function(timeline) { timeline.stop(); }, self);
-        Phaser.Utils.Array.Each(m_delayedCalls, function(delayedCall) { delayedCall.remove(false); }, self);
+        Phaser.Utils.Array.Each(m_tweens, function (tween) {
+            tween.remove();
+        }, self);
+        Phaser.Utils.Array.Each(m_timelines, function (timeline) {
+            timeline.stop();
+        }, self);
+        Phaser.Utils.Array.Each(m_delayedCalls, function (delayedCall) {
+            delayedCall.remove(false);
+        }, self);
         m_tweens = [];
         m_timelines = [];
         m_delayedCalls = [];
     };
 
-    let pause = function() {
+    let pause = function () {
         Phaser.Utils.Array.Each(m_tweens, (tween) => tween.pause(), self);
         Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.pause(), self);
         Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = true, self);
     };
 
-    let resume = function() {
+    let resume = function () {
         Phaser.Utils.Array.Each(m_tweens, (tween) => tween.resume(), self);
         Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.resume(), self);
         Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = false, self);
     };
 
-    let addTween = function(tween) {
+    let addTween = function (tween) {
         m_tweens.push(scene.tweens.add(tween));
     };
 
-    let addTweenSequence = function(tweens) {
+    let addTweenSequence = function (tweens) {
         let timeline = scene.tweens.createTimeline();
         m_timelines.push(timeline);
         for (let tween of tweens) {
@@ -39,10 +45,10 @@ let asyncHandler = function(scene) {
         timeline.play();
     };
 
-    let addTweenParallel = function(tweens, onComplete) {
+    let addTweenParallel = function (tweens, onComplete) {
         let target_rendevous = tweens.length;
         let current_rendevous = 0;
-        let check_rendevous = function() {
+        let check_rendevous = function () {
             current_rendevous++;
             if (current_rendevous === target_rendevous) {
                 onComplete();
@@ -54,7 +60,7 @@ let asyncHandler = function(scene) {
         }
     };
 
-    let addDelayedCall = function(delay, callback, args, scope) {
+    let addDelayedCall = function (delay, callback, args, scope) {
         m_delayedCalls.push(scene.time.delayedCall(delay, callback, args, scope));
     };
 
@@ -69,80 +75,198 @@ let asyncHandler = function(scene) {
     };
 };
 
-let addDeathEffect = function(scene, x, y) {
+let addDeathEffect = function (scene, x, y) {
     let death_effect = scene.add.sprite(scene.__gridX(Math.round(x)),
-        scene.__characterY(Math.round(y)),'death_effect',0)
+        scene.__characterY(Math.round(y)), 'death_effect', 0)
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('death_effect_anim')
-        .setFlipX(Phaser.Utils.Array.GetRandom([false,true]))
-        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function() {
+        .setFlipX(Phaser.Utils.Array.GetRandom([false, true]))
+        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function () {
             death_effect.destroy();
         });
     return death_effect;
 };
 
-let addGroundSquare = (function() {
-    let index_image = Phaser.Utils.Array.NumberArray(0,3);
+let addDialogue = function (scene, text) {
+    scene.scene.pause();
+    let ui_scene = scene.scene.get('ControllerScene');
+    //ui_scene.
+    let textStyle = {
+        fill: "#FFFFFF",
+        font: GRID_SIZE / 2 + "px Eczar-Regular",
+        align: "left",
+        wordWrap: {width: (GRID_COLS - 2) * GRID_SIZE, useAdvancedWrap: true}
+    };
+    let text_background = ui_scene.add.rectangle(ui_scene.__gridX(GRID_COLS / 2 - 0.5), ui_scene.__gridY(1.5),
+        (GRID_COLS - 1) * GRID_SIZE, 3 * GRID_SIZE, 0x000000, 0.75)
+        .setDepth(DEPTHS.UI);
+    let text_object = ui_scene.add.text(ui_scene.__gridX(0.5), ui_scene.__gridY(0.125), text,
+        textStyle)
+        .setOrigin(0, 0)
+        .setDepth(DEPTHS.UI);
+    let text_lines = text_object.getWrappedText();
+    text_object.setText("");
+    let dialogue_texts = [[]];
+    for (let text_line of text_lines) {
+        let current_diag = dialogue_texts.length - 1;
+        if (dialogue_texts[current_diag].length === 5) {
+            dialogue_texts.push([]);
+            current_diag++;
+        }
+        dialogue_texts[current_diag].push(text_line);
+    }
+    text_background.setInteractive();
+    ui_scene.input.on(Phaser.Input.Events.POINTER_DOWN, () => {
+        if (!next_arrow.visible) {
+            return;
+        }
 
-    return function(scene, x, y) {
+        current_dialogue++;
+        if (current_dialogue >= dialogue_texts.length) {
+            close_dialogue();
+            return;
+        }
+        present_dialogue(dialogue_texts[current_dialogue]);
+    });
+    let current_dialogue = 0;
+    let next_arrow = ui_scene.add.sprite(ui_scene.__gridX(10.5), ui_scene.__gridY(2.75), 'frame', 1)
+        .setFlipX(true)
+        .setScale(2)
+        .setDepth(DEPTHS.UI)
+        .setVisible(false);
+
+    let close_dialogue = function () {
+        text_object.setText("");
+        next_arrow.setVisible(false);
+        ui_scene.tweens.add({
+            targets: text_background,
+            scaleX: 0,
+            duration: 150,
+            onComplete : () => {
+                text_background.destroy();
+                text_object.destroy();
+                next_arrow.destroy();
+                scene.scene.resume()
+            },
+        });
+        ui_scene.input.off(Phaser.Input.Events.POINTER_DOWN);
+    };
+
+    let present_dialogue = function (text_lines) {
+        text_object.setText("");
+        next_arrow.setVisible(false);
+        let actual_lines = ["", "", "", "", ""];
+        let current_line = 0;
+        let add_text = function () {
+            if (text_lines[current_line].length === actual_lines[current_line].length) {
+                current_line++;
+                if (text_lines.length === current_line || current_line > 4) {
+                    next_arrow.setVisible(true);
+                    return;
+                }
+            }
+            if (text_lines[current_line].length > actual_lines[current_line].length) {
+                actual_lines[current_line % 5] += text_lines[current_line]
+                    [actual_lines[current_line % 5].length];
+                ui_scene.time.delayedCall(12, add_text);
+                text_object.setText(actual_lines);
+            }
+        };
+        ui_scene.time.delayedCall(12, add_text);
+    };
+    present_dialogue(dialogue_texts[current_dialogue]);
+
+};
+
+let addNpc = function (scene, x, y) {
+    let square = addGroundSquare(scene, x, y);
+    let zone = scene.add.zone(scene.__gridX(x), scene.__gridY(y), GRID_SIZE, GRID_SIZE)
+        .setInteractive();
+    let diag_box = scene.add.sprite(scene.__gridX(x+.5), scene.__gridY(y-1), 'speech_bubbles', 8)
+        .setInteractive()
+        .setScale(2)
+        .setDepth(DEPTHS.UI + y);
+    diag_box.play('speech_bubbles_anim');
+    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', 12)
+        .setDepth(DEPTHS.ENTITIES + y);
+    let start_dialogue = function() {
+        diag_box.setVisible(false);
+        addDialogue(scene, 'Welcome stranger! If you are a beginner you should head west. If you are ' +
+            'looking for puzzles head north. If you are looking to explore a dungeon head east. And if you are brave ' +
+            'enough to battle, head south.');
+        scene.time.delayedCall(50, () => {
+            diag_box.setVisible(true);
+            diag_box.play('speech_bubbles_anim');
+        });
+    };
+    zone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, start_dialogue);
+    diag_box.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, start_dialogue);
+};
+
+let addGroundSquare = (function () {
+    let index_image = Phaser.Utils.Array.NumberArray(0, 3);
+
+    return function (scene, x, y) {
         let offset = 4 * ((x + y) % 2);
         let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
         let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
-        square.setDepth(DEPTHS.BOARD+y);
+        square.setDepth(DEPTHS.BOARD + y);
         return square;
     }
 }());
 
-let addTeleportAtRandomSpot = function(scene, teleporter) {
-   let squares = Phaser.Utils.Array.NumberArray(0, GRID_COLS*GRID_ROWS-1);
-   Phaser.Utils.Array.Shuffle(squares);
-   for (let square of squares) {
-       let x = Math.floor(square/GRID_COLS);
-       let y = Math.floor(square % GRID_COLS);
-       if (scene.__isGridMobPassable(x,y) && scene.__isGridMobFree(x,y)) {
-           teleporter(scene, x, y);
-           return;
-       }
-   }
-   return;
+let addTeleportAtRandomSpot = function (scene, teleporter) {
+    let squares = Phaser.Utils.Array.NumberArray(0, GRID_COLS * GRID_ROWS - 1);
+    Phaser.Utils.Array.Shuffle(squares);
+    for (let square of squares) {
+        let x = Math.floor(square / GRID_COLS);
+        let y = Math.floor(square % GRID_COLS);
+        if (scene.__isGridMobPassable(x, y) && scene.__isGridMobFree(x, y)) {
+            teleporter(scene, x, y);
+            return;
+        }
+    }
+    return;
 };
 
-let addPawnTeleport = function(scene, x, y) {
+let addPawnTeleport = function (scene, x, y) {
     addLaserEffect(scene, x, y, addPawn, 'white_pieces', 12)
 };
 
-let addBishopTeleport = function(scene, x, y) {
+let addBishopTeleport = function (scene, x, y) {
     addLaserEffect(scene, x, y, addBishop, 'white_pieces', 2)
 };
 
-let addLaserEffect = function(scene, x, y, create, avatar_sprite, avatar_sprite_frame) {
+let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite_frame) {
     let self = this;
     let laser_effects = [];
-    let laser_flip = Phaser.Utils.Array.GetRandom([false,true]);
-    let bounding_box = scene.add.rectangle(scene.__gridX(x),scene.__gridY(y),
-        GRID_SIZE/2,GRID_SIZE/2,0xffff00, 0.0);
+    let laser_flip = Phaser.Utils.Array.GetRandom([false, true]);
+    let bounding_box = scene.add.rectangle(scene.__gridX(x), scene.__gridY(y),
+        GRID_SIZE / 2, GRID_SIZE / 2, 0xffff00, 0.0);
     scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__setPhysicsBodyPosition(bounding_box, x, y);
     laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
-        scene.__gridY(Math.round(y-1)),'laser_column',0)
+        scene.__gridY(Math.round(y - 1)), 'laser_column', 0)
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('laser_effect_anim')
         .setAlpha(.75)
         .setScale(2)
         .setFlipX(laser_flip)
-        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function() {
-            Phaser.Utils.Array.Each(laser_effects, function(laser_effect) { laser_effect.destroy(); }, self);
+        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function () {
+            Phaser.Utils.Array.Each(laser_effects, function (laser_effect) {
+                laser_effect.destroy();
+            }, self);
             laser_tween.remove();
             avatar.destroy();
             avatar_tween.remove();
             bounding_box.destroy();
-            create(scene,x,y);
+            create(scene, x, y);
         }));
     let y_offset = y - 2.5;
-    while(y_offset > -2) {
+    while (y_offset > -2) {
         laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
-            scene.__gridY(Math.round(y_offset-1)),'laser_column_cont',0)
+            scene.__gridY(Math.round(y_offset - 1)), 'laser_column_cont', 0)
             .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
             .play('laser_effect_cont_anim')
             .setAlpha(.75)
@@ -166,28 +290,28 @@ let addLaserEffect = function(scene, x, y, create, avatar_sprite, avatar_sprite_
         duration: 50,
         repeat: -1,
         delay: 1000,
-        onStart : () => avatar.setAlpha(0.75),
+        onStart: () => avatar.setAlpha(0.75),
     });
     return laser_effects;
 };
 
-let stateHandler = function(scene, states, start_state) {
+let stateHandler = function (scene, states, start_state) {
     let async_handler = asyncHandler(scene);
     let current_state = start_state;
 
-    let enter_state = function() {
-        if(current_state.enter) {
+    let enter_state = function () {
+        if (current_state.enter) {
             current_state.enter();
         }
     };
 
-    let exit_state = function() {
-        if(current_state.exit) {
+    let exit_state = function () {
+        if (current_state.exit) {
             current_state.exit();
         }
     };
 
-    let changeState = function(new_state) {
+    let changeState = function (new_state) {
         //clear async calls
         async_handler.clear();
 
@@ -216,23 +340,23 @@ let stateHandler = function(scene, states, start_state) {
     };
 };
 
-let addHealthBar = function(scene, scale, x, y, hide_on_full) {
+let addHealthBar = function (scene, scale, x, y, hide_on_full) {
     let m_x = x;
     let m_y = y;
     let health_bar_frame = scene.add.sprite(0, 0,
-        'health_bars',2)
+        'health_bars', 2)
         .setDepth(DEPTHS.UI)
         .setScale(scale)
         .setVisible(!hide_on_full);
     let health_bar_under = scene.add.sprite(0, 0,
-        'health_bars',3)
+        'health_bars', 3)
         .setDepth(DEPTHS.UI)
         .setScale(scale)
         .setTintFill(0xffffff)
         .setAlpha(0.95)
         .setVisible(!hide_on_full);
     let health_bar = scene.add.sprite(0, 0,
-        'health_bars',3)
+        'health_bars', 3)
         .setDepth(DEPTHS.UI)
         .setScale(scale)
         .setVisible(!hide_on_full);
@@ -241,7 +365,7 @@ let addHealthBar = function(scene, scale, x, y, hide_on_full) {
     let display_life = 1;
     let life = 1;
     let health_bar_tween = null;
-    let updateLife = function(new_total) {
+    let updateLife = function (new_total) {
         if (new_total < 1) {
             health_bar_frame.setVisible(true);
             health_bar_under.setVisible(true);
@@ -254,38 +378,38 @@ let addHealthBar = function(scene, scale, x, y, hide_on_full) {
             health_bar_tween.remove();
         }
         health_bar_tween = scene.tweens.add({
-            targets: {d : display_life},
+            targets: {d: display_life},
             props: {d: life},
             duration: 350,
             delay: 500,
-            onUpdate: function() {
+            onUpdate: function () {
                 display_life = health_bar_tween.getValue();
                 health_bar_under.setX(barX(display_life));
                 health_bar_under.setScale(calculate_scale(display_life), scale);
             },
-            onComplete: function() {
+            onComplete: function () {
                 health_bar_tween = null;
             }
         });
     };
 
-    let barX = function(metric) {
+    let barX = function (metric) {
         return scene.__gridX(m_x) - 32 * scale * (1 - (metric));
     };
 
-    let calculate_scale = function(metric) {
-        return scale*metric;
+    let calculate_scale = function (metric) {
+        return scale * metric;
     };
 
-    let updatePosition = function(x, y) {
+    let updatePosition = function (x, y) {
         m_x = x;
         m_y = y;
-        health_bar.setPosition(barX(life),scene.__gridY(m_y));
+        health_bar.setPosition(barX(life), scene.__gridY(m_y));
         health_bar_under.setPosition(barX(display_life), scene.__gridY(m_y));
         health_bar_frame.setPosition(scene.__gridX(m_x), scene.__gridY(m_y))
     };
 
-    let destroy = function() {
+    let destroy = function () {
         if (health_bar_tween) {
             health_bar_tween.remove();
         }
@@ -303,24 +427,24 @@ let addHealthBar = function(scene, scale, x, y, hide_on_full) {
     }
 };
 
-let addPawn = function(scene, x,y) {
+let addPawn = function (scene, x, y) {
 
-    let enter_idle = function() {
+    let enter_idle = function () {
         state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVING]);
     };
 
-    let enter_post_attack_idle = function() {
+    let enter_post_attack_idle = function () {
         state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.MOVING]);
     };
 
-    let enter_pre_attack = function() {
+    let enter_pre_attack = function () {
         state_handler.addTween({
-            targets: {z : 0},
+            targets: {z: 0},
             props: {z: -8},
             yoyo: true,
             repeat: 1,
             duration: 100,
-            onUpdate: function() {
+            onUpdate: function () {
                 m_z = this.getValue();
             },
             onComplete: function () {
@@ -329,11 +453,11 @@ let addPawn = function(scene, x,y) {
         });
     };
 
-    let exit_pre_attack = function() {
+    let exit_pre_attack = function () {
         m_z = 0;
     };
 
-    let enter_attack = function() {
+    let enter_attack = function () {
         let player_status = scene.scene.get('ControllerScene').__player_status;
         let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
@@ -350,21 +474,23 @@ let addPawn = function(scene, x,y) {
                 change_move_target(m_x + m_dx, m_y + m_dy);
                 state_handler.addTweenParallel(
                     [{
-                        targets: { x: m_x},
-                        props: { x: m_targetx },
+                        targets: {x: m_x},
+                        props: {x: m_targetx},
                         duration: 100,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_x = this.getValue();
                         },
-                    },{
-                        targets: { y: m_y},
-                        props: { y: m_targety },
+                    }, {
+                        targets: {y: m_y},
+                        props: {y: m_targety},
                         duration: 100,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_y = this.getValue();
                         },
                     }],
-                    function() { state_handler.changeState(STATES.POST_ATTACK_IDLE); }
+                    function () {
+                        state_handler.changeState(STATES.POST_ATTACK_IDLE);
+                    }
                 );
                 return;
             }
@@ -379,24 +505,24 @@ let addPawn = function(scene, x,y) {
         change_move_target(m_x, m_y);
     };
 
-    let enter_stunned = function() {
+    let enter_stunned = function () {
         m_z = 0;
         m_y = Math.round(m_y);
         m_x = Math.round(m_x);
         pawn.alpha = 0.75;
-        health_bar.updateLife(life/full_life);
+        health_bar.updateLife(life / full_life);
         let directions = [
-            {d:DIRECTIONS.UP, m:0},
-            {d:DIRECTIONS.LEFT, m:0},
-            {d:DIRECTIONS.RIGHT, m:0},
-            {d:DIRECTIONS.DOWN, m:0}
+            {d: DIRECTIONS.UP, m: 0},
+            {d: DIRECTIONS.LEFT, m: 0},
+            {d: DIRECTIONS.RIGHT, m: 0},
+            {d: DIRECTIONS.DOWN, m: 0}
         ];
-        for(let direction of directions) {
+        for (let direction of directions) {
             direction.m = direction.d.dx * m_impact_x +
                 direction.d.dy * m_impact_y;
         }
-        directions.sort(function(a,b) {
-            if(a.m > b.m) {
+        directions.sort(function (a, b) {
+            if (a.m > b.m) {
                 return -1;
             }
             if (a.m < b.m) {
@@ -404,10 +530,10 @@ let addPawn = function(scene, x,y) {
             }
             return 0;
         });
-        for(let direction of directions) {
-            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+        for (let direction of directions) {
+            if (scene.__isGridMobPassable(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                scene.__isGridMobFree(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x + direction.dx, m_y + direction.dy)) {
                 m_dx = direction.d.dx;
                 m_dy = direction.d.dy;
                 m_x += m_dx;
@@ -434,14 +560,14 @@ let addPawn = function(scene, x,y) {
         state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.MOVING]);
     };
 
-    let exit_stunned = function() {
+    let exit_stunned = function () {
         pawn_overlay.alpha = 0;
         pawn.alpha = 1;
         m_dx = 0;
         m_dy = 0;
     };
 
-    let enter_dead = function() {
+    let enter_dead = function () {
         addDeathEffect(scene, m_x, m_y);
         pawn.destroy();
         shadow.destroy();
@@ -450,20 +576,20 @@ let addPawn = function(scene, x,y) {
         health_bar.destroy();
     };
 
-    let change_move_target = function(x, y) {
+    let change_move_target = function (x, y) {
         m_targetx = x;
         m_targety = y;
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
     };
 
-    let swap_direction = function(directions, a, b) {
+    let swap_direction = function (directions, a, b) {
         let temp = directions[a];
         directions[a] =
             directions[b];
         directions[b] = temp;
     };
 
-    let general_move_ai = function(deltaX, deltaY, directions) {
+    let general_move_ai = function (deltaX, deltaY, directions) {
         if (Phaser.Utils.Array.GetRandom(
             [true, true, true, true, false])) {
             m_prefer_horizontal = !m_prefer_horizontal;
@@ -488,12 +614,12 @@ let addPawn = function(scene, x,y) {
                 DIRECTIONS.RIGHT,
                 DIRECTIONS.DOWN];
         }
-        if (deltaX > 0 || (deltaX === 0 && Phaser.Utils.Array.GetRandom([true,false]))) {
+        if (deltaX > 0 || (deltaX === 0 && Phaser.Utils.Array.GetRandom([true, false]))) {
             //swap horizontals
             swap_direction(directions, primary_horizontal_index,
                 secondary_horizontal_index);
         }
-        if (deltaY > 0 || (deltaY === 0 && Phaser.Utils.Array.GetRandom([true,false]))) {
+        if (deltaY > 0 || (deltaY === 0 && Phaser.Utils.Array.GetRandom([true, false]))) {
             //swap vertical
             swap_direction(directions, primary_vertical_index,
                 secondary_vertical_index);
@@ -501,7 +627,7 @@ let addPawn = function(scene, x,y) {
         return directions;
     };
 
-    let enter_move = function() {
+    let enter_move = function () {
         let directions = [
             DIRECTIONS.UP,
             DIRECTIONS.LEFT,
@@ -515,20 +641,20 @@ let addPawn = function(scene, x,y) {
         if (deltaX === 0 && deltaY === 0) {
             //on top movement AI
             Phaser.Utils.Array.Shuffle(directions);
-        } else if (Math.abs(deltaX)+Math.abs(deltaY) === 1) {
+        } else if (Math.abs(deltaX) + Math.abs(deltaY) === 1) {
             //adjacent movement AI
             //[x]   [x]
             //   [p]
             //[x]   [x]
             //target those squares around player
-            if(deltaY === 0) {
+            if (deltaY === 0) {
                 directions = [
                     DIRECTIONS.UP,
                     DIRECTIONS.DOWN,
                     DIRECTIONS.LEFT,
                     DIRECTIONS.RIGHT
                 ];
-            } else if(deltaX === 0) {
+            } else if (deltaX === 0) {
                 directions = [
                     DIRECTIONS.LEFT,
                     DIRECTIONS.RIGHT,
@@ -537,42 +663,44 @@ let addPawn = function(scene, x,y) {
                 ];
             }
             //now randomize
-            if (Phaser.Utils.Array.GetRandom([true,false])) {
+            if (Phaser.Utils.Array.GetRandom([true, false])) {
                 swap_direction(directions, 0, 1);
             }
-            if (Phaser.Utils.Array.GetRandom([true,false])) {
+            if (Phaser.Utils.Array.GetRandom([true, false])) {
                 swap_direction(directions, 2, 3);
             }
         } else {
-            directions = general_move_ai(deltaX,  deltaY, directions);
+            directions = general_move_ai(deltaX, deltaY, directions);
         }
 
         m_dx = 0;
         m_dy = 0;
         for (let direction of directions) {
-            if (scene.__isGridMobPassable(m_x+direction.dx, m_y+direction.dy) &&
-                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy) &&
-                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+            if (scene.__isGridMobPassable(m_x + direction.dx, m_y + direction.dy) &&
+                scene.__isGridMobFree(m_x + direction.dx, m_y + direction.dy) &&
+                !scene.__checkPlayerCollision(m_x + direction.dx, m_y + direction.dy)) {
                 m_dx = direction.dx;
                 m_dy = direction.dy;
                 change_move_target(m_x + m_dx, m_y + m_dy);
                 state_handler.addTweenParallel(
                     [{
-                        targets: { x: m_x},
-                        props: { x: m_targetx },
+                        targets: {x: m_x},
+                        props: {x: m_targetx},
                         duration: 200,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_x = this.getValue();
                         },
-                    },{
-                        targets: { y: m_y},
-                        props: { y: m_targety },
+                    }, {
+                        targets: {y: m_y},
+                        props: {y: m_targety},
                         duration: 200,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_y = this.getValue();
                         },
                     }],
-                    function() { state_handler.changeState(STATES.IDLE); }
+                    function () {
+                        state_handler.changeState(STATES.IDLE);
+                    }
                 );
                 return; //<------ RETURN to end function
             }
@@ -581,7 +709,7 @@ let addPawn = function(scene, x,y) {
         state_handler.changeState(STATES.IDLE);
     };
 
-    let exit_move = function() {
+    let exit_move = function () {
         m_dx = 0;
         m_dy = 0;
         change_move_target(m_x, m_y);
@@ -613,21 +741,21 @@ let addPawn = function(scene, x,y) {
     let life = full_life;
     let m_impact_x = 0;
     let m_impact_y = 0;
-    let m_prefer_horizontal = Phaser.Utils.Array.GetRandom([true,false]);
+    let m_prefer_horizontal = Phaser.Utils.Array.GetRandom([true, false]);
 
     let pawn = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12);
     let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12)
         .setTintFill(0xffffff)
         .setAlpha(0);
-    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
-    let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
+    let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
+    let move_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     scene.__hittables.add(bounding_box);
     scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(pawn);
-    bounding_box.setData('onHit',function(dx, dy) {
+    bounding_box.setData('onHit', function (dx, dy) {
         if (state_handler.getState() !== STATES.STUNNED) {
             m_impact_x = dx;
             m_impact_y = dy;
@@ -638,19 +766,19 @@ let addPawn = function(scene, x,y) {
             state_handler.changeState(STATES.STUNNED);
         }
     });
-    bounding_box.setData('registerDangerousTouch',function() {
+    bounding_box.setData('registerDangerousTouch', function () {
         return {dx: m_dx, dy: m_dy};
     });
-    bounding_box.setData('isDangerous',function() {
+    bounding_box.setData('isDangerous', function () {
         return state_handler.getState() !== STATES.STUNNED;
     });
 
     let shadow = scene.add.ellipse(0, 0,
-        GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
+        GRID_SIZE * .70, GRID_SIZE * .57, 0x000000, 0.5);
 
     let health_bar = addHealthBar(scene, 1, 0, 0, true);
 
-    pawn.update = function() {
+    pawn.update = function () {
         let player_status = scene.scene.get('ControllerScene').__player_status;
         let deltaX = Math.round(player_status.x)
             - Math.round(m_x);
@@ -665,9 +793,9 @@ let addPawn = function(scene, x,y) {
                 state_handler.changeState(STATES.PRE_ATTACK);
             }
         }
-        pawn.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
-        pawn_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
-        shadow.setPosition(scene.__gridX(m_x),scene.__gridY(m_y));
+        pawn.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
+        pawn_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
+        shadow.setPosition(scene.__gridX(m_x), scene.__gridY(m_y));
         shadow.setVisible(m_z < 0);
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
         pawn_overlay.setDepth(DEPTHS.ENTITIES + m_y);
@@ -682,36 +810,36 @@ let addPawn = function(scene, x,y) {
     return pawn;
 };
 
-let addFlameWave = function(scene, x, y) {
+let addFlameWave = function (scene, x, y) {
 
-    let createPoint = function(x, y) {
-        if (scene.__shouldTransition(x,y)) {
+    let createPoint = function (x, y) {
+        if (scene.__shouldTransition(x, y)) {
             return;
         }
         let z_offset = 0;
-        if (!scene.__isGridPassable(x,y)) {
+        if (!scene.__isGridPassable(x, y)) {
             z_offset = 8;
         }
         sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y) + z_offset, 'fire', 0)
             .setScale(2)
             .play('fire_anim')
             .setDepth(DEPTHS.ENTITIES + y - 0.25));
-        let bounding_box = scene.add.rectangle(scene.__gridX(x),scene.__gridY(y),
-            GRID_SIZE/2,GRID_SIZE/2,0xffff00, 0.0);
+        let bounding_box = scene.add.rectangle(scene.__gridX(x), scene.__gridY(y),
+            GRID_SIZE / 2, GRID_SIZE / 2, 0xffff00, 0.0);
         scene.__dangerous_touchables.add(bounding_box);
         scene.__setPhysicsBodyPosition(bounding_box, x, y);
         let dx = x - center_x;
         let dy = y - center_y;
-        bounding_box.setData('registerDangerousTouch',function() {
+        bounding_box.setData('registerDangerousTouch', function () {
             return {dx: dx, dy: dy};
         });
-        bounding_box.setData('isDangerous',function() {
+        bounding_box.setData('isDangerous', function () {
             return true;
         });
         bounding_boxes.push(bounding_box);
     };
 
-    let createPoints = function() {
+    let createPoints = function () {
         if (0 === radius) {
             createPoint(center_x, center_y);
             return;
@@ -723,7 +851,7 @@ let addFlameWave = function(scene, x, y) {
             createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
             rotated_offset = DIRECTIONS.turnClockwise(rotated_offset);
             createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
-            rotated_offset =DIRECTIONS.turnClockwise(rotated_offset);
+            rotated_offset = DIRECTIONS.turnClockwise(rotated_offset);
             createPoint(center_x + rotated_offset.dx, center_y + rotated_offset.dy);
         }
     };
@@ -735,19 +863,19 @@ let addFlameWave = function(scene, x, y) {
     let center_x = x;
     let center_y = y;
 
-    let start_wave = function() {
+    let start_wave = function () {
         createPoints();
         scene.time.delayedCall(750, update_points);
         scene.time.delayedCall(1000, reap_old_points);
     };
 
-    let reap_old_points = function() {
-        for(let old_sprite of old_sprites) {
+    let reap_old_points = function () {
+        for (let old_sprite of old_sprites) {
             old_sprite.destroy();
         }
     };
 
-    let update_points = function() {
+    let update_points = function () {
         old_sprites = sprites;
         for (let bounding_box of bounding_boxes) {
             bounding_box.destroy();
@@ -761,7 +889,7 @@ let addFlameWave = function(scene, x, y) {
     start_wave();
 };
 
-let addBishop = function(scene, x, y) {
+let addBishop = function (scene, x, y) {
     let m_x = x;
     let m_y = y;
     let m_z = 0;
@@ -777,25 +905,25 @@ let addBishop = function(scene, x, y) {
     let max_slide_count = 4;
     let current_slide_count = 0;
 
-    let enter_stunned = function() {
+    let enter_stunned = function () {
         current_slide_count = 0;
         m_z = 0;
         m_y = Math.round(m_y);
         m_x = Math.round(m_x);
         sprite.alpha = 0.75;
-        health_bar.updateLife(life/full_life);
+        health_bar.updateLife(life / full_life);
         let directions = [
-            {d:DIRECTIONS.UP_LEFT, m:0},
-            {d:DIRECTIONS.UP_RIGHT, m:0},
-            {d:DIRECTIONS.DOWN_LEFT, m:0},
-            {d:DIRECTIONS.DOWN_RIGHT, m:0}
+            {d: DIRECTIONS.UP_LEFT, m: 0},
+            {d: DIRECTIONS.UP_RIGHT, m: 0},
+            {d: DIRECTIONS.DOWN_LEFT, m: 0},
+            {d: DIRECTIONS.DOWN_RIGHT, m: 0}
         ];
-        for(let direction of directions) {
+        for (let direction of directions) {
             direction.m = direction.d.dx * m_impact_x +
                 direction.d.dy * m_impact_y;
         }
-        directions.sort(function(a,b) {
-            if(a.m > b.m) {
+        directions.sort(function (a, b) {
+            if (a.m > b.m) {
                 return -1;
             }
             if (a.m < b.m) {
@@ -803,10 +931,10 @@ let addBishop = function(scene, x, y) {
             }
             return 0;
         });
-        for(let direction of directions) {
-            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+        for (let direction of directions) {
+            if (scene.__isGridMobPassable(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                scene.__isGridMobFree(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x + direction.dx, m_y + direction.dy)) {
                 m_x += direction.d.dx;
                 m_y += direction.d.dy;
                 m_targetx = m_x;
@@ -831,13 +959,13 @@ let addBishop = function(scene, x, y) {
         state_handler.addDelayedCall(2000, state_handler.changeState, [STATES.START_SLIDE]);
     };
 
-    let exit_stunned = function() {
+    let exit_stunned = function () {
         sprite_overlay.alpha = 0;
         sprite.alpha = 1;
         current_direction = DIRECTIONS.NONE;
     };
 
-    let enter_dead = function() {
+    let enter_dead = function () {
         addDeathEffect(scene, m_x, m_y);
         sprite.destroy();
         sprite_overlay.destroy();
@@ -846,7 +974,7 @@ let addBishop = function(scene, x, y) {
         health_bar.destroy();
     };
 
-    let enter_idle = function() {
+    let enter_idle = function () {
         current_direction = DIRECTIONS.NONE;
         if (current_slide_count >= max_slide_count) {
             current_slide_count = 0;
@@ -858,19 +986,19 @@ let addBishop = function(scene, x, y) {
     };
 
     let active_sparkles = [];
-    let enter_cast = function() {
+    let enter_cast = function () {
         current_direction = DIRECTIONS.NONE;
         //state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
-        let add_sparkle = function(delay) {
-            let x = Phaser.Math.Between(scene.__gridX(m_x-0.25),scene.__gridX(m_x+0.25));
-            let z = Phaser.Math.Between(-GRID_SIZE* .5,0);
+        let add_sparkle = function (delay) {
+            let x = Phaser.Math.Between(scene.__gridX(m_x - 0.25), scene.__gridX(m_x + 0.25));
+            let z = Phaser.Math.Between(-GRID_SIZE * .5, 0);
             let y = Phaser.Utils.Array.GetRandom(
                 [scene.__gridY(m_y + 0.25), scene.__gridY(m_y - 0.25)]);
-            let sparkle = scene.add.ellipse(x, y + z, GRID_SIZE/8,GRID_SIZE/4,
+            let sparkle = scene.add.ellipse(x, y + z, GRID_SIZE / 8, GRID_SIZE / 4,
                 0xffffff, 1.0)
                 .setVisible(false)
                 .setDepth(DEPTHS.ENTITIES + y);
-            state_handler.addDelayedCall(delay,function() {
+            state_handler.addDelayedCall(delay, function () {
                 sparkle.setVisible(true);
             });
             state_handler.addTween({
@@ -897,7 +1025,7 @@ let addBishop = function(scene, x, y) {
         state_handler.addDelayedCall(4000, state_handler.changeState, [STATES.RELEASE]);
     };
 
-    let enter_start_slide = function() {
+    let enter_start_slide = function () {
         current_move_count = 0;
         current_direction = Phaser.Utils.Array.GetRandom([
             DIRECTIONS.DOWN_LEFT,
@@ -908,25 +1036,25 @@ let addBishop = function(scene, x, y) {
         state_handler.changeState(STATES.MOVE);
     };
 
-    let exit_cast = function() {
+    let exit_cast = function () {
         for (let active_sparkle of active_sparkles) {
             active_sparkle.destroy();
         }
         sprite_overlay.setAlpha(0);
     };
 
-    let enter_release = function() {
+    let enter_release = function () {
         addFlameWave(scene, m_x, m_y);
         state_handler.changeState(STATES.START_SLIDE);
     };
 
-    let change_move_target = function(x, y) {
+    let change_move_target = function (x, y) {
         m_targetx = x;
         m_targety = y;
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
     };
 
-    let enter_move = function() {
+    let enter_move = function () {
         let directions = [
             current_direction,
             DIRECTIONS.turnCounterClockwise(current_direction),
@@ -934,30 +1062,31 @@ let addBishop = function(scene, x, y) {
             DIRECTIONS.opposite(current_direction),
         ];
         for (let direction of directions) {
-            if (scene.__isGridMobPassable(m_x+direction.dx, m_y+direction.dy) &&
-                scene.__isGridMobFree(m_x+direction.dx, m_y+direction.dy)) {
+            if (scene.__isGridMobPassable(m_x + direction.dx, m_y + direction.dy) &&
+                scene.__isGridMobFree(m_x + direction.dx, m_y + direction.dy)) {
                 current_direction = direction;
                 change_move_target(m_x + direction.dx, m_y + direction.dy);
                 state_handler.addTweenParallel(
                     [{
-                        targets: { x: m_x},
-                        props: { x: m_targetx },
+                        targets: {x: m_x},
+                        props: {x: m_targetx},
                         duration: 200,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_x = this.getValue();
                         },
-                    },{
-                        targets: { y: m_y},
-                        props: { y: m_targety },
+                    }, {
+                        targets: {y: m_y},
+                        props: {y: m_targety},
                         duration: 200,
-                        onUpdate: function() {
+                        onUpdate: function () {
                             m_y = this.getValue();
                         },
                     }],
-                    function() {
+                    function () {
                         current_move_count++;
                         state_handler.changeState(current_move_count < max_move_count ?
-                            STATES.MOVE : STATES.IDLE); }
+                            STATES.MOVE : STATES.IDLE);
+                    }
                 );
                 return; //<------ RETURN to end function
             }
@@ -966,7 +1095,7 @@ let addBishop = function(scene, x, y) {
         state_handler.changeState(STATES.IDLE);
     };
 
-    let exit_move = function() {
+    let exit_move = function () {
         change_move_target(m_x, m_y);
     };
 
@@ -985,10 +1114,10 @@ let addBishop = function(scene, x, y) {
     let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 2)
         .setAlpha(0)
         .setTintFill(0xffffff);
-    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
-    let move_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
+    let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
+    let move_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0).setDepth(DEPTHS.SURFACE);
     let health_bar = addHealthBar(scene, 1, 0, 0, true);
-    bounding_box.setData('onHit',function(dx, dy) {
+    bounding_box.setData('onHit', function (dx, dy) {
         if (state_handler.getState() !== STATES.STUNNED) {
             m_impact_x = dx;
             m_impact_y = dy;
@@ -999,10 +1128,10 @@ let addBishop = function(scene, x, y) {
             state_handler.changeState(STATES.STUNNED);
         }
     });
-    bounding_box.setData('registerDangerousTouch',function() {
+    bounding_box.setData('registerDangerousTouch', function () {
         return {dx: current_direction.dx, dy: current_direction.dy};
     });
-    bounding_box.setData('isDangerous',function() {
+    bounding_box.setData('isDangerous', function () {
         return state_handler.getState() !== STATES.STUNNED;
     });
     scene.__hittables.add(bounding_box);
@@ -1011,10 +1140,10 @@ let addBishop = function(scene, x, y) {
     scene.__mob_collision_boxes.add(move_box);
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(bounding_box);
-    bounding_box.update = function() {
-        sprite.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
+    bounding_box.update = function () {
+        sprite.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
-        sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y) + m_z);
+        sprite_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
         sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
         scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
@@ -1027,40 +1156,40 @@ let addBishop = function(scene, x, y) {
     return bounding_box;
 };
 
-let addRookStatue = function(scene, x, y) {
+let addRookStatue = function (scene, x, y) {
     return addStatue(scene, x, y, 11,
         [
-            {d:DIRECTIONS.UP, m:0},
-            {d:DIRECTIONS.LEFT, m:0},
-            {d:DIRECTIONS.RIGHT, m:0},
-            {d:DIRECTIONS.DOWN, m:0}
+            {d: DIRECTIONS.UP, m: 0},
+            {d: DIRECTIONS.LEFT, m: 0},
+            {d: DIRECTIONS.RIGHT, m: 0},
+            {d: DIRECTIONS.DOWN, m: 0}
         ]);
 };
 
-let addBishopStatue = function(scene, x, y) {
+let addBishopStatue = function (scene, x, y) {
     return addStatue(scene, x, y, 2,
-    [
-        {d:DIRECTIONS.UP_LEFT, m:0},
-        {d:DIRECTIONS.UP_RIGHT, m:0},
-        {d:DIRECTIONS.DOWN_LEFT, m:0},
-        {d:DIRECTIONS.DOWN_RIGHT, m:0}
+        [
+            {d: DIRECTIONS.UP_LEFT, m: 0},
+            {d: DIRECTIONS.UP_RIGHT, m: 0},
+            {d: DIRECTIONS.DOWN_LEFT, m: 0},
+            {d: DIRECTIONS.DOWN_RIGHT, m: 0}
         ]);
 };
 
-let addStatue = function(scene, x, y, frame, directions) {
+let addStatue = function (scene, x, y, frame, directions) {
     let m_x = x;
     let m_y = y;
 
-    let enter_stunned = function(impact_x, impact_y) {
+    let enter_stunned = function (impact_x, impact_y) {
         m_y = Math.round(m_y);
         m_x = Math.round(m_x);
         sprite.alpha = 0.75;
-        for(let direction of directions) {
+        for (let direction of directions) {
             direction.m = direction.d.dx * impact_x +
                 direction.d.dy * impact_y;
         }
-        directions.sort(function(a,b) {
-            if(a.m > b.m) {
+        directions.sort(function (a, b) {
+            if (a.m > b.m) {
                 return -1;
             }
             if (a.m < b.m) {
@@ -1068,10 +1197,10 @@ let addStatue = function(scene, x, y, frame, directions) {
             }
             return 0;
         });
-        for(let direction of directions) {
-            if (scene.__isGridMobPassable(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                scene.__isGridMobFree(m_x+direction.d.dx, m_y+direction.d.dy) &&
-                !scene.__checkPlayerCollision(m_x+direction.dx, m_y+direction.dy)) {
+        for (let direction of directions) {
+            if (scene.__isGridMobPassable(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                scene.__isGridMobFree(m_x + direction.d.dx, m_y + direction.d.dy) &&
+                !scene.__checkPlayerCollision(m_x + direction.dx, m_y + direction.dy)) {
                 m_x += direction.d.dx;
                 m_y += direction.d.dy;
                 break;
@@ -1086,7 +1215,7 @@ let addStatue = function(scene, x, y, frame, directions) {
         });
     };
 
-    let exit_stunned = function() {
+    let exit_stunned = function () {
         sprite_overlay.alpha = 0;
         sprite.alpha = 1;
     };
@@ -1095,8 +1224,8 @@ let addStatue = function(scene, x, y, frame, directions) {
     let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame)
         .setAlpha(0)
         .setTintFill(0xffffff);
-    let bounding_box = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00, 0.0);
-    bounding_box.setData('onHit',function(dx, dy) {
+    let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
+    bounding_box.setData('onHit', function (dx, dy) {
         enter_stunned(dx, dy);
         exit_stunned();
     });
@@ -1104,15 +1233,15 @@ let addStatue = function(scene, x, y, frame, directions) {
     scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
     scene.__updateables.add(bounding_box);
-    scene.events.on(Phaser.Scenes.Events.SLEEP,() => {
+    scene.events.on(Phaser.Scenes.Events.SLEEP, () => {
         m_x = x;
         m_y = y;
         bounding_box.update();
     });
-    bounding_box.update = function() {
-        sprite.setPosition(scene.__gridX(m_x),scene.__characterY(m_y));
+    bounding_box.update = function () {
+        sprite.setPosition(scene.__gridX(m_x), scene.__characterY(m_y));
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
-        sprite_overlay.setPosition(scene.__gridX(m_x),scene.__characterY(m_y));
+        sprite_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y));
         sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
         scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
     };
@@ -1122,9 +1251,9 @@ let addStatue = function(scene, x, y, frame, directions) {
     return bounding_box;
 };
 
-let addPlayer = function(scene, x,y) {
+let addPlayer = function (scene, x, y) {
 
-    let character = scene.add.rectangle(0,0,GRID_SIZE/2,GRID_SIZE/2,0x00ff00,0.0);
+    let character = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
     scene.__updateables.add(character);
     let player_status = scene.scene.get('ControllerScene').__player_status;
     player_status.x = x;
@@ -1137,12 +1266,12 @@ let addPlayer = function(scene, x,y) {
     player_status.playerGracePeriod = false;
     let move_history = [{x: x, y: y}];
 
-    let tearDown = function() {
+    let tearDown = function () {
         sprite_remnant.setPosition(scene.__gridX(player_status.x),
-            scene.__characterY(player_status.y)+player_status.z)
+            scene.__characterY(player_status.y) + player_status.z)
             .setVisible(true);
         sprite_remnant.setDepth(DEPTHS.ENTITIES + player_status.y);
-        scene.events.once(Phaser.Scenes.Events.SLEEP,() => sprite_remnant.destroy());
+        scene.events.once(Phaser.Scenes.Events.SLEEP, () => sprite_remnant.destroy());
         sprite.destroy();
         sprite_overlay.destroy();
         shadow.destroy();
@@ -1153,10 +1282,9 @@ let addPlayer = function(scene, x,y) {
     };
 
     let reset_player_after_fall = function () {
-        while (move_history.length !== 0)
-        {
+        while (move_history.length !== 0) {
             let prev = move_history.pop();
-            if (scene.__isGridPassable(prev.x,prev.y)) {
+            if (scene.__isGridPassable(prev.x, prev.y)) {
                 player_status.x = prev.x;
                 player_status.y = prev.y;
                 current_depths = DEPTHS.ENTITIES;
@@ -1189,18 +1317,18 @@ let addPlayer = function(scene, x,y) {
     };
 
     let current_depths = DEPTHS.ENTITIES;
-    character.update = function() {
+    character.update = function () {
         let x = player_status.x;
         let y = player_status.y;
         let z = player_status.z;
-        if (!scene.__isGridPassable(Math.round(x),Math.round(y))) {
+        if (!scene.__isGridPassable(Math.round(x), Math.round(y))) {
             character_fall();
         }
-        sprite.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
+        sprite.setPosition(scene.__gridX(x), scene.__characterY(y) + z);
         sprite.setDepth(current_depths + y);
-        sprite_overlay.setPosition(scene.__gridX(x), scene.__characterY(y)+z);
+        sprite_overlay.setPosition(scene.__gridX(x), scene.__characterY(y) + z);
         sprite_overlay.setDepth(current_depths + y);
-        shadow.setPosition(scene.__gridX(x),scene.__gridY(y));
+        shadow.setPosition(scene.__gridX(x), scene.__gridY(y));
         shadow.setVisible(z < 0);
         scene.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
         frame.setPosition(scene.__gridX(player_status.x),
@@ -1216,10 +1344,10 @@ let addPlayer = function(scene, x,y) {
                 frame.rotation = Math.PI
             }
             if (DIRECTIONS.equals(direction, DIRECTIONS.UP)) {
-                frame.rotation = Math.PI/2
+                frame.rotation = Math.PI / 2
             }
             if (DIRECTIONS.equals(direction, DIRECTIONS.DOWN)) {
-                frame.rotation = -Math.PI/2
+                frame.rotation = -Math.PI / 2
             }
         }
         for (let i = 0; i < frames.length; i++) {
@@ -1229,11 +1357,11 @@ let addPlayer = function(scene, x,y) {
             frame.setPosition(scene.__gridX(frame_x),
                 scene.__gridY(frame_y));
             frame.setVisible(player_status.playerMoveAllowed &&
-                scene.__isGridPassable(frame_x,frame_y));
+                scene.__isGridPassable(frame_x, frame_y));
         }
     };
 
-    let impact = function() {
+    let impact = function () {
         impact_sprite.setPosition(
             scene.__gridX(Math.round(player_status.x)),
             scene.__gridY(Math.round(player_status.y)));
@@ -1241,10 +1369,10 @@ let addPlayer = function(scene, x,y) {
         impact_sprite.play('impact_anim');
     };
 
-    let movePlayer = function(dx, dy) {
+    let movePlayer = function (dx, dy) {
         let x = Math.round(player_status.x) + dx;
         let y = Math.round(player_status.y) + dy;
-        move_history.push({x:x, y:y});
+        move_history.push({x: x, y: y});
         player_status.dx = dx;
         player_status.dy = dy;
         if (player_status.dx === 2) {
@@ -1263,42 +1391,41 @@ let addPlayer = function(scene, x,y) {
         player_status.playerMoveAllowed = false;
         let z_height = -64;
         let tweenX = scene.tweens.add({
-            targets: { x: player_status.x},
-            props: { x: x },
+            targets: {x: player_status.x},
+            props: {x: x},
             duration: 100,
-            onUpdate: function() {
+            onUpdate: function () {
                 player_status.x = tweenX.getValue();
             }
         });
         let tweenY = scene.tweens.add({
-            targets: { y: player_status.y},
-            props: { y: y },
+            targets: {y: player_status.y},
+            props: {y: y},
             duration: 100,
-            onUpdate: function() {
+            onUpdate: function () {
                 player_status.y = tweenY.getValue();
             }
         });
         let timeline = scene.tweens.createTimeline();
         timeline.add({
-            targets: { z: player_status.z},
-            props: { z: z_height },
+            targets: {z: player_status.z},
+            props: {z: z_height},
             duration: 100,
-            onUpdate: function() {
+            onUpdate: function () {
                 player_status.z = this.getValue();
             },
-            onComplete: function() {
+            onComplete: function () {
                 player_status.playerDangerous = true;
             }
         });
         timeline.add({
-            targets: { z: z_height},
-            props: { z: 0 },
+            targets: {z: z_height},
+            props: {z: 0},
             duration: 50,
-            onUpdate: function() {
+            onUpdate: function () {
                 player_status.z = this.getValue();
             },
-            onComplete: function()
-            {
+            onComplete: function () {
                 player_status.playerMoveAllowed = true;
                 player_status.playerDangerous = false;
                 if (scene.__shouldTransition(player_status.x, player_status.y)) {
@@ -1318,7 +1445,7 @@ let addPlayer = function(scene, x,y) {
         DOWN: 2,
         LEFT: 3
     };
-    let setOrientation = function(orientation) {
+    let setOrientation = function (orientation) {
         player_status.orientation = orientation;
         let sprite_type = player_status.parity ? 'black_pieces' : 'white_pieces';
         sprite.setTexture(sprite_type, 4 + orientation);
@@ -1326,27 +1453,27 @@ let addPlayer = function(scene, x,y) {
         sprite_remnant.setTexture(sprite_type, 4 + orientation);
     };
 
-    let tryMovePlayer = function(dx, dy) {
+    let tryMovePlayer = function (dx, dy) {
         if (!player_status.playerMoveAllowed) {
             return;
         }
         if (scene.__isGridPassable(Math.round(player_status.x) + dx,
-            Math.round(player_status.y) + dy) ) {
+            Math.round(player_status.y) + dy)) {
             movePlayer(dx, dy);
         }
     };
 
-    character.setData('isTouching', function() {
+    character.setData('isTouching', function () {
         return player_status.playerMoveAllowed;
     });
 
-    character.setData('isHitting', function() {
+    character.setData('isHitting', function () {
         return player_status.playerDangerous;
     });
 
-    let decrement_life = function() {
+    let decrement_life = function () {
         player_status.life = Math.max(--player_status.life, 0);
-        player_status.health_bar.updateLife(player_status.life/player_status.full_life);
+        player_status.health_bar.updateLife(player_status.life / player_status.full_life);
         player_status.z = 0;
         player_status.y = Math.round(player_status.y);
         player_status.x = Math.round(player_status.x);
@@ -1364,37 +1491,37 @@ let addPlayer = function(scene, x,y) {
             alpha: 0.25,
             yoyo: true,
             duration: 50,
-            repeat: 1500/50,
-            onComplete: function() {
+            repeat: 1500 / 50,
+            onComplete: function () {
                 sprite.alpha = 1;
-                scene.time.delayedCall(500, function() {
+                scene.time.delayedCall(500, function () {
                     player_status.playerGracePeriod = false;
                 });
             }
         });
     };
 
-    let player_knockback = function(impact_x, impact_y) {
+    let player_knockback = function (impact_x, impact_y) {
         let directions = [
-            {d:DIRECTIONS.UP, m:0},
-            {d:DIRECTIONS.UP_LEFT, m:0},
+            {d: DIRECTIONS.UP, m: 0},
+            {d: DIRECTIONS.UP_LEFT, m: 0},
 
-            {d:DIRECTIONS.LEFT, m:0},
-            {d:DIRECTIONS.DOWN_LEFT, m:0},
+            {d: DIRECTIONS.LEFT, m: 0},
+            {d: DIRECTIONS.DOWN_LEFT, m: 0},
 
-            {d:DIRECTIONS.DOWN, m:0},
-            {d:DIRECTIONS.DOWN_RIGHT, m:0},
+            {d: DIRECTIONS.DOWN, m: 0},
+            {d: DIRECTIONS.DOWN_RIGHT, m: 0},
 
-            {d:DIRECTIONS.RIGHT, m:0},
-            {d:DIRECTIONS.UP_RIGHT, m:0},
+            {d: DIRECTIONS.RIGHT, m: 0},
+            {d: DIRECTIONS.UP_RIGHT, m: 0},
         ];
         Phaser.Utils.Array.Shuffle(directions);
-        for(let direction of directions) {
+        for (let direction of directions) {
             direction.m = direction.d.dx * impact_x +
                 direction.d.dy * impact_y;
         }
-        directions.sort(function(a,b) {
-            if(a.m > b.m) {
+        directions.sort(function (a, b) {
+            if (a.m > b.m) {
                 return -1;
             }
             if (a.m < b.m) {
@@ -1402,11 +1529,11 @@ let addPlayer = function(scene, x,y) {
             }
             return 0;
         });
-        for(let direction of directions) {
-            if (scene.__isGridPassable(player_status.x+direction.d.dx,
-                player_status.y+direction.d.dy) &&
-                scene.__isGridMobFree(player_status.x+direction.d.dx,
-                    player_status.y+direction.d.dy)) {
+        for (let direction of directions) {
+            if (scene.__isGridPassable(player_status.x + direction.d.dx,
+                player_status.y + direction.d.dy) &&
+                scene.__isGridMobFree(player_status.x + direction.d.dx,
+                    player_status.y + direction.d.dy)) {
                 player_status.x = player_status.x += direction.d.dx;
                 player_status.y = player_status.y += direction.d.dy;
                 player_status.dx = direction.d.dx;
@@ -1418,7 +1545,7 @@ let addPlayer = function(scene, x,y) {
         scene.cameras.main.shake(50, 0.005, true);
     };
 
-    character.setData('onHit', function(impact_x, impact_y) {
+    character.setData('onHit', function (impact_x, impact_y) {
         decrement_life();
         player_knockback(impact_x, impact_y);
     });
@@ -1434,19 +1561,19 @@ let addPlayer = function(scene, x,y) {
         {dx: 1, dy: 2}
     ];
     let frames = [];
-    let frame = scene.add.sprite(0,0,'frame',1).setScale(2);
+    let frame = scene.add.sprite(0, 0, 'frame', 1).setScale(2);
     frame.setData('dx', 0);
     frame.setData('dy', 0);
     frame.setInteractive();
     frame.setDepth(DEPTHS.UI);
-    frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function() {
+    frame.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function () {
         if (scene.__shouldTransition(player_status.x, player_status.y)) {
             tearDown();
             scene.scene.get('ControllerScene').__transition();
         }
     });
     for (let i = 0; i < moves.length; i++) {
-        let frame = scene.add.sprite(0,0,'frame',0).setScale(2);
+        let frame = scene.add.sprite(0, 0, 'frame', 0).setScale(2);
         frames.push(frame);
         frame.setData('dx', moves[i].dx);
         frame.setData('dy', moves[i].dy);
@@ -1463,9 +1590,9 @@ let addPlayer = function(scene, x,y) {
     let sprite_remnant = scene.add.sprite(0, 0, 'black_pieces', 4).setVisible(false);
     let sprite_overlay = scene.add.sprite(0, 0, 'black_pieces', 4).setTintFill(0xffffff).setAlpha(0);
     scene.physics.add.existing(character);
-    let impact_sprite = scene.add.sprite(0,0, 'impact', 5).setVisible(true).setScale(2);
+    let impact_sprite = scene.add.sprite(0, 0, 'impact', 5).setVisible(true).setScale(2);
     let shadow = scene.add.ellipse(0, 0,
-        GRID_SIZE*.70,GRID_SIZE*.57,0x000000, 0.5);
+        GRID_SIZE * .70, GRID_SIZE * .57, 0x000000, 0.5);
     shadow.setDepth(DEPTHS.SURFACE);
 
     setOrientation(player_status.orientation);
@@ -1493,10 +1620,10 @@ let addPlayer = function(scene, x,y) {
     return character;
 };
 
-let addFightSequence = function(scene, victory_condition) {
+let addFightSequence = function (scene, victory_condition) {
     let fight_sequence_events = [];
     let fight_sequence_guards = [];
-    let do_next_event = function() {
+    let do_next_event = function () {
         fight_sequence_guards.shift();
         fight_sequence_events[0]();
         fight_sequence_events.shift();
@@ -1508,20 +1635,20 @@ let addFightSequence = function(scene, victory_condition) {
         fight_music.stop();
         victory_condition();
     };
-    let fight_music = scene.sound.add('fight_music', {loop: true });
-    let start = function() {
+    let fight_music = scene.sound.add('fight_music', {loop: true});
+    let start = function () {
         addMobCountGuard(0, fight_end);
         fight_music.play();
         fight_sequence_guards[0]();
     };
-    let addTimerGuard = function(time, event) {
+    let addTimerGuard = function (time, event) {
         fight_sequence_guards.push(() => {
             scene.time.delayedCall(time, do_next_event)
         });
         fight_sequence_events.push(event);
         return result;
     };
-    let addMobCountGuard = function(threshold, event) {
+    let addMobCountGuard = function (threshold, event) {
         fight_sequence_guards.push(() => {
             addMobWatch(scene, threshold, do_next_event);
         });
@@ -1529,25 +1656,26 @@ let addFightSequence = function(scene, victory_condition) {
         return result;
     };
     let result = {
-        addTimerGuard : addTimerGuard,
-        addMobCountGuard : addMobCountGuard,
+        addTimerGuard: addTimerGuard,
+        addMobCountGuard: addMobCountGuard,
         start: start,
     };
     return result;
 };
 
-let addMobWatch = function(scene, threshold, handler) {
+let addMobWatch = function (scene, threshold, handler) {
     let mob_watch = scene.add.zone(0, 0);
-    mob_watch.update = function() {
+    mob_watch.update = function () {
         if (scene.__mobs.getLength() <= threshold) {
             handler();
             mob_watch.destroy();
-        }};
+        }
+    };
     scene.__updateables.add(mob_watch);
     return mob_watch;
 };
 
-let addKeyHole = function(scene, points, handler) {
+let addKeyHole = function (scene, points, handler) {
     let player_status = scene.scene.get('ControllerScene').__player_status;
     let keyholes = [];
     for (let point of points) {
@@ -1555,7 +1683,7 @@ let addKeyHole = function(scene, points, handler) {
             .setScale(2)
             .setDepth(DEPTHS.SURFACE);
         scene.__touchables.add(keyhole);
-        keyhole.setData('onTouch', function() {
+        keyhole.setData('onTouch', function () {
             if (player_status.keys <= 0) {
                 return;
             }
@@ -1569,13 +1697,13 @@ let addKeyHole = function(scene, points, handler) {
     }
 };
 
-let addKey = function(scene, x, y) {
+let addKey = function (scene, x, y) {
     let player_status = scene.scene.get('ControllerScene').__player_status;
     let depth = DEPTHS.ENTITIES + y - .25;
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
+        GRID_SIZE - GRID_SIZE / 2, GRID_SIZE - GRID_SIZE / 2);
     let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5)
+        GRID_SIZE * .50, GRID_SIZE * .25, 0x000000, 0.5)
         .setDepth(depth);
     let key = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.4 - GRID_ROWS), 'keys', 0)
         .setDepth(depth)
@@ -1587,7 +1715,7 @@ let addKey = function(scene, x, y) {
         duration: 1500,
     });
     scene.__touchables.add(zone_trigger);
-    zone_trigger.setData('onTouch', function() {
+    zone_trigger.setData('onTouch', function () {
         player_status.keys++;
         shadow.destroy();
         key.destroy();
@@ -1596,14 +1724,14 @@ let addKey = function(scene, x, y) {
     });
 };
 
-let addGem = function(scene, x, y, flavor) {
+let addGem = function (scene, x, y, flavor) {
     let depth = DEPTHS.ENTITIES + y - .25;
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
+        GRID_SIZE - GRID_SIZE / 2, GRID_SIZE - GRID_SIZE / 2);
     let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE*.50,GRID_SIZE*.25,0x000000, 0.5)
+        GRID_SIZE * .50, GRID_SIZE * .25, 0x000000, 0.5)
         .setDepth(depth)
-    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.25 - GRID_ROWS), 'gems', flavor*6)
+    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.25 - GRID_ROWS), 'gems', flavor * 6)
         .setDepth(depth)
         .setScale(2);
     gem.play('gem_' + flavor + '_anim');
@@ -1614,29 +1742,29 @@ let addGem = function(scene, x, y, flavor) {
         duration: 1500,
     });
     scene.__touchables.add(zone_trigger);
-    zone_trigger.setData('onTouch', function() {
+    zone_trigger.setData('onTouch', function () {
         shadow.destroy();
         gem.destroy();
         zone_trigger.destroy();
     });
 };
 
-let addZoneTrigger = function(scene, x, y, width, height, handler) {
+let addZoneTrigger = function (scene, x, y, width, height, handler) {
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
-        width * GRID_SIZE - GRID_SIZE/2, height * GRID_SIZE - GRID_SIZE/2);
+        width * GRID_SIZE - GRID_SIZE / 2, height * GRID_SIZE - GRID_SIZE / 2);
     scene.__touchables.add(zone_trigger);
-    zone_trigger.setData('onTouch', function() {
+    zone_trigger.setData('onTouch', function () {
         handler();
         zone_trigger.destroy();
     });
     return zone_trigger;
 };
 
-let addBasicButton = function(scene, x, y) {
+let addBasicButton = function (scene, x, y) {
     let offset = (x + y) % 2;
     let button_pressed = false;
-    let calculate_texture = function() {
-        let result = offset * 2 + (button_pressed?1:0);
+    let calculate_texture = function () {
+        let result = offset * 2 + (button_pressed ? 1 : 0);
         return result;
     };
     let button = scene.add.sprite(scene.__gridX(x), scene.__gridY(y),
@@ -1657,7 +1785,7 @@ let addBasicButton = function(scene, x, y) {
     return button;
 };
 
-let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hold_trigger) {
+let addButton = function (scene, points, trigger, reset_delay, reset_trigger, hold_trigger) {
     let buttons = [];
 
     let delayed_call = null;
@@ -1674,7 +1802,8 @@ let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hol
         }
 
         delayed_call = scene.time.delayedCall(reset_delay, () => {
-            Phaser.Utils.Array.Each(buttons, (button) => button.data.values.unpress(), buttons);;
+            Phaser.Utils.Array.Each(buttons, (button) => button.data.values.unpress(), buttons);
+            ;
             if (reset_trigger) {
                 reset_trigger();
             }
@@ -1686,7 +1815,7 @@ let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hol
         buttons.push(button);
         scene.__touchables.add(button);
         scene.__mob_touchables.add(button);
-        button.setData('onTouch', function() {
+        button.setData('onTouch', function () {
             if (!buttons.some((button) => button.data.values.isPressed())) {
                 if (trigger) {
                     trigger();
@@ -1700,12 +1829,12 @@ let addButton = function(scene, points, trigger, reset_delay, reset_trigger, hol
     return buttons;
 };
 
-let addSimultaneousButtonGroup = function(scene, points, complete_trigger) {
+let addSimultaneousButtonGroup = function (scene, points, complete_trigger) {
     let total_count = points.length;
     let current_count = 0;
     let buttons = [];
 
-    let finalize = function() {
+    let finalize = function () {
         complete_trigger();
         for (let button of buttons) {
             button.destroy();
@@ -1715,14 +1844,14 @@ let addSimultaneousButtonGroup = function(scene, points, complete_trigger) {
         }
     };
 
-    let press = function() {
+    let press = function () {
         current_count++;
         if (total_count === current_count) {
             finalize();
         }
     };
 
-    let unpress = function() {
+    let unpress = function () {
         current_count--;
     }
 
@@ -1733,7 +1862,7 @@ let addSimultaneousButtonGroup = function(scene, points, complete_trigger) {
     return buttons;
 };
 
-let addButtonGroup = function(scene, points, completed_trigger) {
+let addButtonGroup = function (scene, points, completed_trigger) {
     let buttons = [];
     let pressed_button_count = 0;
 
@@ -1752,11 +1881,11 @@ let addButtonGroup = function(scene, points, completed_trigger) {
         });
     };
 
-    let is_triggered = function() {
+    let is_triggered = function () {
         return pressed_button_count === buttons.length
     };
 
-    let maybe_fire_trigger = function() {
+    let maybe_fire_trigger = function () {
         if (is_triggered()) {
             completed_trigger();
             return true;
@@ -1771,8 +1900,10 @@ let addButtonGroup = function(scene, points, completed_trigger) {
         scene.__mob_touchables.add(button);
         scene.__updateables.add(button);
         let watch_for_release = false;
-        button.setData('onTouch', function() {
-            if (is_triggered()) { return; }
+        button.setData('onTouch', function () {
+            if (is_triggered()) {
+                return;
+            }
 
             if (button.data.values.isPressed()) {
                 return;
@@ -1788,7 +1919,7 @@ let addButtonGroup = function(scene, points, completed_trigger) {
 
             watch_for_release = true;
         });
-        button.update = function() {
+        button.update = function () {
             if (is_triggered()) {
                 return;
             }
@@ -1808,12 +1939,12 @@ let addButtonGroup = function(scene, points, completed_trigger) {
     }
 };
 
-let addDisappearingPlatform = function(scene, x, y, delay) {
+let addDisappearingPlatform = function (scene, x, y, delay) {
     let square = scene.__getGridSquare(x, y);
     let safety_delay = 1000;
     let tween = null;
 
-    let create_or_reset = function() {
+    let create_or_reset = function () {
         if (tween) {
             tween.restart();
 
@@ -1825,7 +1956,7 @@ let addDisappearingPlatform = function(scene, x, y, delay) {
             yoyo: true,
             delay: Math.max(delay - safety_delay, 0),
             duration: 50,
-            repeat: safety_delay/100,
+            repeat: safety_delay / 100,
             onStart: () => {
                 square.alpha = 0.75;
             },
@@ -1846,10 +1977,10 @@ let addDisappearingPlatform = function(scene, x, y, delay) {
     return square;
 }
 
-let addDisapperaingPlatformSequence = function(scene, point_groups, platform_time, platform_overlap_time, start_delay) {
+let addDisapperaingPlatformSequence = function (scene, point_groups, platform_time, platform_overlap_time, start_delay) {
     let loop_time = point_groups.length * (platform_time - platform_overlap_time);
     let current_delay = start_delay;
-    for (let point_group of point_groups ) {
+    for (let point_group of point_groups) {
         let platform_group = [];
         for (let point of point_group) {
             platform_group.push(addDisappearingPlatform(scene, point.x, point.y, platform_time))
@@ -1864,26 +1995,26 @@ let addDisapperaingPlatformSequence = function(scene, point_groups, platform_tim
     }
 };
 
-let addLavaPool = function(scene, x, y, width, height) {
+let addLavaPool = function (scene, x, y, width, height) {
     for (let i = x; i < x + width; i++) {
         for (let j = y; j < y + height; j++) {
             scene.add.sprite(scene.__gridX(i), scene.__gridY(j) + 8, 'lava', 0)
-                .setDepth(DEPTHS.BOARD+j);
+                .setDepth(DEPTHS.BOARD + j);
         }
     }
     let delayed_call = null;
-    let spawn_flame_wave = function() {
+    let spawn_flame_wave = function () {
         let rx = x + Phaser.Math.Between(0, width - 1);
         let ry = y + Phaser.Math.Between(0, height - 1);
         addFlameWave(scene, rx, ry);
         delayed_call = scene.time.delayedCall(8000, spawn_flame_wave);
     };
 
-    let start = function() {
+    let start = function () {
         delayed_call = scene.time.delayedCall(1000, spawn_flame_wave);
     };
 
-    let stop = function() {
+    let stop = function () {
         if (delayed_call) {
             delayed_call.remove(false);
         }

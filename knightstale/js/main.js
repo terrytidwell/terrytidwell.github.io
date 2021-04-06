@@ -54,23 +54,24 @@ let LoadScene = new Phaser.Class({
             "0%", { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        this.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
-        this.load.spritesheet('floor', 'assets/Wood 1 TD 64x72.png', { frameWidth: 80, frameHeight: 80 });
-        this.load.spritesheet('white_pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
-        this.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
-        this.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('health_bars', 'assets/health_bars.png', { frameWidth: 80, frameHeight: 9 });
-        this.load.spritesheet('fire', 'assets/fire_column_medium_1.png', { frameWidth: 40, frameHeight: 80 });
-        this.load.spritesheet('death_effect','assets/death_effect.png', { frameWidth: 128,  frameHeight: 128});
-        this.load.spritesheet('frame', 'assets/frame.png', { frameWidth: 32,  frameHeight: 32});
-        this.load.spritesheet('laser_column', 'assets/laser_column.png', { frameWidth: 32,  frameHeight: 96});
-        this.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
-        this.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
-        this.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
-        this.load.spritesheet('gems', 'assets/gems.png', { frameWidth: 16, frameHeight: 16 });
-        this.load.spritesheet('keys', 'assets/keys.png', { frameWidth: 16, frameHeight: 16 });
-        this.load.spritesheet('keyhole', 'assets/keyhole.png', { frameWidth: 16, frameHeight: 16 });
-        this.load.spritesheet('lava', 'assets/lava.png', { frameWidth: 64, frameHeight: 64 });
+        scene.load.audio('fight_music', ['assets/CrunkKnight.mp3']);
+        scene.load.spritesheet('floor', 'assets/Wood 1 TD 64x72.png', { frameWidth: 80, frameHeight: 80 });
+        scene.load.spritesheet('white_pieces', 'assets/White - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        scene.load.spritesheet('black_pieces', 'assets/Black - Rust 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        scene.load.spritesheet('impact', 'assets/Impact.png', { frameWidth: 64, frameHeight: 64 });
+        scene.load.spritesheet('health_bars', 'assets/health_bars.png', { frameWidth: 80, frameHeight: 9 });
+        scene.load.spritesheet('fire', 'assets/fire_column_medium_1.png', { frameWidth: 40, frameHeight: 80 });
+        scene.load.spritesheet('death_effect','assets/death_effect.png', { frameWidth: 128,  frameHeight: 128});
+        scene.load.spritesheet('frame', 'assets/frame.png', { frameWidth: 32,  frameHeight: 32});
+        scene.load.spritesheet('laser_column', 'assets/laser_column.png', { frameWidth: 32,  frameHeight: 96});
+        scene.load.spritesheet('laser_column_cont', 'assets/laser_column_cont.png', { frameWidth: 32,  frameHeight: 64});
+        scene.load.spritesheet('button', 'assets/buttons.png', { frameWidth: 80,  frameHeight: 80});
+        scene.load.spritesheet('statue_pieces', 'assets/Black - Marble 1 128x128.png', { frameWidth: 128, frameHeight: 128 });
+        scene.load.spritesheet('gems', 'assets/gems.png', { frameWidth: 16, frameHeight: 16 });
+        scene.load.spritesheet('keys', 'assets/keys.png', { frameWidth: 16, frameHeight: 16 });
+        scene.load.spritesheet('keyhole', 'assets/keyhole.png', { frameWidth: 16, frameHeight: 16 });
+        scene.load.spritesheet('lava', 'assets/lava.png', { frameWidth: 64, frameHeight: 64 });
+        scene.load.spritesheet('speech_bubbles','assets/ImanorBalloon.png', { frameWidth: 16, frameHeight: 16 })
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -110,6 +111,16 @@ let LoadScene = new Phaser.Class({
             skipMissedFrames: false,
             frameRate: 12,
             repeat: 0
+        });
+
+        scene.anims.create({
+            key: 'speech_bubbles_anim',
+            frames: scene.anims.generateFrameNumbers('speech_bubbles',
+                { start: 9, end: 15 }),
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeatDelay: 5000,
+            repeat: -1
         });
 
         scene.anims.create({
@@ -416,7 +427,7 @@ let GameScene = new Phaser.Class({
         scene.__mob_touchables = scene.physics.add.group();
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
-        });
+        })
         scene.__mobs = scene.add.group();
 
         let room_info = scene.scene.get('ControllerScene').__world_info.current_info;
@@ -437,6 +448,7 @@ let GameScene = new Phaser.Class({
             //HACK!!!
             scene.__character = addPlayer(scene,5,7);
             scene.__player_group.add(scene.__character);
+            scene.scene.sendToBack(scene);
         }
 
         room_info.create(scene);

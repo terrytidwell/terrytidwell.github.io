@@ -14,6 +14,8 @@ https://aekae13.itch.io/16x16-dungeon-walls-reconfig
 
 https://opengameart.org/content/2-seamless-lava-tiles
 
+https://opengameart.org/content/animated-emote-bubbles
+
 Crunk Knight by Kevin MacLeod
 https://incompetech.filmmusic.io/song/3566-crunk-knight
 
