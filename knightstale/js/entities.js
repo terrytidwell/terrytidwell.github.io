@@ -1714,56 +1714,53 @@ let addKeyHole = function (scene, points, handler) {
 };
 
 let addKey = function (scene, x, y) {
-    let player_status = scene.scene.get('ControllerScene').__player_status;
-    let depth = DEPTHS.ENTITIES + y - .25;
-    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE - GRID_SIZE / 2, GRID_SIZE - GRID_SIZE / 2);
-    let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
-        GRID_SIZE * .50, GRID_SIZE * .25, 0x000000, 0.5)
-        .setDepth(depth);
-    let key = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.4 - GRID_ROWS), 'keys', 0)
-        .setDepth(depth)
+    let key = scene.add.sprite(scene.__gridX(0), scene.__gridY(0), 'keys', 0)
         .setScale(3);
-    scene.tweens.add({
-        targets: key,
-        y: scene.__gridY(y - 0.4),
-        ease: 'Bounce.easeOut',
-        duration: 1500,
-    });
-    scene.__touchables.add(zone_trigger);
-    zone_trigger.setData('onTouch', function () {
+    let handler = function () {
+        let player_status = scene.scene.get('ControllerScene').__player_status;
         player_status.keys++;
-        shadow.destroy();
-        key.destroy();
-        zone_trigger.destroy();
-
-    });
+    }
+    addFallingItem(scene, x, y, -0.4, key, handler);
 };
 
 let addGem = function (scene, x, y, flavor) {
-    let depth = DEPTHS.ENTITIES + y - .25;
+    let gem = scene.add.sprite(scene.__gridX(0), scene.__gridY(0), 'gems', flavor * 6)
+        .setScale(2);
+    gem.play('gem_' + flavor + '_anim');
+    addFallingItem(scene, x, y, -0.25, gem, null);
+};
+
+let addFallingItem = function(scene, x, y, z, sprite, handler) {
+    let target_y = y + z;
+    let threshold_y = target_y - 1;
+    let start_y = target_y - GRID_ROWS;
+    let depth = DEPTHS.ENTITIES + y - 0.25;
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
         GRID_SIZE - GRID_SIZE / 2, GRID_SIZE - GRID_SIZE / 2);
     let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
         GRID_SIZE * .50, GRID_SIZE * .25, 0x000000, 0.5)
         .setDepth(depth)
-    let gem = scene.add.sprite(scene.__gridX(x), scene.__gridY(y - 0.25 - GRID_ROWS), 'gems', flavor * 6)
-        .setDepth(depth)
-        .setScale(2);
-    gem.play('gem_' + flavor + '_anim');
+    sprite.setPosition(scene.__gridX(x), scene.__gridY(start_y))
+        .setDepth(depth+1);
     scene.tweens.add({
-        targets: gem,
-        y: scene.__gridY(y - 0.25),
+        targets: sprite,
+        y: scene.__gridY(target_y),
         ease: 'Bounce.easeOut',
         duration: 1500,
     });
     scene.__touchables.add(zone_trigger);
     zone_trigger.setData('onTouch', function () {
+        if (sprite.y < scene.__gridY(threshold_y)) {
+            return;
+        }
+        if (handler) {
+            handler();
+        }
         shadow.destroy();
-        gem.destroy();
+        sprite.destroy();
         zone_trigger.destroy();
     });
-};
+}
 
 let addZoneTrigger = function (scene, x, y, width, height, handler) {
     let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
