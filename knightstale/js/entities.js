@@ -1,3 +1,19 @@
+const PIECE_SPRITES = {
+    BISHOP_RIGHT: 0,
+    BISHOP_UP: 1,
+    BISHOP_DOWN: 2,
+    BISHOP_LEFT: 3,
+    KNIGHT_RIGHT: 4,
+    KNIGHT_UP: 5,
+    KNIGHT_DOWN: 6,
+    KNIGHT_LEFT: 7,
+    KING_VERTICAL: 8,
+    KING_HORIZONTAL: 9,
+    QUEEN: 10,
+    ROOK: 11,
+    PAWN: 12,
+};
+
 let asyncHandler = function (scene) {
     let self = this;
     let m_tweens = [];
@@ -203,7 +219,7 @@ let addNpc = function (scene, x, y) {
         .setInteractive()
         .setVisible(false);
     diag_box.play('speech_bubbles_anim');
-    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', 12)
+    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', PIECE_SPRITES.PAWN)
         .setDepth(DEPTHS.ENTITIES + y);
     let current_dialogue = [];
     let add_diag = function(text) {
@@ -259,11 +275,11 @@ let addTeleportAtRandomSpot = function (scene, teleporter) {
 };
 
 let addPawnTeleport = function (scene, x, y) {
-    addLaserEffect(scene, x, y, addPawn, 'white_pieces', 12)
+    addLaserEffect(scene, x, y, addPawn, 'white_pieces', PIECE_SPRITES.PAWN)
 };
 
 let addBishopTeleport = function (scene, x, y) {
-    addLaserEffect(scene, x, y, addBishop, 'white_pieces', 2)
+    addLaserEffect(scene, x, y, addBishop, 'white_pieces', PIECE_SPRITES.BISHOP_DOWN);
 };
 
 let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite_frame) {
@@ -772,8 +788,8 @@ let addPawn = function (scene, x, y) {
     let m_impact_y = 0;
     let m_prefer_horizontal = Phaser.Utils.Array.GetRandom([true, false]);
 
-    let pawn = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12);
-    let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 12)
+    let pawn = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN);
+    let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN)
         .setTintFill(0xffffff)
         .setAlpha(0);
     let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
@@ -1139,8 +1155,8 @@ let addBishop = function (scene, x, y) {
     };
     let state_handler = stateHandler(scene, STATES, STATES.IDLE);
 
-    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 2);
-    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', 2)
+    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces',  PIECE_SPRITES.BISHOP_DOWN);
+    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.BISHOP_DOWN)
         .setAlpha(0)
         .setTintFill(0xffffff);
     let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
@@ -1186,7 +1202,7 @@ let addBishop = function (scene, x, y) {
 };
 
 let addRookStatue = function (scene, x, y) {
-    return addStatue(scene, x, y, 11,
+    return addStatue(scene, x, y, PIECE_SPRITES.ROOK,
         [
             {d: DIRECTIONS.UP, m: 0},
             {d: DIRECTIONS.LEFT, m: 0},
@@ -1196,7 +1212,7 @@ let addRookStatue = function (scene, x, y) {
 };
 
 let addBishopStatue = function (scene, x, y) {
-    return addStatue(scene, x, y, 2,
+    return addStatue(scene, x, y, PIECE_SPRITES.BISHOP_DOWN,
         [
             {d: DIRECTIONS.UP_LEFT, m: 0},
             {d: DIRECTIONS.UP_RIGHT, m: 0},
@@ -1405,16 +1421,16 @@ let addPlayer = function (scene, x, y) {
         player_status.dx = dx;
         player_status.dy = dy;
         if (player_status.dx === 2) {
-            setOrientation(orientation.RIGHT);
+            setOrientation(PIECE_SPRITES.KNIGHT_RIGHT);
         }
         if (player_status.dy === -2) {
-            setOrientation(orientation.UP);
+            setOrientation(PIECE_SPRITES.KNIGHT_UP);
         }
         if (player_status.dy === 2) {
-            setOrientation(orientation.DOWN);
+            setOrientation(PIECE_SPRITES.KNIGHT_DOWN);
         }
         if (player_status.dx === -2) {
-            setOrientation(orientation.LEFT);
+            setOrientation(PIECE_SPRITES.KNIGHT_LEFT);
         }
 
         player_status.playerMoveAllowed = false;
@@ -1468,18 +1484,12 @@ let addPlayer = function (scene, x, y) {
         timeline.play();
     };
 
-    let orientation = {
-        RIGHT: 0,
-        UP: 1,
-        DOWN: 2,
-        LEFT: 3
-    };
     let setOrientation = function (orientation) {
         player_status.orientation = orientation;
         let sprite_type = player_status.parity ? 'black_pieces' : 'white_pieces';
-        sprite.setTexture(sprite_type, 4 + orientation);
-        sprite_overlay.setTexture(sprite_type, 4 + orientation);
-        sprite_remnant.setTexture(sprite_type, 4 + orientation);
+        sprite.setTexture(sprite_type, orientation);
+        sprite_overlay.setTexture(sprite_type, orientation);
+        sprite_remnant.setTexture(sprite_type, orientation);
     };
 
     let tryMovePlayer = function (dx, dy) {

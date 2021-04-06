@@ -185,7 +185,7 @@ let ControllerScene = new Phaser.Class({
         };
 
         scene.__player_status = {
-            orientation: 0,
+            orientation: PIECE_SPRITES.KNIGHT_RIGHT,
             full_life: 10,
             life: 10,
             health_bar: addHealthBar(scene, 3, 2, 0, false),
