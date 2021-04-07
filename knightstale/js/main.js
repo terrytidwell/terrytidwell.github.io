@@ -78,6 +78,7 @@ let LoadScene = new Phaser.Class({
             loading_text.setText(Math.round(percentage) + "%");
         });
         scene.load.once('complete',  function() {
+            scene.scene.start('TitleScene');
             scene.scene.start('ControllerScene');
             scene.scene.stop('LoadScene');
         });
@@ -160,6 +161,130 @@ let LoadScene = new Phaser.Class({
     update: function() {},
 });
 
+let TitleScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'TitleScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {},
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        let backdrop = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 1.0);
+        let title_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/3, "Knight's Tale",
+            { font: GRID_SIZE + 'px Eczar-Regular', fill: '#FFF' })
+            .setOrigin(0.5, 0.5)
+            .setAlpha(0);
+        let intro_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - GRID_SIZE, "Introduction",
+            { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
+            .setOrigin(1, 0.5)
+            .setAlpha(0);
+        let start_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - GRID_SIZE/2, "Start",
+            { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
+            .setOrigin(1, 0.5)
+            .setAlpha(0);
+        let credits_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6, "Credits",
+            { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
+            .setOrigin(1, 0.5)
+            .setAlpha(0);
+        let back_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6, "Back",
+            { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
+            .setOrigin(1, 0.5)
+            .setVisible(false);
+        let credit_text = scene.add.text(2*GRID_SIZE,2*GRID_SIZE,[
+                'Game By: CricketHunter',
+                '',
+                '"Crunk Knight"',
+                'Kevin MacLeod (incompetech.com)',
+                'Licensed under Creative Commons: By Attribution 3.0',
+                'http://creativecommons.org/licenses/by/3.0/'],
+            { font: GRID_SIZE/4 + 'px Eczar-Regular', fill: '#FFF' })
+            .setVisible(false)
+            .setOrigin(0, 0);
+
+        scene.scene.bringToTop('TitleScene');
+        scene.tweens.add({
+            targets: title_text,
+            alpha: 1,
+            duration: 4000,
+            delay: 1000,
+            onComplete: () => {
+                /*
+                scene.tweens.add({
+                    targets: intro_text,
+                    alpha: 1,
+                    duration: 100,
+                });
+                */
+                scene.tweens.add({
+                    targets: start_text,
+                    alpha: 1,
+                    duration: 100,
+                    delay: 250
+                });
+                scene.tweens.add({
+                    targets: credits_text,
+                    alpha: 1,
+                    duration: 100,
+                    delay: 500,
+                });
+            }
+        });
+        scene.tweens.add({
+            targets: backdrop,
+            alpha: 0.75,
+            duration: 4000,
+            delay: 1000,
+        });
+        intro_text.setInteractive();
+        intro_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            PAUSE_SCENE = false;
+            scene.scene.resume('chess_room');
+            scene.scene.stop('TitleScene');
+        });
+        start_text.setInteractive();
+        start_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            START_SCENE = 'entrance_room';
+            PAUSE_SCENE = false;
+            scene.scene.stop('chess_room');
+            scene.scene.stop('ControllerScene');
+            scene.scene.start('ControllerScene');
+            scene.scene.stop('TitleScene');
+        });
+        credits_text.setInteractive();
+        credits_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            title_text.setVisible(false);
+            intro_text.setVisible(false);
+            start_text.setVisible(false);
+            credits_text.setVisible(false);
+            credit_text.setVisible(true);
+            back_text.setVisible(true);
+        });
+        back_text.setInteractive();
+        back_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            title_text.setVisible(true);
+            intro_text.setVisible(false);
+            start_text.setVisible(true);
+            credits_text.setVisible(true);
+            credit_text.setVisible(false);
+            back_text.setVisible(false);
+        });
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {},
+});
+
+let START_SCENE = 'chess_room';
+let PAUSE_SCENE = true;
+
 let ControllerScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -175,14 +300,6 @@ let ControllerScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-
-        scene.__gridX = function(x) {
-            return x * GRID_SIZE + GRID_SIZE/2;
-        };
-
-        scene.__gridY = function(y) {
-            return y * GRID_SIZE + GRID_SIZE/2;
-        };
 
         scene.__player_status = {
             orientation: PIECE_SPRITES.KNIGHT_RIGHT,
@@ -207,7 +324,7 @@ let ControllerScene = new Phaser.Class({
             },
         };
         scene.__world_info = {
-            current_room: 'entrance_room',
+            current_room: START_SCENE,
             current_info: null,
             current_scene: null,
         };
@@ -321,6 +438,26 @@ let ControllerScene = new Phaser.Class({
     update: function() {},
 });
 
+let LayoutManager = {
+    __gridX: function(x) {
+        return x * GRID_SIZE + GRID_SIZE/2;
+    },
+
+    __gridY: function(y) {
+    return y * GRID_SIZE + GRID_SIZE/2;
+    },
+
+    __characterY: function(y) {
+        return LayoutManager.__gridY(y - .5);
+    },
+
+    __setPhysicsBodyPosition: function(object, x, y) {
+        object.setPosition(LayoutManager.__gridX(x),  LayoutManager.__gridX(y));
+        object.body.x = LayoutManager.__gridX(x) - GRID_SIZE/2 + (GRID_SIZE - object.body.width) / 2;
+        object.body.y = LayoutManager.__gridY(y) - GRID_SIZE/2 + (GRID_SIZE - object.body.height) / 2;
+    },
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -339,24 +476,6 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
         //FUNCTIONS
         //----------------------------------------------------------------------
-
-        scene.__gridX = function(x) {
-            return x * GRID_SIZE + GRID_SIZE/2;
-        };
-
-        scene.__gridY = function(y) {
-            return y * GRID_SIZE + GRID_SIZE/2;
-        };
-
-        scene.__characterY = function(y) {
-            return scene.__gridY(y - .5);
-        };
-
-        scene.__setPhysicsBodyPosition = function(object, x, y) {
-            object.setPosition(scene.__gridX(x),  scene.__gridX(y));
-            object.body.x = scene.__gridX(x) - GRID_SIZE/2 + (GRID_SIZE - object.body.width) / 2;
-            object.body.y = scene.__gridY(y) - GRID_SIZE/2 + (GRID_SIZE - object.body.height) / 2;
-        };
 
         scene.__isGridPassable = function(x,y) {
             return x >= 0 && x < GRID_COLS &&
@@ -420,7 +539,7 @@ let GameScene = new Phaser.Class({
         scene.physics.add.existing(mobChecker);
         scene.__isGridMobFree = function(x,y) {
             //physics body origins are 0,0 as opposed to sprites which are 0.5,0.5
-            scene.__setPhysicsBodyPosition(mobChecker, x, y);
+            LayoutManager.__setPhysicsBodyPosition(mobChecker, x, y);
             return !scene.physics.overlap(mobChecker, scene.__mob_collision_boxes);
         };
 
@@ -463,8 +582,15 @@ let GameScene = new Phaser.Class({
         if (data.parent) {
             scene.scene.get('ControllerScene').__transitionCallback(scene, data.parent_direction);
         } else {
-            //HACK!!!
+            if (room_info.init) {
+                room_info.init(scene);
+            }
             scene.scene.sendToBack(scene);
+            if (PAUSE_SCENE) {
+                scene.time.delayedCall(50, () => {
+                    scene.scene.pause();
+                });
+            }
         }
 
         room_info.create(scene);
@@ -534,7 +660,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, ControllerScene ]
+    scene: [ LoadScene, TitleScene, ControllerScene ]
 };
 
 let game = new Phaser.Game(config);

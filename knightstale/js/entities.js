@@ -92,8 +92,8 @@ let asyncHandler = function (scene) {
 };
 
 let addDeathEffect = function (scene, x, y) {
-    let death_effect = scene.add.sprite(scene.__gridX(Math.round(x)),
-        scene.__characterY(Math.round(y)), 'death_effect', 0)
+    let death_effect = scene.add.sprite(LayoutManager.__gridX(Math.round(x)),
+        LayoutManager.__characterY(Math.round(y)), 'death_effect', 0)
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('death_effect_anim')
         .setFlipX(Phaser.Utils.Array.GetRandom([false, true]))
@@ -113,10 +113,10 @@ let addDialogue = function (scene, dialogue_lines) {
         align: "left",
         wordWrap: {width: (GRID_COLS - 2) * GRID_SIZE, useAdvancedWrap: true}
     };
-    let text_background = ui_scene.add.rectangle(ui_scene.__gridX(GRID_COLS / 2 - 0.5), ui_scene.__gridY(1.5),
+    let text_background = ui_scene.add.rectangle(LayoutManager.__gridX(GRID_COLS / 2 - 0.5), LayoutManager.__gridY(1.5),
         (GRID_COLS - 1) * GRID_SIZE, 3 * GRID_SIZE, 0x000000, 0.75)
         .setDepth(DEPTHS.UI);
-    let text_object = ui_scene.add.text(ui_scene.__gridX(0.5), ui_scene.__gridY(0.125), "",
+    let text_object = ui_scene.add.text(LayoutManager.__gridX(0.5), LayoutManager.__gridY(0.125), "",
         textStyle)
         .setOrigin(0, 0)
         .setDepth(DEPTHS.UI);
@@ -153,7 +153,7 @@ let addDialogue = function (scene, dialogue_lines) {
         present_dialogue(text_sections[current_dialogue]);
     });
     let current_dialogue = 0;
-    let next_arrow = ui_scene.add.sprite(ui_scene.__gridX(10.5), ui_scene.__gridY(2.75), 'frame', 1)
+    let next_arrow = ui_scene.add.sprite(LayoutManager.__gridX(10.5), LayoutManager.__gridY(2.75), 'frame', 1)
         .setFlipX(true)
         .setScale(2)
         .setDepth(DEPTHS.UI)
@@ -212,14 +212,14 @@ let addDialogue = function (scene, dialogue_lines) {
 
 let addNpc = function (scene, x, y, spritesheet, frame) {
     let square = addGroundSquare(scene, x, y);
-    let zone = scene.add.zone(scene.__gridX(x), scene.__gridY(y), GRID_SIZE, GRID_SIZE);
-    let diag_box = scene.add.sprite(scene.__gridX(x+.5), scene.__gridY(y-1), 'speech_bubbles', 8)
+    let zone = scene.add.zone(LayoutManager.__gridX(x), LayoutManager.__gridY(y), GRID_SIZE, GRID_SIZE);
+    let diag_box = scene.add.sprite(LayoutManager.__gridX(x+.5), LayoutManager.__gridY(y-1), 'speech_bubbles', 8)
         .setScale(2)
         .setDepth(DEPTHS.UI + y)
         .setInteractive()
         .setVisible(false);
     diag_box.play('speech_bubbles_anim');
-    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), spritesheet, frame)
+    scene.add.sprite(LayoutManager.__gridX(x), LayoutManager.__characterY(y), spritesheet, frame)
         .setDepth(DEPTHS.ENTITIES + y);
     let current_dialogue = [];
     let add_diag = function(text) {
@@ -254,7 +254,7 @@ let addGroundSquare = (function () {
     return function (scene, x, y) {
         let offset = 4 * ((x + y) % 2);
         let tile = Phaser.Utils.Array.GetRandom(index_image) + offset;
-        let square = scene.add.sprite(scene.__gridX(x), scene.__gridY(y), 'floor', tile);
+        let square = scene.add.sprite(LayoutManager.__gridX(x), LayoutManager.__gridY(y), 'floor', tile);
         square.setDepth(DEPTHS.BOARD + y);
         return square;
     }
@@ -286,13 +286,13 @@ let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite
     let self = this;
     let laser_effects = [];
     let laser_flip = Phaser.Utils.Array.GetRandom([false, true]);
-    let bounding_box = scene.add.rectangle(scene.__gridX(x), scene.__gridY(y),
+    let bounding_box = scene.add.rectangle(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
         GRID_SIZE / 2, GRID_SIZE / 2, 0xffff00, 0.0);
     scene.__mobs.add(bounding_box);
     scene.__mob_collision_boxes.add(bounding_box);
-    scene.__setPhysicsBodyPosition(bounding_box, x, y);
-    laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
-        scene.__gridY(Math.round(y - 1)), 'laser_column', 0)
+    LayoutManager.__setPhysicsBodyPosition(bounding_box, x, y);
+    laser_effects.push(scene.add.sprite(LayoutManager.__gridX(Math.round(x)),
+        LayoutManager.__gridY(Math.round(y - 1)), 'laser_column', 0)
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('laser_effect_anim')
         .setAlpha(.75)
@@ -310,8 +310,8 @@ let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite
         }));
     let y_offset = y - 2.5;
     while (y_offset > -2) {
-        laser_effects.push(scene.add.sprite(scene.__gridX(Math.round(x)),
-            scene.__gridY(Math.round(y_offset - 1)), 'laser_column_cont', 0)
+        laser_effects.push(scene.add.sprite(LayoutManager.__gridX(Math.round(x)),
+            LayoutManager.__gridY(Math.round(y_offset - 1)), 'laser_column_cont', 0)
             .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
             .play('laser_effect_cont_anim')
             .setAlpha(.75)
@@ -326,7 +326,7 @@ let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite
         duration: 300,
         repeat: -1
     });
-    let avatar = scene.add.sprite(scene.__gridX(x), scene.__characterY(y), avatar_sprite, avatar_sprite_frame)
+    let avatar = scene.add.sprite(LayoutManager.__gridX(x), LayoutManager.__characterY(y), avatar_sprite, avatar_sprite_frame)
         .setAlpha(0);
     let avatar_tween = scene.tweens.add({
         targets: avatar,
@@ -439,7 +439,7 @@ let addHealthBar = function (scene, scale, x, y, hide_on_full) {
     };
 
     let barX = function (metric) {
-        return scene.__gridX(m_x) - 32 * scale * (1 - (metric));
+        return LayoutManager.__gridX(m_x) - 32 * scale * (1 - (metric));
     };
 
     let calculate_scale = function (metric) {
@@ -449,9 +449,9 @@ let addHealthBar = function (scene, scale, x, y, hide_on_full) {
     let updatePosition = function (x, y) {
         m_x = x;
         m_y = y;
-        health_bar.setPosition(barX(life), scene.__gridY(m_y));
-        health_bar_under.setPosition(barX(display_life), scene.__gridY(m_y));
-        health_bar_frame.setPosition(scene.__gridX(m_x), scene.__gridY(m_y))
+        health_bar.setPosition(barX(life), LayoutManager.__gridY(m_y));
+        health_bar_under.setPosition(barX(display_life), LayoutManager.__gridY(m_y));
+        health_bar_frame.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__gridY(m_y))
     };
 
     let destroy = function () {
@@ -638,7 +638,7 @@ let addPawn = function (scene, x, y) {
     let change_move_target = function (x, y) {
         m_targetx = x;
         m_targety = y;
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
+        LayoutManager.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
     };
 
     let swap_direction = function (directions, a, b) {
@@ -802,8 +802,8 @@ let addPawn = function (scene, x, y) {
     let m_impact_y = 0;
     let m_prefer_horizontal = Phaser.Utils.Array.GetRandom([true, false]);
 
-    let pawn = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN);
-    let pawn_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN)
+    let pawn = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN);
+    let pawn_overlay = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'white_pieces', PIECE_SPRITES.PAWN)
         .setTintFill(0xffffff)
         .setAlpha(0);
     let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
@@ -852,14 +852,14 @@ let addPawn = function (scene, x, y) {
                 state_handler.changeState(STATES.PRE_ATTACK);
             }
         }
-        pawn.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
-        pawn_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
-        shadow.setPosition(scene.__gridX(m_x), scene.__gridY(m_y));
+        pawn.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y) + m_z);
+        pawn_overlay.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y) + m_z);
+        shadow.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__gridY(m_y));
         shadow.setVisible(m_z < 0);
         pawn.setDepth(DEPTHS.ENTITIES + m_y);
         pawn_overlay.setDepth(DEPTHS.ENTITIES + m_y);
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
-        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
+        LayoutManager.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
+        LayoutManager.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
     };
 
@@ -879,14 +879,14 @@ let addFlameWave = function (scene, x, y) {
         if (!scene.__isGridPassable(x, y)) {
             z_offset = 8;
         }
-        sprites.push(scene.add.sprite(scene.__gridX(x), scene.__characterY(y) + z_offset, 'fire', 0)
+        sprites.push(scene.add.sprite(LayoutManager.__gridX(x), LayoutManager.__characterY(y) + z_offset, 'fire', 0)
             .setScale(2)
             .play('fire_anim')
             .setDepth(DEPTHS.ENTITIES + y - 0.25));
-        let bounding_box = scene.add.rectangle(scene.__gridX(x), scene.__gridY(y),
+        let bounding_box = scene.add.rectangle(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
             GRID_SIZE / 2, GRID_SIZE / 2, 0xffff00, 0.0);
         scene.__dangerous_touchables.add(bounding_box);
-        scene.__setPhysicsBodyPosition(bounding_box, x, y);
+        LayoutManager.__setPhysicsBodyPosition(bounding_box, x, y);
         let dx = x - center_x;
         let dy = y - center_y;
         bounding_box.setData('registerDangerousTouch', function () {
@@ -1049,10 +1049,10 @@ let addBishop = function (scene, x, y) {
         current_direction = DIRECTIONS.NONE;
         //state_handler.addDelayedCall(1000, state_handler.changeState, [STATES.START_SLIDE]);
         let add_sparkle = function (delay) {
-            let x = Phaser.Math.Between(scene.__gridX(m_x - 0.25), scene.__gridX(m_x + 0.25));
+            let x = Phaser.Math.Between(LayoutManager.__gridX(m_x - 0.25), LayoutManager.__gridX(m_x + 0.25));
             let z = Phaser.Math.Between(-GRID_SIZE * .5, 0);
             let y = Phaser.Utils.Array.GetRandom(
-                [scene.__gridY(m_y + 0.25), scene.__gridY(m_y - 0.25)]);
+                [LayoutManager.__gridY(m_y + 0.25), LayoutManager.__gridY(m_y - 0.25)]);
             let sparkle = scene.add.ellipse(x, y + z, GRID_SIZE / 8, GRID_SIZE / 4,
                 0xffffff, 1.0)
                 .setVisible(false)
@@ -1110,7 +1110,7 @@ let addBishop = function (scene, x, y) {
     let change_move_target = function (x, y) {
         m_targetx = x;
         m_targety = y;
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
+        LayoutManager.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
     };
 
     let enter_move = function () {
@@ -1169,8 +1169,8 @@ let addBishop = function (scene, x, y) {
     };
     let state_handler = stateHandler(scene, STATES, STATES.IDLE);
 
-    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces',  PIECE_SPRITES.BISHOP_DOWN);
-    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'white_pieces', PIECE_SPRITES.BISHOP_DOWN)
+    let sprite = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'white_pieces',  PIECE_SPRITES.BISHOP_DOWN);
+    let sprite_overlay = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'white_pieces', PIECE_SPRITES.BISHOP_DOWN)
         .setAlpha(0)
         .setTintFill(0xffffff);
     let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
@@ -1200,12 +1200,12 @@ let addBishop = function (scene, x, y) {
     scene.__dangerous_touchables.add(bounding_box);
     scene.__updateables.add(bounding_box);
     bounding_box.update = function () {
-        sprite.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
+        sprite.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y) + m_z);
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
-        sprite_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y) + m_z);
+        sprite_overlay.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y) + m_z);
         sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
-        scene.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
-        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
+        LayoutManager.__setPhysicsBodyPosition(move_box, Math.round(m_targetx), Math.round(m_targety));
+        LayoutManager.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
         health_bar.updatePosition(m_x, m_y - 1);
     };
 
@@ -1279,8 +1279,8 @@ let addStatue = function (scene, x, y, frame, directions) {
         sprite.alpha = 1;
     };
 
-    let sprite = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame);
-    let sprite_overlay = scene.add.sprite(scene.__gridX(0), scene.__characterY(0), 'statue_pieces', frame)
+    let sprite = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'statue_pieces', frame);
+    let sprite_overlay = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__characterY(0), 'statue_pieces', frame)
         .setAlpha(0)
         .setTintFill(0xffffff);
     let bounding_box = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
@@ -1298,11 +1298,11 @@ let addStatue = function (scene, x, y, frame, directions) {
         bounding_box.update();
     });
     bounding_box.update = function () {
-        sprite.setPosition(scene.__gridX(m_x), scene.__characterY(m_y));
+        sprite.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y));
         sprite.setDepth(DEPTHS.ENTITIES + m_y);
-        sprite_overlay.setPosition(scene.__gridX(m_x), scene.__characterY(m_y));
+        sprite_overlay.setPosition(LayoutManager.__gridX(m_x), LayoutManager.__characterY(m_y));
         sprite_overlay.setDepth(DEPTHS.ENTITIES + m_y);
-        scene.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
+        LayoutManager.__setPhysicsBodyPosition(bounding_box, Math.round(m_x), Math.round(m_y));
     };
 
     bounding_box.update();
@@ -1326,8 +1326,8 @@ let addPlayer = function (scene, x, y) {
     let move_history = [{x: x, y: y}];
 
     let tearDown = function () {
-        sprite_remnant.setPosition(scene.__gridX(player_status.x),
-            scene.__characterY(player_status.y) + player_status.z)
+        sprite_remnant.setPosition(LayoutManager.__gridX(player_status.x),
+            LayoutManager.__characterY(player_status.y) + player_status.z)
             .setVisible(true);
         sprite_remnant.setDepth(DEPTHS.ENTITIES + player_status.y);
         scene.events.once(Phaser.Scenes.Events.SLEEP, () => sprite_remnant.destroy());
@@ -1383,15 +1383,15 @@ let addPlayer = function (scene, x, y) {
         if (!scene.__isGridPassable(Math.round(x), Math.round(y))) {
             character_fall();
         }
-        sprite.setPosition(scene.__gridX(x), scene.__characterY(y) + z);
+        sprite.setPosition(LayoutManager.__gridX(x), LayoutManager.__characterY(y) + z);
         sprite.setDepth(current_depths + y);
-        sprite_overlay.setPosition(scene.__gridX(x), scene.__characterY(y) + z);
+        sprite_overlay.setPosition(LayoutManager.__gridX(x), LayoutManager.__characterY(y) + z);
         sprite_overlay.setDepth(current_depths + y);
-        shadow.setPosition(scene.__gridX(x), scene.__gridY(y));
+        shadow.setPosition(LayoutManager.__gridX(x), LayoutManager.__gridY(y));
         shadow.setVisible(z < 0);
-        scene.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
-        frame.setPosition(scene.__gridX(player_status.x),
-            scene.__gridY(player_status.y));
+        LayoutManager.__setPhysicsBodyPosition(character, Math.round(x), Math.round(y));
+        frame.setPosition(LayoutManager.__gridX(player_status.x),
+            LayoutManager.__gridY(player_status.y));
         frame.setVisible(player_status.playerMoveAllowed &&
             scene.__shouldTransition(player_status.x, player_status.y));
         if (frame.visible) {
@@ -1413,8 +1413,8 @@ let addPlayer = function (scene, x, y) {
             let frame = frames[i];
             let frame_x = x + frame.data.values.dx;
             let frame_y = y + frame.data.values.dy;
-            frame.setPosition(scene.__gridX(frame_x),
-                scene.__gridY(frame_y));
+            frame.setPosition(LayoutManager.__gridX(frame_x),
+                LayoutManager.__gridY(frame_y));
             frame.setVisible(player_status.playerMoveAllowed &&
                 scene.__isGridPassable(frame_x, frame_y));
         }
@@ -1422,8 +1422,8 @@ let addPlayer = function (scene, x, y) {
 
     let impact = function () {
         impact_sprite.setPosition(
-            scene.__gridX(Math.round(player_status.x)),
-            scene.__gridY(Math.round(player_status.y)));
+            LayoutManager.__gridX(Math.round(player_status.x)),
+            LayoutManager.__gridY(Math.round(player_status.y)));
         impact_sprite.setDepth(DEPTHS.SURFACE + player_status.y)
         impact_sprite.play('impact_anim');
     };
@@ -1734,7 +1734,7 @@ let addKeyHole = function (scene, points, handler) {
     let player_status = scene.scene.get('ControllerScene').__player_status;
     let keyholes = [];
     for (let point of points) {
-        let keyhole = scene.add.sprite(scene.__gridX(point.x), scene.__gridY(point.y), 'keyhole')
+        let keyhole = scene.add.sprite(LayoutManager.__gridX(point.x), LayoutManager.__gridY(point.y), 'keyhole')
             .setScale(2)
             .setDepth(DEPTHS.SURFACE);
         scene.__touchables.add(keyhole);
@@ -1753,7 +1753,7 @@ let addKeyHole = function (scene, points, handler) {
 };
 
 let addKey = function (scene, x, y) {
-    let key = scene.add.sprite(scene.__gridX(0), scene.__gridY(0), 'keys', 0)
+    let key = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__gridY(0), 'keys', 0)
         .setScale(3);
     let handler = function () {
         let player_status = scene.scene.get('ControllerScene').__player_status;
@@ -1763,7 +1763,7 @@ let addKey = function (scene, x, y) {
 };
 
 let addGem = function (scene, x, y, flavor) {
-    let gem = scene.add.sprite(scene.__gridX(0), scene.__gridY(0), 'gems', flavor * 6)
+    let gem = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__gridY(0), 'gems', flavor * 6)
         .setScale(2);
     gem.play('gem_' + flavor + '_anim');
     addFallingItem(scene, x, y, -0.25, gem, null);
@@ -1774,22 +1774,22 @@ let addFallingItem = function(scene, x, y, z, sprite, handler) {
     let threshold_y = target_y - 1;
     let start_y = target_y - GRID_ROWS;
     let depth = DEPTHS.ENTITIES + y - 0.25;
-    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
+    let zone_trigger = scene.add.zone(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
         GRID_SIZE - GRID_SIZE / 2, GRID_SIZE - GRID_SIZE / 2);
-    let shadow = scene.add.ellipse(scene.__gridX(x), scene.__gridY(y),
+    let shadow = scene.add.ellipse(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
         GRID_SIZE * .50, GRID_SIZE * .25, 0x000000, 0.5)
         .setDepth(depth)
-    sprite.setPosition(scene.__gridX(x), scene.__gridY(start_y))
+    sprite.setPosition(LayoutManager.__gridX(x), LayoutManager.__gridY(start_y))
         .setDepth(depth+1);
     scene.tweens.add({
         targets: sprite,
-        y: scene.__gridY(target_y),
+        y: LayoutManager.__gridY(target_y),
         ease: 'Bounce.easeOut',
         duration: 1500,
     });
     scene.__touchables.add(zone_trigger);
     zone_trigger.setData('onTouch', function () {
-        if (sprite.y < scene.__gridY(threshold_y)) {
+        if (sprite.y < LayoutManager.__gridY(threshold_y)) {
             return;
         }
         if (handler) {
@@ -1802,7 +1802,7 @@ let addFallingItem = function(scene, x, y, z, sprite, handler) {
 }
 
 let addZoneTrigger = function (scene, x, y, width, height, handler) {
-    let zone_trigger = scene.add.zone(scene.__gridX(x), scene.__gridY(y),
+    let zone_trigger = scene.add.zone(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
         width * GRID_SIZE - GRID_SIZE / 2, height * GRID_SIZE - GRID_SIZE / 2);
     scene.__touchables.add(zone_trigger);
     zone_trigger.setData('onTouch', function () {
@@ -1819,7 +1819,7 @@ let addBasicButton = function (scene, x, y) {
         let result = offset * 2 + (button_pressed ? 1 : 0);
         return result;
     };
-    let button = scene.add.sprite(scene.__gridX(x), scene.__gridY(y),
+    let button = scene.add.sprite(LayoutManager.__gridX(x), LayoutManager.__gridY(y),
         'button', calculate_texture())
         .setDepth(DEPTHS.BOARD + y);
     let set_texture = function () {
@@ -2050,7 +2050,7 @@ let addDisapperaingPlatformSequence = function (scene, point_groups, platform_ti
 let addLavaPool = function (scene, x, y, width, height) {
     for (let i = x; i < x + width; i++) {
         for (let j = y; j < y + height; j++) {
-            scene.add.sprite(scene.__gridX(i), scene.__gridY(j) + 8, 'lava', 0)
+            scene.add.sprite(LayoutManager.__gridX(i), LayoutManager.__gridY(j) + 8, 'lava', 0)
                 .setDepth(DEPTHS.BOARD + j);
         }
     }

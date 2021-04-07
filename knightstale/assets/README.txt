@@ -16,10 +16,8 @@ https://opengameart.org/content/2-seamless-lava-tiles
 
 https://opengameart.org/content/animated-emote-bubbles
 
-Crunk Knight by Kevin MacLeod
-https://incompetech.filmmusic.io/song/3566-crunk-knight
-
-Crunk Knight Kevin MacLeod (incompetech.com)
+"Crunk Knight"
+Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 3.0
 http://creativecommons.org/licenses/by/3.0/
 

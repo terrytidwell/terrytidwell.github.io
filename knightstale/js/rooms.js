@@ -88,8 +88,10 @@ let WORLD = {
         east_exit: 'dungeon_1',
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
-        create: (scene) => {
+        init: (scene) => {
             scene.__character = addPlayer(scene,5,7);
+        },
+        create: (scene) => {
             addNpc(scene, 7, 4, 'black_pieces', PIECE_SPRITES.PAWN).add_diag([
                 'Gwen!? What are you doing all the way out here?',
                 'Thank goodness you are here - not that I was scared mind you!',
