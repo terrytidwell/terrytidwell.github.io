@@ -227,9 +227,18 @@ let ControllerScene = new Phaser.Class({
             scene.scene.sendToBack(old_scene.scene.key);
             new_scene.__character =
                 addPlayer(new_scene, scene.__player_status.x, scene.__player_status.y);
-            new_scene.__player_group.add(new_scene.__character);
             new_scene.scene.pause();
 
+            let finish = function() {
+                new_scene.scene.resume();
+                old_scene.scene.sleep();
+            };
+            scene.__world_info.current_scene = new_scene;
+
+            if (direction.dx === 0 && direction.dy === 0) {
+                finish();
+                return;
+            }
 
             let shift_x = direction.dx * SCREEN_WIDTH - GRID_SIZE * 2 * direction.dx;
             let shift_y = direction.dy * SCREEN_HEIGHT - GRID_SIZE * 2 * direction.dy;
@@ -240,16 +249,15 @@ let ControllerScene = new Phaser.Class({
                 x: 0,
                 y: 0,
                 onComplete: function() {
-                    new_scene.scene.resume();
-                    old_scene.scene.sleep();
+                    finish();
                 }
             });
             scene.add.tween({
-                targets: scene.__world_info.current_scene.cameras.main,
+                targets: old_scene.cameras.main,
                 x: -shift_x,
                 y: -shift_y,
             });
-            scene.__world_info.current_scene = new_scene;
+
         };
 
         let next_scene = (direction) => {
@@ -268,21 +276,7 @@ let ControllerScene = new Phaser.Class({
             return null;
         };
 
-        scene.__transition = function() {
-            let scene = this;
-
-            scene.__world_info.current_scene.scene.pause();
-
-            let player_x = scene.__player_status.x;
-            let player_y = scene.__player_status.y;
-            let direction = scene.__world_info.current_scene.__getTransitionDireciton(
-                player_x, player_y);
-            scene.__player_status.x -= (GRID_COLS - 2) * direction.dx;
-            scene.__player_status.y -= (GRID_ROWS - 2) * direction.dy;
-            scene.__world_info.world_x += direction.dx;
-            scene.__world_info.world_y += direction.dy;
-
-            scene.__world_info.current_room = next_scene(direction);
+        let common_transition = function(direction) {
             get_current_room_info();
 
             let new_scene = scene.scene.get(scene.__world_info.current_room);
@@ -296,6 +290,30 @@ let ControllerScene = new Phaser.Class({
                 new_scene.scene.wake();
                 scene.__transitionCallback(new_scene, direction);
             }
+        };
+
+        scene.__fade_transition = function(next_room) {
+            scene.__world_info.current_scene.scene.pause();
+            scene.__world_info.current_room = next_room;
+
+            common_transition(DIRECTIONS.NONE);
+        };
+
+        scene.__transition = function() {
+            scene.__world_info.current_scene.scene.pause();
+
+            let player_x = scene.__player_status.x;
+            let player_y = scene.__player_status.y;
+            let direction = scene.__world_info.current_scene.__getTransitionDireciton(
+                player_x, player_y);
+            scene.__player_status.x -= (GRID_COLS - 2) * direction.dx;
+            scene.__player_status.y -= (GRID_ROWS - 2) * direction.dy;
+            scene.__world_info.world_x += direction.dx;
+            scene.__world_info.world_y += direction.dy;
+
+            scene.__world_info.current_room = next_scene(direction);
+
+            common_transition(direction);
         };
     },
 
@@ -446,8 +464,6 @@ let GameScene = new Phaser.Class({
             scene.scene.get('ControllerScene').__transitionCallback(scene, data.parent_direction);
         } else {
             //HACK!!!
-            scene.__character = addPlayer(scene,5,7);
-            scene.__player_group.add(scene.__character);
             scene.scene.sendToBack(scene);
         }
 

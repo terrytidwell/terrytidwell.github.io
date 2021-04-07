@@ -1,4 +1,74 @@
 let WORLD = {
+    'chess_room' : {
+        map: [
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "--00000000--",
+            "------------",
+            "---0--------",
+            "------------",
+            "------------"
+        ],
+        create: (scene) => {
+            for (let x = 2; x <= 9; x++) {
+                addNpc(scene, x, 8, 'black_pieces', PIECE_SPRITES.PAWN);
+                addNpc(scene, x, 3, 'white_pieces', PIECE_SPRITES.PAWN);
+            }
+            addNpc(scene, 2, 2, 'white_pieces', PIECE_SPRITES.ROOK);
+            addNpc(scene, 3, 2, 'white_pieces', PIECE_SPRITES.KNIGHT_DOWN);
+            addNpc(scene, 4, 2, 'white_pieces', PIECE_SPRITES.BISHOP_DOWN);
+            addNpc(scene, 5, 2, 'white_pieces', PIECE_SPRITES.QUEEN);
+            addNpc(scene, 6, 2, 'white_pieces', PIECE_SPRITES.KING_HORIZONTAL);
+            addNpc(scene, 7, 2, 'white_pieces', PIECE_SPRITES.BISHOP_DOWN);
+            addNpc(scene, 8, 2, 'white_pieces', PIECE_SPRITES.KNIGHT_DOWN);
+            addNpc(scene, 9, 2, 'white_pieces', PIECE_SPRITES.ROOK);
+            addNpc(scene, 2, 9, 'black_pieces', PIECE_SPRITES.ROOK);
+            addNpc(scene, 4, 9, 'black_pieces', PIECE_SPRITES.BISHOP_UP);
+            addNpc(scene, 5, 9, 'black_pieces', PIECE_SPRITES.QUEEN);
+            addNpc(scene, 6, 9, 'black_pieces', PIECE_SPRITES.KING_HORIZONTAL);
+            addNpc(scene, 7, 9, 'black_pieces', PIECE_SPRITES.BISHOP_UP);
+            addNpc(scene, 8, 9, 'black_pieces', PIECE_SPRITES.KNIGHT_UP);
+            addNpc(scene, 9, 9, 'black_pieces', PIECE_SPRITES.ROOK);
+            let player_status = scene.scene.get('ControllerScene').__player_status;
+            player_status.health_bar.hide();
+            player_status.do_enter_animation = false;
+
+            player_status.orientation = PIECE_SPRITES.KNIGHT_UP;
+            addPlayer(scene, 3, 9);
+            player_status.playerMoveAllowed = false;
+            scene.time.delayedCall(1000, () => {
+                addDialogue(scene, ['I had the strangest dream last night...']);
+            });
+            scene.time.delayedCall(2000, () => {
+                addDialogue(scene, ['You were there too, you and all your siblings. We were all just ' +
+                'standing there...']);
+            });
+            scene.time.delayedCall(3000, () => {
+                addDialogue(scene, ['No one spoke. No one moved. And lined up across from us was the ' +
+                'white army. We were just... staring at each other. It was surreal.']);
+            });
+            scene.time.delayedCall(4000, () => {
+                addDialogue(scene, ['Suddenly, I could move again.']);
+                player_status.playerMoveAllowed = true;
+            });
+            scene.time.delayedCall(5000, () => {
+                scene.cameras.main.fadeOut(2000);
+                scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, function (camera) {
+                    scene.scene.get('ControllerScene').__fade_transition('entrance_room');
+                    player_status.do_enter_animation = true;
+                    player_status.x = 5;
+                    player_status.y = 7;
+                    player_status.orientation = PIECE_SPRITES.KNIGHT_RIGHT;
+                    player_status.health_bar.show();
+                }, scene);
+            });
+        },
+    },
     'entrance_room': {
         map: [
             "-----00-----",
@@ -19,7 +89,8 @@ let WORLD = {
         south_exit: 'fights_4',
         north_exit: 'puzzles_1',
         create: (scene) => {
-            addNpc(scene, 7, 4).add_diag([
+            scene.__character = addPlayer(scene,5,7);
+            addNpc(scene, 7, 4, 'black_pieces', PIECE_SPRITES.PAWN).add_diag([
                 'Gwen!? What are you doing all the way out here?',
                 'Thank goodness you are here - not that I was scared mind you!',
                 'I scouted the place out for you - you should probably start heading west, it looks ' +

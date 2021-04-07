@@ -7,8 +7,8 @@ const PIECE_SPRITES = {
     KNIGHT_UP: 5,
     KNIGHT_DOWN: 6,
     KNIGHT_LEFT: 7,
-    KING_VERTICAL: 8,
-    KING_HORIZONTAL: 9,
+    KING_HORIZONTAL: 8,
+    KING_VERTICAL: 9,
     QUEEN: 10,
     ROOK: 11,
     PAWN: 12,
@@ -210,7 +210,7 @@ let addDialogue = function (scene, dialogue_lines) {
     present_dialogue(text_sections[current_dialogue]);
 };
 
-let addNpc = function (scene, x, y) {
+let addNpc = function (scene, x, y, spritesheet, frame) {
     let square = addGroundSquare(scene, x, y);
     let zone = scene.add.zone(scene.__gridX(x), scene.__gridY(y), GRID_SIZE, GRID_SIZE);
     let diag_box = scene.add.sprite(scene.__gridX(x+.5), scene.__gridY(y-1), 'speech_bubbles', 8)
@@ -219,7 +219,7 @@ let addNpc = function (scene, x, y) {
         .setInteractive()
         .setVisible(false);
     diag_box.play('speech_bubbles_anim');
-    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), 'black_pieces', PIECE_SPRITES.PAWN)
+    scene.add.sprite(scene.__gridX(x), scene.__characterY(y), spritesheet, frame)
         .setDepth(DEPTHS.ENTITIES + y);
     let current_dialogue = [];
     let add_diag = function(text) {
@@ -463,12 +463,26 @@ let addHealthBar = function (scene, scale, x, y, hide_on_full) {
         health_bar.destroy();
     };
 
+    let hide = function () {
+        health_bar_frame.setVisible(false);
+        health_bar_under.setVisible(false);
+        health_bar.setVisible(false);
+    };
+
+    let show = function () {
+        health_bar_frame.setVisible(true);
+        health_bar_under.setVisible(true);
+        health_bar.setVisible(true);
+    };
+
     updatePosition(x, y);
 
     return {
         updateLife: updateLife,
         updatePosition: updatePosition,
-        destroy: destroy
+        destroy: destroy,
+        hide: hide,
+        show: show,
     }
 };
 
@@ -1655,7 +1669,9 @@ let addPlayer = function (scene, x, y) {
         });
     }
 
+    scene.__player_group.add(character);
     character.update();
+
     return character;
 };
 
