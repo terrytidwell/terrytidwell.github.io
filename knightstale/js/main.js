@@ -182,11 +182,11 @@ let TitleScene = new Phaser.Class({
             { font: GRID_SIZE + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(0.5, 0.5)
             .setAlpha(0);
-        let intro_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - GRID_SIZE, "Introduction",
+        let intro_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - (GRID_SIZE/2 * 2.5), "Introduction",
             { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 0.5)
             .setAlpha(0);
-        let start_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - GRID_SIZE/2, "Start",
+        let start_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - (GRID_SIZE/2 * 1.25), "Start",
             { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 0.5)
             .setAlpha(0);
@@ -197,6 +197,7 @@ let TitleScene = new Phaser.Class({
         let back_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6, "Back",
             { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 0.5)
+            .setAlpha(0.75)
             .setVisible(false);
         let credit_text = scene.add.text(2*GRID_SIZE,2*GRID_SIZE,[
                 'Game By: CricketHunter',
@@ -216,41 +217,43 @@ let TitleScene = new Phaser.Class({
             duration: 4000,
             delay: 1000,
             onComplete: () => {
-                /*
                 scene.tweens.add({
                     targets: intro_text,
-                    alpha: 1,
-                    duration: 100,
+                    alpha: 0.75,
+                    duration: 250,
                 });
-                */
                 scene.tweens.add({
                     targets: start_text,
-                    alpha: 1,
-                    duration: 100,
+                    alpha: 0.75,
+                    duration: 250,
                     delay: 250
                 });
                 scene.tweens.add({
                     targets: credits_text,
-                    alpha: 1,
-                    duration: 100,
+                    alpha: 0.75,
+                    duration: 250,
                     delay: 500,
                 });
             }
         });
+        let make_button = function(text, handler) {
+            text.setInteractive();
+            text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => text.setAlpha(1));
+            text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => text.setAlpha(0.75));
+            text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, handler);
+        }
         scene.tweens.add({
             targets: backdrop,
             alpha: 0.75,
             duration: 4000,
             delay: 1000,
         });
-        intro_text.setInteractive();
-        intro_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+        make_button(intro_text, () => {
             PAUSE_SCENE = false;
             scene.scene.resume('chess_room');
             scene.scene.stop('TitleScene');
         });
-        start_text.setInteractive();
-        start_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+        make_button(start_text, () => {
             START_SCENE = 'entrance_room';
             PAUSE_SCENE = false;
             scene.scene.stop('chess_room');
@@ -258,8 +261,7 @@ let TitleScene = new Phaser.Class({
             scene.scene.start('ControllerScene');
             scene.scene.stop('TitleScene');
         });
-        credits_text.setInteractive();
-        credits_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+        make_button(credits_text, () => {
             title_text.setVisible(false);
             intro_text.setVisible(false);
             start_text.setVisible(false);
@@ -267,10 +269,9 @@ let TitleScene = new Phaser.Class({
             credit_text.setVisible(true);
             back_text.setVisible(true);
         });
-        back_text.setInteractive();
-        back_text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+        make_button(back_text, () => {
             title_text.setVisible(true);
-            intro_text.setVisible(false);
+            intro_text.setVisible(true);
             start_text.setVisible(true);
             credits_text.setVisible(true);
             credit_text.setVisible(false);

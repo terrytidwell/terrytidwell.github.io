@@ -56,6 +56,7 @@ let WORLD = {
                 addDialogue(scene, ['Suddenly, I could move again.']);
                 player_status.playerMoveAllowed = true;
             });
+            /*
             scene.time.delayedCall(5000, () => {
                 scene.cameras.main.fadeOut(2000);
                 scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, function (camera) {
@@ -67,6 +68,7 @@ let WORLD = {
                     player_status.health_bar.show();
                 }, scene);
             });
+             */
         },
     },
     'entrance_room': {
