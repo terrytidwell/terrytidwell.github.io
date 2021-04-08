@@ -148,7 +148,7 @@ let LoadScene = new Phaser.Class({
         this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
         this.load.image('score_box', 'assets/Play Grid/ScoreBox.png');
         //this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
-        this.load.video('bg_video','assets/Play Grid/Background Video/Lo-Fi City 720.mp4');
+        this.load.video('bg_video','assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4');
         //this.load.audio('bg_music', ['assets/Arinity - Going Home.mp3']);
         this.load.audio('bg_music', ['assets/DOCTOR VOX - Frontier - (123bpm).mp3']);
 
@@ -194,6 +194,43 @@ let TitleScene = new Phaser.Class({
             scene.scene.start('GameScene');
             scene.scene.stop('TitleScene');
         });
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
+let ScoreScene = new Phaser.Class( {
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'ScoreScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {},
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        //scene.scene.bringToTop();
+        /*
+        let bg = scene.add.rectangle(SCREEN_WIDTH/2-SCREEN_WIDTH, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT * 7/8, 0x000000, 0.1);
+        */
+        let text = scene.add.text(SCREEN_WIDTH/2+SCREEN_WIDTH, SCREEN_HEIGHT/2, "LEVEL COMPLETE",
+            { font: GRID_SIZE*2+ 'px xolonium', fill: '#FFF' })
+            .setOrigin(0.5, 0.5);
+        scene.tweens.add({
+            targets: text,
+            x: SCREEN_WIDTH/2,
+            duration: 250,
+            onComplete: () => {
+                scene.cameras.main.shake(250, 0.007, true);
+            },
+        })
     },
 
     //--------------------------------------------------------------------------
@@ -674,8 +711,16 @@ let GameScene = new Phaser.Class({
             return 300 + (length-3) * 50 + (length-3)*(length-3)*50;
         };
 
+        let clear_stats = {
+            line_count: 0,
+            true_score: 0,
+            squares_cleared: 0,
+        };
         let clear_line = function(active_line) {
+            clear_stats.line_count++;
+            clear_stats.squares_cleared += active_line.path.steps.length;
             let delta = calculate_score(active_line.path.steps.length);
+            clear_stats.true_score += delta;
             let mid_x = (active_line.path.min_x + active_line.path.max_x)/2;
             let mid_y = (active_line.path.min_y + active_line.path.max_y)/2;
             let text = scene.add.text(
@@ -901,7 +946,7 @@ let GameScene = new Phaser.Class({
 
         let start = function () {
             set_scanline();
-            scene.time.addEvent({
+            let scanline_event = scene.time.addEvent({
                 "delay": 60 * 1000 / BPM,
                 "loop": true,
                 "callback": update_scanline
@@ -922,7 +967,78 @@ let GameScene = new Phaser.Class({
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             scene.space_key.on('down', try_selection);
 
-            scene.sound.add('bg_music', {loop: true }).play();
+            let music = scene.sound.add('bg_music', {loop: false });
+            let finish = function() {
+                scanline_event.remove();
+                scene.m_cursor_keys.down.off('down');
+                scene.m_cursor_keys.left.off('down');
+                scene.m_cursor_keys.right.off('down');
+                scene.m_cursor_keys.up.off('down');
+                scene.space_key.off('down');
+
+                music.stop();
+
+                let bg = scene.add.rectangle(SCREEN_WIDTH/2-SCREEN_WIDTH, SCREEN_HEIGHT/2,
+                    SCREEN_WIDTH, SCREEN_HEIGHT * 7/8, 0x000000, 0.8);
+                let text = scene.add.text(SCREEN_WIDTH/2+SCREEN_WIDTH, SCREEN_HEIGHT/2, "LEVEL COMPLETE",
+                    { font: GRID_SIZE*2+ 'px xolonium', fill: '#FFF' })
+                    .setOrigin(0.5, 0.5);
+                let scoring_timeline = scene.tweens.createTimeline()
+
+                scoring_timeline.add({
+                    targets: [bg,text],
+                    x: SCREEN_WIDTH/2,
+                    duration: 250,
+                    onComplete: () => {
+                        scene.cameras.main.shake(250, 0.007, true);
+                    },
+                });
+                scoring_timeline.add({
+                    targets: text,
+                    y: SCREEN_HEIGHT * 1/16 + GRID_SIZE,
+                    duration: 500,
+                    delay: 1000,
+                });
+
+                let current_offset = 3;
+                let add_stat = function(label, value) {
+                    let label_text = scene.add.text(SCREEN_WIDTH/2 - GRID_SIZE + SCREEN_WIDTH*1.5,
+                        SCREEN_HEIGHT * 1/16 + current_offset*GRID_SIZE, label,
+                        { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
+                        .setOrigin(1, 0.5);
+                    //should be the_ovd
+                    let value_text = scene.add.text(SCREEN_WIDTH/2 + GRID_SIZE,
+                        SCREEN_HEIGHT * 1/16 + current_offset*GRID_SIZE, label,
+                        { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
+                        .setOrigin(0, 0.5)
+                        .setVisible(false);
+                    scoring_timeline.add({
+                        targets: label_text,
+                        x: SCREEN_WIDTH/2 - GRID_SIZE,
+                        duration: 250,
+                        delay: 250,
+                        onComplete: () => value_text.setVisible(true),
+                    });
+
+                    scoring_timeline.add({
+                        targets: {score: 0},
+                        props: {score: value},
+                        duration: value/100,
+                        onUpdate: function () {
+                            let current = Math.round(this.getValue());
+                            value_text.setText('' + current + '');
+                        }
+                    });
+                    current_offset++;
+                };
+                add_stat('SCORE:', clear_stats.true_score);
+                add_stat('LINES CLEARED:', clear_stats.line_count);
+                add_stat('SQUARES CLEARED:', clear_stats.squares_cleared);
+
+                scoring_timeline.play();
+            };
+            music.once(Phaser.Sound.Events.COMPLETE, finish);
+            music.play();
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
                 SONG_NAME,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
@@ -1000,7 +1116,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, TitleScene, GameScene ]
+    scene: [ LoadScene, TitleScene, GameScene, ScoreScene ]
 };
 
 game = new Phaser.Game(config);
