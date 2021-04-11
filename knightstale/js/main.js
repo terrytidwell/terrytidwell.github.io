@@ -8,6 +8,7 @@ const DEPTHS = {
     SURFACE: 1000,
     ENTITIES: 2000,
     UI: 3000,
+    DIAG: 4000,
 };
 const DIRECTIONS = {
     NONE: {dx: 0, dy: 0},
@@ -318,10 +319,68 @@ let ControllerScene = new Phaser.Class({
             playerDangerous : false,
             playerGracePeriod : true,
             characterFalling : true,
-            keys: 0,
+            inventory: [],
             isVulnerable : () => {
                 return !scene.__player_status.playerGracePeriod &&
                     scene.__player_status.playerMoveAllowed
+            },
+            removeInventory : (key) => {
+                let realign = function () {
+                    for (let [v, item] of scene.__player_status.inventory.entries()) {
+                        LayoutManager.__setItemPosition(v,item.sprite);
+                        LayoutManager.__setItemPosition(v,item.bg_rectangle);
+                        LayoutManager.__setItemTextPosition(v,item.text);
+                    }
+                };
+
+                for (let [v, item] of scene.__player_status.inventory.entries()) {
+                    if (item.key === key) {
+                        item.count--;
+                        item.text.setText('' + item.count);
+                        if (item.count === 0) {
+                            item.bg_rectangle.destroy();
+                            item.sprite.destroy();
+                            item.text.destroy();
+                            scene.__player_status.inventory.splice(v, 1);
+                            realign();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            },
+            addInventory : (key, description, sprite) => {
+                for (let item of scene.__player_status.inventory) {
+                    if (item.key === key) {
+                        item.count++;
+                        item.text.setText('' + item.count);
+                        sprite.destroy();
+                        return;
+                    }
+                }
+                let index = scene.__player_status.inventory.length;
+                let bg_rectangle = scene.add.rectangle(0, 0, GRID_SIZE - GRID_SIZE/4, GRID_SIZE - GRID_SIZE/4, 0x000000, 0.8)
+                    .setDepth(DEPTHS.UI);
+                /*
+                bg_rectangle.setInteractive();
+                bg_rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+                    addDialogue(scene.__world_info.current_scene, [description]);
+                });
+                // */
+                LayoutManager.__setItemPosition(index, bg_rectangle);
+                LayoutManager.__setItemPosition(index, sprite)
+                    .setDepth(DEPTHS.UI + 1);
+                let text = scene.add.text(0, 0, ''+ 1, { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' });
+                LayoutManager.__setItemTextPosition(index, text)
+                    .setDepth(DEPTHS.UI + 2);
+                scene.__player_status.inventory.push({
+                    key: key,
+                    description: description,
+                    sprite: sprite,
+                    count: 1,
+                    text: text,
+                    bg_rectangle: bg_rectangle,
+                });
             },
         };
         scene.__world_info = {
@@ -440,6 +499,26 @@ let ControllerScene = new Phaser.Class({
 });
 
 let LayoutManager = {
+
+    __setItemPosition: function(index, item) {
+        let x = index % 2;
+        let y = Math.floor(index / 2);
+        x = x + 10;
+        y = y;
+        item.setPosition(LayoutManager.__gridX(x), LayoutManager.__gridY(y));
+        return item
+    },
+
+    __setItemTextPosition: function(index, item) {
+        let x = index % 2;
+        let y = Math.floor(index / 2);
+        x = x + 10 + .5 - .125;
+        y = y + .5 - .125;
+        item.setOrigin(1, 1)
+            .setPosition(LayoutManager.__gridX(x), LayoutManager.__gridY(y));
+        return item;
+    },
+
     __gridX: function(x) {
         return x * GRID_SIZE + GRID_SIZE/2;
     },

@@ -115,11 +115,11 @@ let addDialogue = function (scene, dialogue_lines) {
     };
     let text_background = ui_scene.add.rectangle(LayoutManager.__gridX(GRID_COLS / 2 - 0.5), LayoutManager.__gridY(1.5),
         (GRID_COLS - 1) * GRID_SIZE, 3 * GRID_SIZE, 0x000000, 0.75)
-        .setDepth(DEPTHS.UI);
+        .setDepth(DEPTHS.DIAG);
     let text_object = ui_scene.add.text(LayoutManager.__gridX(0.5), LayoutManager.__gridY(0.125), "",
         textStyle)
         .setOrigin(0, 0)
-        .setDepth(DEPTHS.UI);
+        .setDepth(DEPTHS.DIAG);
     let text_sections = [];
     for (let dialogue_line of dialogue_lines) {
         text_object.setText(dialogue_line);
@@ -156,7 +156,7 @@ let addDialogue = function (scene, dialogue_lines) {
     let next_arrow = ui_scene.add.sprite(LayoutManager.__gridX(10.5), LayoutManager.__gridY(2.75), 'frame', 1)
         .setFlipX(true)
         .setScale(2)
-        .setDepth(DEPTHS.UI)
+        .setDepth(DEPTHS.DIAG)
         .setVisible(false);
 
     let close_dialogue = function () {
@@ -1739,10 +1739,9 @@ let addKeyHole = function (scene, points, handler) {
             .setDepth(DEPTHS.SURFACE);
         scene.__touchables.add(keyhole);
         keyhole.setData('onTouch', function () {
-            if (player_status.keys <= 0) {
+            if (!player_status.removeInventory('key')) {
                 return;
             }
-            player_status.keys--;
             for (let keyhole of keyholes) {
                 keyhole.destroy();
             }
@@ -1756,9 +1755,12 @@ let addKey = function (scene, x, y) {
     let key = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__gridY(0), 'keys', 0)
         .setScale(3);
     let handler = function () {
-        let player_status = scene.scene.get('ControllerScene').__player_status;
-        player_status.keys++;
-    }
+        let ui_scene = scene.scene.get('ControllerScene');
+        let player_status = ui_scene.__player_status;
+        player_status.addInventory('key','A small key',
+            ui_scene.add.sprite(0, 0, 'keys', 0)
+            .setScale(3));
+    };
     addFallingItem(scene, x, y, -0.4, key, handler);
 };
 
@@ -1766,7 +1768,14 @@ let addGem = function (scene, x, y, flavor) {
     let gem = scene.add.sprite(LayoutManager.__gridX(0), LayoutManager.__gridY(0), 'gems', flavor * 6)
         .setScale(2);
     gem.play('gem_' + flavor + '_anim');
-    addFallingItem(scene, x, y, -0.25, gem, null);
+    let handler = function () {
+        let ui_scene = scene.scene.get('ControllerScene');
+        let player_status = ui_scene.__player_status;
+        player_status.addInventory('gem_'+flavor,'A gem',
+            ui_scene.add.sprite(0, 0, 'gems', flavor * 6)
+                .setScale(2));
+    };
+    addFallingItem(scene, x, y, -0.25, gem, handler);
 };
 
 let addFallingItem = function(scene, x, y, z, sprite, handler) {

@@ -103,6 +103,7 @@ let WORLD = {
                 'Out east there seems to be some sort of fiery spooky place.',
                 'And I would NOT recommend going south, that place is crawling with baddies!'
             ]);
+            //addKey(scene, 7, 5);
         },
     },
     'beginner_1': {
