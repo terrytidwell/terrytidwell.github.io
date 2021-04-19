@@ -1,6 +1,12 @@
 const GRID_SIZE = 128;
-const SCREEN_WIDTH = 16 * GRID_SIZE; //1025
-const SCREEN_HEIGHT = 9 * GRID_SIZE; //576
+const SCREEN_WIDTH = 16 * GRID_SIZE;
+const SCREEN_HEIGHT = 9 * GRID_SIZE;
+const DEPTHS = {
+    BG: 0 * SCREEN_HEIGHT,
+    MG: 2 * SCREEN_HEIGHT,
+    FG: 4 * SCREEN_HEIGHT,
+};
+const PLAYER_SPEED = 90*GRID_SIZE/16;
 
 let LoadScene = new Phaser.Class({
 
@@ -23,8 +29,14 @@ let LoadScene = new Phaser.Class({
         this.load.spritesheet('BWKnight', 'assets/BWKnight.png',
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('slash', 'assets/slash.png',
-            { frameWidth: 1024, frameHeight: 432 });
+            { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('sword', 'assets/sword.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('sword', 'assets/sword.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('turret', 'assets/turret.png',
+            { frameWidth: 8, frameHeight: 8 });
+        this.load.spritesheet('charge', 'assets/charge.png',
             { frameWidth: 32, frameHeight: 32 });
 
         scene.load.on(Phaser.Loader.Events.PROGRESS, function(percentage) {
@@ -32,7 +44,7 @@ let LoadScene = new Phaser.Class({
             loading_text.setText(Math.round(percentage) + "%");
         });
         scene.load.once(Phaser.Loader.Events.COMPLETE,  function() {
-            scene.scene.start('GameScene');
+            scene.scene.launch('ControllerScene');
             scene.scene.stop('LoadScene');
         });
     },
@@ -43,16 +55,62 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'slash_anim',
             frames: scene.anims.generateFrameNumbers('slash',
-                { start: 0, end: 3 }),
+                { start: 0, end: 2 }),
             skipMissedFrames: false,
             frameRate: 12,
             repeat: 0
+        });
+        scene.anims.create({
+            key: 'hero_run_anim',
+            frames: scene.anims.generateFrameNumbers('BWKnight',
+                { start: 1, end: 2 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: -1
+        });
+        scene.anims.create({
+            key: 'charge_anim',
+            frames: scene.anims.generateFrameNumbers('charge',
+                { start: 0, end: 3 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 3
         });
     },
 
     //--------------------------------------------------------------------------
     update: function() {
     },
+});
+
+let ControllerScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'ControllerScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {},
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        scene.scene.launch('GameScene');
+
+        scene.__pause_action = function () {
+            scene.scene.pause('GameScene')
+            scene.time.delayedCall(100, () => {
+                scene.scene.resume('GameScene');
+            });
+        };
+
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {},
 });
 
 let LayoutManager = {
@@ -77,23 +135,31 @@ let GameScene = new Phaser.Class({
 
     __addCharacter: function(scene) {
         let CHARACTER_SPRITE_SIZE = 8;
-        let CHARACTER_SPRITE_SCALE = 4;
+        let CHARACTER_SPRITE_SCALE = 8;
         let character_width = CHARACTER_SPRITE_SIZE * CHARACTER_SPRITE_SCALE;
         let character_height = CHARACTER_SPRITE_SIZE * CHARACTER_SPRITE_SCALE;
+        let player_vulnerable = true;
 
         let character_sprite_offset = new Phaser.Math.Vector2(
             0, 0
         );
         let character_sprite = scene.add.sprite(0,0,
             'BWKnight', 0)
-            .setScale(CHARACTER_SPRITE_SIZE);
+            .setScale(CHARACTER_SPRITE_SCALE)
+            .setDepth(DEPTHS.MG);
+        let sprite_overlay = scene.add.sprite(0,0,
+            'BWKnight', 0)
+            .setScale(CHARACTER_SPRITE_SCALE)
+            .setTintFill(0xff0000)
+            .setDepth(DEPTHS.MG)
+            .setAlpha(0);
 
         let hit_box_offset = new Phaser.Math.Vector2(
             0 * character_width, 0 * character_height
         );
         let hit_box = scene.add.rectangle(0, 0,
             character_width/2,character_height,0x00ff00, 0);
-        scene.physics.add.existing(hit_box);
+        scene.__player_group.add(hit_box);
 
         let solid_box_offset = new Phaser.Math.Vector2(
             0 * character_width, 0 * character_height
@@ -104,27 +170,35 @@ let GameScene = new Phaser.Class({
 
         let ready_to_fire = true;
         let strike_box_offset = new Phaser.Math.Vector2(
-            0 * character_width, 0*character_height);
+            2.5 * character_width, 0*character_height);
         let strike_box = scene.add.sprite(0,0, 'slash', 0)
-            .setScale(CHARACTER_SPRITE_SIZE/12)
-            .setVisible(false);
+            .setScale(CHARACTER_SPRITE_SCALE)
+            .setVisible(false)
+            .setDepth(DEPTHS.MG);
 
         let hurt_box_offset = new Phaser.Math.Vector2(
-            5 * character_width, 0 * character_height);
-        let hurt_box = scene.add.rectangle(0,0, 7*character_width, 7*character_height,
-            0xff00000, 0);
-        scene.physics.add.existing(hurt_box);
+            2.5 * character_width, 0 * character_height);
+        let hurt_box = scene.add.rectangle(0,0, 3.5*character_width, 3.5*character_height,
+            0xffffff, 0);
+        scene.__player_attack_group.add(hurt_box);
+
+        hurt_box.__is_attacking = () => {
+            return !ready_to_fire;
+        };
 
         let sword_sprite_offset = new Phaser.Math.Vector2(
-            2.5 * character_width, 2.5 * character_height);
+            1.25 * character_width, 1.25 * character_height);
         let sword_sprite = scene.add.sprite(0,0, 'sword', 0)
-            .setScale(CHARACTER_SPRITE_SCALE);
+            .setScale(CHARACTER_SPRITE_SCALE/2)
+            .setDepth(DEPTHS.MG);
 
         character_sprite.update = function () {
             let center_x = solid_box.body.x + solid_box.width / 2;
             let center_y = solid_box.body.y + solid_box.height / 2;
 
             character_sprite.setPosition(center_x + character_sprite_offset.x,
+                center_y + character_sprite_offset.y);
+            sprite_overlay.setPosition(center_x + character_sprite_offset.x,
                 center_y + character_sprite_offset.y);
 
             LayoutManager.align_physics_object(hit_box,
@@ -147,15 +221,22 @@ let GameScene = new Phaser.Class({
         };
 
         let mouse_vector = new Phaser.Math.Vector2(1, 0);
+        let sword_vector = new Phaser.Math.Vector2(1, 0);
         let offset_angle = 180;
         let align_to_mouse_angle = () => {
-            let angle = mouse_vector.angle();
+            if (ready_to_fire) {
+                sword_vector.x = mouse_vector.x;
+                sword_vector.y = mouse_vector.y;
+            }
+            let angle = sword_vector.angle();
+            strike_box_offset.setAngle(angle);
             strike_box.setAngle(Phaser.Math.RadToDeg(angle));
             hurt_box_offset.setAngle(angle);
             sword_sprite_offset.setAngle(angle + Phaser.Math.DegToRad(offset_angle));
             let correction_angle = sword_sprite.flipY ? 45: - 45;
             sword_sprite.setAngle(Phaser.Math.RadToDeg(angle) + correction_angle + offset_angle);
-            character_sprite.setFlipX(mouse_vector.x < 0);
+            character_sprite.setFlipX(sword_vector.x < 0);
+            sprite_overlay.setFlipX(sword_vector.x < 0);
         };
         character_sprite.__pointer_move = (pointer) => {
             let rotation_center_x = character_sprite.x;
@@ -164,23 +245,69 @@ let GameScene = new Phaser.Class({
             let dy = pointer.worldY - rotation_center_y;
             mouse_vector.x = dx;
             mouse_vector.y = dy;
-            align_to_mouse_angle();
+            mouse_vector.normalize();
+            if (!ready_to_fire) {
+                align_to_mouse_angle();
+            }
         };
 
+        let external_force = new Phaser.Math.Vector2(0, 0);
+        let external_force_tween = null;
+        let addForce = (dx, dy) => {
+            if (external_force_tween) {
+                external_force_tween.remove();
+            }
+            external_force.x += dx;
+            external_force.y += dy;
+            external_force_tween = scene.tweens.add({
+                targets: external_force,
+                x: 0,
+                y: 0,
+                duration: 150
+            });
+        };
+
+        let damage_vector = new Phaser.Math.Vector2(0, 0);
+        hit_box.__damage = (dx, dy) => {
+            if (!player_vulnerable) {
+                return;
+            }
+            player_vulnerable = false;
+
+            damage_vector.x = dx;
+            damage_vector.y = dy;
+            damage_vector.normalize();
+            addForce(damage_vector.x * 20*GRID_SIZE,
+                damage_vector.y * 20*GRID_SIZE);
+            scene.tweens.add({
+                targets: sprite_overlay,
+                alpha: 1,
+                yoyo: true,
+                repeat: 1,
+                duration: 50,
+                onComplete: () => {
+                    player_vulnerable = true;
+                }
+            });
+            scene.cameras.main.shake(50, 0.01, true);
+        };
+
+        let character_direction = new Phaser.Math.Vector2(0,0);
+        let player_moving = false;
         character_sprite.__input = (input) => {
-            let dx = 0;
-            let dy = 0;
+            character_direction.x = 0;
+            character_direction.y = 0;
             if (input.left) {
-                dx -= 1;
+                character_direction.x -= 1;
             }
             if (input.right) {
-                dx += 1;
+                character_direction.x += 1;
             }
             if (input.up) {
-                dy -= 1;
+                character_direction.y -= 1;
             }
             if (input.down) {
-                dy += 1;
+                character_direction.y += 1;
             }
             if (input.fire) {
                 if (ready_to_fire) {
@@ -197,38 +324,114 @@ let GameScene = new Phaser.Class({
                         },
                         duration: 150,
                     });
+                    addForce(mouse_vector.x * 4*GRID_SIZE,
+                        mouse_vector.y * 4*GRID_SIZE);
                     scene.cameras.main.shake(50, 0.005, true);
                     strike_box.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
                         strike_box.setVisible(false);
                         ready_to_fire = true;
+                        align_to_mouse_angle();
                         strike_box.setFlipY(!strike_box.flipY);
                     });
                 }
             }
             //normalize
-            let d = Math.sqrt(dx * dx + dy * dy);
-            let v = 90*GRID_SIZE/16;
-            if (d !== 0) {
-                dx = dx / d * v;
-                dy = dy / d * v;
-            }
+            character_direction.setLength(PLAYER_SPEED)
 
-            solid_box.body.setVelocity(dx,dy);
+            if (!player_moving && character_direction.length() > 0) {
+                player_moving = true;
+                character_sprite.play('hero_run_anim');
+                sprite_overlay.play('hero_run_anim');
+            } else if (player_moving && character_direction.length() === 0) {
+                player_moving = false;
+                character_sprite.anims.stop();
+                sprite_overlay.anims.stop();
+                character_sprite.setFrame(0);
+                sprite_overlay.setFrame(0);
+            }
+            solid_box.body.setVelocity(external_force.x + character_direction.x,
+                external_force.y + character_direction.y);
             character_sprite.update();
         };
 
+        solid_box.body.setCollideWorldBounds();
         return character_sprite;
     },
 
     //--------------------------------------------------------------------------
     create: function () {
-        console.log(Phaser.VERSION);
         let scene = this;
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
+        scene.__player_group = scene.physics.add.group();
+        scene.__player_attack_group = scene.physics.add.group();
+        scene.__bullets = scene.physics.add.group();
+        scene.__attackables = scene.physics.add.group();
 
-        let grid = scene.add.grid(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+        scene.physics.add.overlap(scene.__player_group, scene.__bullets,
+            (character_hit_box, bullet) => {
+                character_hit_box.__damage(bullet.body.velocity.x, bullet.body.velocity.y);
+                bullet.__destroy();
+            });
+
+        scene.physics.add.overlap(scene.__player_attack_group, scene.__attackables,
+            (character_hurt_box, attackable) => {
+                if(!character_hurt_box.__is_attacking()){
+                    return;
+                }
+                attackable.__destroy();
+            });
+
+
+        scene.__addbullet = (() => {
+            let bullet_pool = [];
+            let retire_bullet = (bullet) => {
+                bullet.visible(false);
+            };
+
+            let recover_bullet = (x, y) => {
+                let bullet = bullet_pool.pop();
+                return bullet;
+            };
+
+            return function(x, y, dx, dy) {
+                if (bullet_pool.length === 0) {
+                    let bullet = scene.add.circle(x, y, GRID_SIZE / 4, 0xFFFFFF).setDepth(DEPTHS.MG);
+                    let hit_box = scene.add.rectangle(x, y, GRID_SIZE / 8, GRID_SIZE/8, 0x0000000, 0.0);
+                    scene.__bullets.add(hit_box);
+                    scene.__updateables.add(hit_box);
+                    hit_box.body.setVelocity(dx, dy);
+                    hit_box.update = () => {
+                        let center_x = hit_box.body.x + hit_box.width / 2;
+                        let center_y = hit_box.body.y + hit_box.height / 2;
+                        bullet.setPosition(center_x, center_y);
+                    };
+                    let delayed_call = scene.time.delayedCall(100000, hit_box.__destroy);
+                    hit_box.__destroy = () => {
+                        bullet.destroy();
+                        hit_box.destroy();
+                        delayed_call.remove(false);
+                    };
+
+                }
+             };
+        }) ();
+
+        scene.__getOffsetToPlayer = (x,y) => {
+            let player = scene.__player_group.getFirst(true);
+            if (!player) {
+                return {dx: 0, dy: 0};
+            }
+            return {dx: player.body.center.x - x, dy: player.body.center.y - y};
+        }
+
+        addBulletSpawner(scene,5*GRID_SIZE, 5*GRID_SIZE);
+        addBulletSpawner(scene,-5*GRID_SIZE, -5*GRID_SIZE);
+        addBulletSpawner(scene,-5*GRID_SIZE, 5*GRID_SIZE);
+        addBulletSpawner(scene,5*GRID_SIZE, -5*GRID_SIZE);
+
+        let grid = scene.add.grid(0, 0,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0x000060)
             .setAltFillStyle(0x000080)
             .setOutlineStyle();
@@ -245,13 +448,16 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
 
-        scene.cameras.main.setBounds(-SCREEN_WIDTH/2, -SCREEN_HEIGHT/2, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        scene.cameras.main.setBounds(-SCREEN_WIDTH, -SCREEN_HEIGHT, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
         scene.cameras.main.startFollow(scene.__character_sprite, true, 1, 1, 0, 0);
+        scene.physics.world.setBounds(-SCREEN_WIDTH, -SCREEN_HEIGHT, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        scene.physics.world.setBoundsCollision();
 
-        let score_text = scene.add.text(GRID_SIZE*4,GRID_SIZE*1,"00000000", { font: GRID_SIZE*3/4 + 'px PressStart2P', fill: '#FFF' })
+        let score_text = scene.add.text(GRID_SIZE*2,GRID_SIZE*0.5,"00000000", { font: GRID_SIZE*2/4 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5,0.5)
             .setScrollFactor(0)
-            .setAngle(7.5);
+            .setAngle(7.5)
+            .setDepth(DEPTHS.FG);
         scene.tweens.add({
             targets: score_text,
             angle: -7.5,
@@ -289,6 +495,7 @@ let GameScene = new Phaser.Class({
             scene.__cursor_keys.letter_down.isDown) {
             input.down = true;
         }
+
         if (scene.input.activePointer.leftButtonDown()) {
             input.fire = true;
         }
@@ -317,7 +524,14 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, GameScene ]
+    /*
+    plugins: {
+        global: [
+            { key: 'SceneWatcher', plugin: PhaserSceneWatcherPlugin, start: true }
+        ]
+    },
+     */
+    scene: [ LoadScene, ControllerScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
