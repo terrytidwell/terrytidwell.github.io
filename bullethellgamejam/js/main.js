@@ -42,6 +42,8 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('arrow', 'assets/arrow.png',
             { frameWidth: 8, frameHeight: 8 });
+        this.load.spritesheet('life', 'assets/life.png',
+            { frameWidth: 8, frameHeight: 8 });
 
         scene.load.on(Phaser.Loader.Events.PROGRESS, function(percentage) {
             percentage = percentage * 100;
@@ -192,6 +194,17 @@ let GameScene = new Phaser.Class({
         let character_height = CHARACTER_SPRITE_SIZE * CHARACTER_SPRITE_SCALE;
         let player_vulnerable = true;
         let player_life = 3;
+        let life_icons = [];
+        let offset = SCREEN_WIDTH - 1 * character_width;
+        for(let i = 0; i < player_life; i++) {
+            life_icons.push(
+                scene.add.sprite(offset, SCREEN_HEIGHT - character_height, 'life', 0)
+                    .setScrollFactor(0)
+                    .setScale(8)
+                    .setDepth(DEPTHS.FG)
+            )
+            offset -= 1.5 * character_width;
+        }
 
         let character_sprite_offset = new Phaser.Math.Vector2(
             0, 0
@@ -328,6 +341,8 @@ let GameScene = new Phaser.Class({
             player_vulnerable = false;
 
             player_life--;
+            let life_icon = life_icons.pop();
+            life_icon.destroy();
             if (player_life === 0) {
                 sprite_overlay.setVisible(false);
                 character_sprite.setVisible(false);
@@ -544,14 +559,16 @@ let GameScene = new Phaser.Class({
         scene.physics.world.setBoundsCollision();
 
         let get_random_enemy_spawn = (() => {
-
             let safe_zone = new Phaser.Geom.Rectangle(0,0,0,0);
+            let spawn_zone = new Phaser.Geom.Rectangle(0,0,0,0);
+            Phaser.Geom.Rectangle.CopyFrom(world_bounds, spawn_zone);
+            Phaser.Geom.Rectangle.Inflate(spawn_zone, -GRID_SIZE, -GRID_SIZE);
             let calculate_safe_zone = () => {
                 let bounds = 2*GRID_SIZE;
-                let min_x = Math.max(world_bounds.x, scene.__character_sprite.x - bounds);
-                let min_y = Math.max(world_bounds.y, scene.__character_sprite.y - bounds);
-                let max_x = Math.min(world_bounds.x + world_bounds.width, scene.__character_sprite.x + bounds);
-                let max_y = Math.min(world_bounds.y + world_bounds.height, scene.__character_sprite.y + bounds);
+                let min_x = Math.max(spawn_zone.x, scene.__character_sprite.x - bounds);
+                let min_y = Math.max(spawn_zone.y, scene.__character_sprite.y - bounds);
+                let max_x = Math.min(spawn_zone.x + spawn_zone.width, scene.__character_sprite.x + bounds);
+                let max_y = Math.min(spawn_zone.y + spawn_zone.height, scene.__character_sprite.y + bounds);
                 safe_zone.x = min_x;
                 safe_zone.y = min_y;
                 safe_zone.width = max_x - min_x;
