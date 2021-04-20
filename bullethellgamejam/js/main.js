@@ -120,6 +120,37 @@ let ControllerScene = new Phaser.Class({
         let scene = this;
         scene.scene.launch('GameScene');
 
+        let dead_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'DEAD',
+            { font: GRID_SIZE*3 + 'px PressStart2P', fill: '#FFF' })
+            .setOrigin(0.5, 0.5)
+            .setAngle(Phaser.Math.Between(-8, 8))
+            .setVisible(false)
+            .setStroke('#000000', GRID_SIZE/8);;
+
+        scene.__death = function () {
+            scene.scene.bringToTop();
+            dead_text.setScale(0);
+            dead_text.setVisible(true);
+            let timeline = scene.tweens.createTimeline()
+            timeline.add({
+                targets: dead_text,
+                scale: 1.2,
+                duration: 150,
+            });
+            timeline.add({
+                targets: dead_text,
+                scale: 1,
+                duration: 150,
+            });
+            timeline.play();
+            scene.scene.pause('GameScene');
+            let game_scene = scene.scene.get('GameScene');
+            scene.time.delayedCall(3000, () => {
+                game_scene.scene.restart();
+                dead_text.setVisible(false);
+            });
+        }
+
         scene.__pause_action = function () {
             return;
             scene.scene.pause('GameScene')
@@ -160,6 +191,7 @@ let GameScene = new Phaser.Class({
         let character_width = CHARACTER_SPRITE_SIZE * CHARACTER_SPRITE_SCALE;
         let character_height = CHARACTER_SPRITE_SIZE * CHARACTER_SPRITE_SCALE;
         let player_vulnerable = true;
+        let player_life = 3;
 
         let character_sprite_offset = new Phaser.Math.Vector2(
             0, 0
@@ -294,6 +326,16 @@ let GameScene = new Phaser.Class({
                 return;
             }
             player_vulnerable = false;
+
+            player_life--;
+            if (player_life === 0) {
+                sprite_overlay.setVisible(false);
+                character_sprite.setVisible(false);
+                strike_box.setVisible(false);
+                sword_sprite.setVisible(false);
+                scene.scene.get('ControllerScene').__death();
+                return;
+            }
 
             damage_vector.x = dx;
             damage_vector.y = dy;
@@ -478,7 +520,15 @@ let GameScene = new Phaser.Class({
         //scene.input.setPollAlways();
 
         scene.__character_sprite = scene.__addCharacter(scene);
-        scene.input.on(Phaser.Input.Events.POINTER_MOVE, scene.__character_sprite.__pointer_move);
+
+        let bind_event = (key, event, handler) => {
+            key.on(event, handler);
+
+            scene.events.once(Phaser.Scenes.Events.SHUTDOWN, function() {
+                key.off(event);
+            })
+        };
+        bind_event(scene.input, Phaser.Input.Events.POINTER_MOVE, scene.__character_sprite.__pointer_move);
 
         scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
         scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
