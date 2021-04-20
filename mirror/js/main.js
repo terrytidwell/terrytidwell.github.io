@@ -6,7 +6,11 @@ const SCREEN_HEIGHT = GRID_ROWS * GRID_SIZE;
 
 let SPRITES = [
     'Male 01-1',
-    'Female 02-1'
+    'Female 02-1',
+    'Female 15-2',
+    'Male 09-2',
+    'Male 03-1',
+    'Female 05-3'
 ];
 
 let DEPTHS = {
