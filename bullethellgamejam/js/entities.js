@@ -120,6 +120,53 @@ let stateHandler = function (scene, states, start_state) {
     };
 };
 
+let addOffscreenAlert = (scene, outer_port_offset) => {
+    let line = scene.add.line(0, 0, 0, 0, 0, 0, 0xffffff, 1)
+        .setVisible(false);
+    let target_tracker = scene.add.sprite(0, 0, 'arrow', 0)
+        .setScale(8)
+        .setVisible(false)
+        .play('arrow_anim');
+    let width = target_tracker.displayWidth/2;
+    let inner_port_offset = Math.ceil(Math.sqrt(
+        width * width +
+        width * width
+    ));
+    let view_port_inner = new Phaser.Geom.Rectangle();
+    let view_port_outer = new Phaser.Geom.Rectangle();
+
+    let update = (x, y) => {
+        let delta = scene.__getOffsetToPlayer(x, y);
+        line.setTo(x, y, x + delta.dx, y + delta.dy);
+        Phaser.Geom.Rectangle.CopyFrom(scene.cameras.main.worldView, view_port_inner);
+        Phaser.Geom.Rectangle.CopyFrom(scene.cameras.main.worldView, view_port_outer);
+        Phaser.Geom.Rectangle.Inflate(view_port_inner, -inner_port_offset, -inner_port_offset);
+        Phaser.Geom.Rectangle.Inflate(view_port_outer, outer_port_offset, outer_port_offset);
+        if (!Phaser.Geom.Rectangle.Contains(view_port_outer, x, y))
+        {
+            let points = Phaser.Geom.Intersects.GetLineToRectangle(line.geom, view_port_inner);
+            if (points.length > 0) {
+                target_tracker.x = points[0].x;
+                target_tracker.y = points[0].y;
+                target_tracker.setVisible(true);
+                target_tracker.setAngle(-135 - 180 + Phaser.Math.RadToDeg(Phaser.Geom.Line.Angle(line.geom)));
+            }
+        }else {
+            target_tracker.setVisible(false);
+        }
+    };
+
+    let destroy = () => {
+        line.destroy();
+        target_tracker.destroy();
+    };
+
+    return {
+        update: update,
+        destroy: destroy
+    };
+};
+
 let addBulletSpawner = (scene, x,y) => {
 
     let spiral_vector = new Phaser.Math.Vector2(PLAYER_SPEED/4,0);
@@ -131,6 +178,7 @@ let addBulletSpawner = (scene, x,y) => {
         .setScale(8)
         .setVisible(false)
         .setDepth(DEPTHS.MG);
+    let offscreen_alert = addOffscreenAlert(scene, enemy.displayWidth/2);
 
     let enter_dead = () => {
         let x_polarity = enemy.flipX ? -1: 1;
@@ -167,6 +215,8 @@ let addBulletSpawner = (scene, x,y) => {
             enemy_shadow_2.destroy();
         });
         enemy.destroy();
+        enemy_charge.destroy();
+        offscreen_alert.destroy();
         scene.__update_score_text(1000, x, y);
 
         scene.scene.get('ControllerScene').__pause_action();
@@ -213,7 +263,7 @@ let addBulletSpawner = (scene, x,y) => {
             } else {
                 state_handler.addDelayedCall(200, generate_bullet_toward_player);
             }
-        }
+        };
         generate_bullet_toward_player();
     };
 
@@ -239,7 +289,9 @@ let addBulletSpawner = (scene, x,y) => {
     generate_bullet_in_spiral();
 */
     enemy.update = () => {
-        enemy.setFlipX(scene.__getOffsetToPlayer(x, y).dx < 0);
+        let delta = scene.__getOffsetToPlayer(x, y);
+        enemy.setFlipX(delta.dx < 0);
+        offscreen_alert.update(x, y);
     };
 
     scene.__attackables.add(enemy);
@@ -259,7 +311,8 @@ let addRunningEnemy = (scene, x,y) => {
     let enemy = scene.add.sprite(x, y, 'enemy', 0)
         .setScale(scale)
         .setDepth(DEPTHS.MG);
-    let enemy_hit_box = scene.add.rectangle(x, y, scale * 8/2, scale * 8/2, 0x000000, 0);
+    let enemy_hit_box = scene.add.rectangle(x, y, enemy.displayWidth/2, enemy.displayWidth/2, 0x000000, 0);
+    let offscreen_alert = addOffscreenAlert(scene, enemy.displayWidth/2);
 
     let enter_dead = () => {
         let x_polarity = enemy.flipX ? -1: 1;
@@ -298,6 +351,7 @@ let addRunningEnemy = (scene, x,y) => {
         enemy.destroy();
         enemy_hit_box.destroy();
         scene.__update_score_text(1000, m_x, m_y);
+        offscreen_alert.destroy();
 
         scene.scene.get('ControllerScene').__pause_action();
     };
@@ -342,6 +396,7 @@ let addRunningEnemy = (scene, x,y) => {
         m_x = enemy_hit_box.body.center.x;
         m_y = enemy_hit_box.body.center.y;
         enemy.setPosition(m_x, m_y);
+        offscreen_alert.update(m_x, m_y);
     };
 
     scene.__attackables.add(enemy_hit_box);

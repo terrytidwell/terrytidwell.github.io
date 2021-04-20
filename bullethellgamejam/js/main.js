@@ -40,6 +40,8 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('enemy', 'assets/enemy.png',
             { frameWidth: 8, frameHeight: 8 });
+        this.load.spritesheet('arrow', 'assets/arrow.png',
+            { frameWidth: 8, frameHeight: 8 });
 
         scene.load.on(Phaser.Loader.Events.PROGRESS, function(percentage) {
             percentage = percentage * 100;
@@ -85,6 +87,14 @@ let LoadScene = new Phaser.Class({
             skipMissedFrames: false,
             frameRate: 8,
             repeat: 3
+        });
+        scene.anims.create({
+            key: 'arrow_anim',
+            frames: scene.anims.generateFrameNumbers('arrow',
+                { start: 0, end: 1 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: -1
         });
     },
 
