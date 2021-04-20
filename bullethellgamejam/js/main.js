@@ -38,6 +38,8 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('charge', 'assets/charge.png',
             { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('enemy', 'assets/enemy.png',
+            { frameWidth: 8, frameHeight: 8 });
 
         scene.load.on(Phaser.Loader.Events.PROGRESS, function(percentage) {
             percentage = percentage * 100;
@@ -76,6 +78,14 @@ let LoadScene = new Phaser.Class({
             frameRate: 8,
             repeat: 3
         });
+        scene.anims.create({
+            key: 'enemy_run_anim',
+            frames: scene.anims.generateFrameNumbers('enemy',
+                { start: 3, end: 4 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 3
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -101,6 +111,7 @@ let ControllerScene = new Phaser.Class({
         scene.scene.launch('GameScene');
 
         scene.__pause_action = function () {
+            return;
             scene.scene.pause('GameScene')
             scene.time.delayedCall(100, () => {
                 scene.scene.resume('GameScene');
@@ -324,8 +335,8 @@ let GameScene = new Phaser.Class({
                         },
                         duration: 150,
                     });
-                    addForce(mouse_vector.x * 4*GRID_SIZE,
-                        mouse_vector.y * 4*GRID_SIZE);
+                    addForce(mouse_vector.x * 0*GRID_SIZE,
+                        mouse_vector.y * 0*GRID_SIZE);
                     scene.cameras.main.shake(50, 0.005, true);
                     strike_box.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
                         strike_box.setVisible(false);
@@ -419,17 +430,21 @@ let GameScene = new Phaser.Class({
         }) ();
 
         scene.__getOffsetToPlayer = (x,y) => {
-            let player = scene.__player_group.getFirst(true);
-            if (!player) {
-                return {dx: 0, dy: 0};
-            }
-            return {dx: player.body.center.x - x, dy: player.body.center.y - y};
-        }
+            return {dx: scene.__character_sprite.x - x,
+                dy: scene.__character_sprite.y - y};
+        };
 
-        addBulletSpawner(scene,5*GRID_SIZE, 5*GRID_SIZE);
-        addBulletSpawner(scene,-5*GRID_SIZE, -5*GRID_SIZE);
-        addBulletSpawner(scene,-5*GRID_SIZE, 5*GRID_SIZE);
-        addBulletSpawner(scene,5*GRID_SIZE, -5*GRID_SIZE);
+        scene.__SPAWNS = [() => {
+            for (let i of [1,2,3,4]) {
+                let point = get_random_enemy_spawn();
+                addBulletSpawner(scene, point.x, point.y);
+            }
+       }, () => {
+            for (let i of [1,2,3,4]) {
+                let point = get_random_enemy_spawn();
+                addRunningEnemy(scene, point.x, point.y);
+            }
+        }];
 
         let grid = scene.add.grid(0, 0,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0x000060)
@@ -448,10 +463,34 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
 
+        let world_bounds = new Phaser.Geom.Rectangle(0,0,0,0);
         scene.cameras.main.setBounds(-SCREEN_WIDTH, -SCREEN_HEIGHT, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        scene.cameras.main.getBounds(world_bounds);
         scene.cameras.main.startFollow(scene.__character_sprite, true, 1, 1, 0, 0);
-        scene.physics.world.setBounds(-SCREEN_WIDTH, -SCREEN_HEIGHT, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
+        scene.physics.world.setBounds(world_bounds.x, world_bounds.y, world_bounds.width, world_bounds.height);
         scene.physics.world.setBoundsCollision();
+
+        let get_random_enemy_spawn = (() => {
+
+            let safe_zone = new Phaser.Geom.Rectangle(0,0,0,0);
+            let calculate_safe_zone = () => {
+                let bounds = 2*GRID_SIZE;
+                let min_x = Math.max(world_bounds.x, scene.__character_sprite.x - bounds);
+                let min_y = Math.max(world_bounds.y, scene.__character_sprite.y - bounds);
+                let max_x = Math.min(world_bounds.x + world_bounds.width, scene.__character_sprite.x + bounds);
+                let max_y = Math.min(world_bounds.y + world_bounds.height, scene.__character_sprite.y + bounds);
+                safe_zone.x = min_x;
+                safe_zone.y = min_y;
+                safe_zone.width = max_x - min_x;
+                safe_zone.height = max_y - min_y;
+            };
+            let point = new Phaser.Geom.Point();
+            return () => {
+                calculate_safe_zone();
+                Phaser.Geom.Rectangle.RandomOutside(world_bounds, safe_zone, point);
+                return point;
+            }
+        })();
 
         let score_text = scene.add.text(GRID_SIZE*2,GRID_SIZE*0.5,"00000000", { font: GRID_SIZE*2/4 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5,0.5)
@@ -465,6 +504,51 @@ let GameScene = new Phaser.Class({
             repeat: -1,
             duration: 2000
         });
+        scene.__update_score_text = ((delta, x, y) => {
+            let async_handler = asyncHandler(scene);
+            let displayed_score = 0;
+            let true_score = 0;
+            return (delta, x, y) => {
+                let bonus_text = scene.add.text(x, y - GRID_SIZE/2, "+" + delta, { font: GRID_SIZE*2/4 + 'px PressStart2P', fill: '#FFF' })
+                    .setOrigin(0.5, 0.5)
+                    .setAngle(Phaser.Math.Between(-8, 8))
+                    .setDepth(DEPTHS.FG);
+                scene.tweens.add({
+                    targets: bonus_text,
+                    duration: 250,
+                    scale: 1.2,
+                    yoyo: true,
+                });
+                scene.tweens.add({
+                    targets: bonus_text,
+                    duration: 1000,
+                    alpha: 0,
+                    y: y - GRID_SIZE,
+                });
+                true_score += delta;
+                let true_delta = true_score - displayed_score;
+                async_handler.clear();
+                score_text.setScale(1);
+                async_handler.addTween({
+                    targets:score_text,
+                    scale: 1.2,
+                    yoyo: true,
+                    duration: 250,
+                });
+                async_handler.addTween({
+                    targets: {score: displayed_score},
+                    props: {score: true_score},
+                    duration: true_delta,
+                    onUpdate: function() {
+                        displayed_score = Math.round(this.getValue());
+                        let score_string = '' + displayed_score;
+                        score_text.setText(score_string.padStart(8,'0'));
+                    }
+                });
+            }
+        })();
+
+        scene.__spawn_happening = false;
     },
 
     //--------------------------------------------------------------------------
@@ -501,6 +585,16 @@ let GameScene = new Phaser.Class({
         }
 
         scene.__character_sprite.__input(input);
+
+        if (!scene.__spawn_happening && scene.__attackables.getLength() === 0) {
+            scene.__spawn_happening = true;
+            scene.time.delayedCall(4000, () => {
+                scene.__spawn_happening = false;
+                Phaser.Utils.Array.GetRandom(scene.__SPAWNS)();
+            });
+
+        }
+
     },
 });
 

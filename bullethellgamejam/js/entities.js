@@ -167,6 +167,7 @@ let addBulletSpawner = (scene, x,y) => {
             enemy_shadow_2.destroy();
         });
         enemy.destroy();
+        scene.__update_score_text(1000, x, y);
 
         scene.scene.get('ControllerScene').__pause_action();
     };
@@ -244,6 +245,109 @@ let addBulletSpawner = (scene, x,y) => {
     scene.__attackables.add(enemy);
     scene.__updateables.add(enemy);
     enemy.__destroy = () => {
+        state_handler.changeState(STATES.DEAD);
+    };
+};
+
+let addRunningEnemy = (scene, x,y) => {
+
+    let m_x = x;
+    let m_y = y;
+
+    let scale = 8;
+    let pixel_dimension = 8;
+    let enemy = scene.add.sprite(x, y, 'enemy', 0)
+        .setScale(scale)
+        .setDepth(DEPTHS.MG);
+    let enemy_hit_box = scene.add.rectangle(x, y, scale * 8/2, scale * 8/2, 0x000000, 0);
+
+    let enter_dead = () => {
+        let x_polarity = enemy.flipX ? -1: 1;
+        let starting_offset = GRID_SIZE/16;
+        let ending_offset = GRID_SIZE*3/8;
+        let enemy_shadow_1 = scene.add.sprite(
+            m_x + (x_polarity * starting_offset),
+            m_y - starting_offset, 'enemy', 1)
+            .setScale(8)
+            .setAlpha(1)
+            .setDepth(DEPTHS.MG)
+            .setFlipX(enemy.flipX);
+        let enemy_shadow_2 = scene.add.sprite(
+            m_x - (x_polarity * starting_offset),
+            m_y + starting_offset, 'enemy', 2)
+            .setScale(8)
+            .setAlpha(1)
+            .setDepth(DEPTHS.MG)
+            .setFlipX(enemy.flipX);
+        state_handler.addTweenParallel([{
+            targets: enemy_shadow_1,
+            x: m_x + (x_polarity * ending_offset),
+            y: m_y - ending_offset,
+            alpha: 0,
+            scale: 16
+        }, {
+            targets: enemy_shadow_2,
+            x: m_x - (x_polarity * ending_offset),
+            y: m_y + ending_offset,
+            alpha: 0,
+            scale: 16,
+        }], () => {
+            enemy_shadow_2.destroy();
+            enemy_shadow_2.destroy();
+        });
+        enemy.destroy();
+        enemy_hit_box.destroy();
+        scene.__update_score_text(1000, m_x, m_y);
+
+        scene.scene.get('ControllerScene').__pause_action();
+    };
+
+    let enter_run = () => {
+        let delta = scene.__getOffsetToPlayer(m_x, m_y);
+        enemy.setFlipX(delta.dx < 0);
+        enemy_hit_box.body.velocity.x = delta.dx;
+        enemy_hit_box.body.velocity.y = delta.dy;
+        enemy_hit_box.body.velocity.setLength(PLAYER_SPEED * 1);
+        enemy.play('enemy_run_anim');
+        state_handler.addDelayedCall(500, () => {
+            state_handler.changeState(STATES.IDLE);
+        });
+    };
+
+    let exit_run = () => {
+        enemy_hit_box.body.setVelocity(0,0);
+        enemy.anims.stop();
+    };
+
+    let enter_idle = () => {
+        enemy.setFrame(0);
+        state_handler.addDelayedCall(500, () => {
+            state_handler.changeState(STATES.RUN);
+        });
+    };
+
+    let STATES = {
+        IDLE: {enter: enter_idle, exit: null},
+        RUN: {enter: enter_run, exit: exit_run},
+        DEAD: {enter: enter_dead, exit: null}
+    };
+    let state_handler = stateHandler(scene, STATES, STATES.IDLE);
+    state_handler.start();
+
+
+    enemy_hit_box.update = () => {
+        if (state_handler.getState() === STATES.IDLE) {
+            enemy.setFlipX(scene.__getOffsetToPlayer(x, y).dx < 0);
+        }
+        m_x = enemy_hit_box.body.center.x;
+        m_y = enemy_hit_box.body.center.y;
+        enemy.setPosition(m_x, m_y);
+    };
+
+    scene.__attackables.add(enemy_hit_box);
+    scene.__updateables.add(enemy_hit_box);
+    scene.__bullets.add(enemy_hit_box);
+    enemy_hit_box.__destroy = () => {
         state_handler.changeState(STATES.DEAD);
     };
 };
