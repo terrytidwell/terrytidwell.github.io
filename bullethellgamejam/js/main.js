@@ -434,17 +434,30 @@ let GameScene = new Phaser.Class({
                 dy: scene.__character_sprite.y - y};
         };
 
-        scene.__SPAWNS = [() => {
-            for (let i of [1,2,3,4]) {
-                let point = get_random_enemy_spawn();
-                addBulletSpawner(scene, point.x, point.y);
-            }
-       }, () => {
-            for (let i of [1,2,3,4]) {
-                let point = get_random_enemy_spawn();
-                addRunningEnemy(scene, point.x, point.y);
-            }
-        }];
+        scene.__spawn_wave = (() => {
+            let major = 4;
+            let minor = 0;
+            return () => {
+                if(Phaser.Utils.Array.GetRandom([true, false])) {
+                    let temp = major;
+                    major = minor;
+                    minor = temp;
+                }
+                for (let i = 0; i < major; i++) {
+                    let point = get_random_enemy_spawn();
+                    addRunningEnemy(scene, point.x, point.y);
+                }
+                for (let i = 0; i < minor; i++) {
+                    let point = get_random_enemy_spawn();
+                    addBulletSpawner(scene, point.x, point.y);
+                }
+                if(Phaser.Utils.Array.GetRandom([true, false])) {
+                    major++;
+                } else {
+                    minor++;
+                }
+            };
+        })();
 
         let grid = scene.add.grid(0, 0,
             SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0x000060)
@@ -504,6 +517,13 @@ let GameScene = new Phaser.Class({
             repeat: -1,
             duration: 2000
         });
+        scene.__wave_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ["ENEMY WAVE IN", "3"], { font: GRID_SIZE*3/4 + 'px PressStart2P', fill: '#FFF' })
+            .setOrigin(0.5,0.5)
+            .setScrollFactor(0)
+            .setAngle(7.5)
+            .setDepth(DEPTHS.FG)
+            .setAlpha(0.75)
+            .setVisible(false);
         scene.__update_score_text = ((delta, x, y) => {
             let async_handler = asyncHandler(scene);
             let displayed_score = 0;
@@ -588,9 +608,40 @@ let GameScene = new Phaser.Class({
 
         if (!scene.__spawn_happening && scene.__attackables.getLength() === 0) {
             scene.__spawn_happening = true;
+            scene.time.delayedCall(1000, () => {
+                scene.__wave_text.setText(['ENEMY WAVE', 'INCOMING!']);
+                scene.__wave_text.setVisible(true);
+                scene.__wave_text.setScale(1);
+                scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
+            });
+            scene.time.delayedCall(2000, () => {
+                scene.__wave_text.setText(['3']);
+                scene.__wave_text.setScale(1.2);
+                scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
+                scene.cameras.main.shake(50, 0.01, true);
+            });
+            scene.time.delayedCall(3000, () => {
+                scene.__wave_text.setText(['2']);
+                scene.__wave_text.setScale(1.4);
+                scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
+                scene.cameras.main.shake(50, 0.01, true);
+            });
             scene.time.delayedCall(4000, () => {
+                scene.__wave_text.setText(['1']);
+                scene.__wave_text.setScale(1.6);
+                scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
+                scene.cameras.main.shake(50, 0.01, true);
+            });
+            scene.time.delayedCall(5000, () => {
+                scene.__wave_text.setText(['GO!']);
+                scene.__wave_text.setScale(1.8);
+                scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
+                scene.cameras.main.shake(50, 0.01, true);
+            });
+            scene.time.delayedCall(6000, () => {
+                scene.__wave_text.setVisible(false)
                 scene.__spawn_happening = false;
-                Phaser.Utils.Array.GetRandom(scene.__SPAWNS)();
+                scene.__spawn_wave();
             });
 
         }
