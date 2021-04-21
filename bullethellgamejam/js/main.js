@@ -28,6 +28,9 @@ let LoadScene = new Phaser.Class({
 
 
         scene.load.audio('bg_music', ['assets/PG_In_Game.mp3']);
+        scene.load.audio('blip_sound', ['assets/Countdown_Blip.wav']);
+        scene.load.audio('enemy_death_sound', ['assets/Enemy_Death.wav']);
+        scene.load.audio('slash_sound', ['assets/Slash_Attack.wav']);
         this.load.spritesheet('BWKnight', 'assets/BWKnight.png',
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('slash', 'assets/slash.png',
@@ -448,6 +451,7 @@ let GameScene = new Phaser.Class({
             }
             if (input.fire) {
                 if (ready_to_fire) {
+                    scene.__slash_sound.play();
                     ready_to_fire = false;
                     strike_box.play('slash_anim');
                     strike_box.setVisible(true);
@@ -498,6 +502,9 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+        scene.__slash_sound = scene.sound.add('slash_sound');
+        scene.__enemy_death_sound = scene.sound.add('enemy_death_sound');
+        scene.__blip_sound = scene.sound.add('blip_sound');
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
@@ -591,7 +598,6 @@ let GameScene = new Phaser.Class({
             .setOutlineStyle();
 
         scene.input.addPointer(5);
-        //scene.input.setPollAlways();
 
         scene.__character_sprite = scene.__addCharacter(scene);
 
@@ -609,6 +615,42 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
+        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
+
+        scene.__toggleBulletTime = (() => {
+            let on = false;
+            let time_scale = 0.5;
+            let time_left = scene.add.rectangle(GRID_SIZE/2, SCREEN_HEIGHT - .25*GRID_SIZE,
+                GRID_SIZE/4, 1.5*GRID_SIZE, 0xffffff, 0.5)
+                .setScrollFactor(0)
+                .setOrigin(0.5, 1)
+                .setDepth(DEPTHS.FG);
+           //let async_handler = asyncHandler(scene);
+            let time_left_tween = scene.tweens.add({
+                targets: time_left,
+                scaleY: 0,
+                duration: 10000 * time_scale
+            });
+            time_left_tween.pause();
+            return () => {
+                on = !on;
+                if (on) {
+                    time_left_tween.play();
+                    scene.tweens.timeScale = time_scale;
+                    scene.anims.globalTimeScale = time_scale;
+                    scene.physics.world.timeScale = 1/time_scale;
+                    scene.time.timeScale = time_scale;
+                } else {
+                    time_left_tween.pause();
+                    scene.tweens.timeScale = 1;
+                    scene.anims.globalTimeScale = 1;
+                    scene.physics.world.timeScale = 1;
+                    scene.time.timeScale = 1;
+                }
+            };
+        })();
+        bind_event(scene.__cursor_keys.letter_one, Phaser.Input.Keyboard.Events.DOWN,
+            scene.__toggleBulletTime);
 
         let world_bounds = new Phaser.Geom.Rectangle(0,0,0,0);
         scene.cameras.main.setBounds(-SCREEN_WIDTH, -SCREEN_HEIGHT, 2*SCREEN_WIDTH, 2*SCREEN_HEIGHT);
@@ -730,6 +772,8 @@ let GameScene = new Phaser.Class({
         })();
 
         scene.__spawn_happening = false;
+
+
     },
 
     //--------------------------------------------------------------------------
@@ -777,24 +821,28 @@ let GameScene = new Phaser.Class({
             });
             scene.time.delayedCall(2000, () => {
                 scene.__wave_text.setText(['3']);
+                scene.__blip_sound.play();
                 scene.__wave_text.setScale(1.2);
                 scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
                 scene.cameras.main.shake(50, 0.01, true);
             });
             scene.time.delayedCall(3000, () => {
                 scene.__wave_text.setText(['2']);
+                scene.__blip_sound.play();
                 scene.__wave_text.setScale(1.4);
                 scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
                 scene.cameras.main.shake(50, 0.01, true);
             });
             scene.time.delayedCall(4000, () => {
                 scene.__wave_text.setText(['1']);
+                scene.__blip_sound.play();
                 scene.__wave_text.setScale(1.6);
                 scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
                 scene.cameras.main.shake(50, 0.01, true);
             });
             scene.time.delayedCall(5000, () => {
                 scene.__wave_text.setText(['GO!']);
+                scene.__blip_sound.play();
                 scene.__wave_text.setScale(1.8);
                 scene.__wave_text.setAngle(Phaser.Math.Between(-8, 8));
                 scene.cameras.main.shake(50, 0.01, true);

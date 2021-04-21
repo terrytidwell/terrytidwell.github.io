@@ -197,6 +197,7 @@ let addBulletSpawner = (scene, x,y) => {
     let offscreen_alert = addOffscreenAlert(scene, enemy.displayWidth/2);
 
     let enter_dead = () => {
+        scene.__enemy_death_sound.play();
         let x_polarity = enemy.flipX ? -1: 1;
         let starting_offset = GRID_SIZE/16;
         let ending_offset = GRID_SIZE*3/8;
@@ -331,6 +332,7 @@ let addRunningEnemy = (scene, x,y) => {
     let offscreen_alert = addOffscreenAlert(scene, enemy.displayWidth/2);
 
     let enter_dead = () => {
+        scene.__enemy_death_sound.play();
         let x_polarity = enemy.flipX ? -1: 1;
         let starting_offset = GRID_SIZE/16;
         let ending_offset = GRID_SIZE*3/8;
