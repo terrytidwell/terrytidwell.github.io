@@ -32,6 +32,10 @@ let LoadScene = new Phaser.Class({
         scene.load.audio('blip_sound', ['assets/Countdown_Blip.wav']);
         scene.load.audio('enemy_death_sound', ['assets/Enemy_Death.wav']);
         scene.load.audio('slash_sound', ['assets/Slash_Attack.wav']);
+        scene.load.audio('player_hit', ['assets/Player_Hit_v2.wav']);
+        scene.load.audio('player_death', ['assets/Player_Death.wav']);
+        this.load.spritesheet('static', 'assets/display_static_strip.png',
+            { frameWidth: 64, frameHeight: 64 });
         this.load.spritesheet('BWKnight', 'assets/BWKnight.png',
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('slash', 'assets/slash.png',
@@ -106,6 +110,14 @@ let LoadScene = new Phaser.Class({
             repeat: -1
         });
         scene.anims.create({
+            key: 'static_anim',
+            frames: scene.anims.generateFrameNumbers('static',
+                { start: 0, end: 8 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: -1
+        });
+        scene.anims.create({
             key: 'spawn_anim',
             frames: scene.anims.generateFrameNumbers('spawn',
                 { start: 0, end: 5 }),
@@ -174,11 +186,26 @@ let ControllerScene = new Phaser.Class({
         bg_music.play();
         let bg_music_slow = scene.sound.add('bg_music_slow', {loop: true, volume: 0});
         bg_music_slow.play();
+        let player_death = scene.sound.add('player_death');
 
         scene.__setBulletTime = (on) => {
+            if (on) {
+                static_screen.setAlpha(0);
+                scene.tweens.add({
+                    targets: static_screen,
+                    alpha: 0.5,
+                    duration: 50,
+                    yoyo: true
+                });
+            }
             bg_music.setVolume(on ? 0 : 1);
             bg_music_slow.setVolume(on ? 1 : 0);
         };
+
+        let static_screen = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'static', 0)
+            .setScale(SCREEN_WIDTH/56)
+            .play('static_anim')
+            .setAlpha(0);
 
         let dead_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'DEAD',
             { font: GRID_SIZE*3 + 'px PressStart2P', fill: '#FFF' })
@@ -188,6 +215,12 @@ let ControllerScene = new Phaser.Class({
             .setStroke('#000000', GRID_SIZE/8);
 
         scene.__death = function () {
+            scene.tweens.add({
+                targets: static_screen,
+                alpha: 1,
+                duration: 2500
+            });
+            player_death.play();
             dead_text.setScale(0);
             dead_text.setVisible(true);
             let timeline = scene.tweens.createTimeline()
@@ -206,8 +239,12 @@ let ControllerScene = new Phaser.Class({
             let game_scene = scene.scene.get('GameScene');
             scene.time.delayedCall(3000, () => {
                 game_scene.scene.restart();
-                dead_text.setVisible(false);
             });
+        };
+
+        scene.__death_callback = () => {
+            static_screen.setAlpha(0);
+            dead_text.setVisible(false);
         }
 
         scene.__pause_action = function () {
@@ -410,6 +447,7 @@ let GameScene = new Phaser.Class({
             player_vulnerable = false;
 
             player_life--;
+            scene.__player_hit.play();
             let life_icon = life_icons.pop();
             life_icon.destroy();
             if (player_life === 0) {
@@ -510,9 +548,12 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
         scene.scene.bringToTop('ControllerScene');
+        scene.scene.get('ControllerScene').__death_callback();
         scene.__slash_sound = scene.sound.add('slash_sound');
         scene.__enemy_death_sound = scene.sound.add('enemy_death_sound');
         scene.__blip_sound = scene.sound.add('blip_sound');
+        scene.__player_hit = scene.sound.add('player_hit');
+
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
         });
@@ -623,7 +664,7 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
         scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
         scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
-        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
+        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         scene.__toggleBulletTime = (() => {
 
@@ -639,28 +680,33 @@ let GameScene = new Phaser.Class({
                 time_left.destroy();
                 scene.scene.get('ControllerScene').__setBulletTime(false);
             });
-            let time_left_tween = scene.tweens.add({
-                targets: time_left,
-                scaleY: 0,
-                duration: 10000 * time_scale
-            });
-            time_left_tween.pause();
+            let async_handler = asyncHandler(scene);
             let overlay = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
                 SCREEN_WIDTH+GRID_SIZE, SCREEN_HEIGHT+GRID_SIZE, 0xffffff)
                 .setScrollFactor(0)
                 .setDepth(DEPTHS.FG)
                 .setAlpha(0);
-            let fade_tween = null;
+            async_handler.addTween({
+                targets: time_left,
+                scaleY: 1,
+                duration: 50000 * (1-time_left.scaleY)
+            });
             return () => {
                 on = !on;
+                if (time_left.scaleY < 0.05) {
+                    on = false;
+                }
                 scene.scene.get('ControllerScene').__setBulletTime(on);
                 if (on) {
-                    time_left_tween.play();
+                    async_handler.clear();
+                    async_handler.addTween({
+                        targets: time_left,
+                        scaleY: 0,
+                        duration: 10000 * time_scale * time_left.scaleY,
+                        onComplete: scene.__toggleBulletTime
+                    });
                     scene.cameras.main.zoomTo(1.1, 1000, 'Linear', true);
-                    if (fade_tween) {
-                        fade_tween.remove();
-                    }
-                    fade_tween = scene.tweens.add({
+                    async_handler.addTween({
                         targets: overlay,
                         alpha: 0.25,
                         duration: 1000
@@ -670,15 +716,17 @@ let GameScene = new Phaser.Class({
                     scene.physics.world.timeScale = 1/time_scale;
                     scene.time.timeScale = time_scale;
                 } else {
-                    time_left_tween.pause();
+                    async_handler.clear();
                     scene.cameras.main.zoomTo(1, 150, 'Linear', true);
-                    if (fade_tween) {
-                        fade_tween.remove();
-                    }
-                    fade_tween = scene.tweens.add({
+                    async_handler.addTween({
                         targets: overlay,
                         alpha: 0,
                         duration: 150
+                    });
+                    async_handler.addTween({
+                        targets: time_left,
+                        scaleY: 1,
+                        duration: 50000 * (1 - time_left.scaleY)
                     });
                     scene.tweens.timeScale = 1;
                     scene.anims.globalTimeScale = 1;
