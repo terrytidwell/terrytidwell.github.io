@@ -28,6 +28,7 @@ let LoadScene = new Phaser.Class({
 
 
         scene.load.audio('bg_music', ['assets/PG_In_Game.mp3']);
+        scene.load.audio('bg_music_slow', ['assets/PG_In_Game_Slow_Motion.mp3']);
         scene.load.audio('blip_sound', ['assets/Countdown_Blip.wav']);
         scene.load.audio('enemy_death_sound', ['assets/Enemy_Death.wav']);
         scene.load.audio('slash_sound', ['assets/Slash_Attack.wav']);
@@ -169,8 +170,15 @@ let ControllerScene = new Phaser.Class({
     create: function () {
         let scene = this;
         scene.scene.launch('GameScene');
-        let bg_music = scene.sound.add('bg_music', {loop: true})
-            .play();
+        let bg_music = scene.sound.add('bg_music', {loop: true});
+        bg_music.play();
+        let bg_music_slow = scene.sound.add('bg_music_slow', {loop: true, volume: 0});
+        bg_music_slow.play();
+
+        scene.__setBulletTime = (on) => {
+            bg_music.setVolume(on ? 0 : 1);
+            bg_music_slow.setVolume(on ? 1 : 0);
+        };
 
         let dead_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'DEAD',
             { font: GRID_SIZE*3 + 'px PressStart2P', fill: '#FFF' })
@@ -180,7 +188,6 @@ let ControllerScene = new Phaser.Class({
             .setStroke('#000000', GRID_SIZE/8);
 
         scene.__death = function () {
-            scene.scene.bringToTop();
             dead_text.setScale(0);
             dead_text.setVisible(true);
             let timeline = scene.tweens.createTimeline()
@@ -260,7 +267,7 @@ let GameScene = new Phaser.Class({
         let offset = SCREEN_WIDTH - 1 * character_width;
         for(let i = 0; i < player_life; i++) {
             life_icons.push(
-                scene.add.sprite(offset, SCREEN_HEIGHT - character_height, 'life', 0)
+                scene.scene.get('ControllerScene').add.sprite(offset, SCREEN_HEIGHT - character_height, 'life', 0)
                     .setScrollFactor(0)
                     .setScale(8)
                     .setDepth(DEPTHS.FG)
@@ -502,6 +509,7 @@ let GameScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+        scene.scene.bringToTop('ControllerScene');
         scene.__slash_sound = scene.sound.add('slash_sound');
         scene.__enemy_death_sound = scene.sound.add('enemy_death_sound');
         scene.__blip_sound = scene.sound.add('blip_sound');
@@ -618,30 +626,60 @@ let GameScene = new Phaser.Class({
         scene.__cursor_keys.letter_one = scene.input.keyboard.addKey("q");
 
         scene.__toggleBulletTime = (() => {
+
             let on = false;
             let time_scale = 0.5;
-            let time_left = scene.add.rectangle(GRID_SIZE/2, SCREEN_HEIGHT - .25*GRID_SIZE,
+            let time_left = scene.scene.get('ControllerScene').add.rectangle(GRID_SIZE/2, SCREEN_HEIGHT - .25*GRID_SIZE,
                 GRID_SIZE/4, 1.5*GRID_SIZE, 0xffffff, 0.5)
                 .setScrollFactor(0)
                 .setOrigin(0.5, 1)
                 .setDepth(DEPTHS.FG);
-           //let async_handler = asyncHandler(scene);
+            scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+                console.log('SHUTDOWN');
+                time_left.destroy();
+                scene.scene.get('ControllerScene').__setBulletTime(false);
+            });
             let time_left_tween = scene.tweens.add({
                 targets: time_left,
                 scaleY: 0,
                 duration: 10000 * time_scale
             });
             time_left_tween.pause();
+            let overlay = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                SCREEN_WIDTH+GRID_SIZE, SCREEN_HEIGHT+GRID_SIZE, 0xffffff)
+                .setScrollFactor(0)
+                .setDepth(DEPTHS.FG)
+                .setAlpha(0);
+            let fade_tween = null;
             return () => {
                 on = !on;
+                scene.scene.get('ControllerScene').__setBulletTime(on);
                 if (on) {
                     time_left_tween.play();
+                    scene.cameras.main.zoomTo(1.1, 1000, 'Linear', true);
+                    if (fade_tween) {
+                        fade_tween.remove();
+                    }
+                    fade_tween = scene.tweens.add({
+                        targets: overlay,
+                        alpha: 0.25,
+                        duration: 1000
+                    });
                     scene.tweens.timeScale = time_scale;
                     scene.anims.globalTimeScale = time_scale;
                     scene.physics.world.timeScale = 1/time_scale;
                     scene.time.timeScale = time_scale;
                 } else {
                     time_left_tween.pause();
+                    scene.cameras.main.zoomTo(1, 150, 'Linear', true);
+                    if (fade_tween) {
+                        fade_tween.remove();
+                    }
+                    fade_tween = scene.tweens.add({
+                        targets: overlay,
+                        alpha: 0,
+                        duration: 150
+                    });
                     scene.tweens.timeScale = 1;
                     scene.anims.globalTimeScale = 1;
                     scene.physics.world.timeScale = 1;
@@ -708,11 +746,14 @@ let GameScene = new Phaser.Class({
             }
         })();
 
-        let score_text = scene.add.text(GRID_SIZE*2,GRID_SIZE*0.5,"00000000", { font: GRID_SIZE*2/4 + 'px PressStart2P', fill: '#FFF' })
+        let score_text = scene.scene.get('ControllerScene').add.text(GRID_SIZE*2,GRID_SIZE*0.5,"00000000", { font: GRID_SIZE*2/4 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5,0.5)
             .setScrollFactor(0)
             .setAngle(7.5)
             .setDepth(DEPTHS.FG);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            score_text.destroy();
+        });
         scene.tweens.add({
             targets: score_text,
             angle: -7.5,
