@@ -26,6 +26,8 @@ let LoadScene = new Phaser.Class({
             "0%", { font: GRID_SIZE/2 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
+
+        scene.load.audio('bg_music', ['assets/PG_In_Game.mp3']);
         this.load.spritesheet('BWKnight', 'assets/BWKnight.png',
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('slash', 'assets/slash.png',
@@ -44,14 +46,15 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 8, frameHeight: 8 });
         this.load.spritesheet('life', 'assets/life.png',
             { frameWidth: 8, frameHeight: 8 });
+        this.load.spritesheet('spawn', 'assets/spawn.png',
+            { frameWidth: 60, frameHeight: 60 });
 
         scene.load.on(Phaser.Loader.Events.PROGRESS, function(percentage) {
             percentage = percentage * 100;
             loading_text.setText(Math.round(percentage) + "%");
         });
         scene.load.once(Phaser.Loader.Events.COMPLETE,  function() {
-            scene.scene.launch('ControllerScene');
-            scene.scene.stop('LoadScene');
+            scene.scene.start('TitleScene');
         });
     },
 
@@ -98,11 +101,53 @@ let LoadScene = new Phaser.Class({
             frameRate: 8,
             repeat: -1
         });
+        scene.anims.create({
+            key: 'spawn_anim',
+            frames: scene.anims.generateFrameNumbers('spawn',
+                { start: 0, end: 5 }),
+            skipMissedFrames: false,
+            frameRate: 8,
+            repeat: 0
+        });
     },
 
     //--------------------------------------------------------------------------
     update: function() {
     },
+});
+
+let TitleScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'TitleScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {},
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+
+        scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ['PROTOTYPE','GLITCH'],
+            { font: GRID_SIZE + 'px PressStart2P', fill: '#FFF', align: 'center'})
+            .setOrigin(0.5, 0.5);
+
+        addButton(
+            scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 2*GRID_SIZE, 'START',
+                { font: GRID_SIZE/2 + 'px PressStart2P', fill: '#FFF', align: 'center' })
+                .setOrigin(0.5, 0.5),
+            () => {
+                scene.scene.start('ControllerScene');
+            }
+        )
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {},
 });
 
 let ControllerScene = new Phaser.Class({
@@ -121,13 +166,15 @@ let ControllerScene = new Phaser.Class({
     create: function () {
         let scene = this;
         scene.scene.launch('GameScene');
+        let bg_music = scene.sound.add('bg_music', {loop: true})
+            .play();
 
         let dead_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'DEAD',
             { font: GRID_SIZE*3 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5, 0.5)
             .setAngle(Phaser.Math.Between(-8, 8))
             .setVisible(false)
-            .setStroke('#000000', GRID_SIZE/8);;
+            .setStroke('#000000', GRID_SIZE/8);
 
         scene.__death = function () {
             scene.scene.bringToTop();
@@ -172,6 +219,18 @@ let LayoutManager = {
         object.body.x = x - object.body.width/2;
         object.body.y = y - object.body.height/2;
     }
+};
+
+let addButton = (text, handler) => {
+    text.setAlpha(0.5);
+    text.setInteractive();
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
+        text.setAlpha(1);
+    });
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+        text.setAlpha(0.5);
+    });
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, handler);
 };
 
 let GameScene = new Phaser.Class({
@@ -512,11 +571,11 @@ let GameScene = new Phaser.Class({
                 }
                 for (let i = 0; i < major; i++) {
                     let point = get_random_enemy_spawn();
-                    addRunningEnemy(scene, point.x, point.y);
+                    addEnemySpawn(scene, point.x, point.y, addRunningEnemy);
                 }
                 for (let i = 0; i < minor; i++) {
                     let point = get_random_enemy_spawn();
-                    addBulletSpawner(scene, point.x, point.y);
+                    addEnemySpawn(scene, point.x, point.y, addBulletSpawner);
                 }
                 if(Phaser.Utils.Array.GetRandom([true, false])) {
                     major++;
@@ -527,8 +586,8 @@ let GameScene = new Phaser.Class({
         })();
 
         let grid = scene.add.grid(0, 0,
-            SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0x000060)
-            .setAltFillStyle(0x000080)
+            SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, GRID_SIZE, GRID_SIZE, 0x606060)
+            .setAltFillStyle(0x808080)
             .setOutlineStyle();
 
         scene.input.addPointer(5);
@@ -559,25 +618,50 @@ let GameScene = new Phaser.Class({
         scene.physics.world.setBoundsCollision();
 
         let get_random_enemy_spawn = (() => {
-            let safe_zone = new Phaser.Geom.Rectangle(0,0,0,0);
+            let safe_zone = new Phaser.Geom.Rectangle(0,0,4*GRID_SIZE,4*GRID_SIZE);
+            let overlap_zone = new Phaser.Geom.Rectangle(0,0,0,0);
             let spawn_zone = new Phaser.Geom.Rectangle(0,0,0,0);
+            let display1 = scene.add.rectangle(0, 0, 0, 0, 0xff0000, 0.25);
+            let display2 = scene.add.rectangle(0, 0, 0, 0, 0x00ff00, 0.25);
+            let display3 = scene.add.rectangle(0, 0, 0, 0, 0x0000ff, 0.25);
             Phaser.Geom.Rectangle.CopyFrom(world_bounds, spawn_zone);
             Phaser.Geom.Rectangle.Inflate(spawn_zone, -GRID_SIZE, -GRID_SIZE);
-            let calculate_safe_zone = () => {
-                let bounds = 2*GRID_SIZE;
-                let min_x = Math.max(spawn_zone.x, scene.__character_sprite.x - bounds);
-                let min_y = Math.max(spawn_zone.y, scene.__character_sprite.y - bounds);
-                let max_x = Math.min(spawn_zone.x + spawn_zone.width, scene.__character_sprite.x + bounds);
-                let max_y = Math.min(spawn_zone.y + spawn_zone.height, scene.__character_sprite.y + bounds);
-                safe_zone.x = min_x;
-                safe_zone.y = min_y;
-                safe_zone.width = max_x - min_x;
-                safe_zone.height = max_y - min_y;
+
+            let show_display_rectangle = (geom_rect, display_rect) => {
+                display_rect
+                    .setDepth(DEPTHS.FG)
+                    .setOrigin(0,0)
+                    .setPosition(geom_rect.x, geom_rect.y)
+                display_rect.width = geom_rect.width;
+                display_rect.height = geom_rect.height;
             };
+
+            let show_debugs = () => {
+                show_display_rectangle(safe_zone, display1);
+                show_display_rectangle(overlap_zone, display2);
+                show_display_rectangle(spawn_zone, display3);
+            };
+
             let point = new Phaser.Geom.Point();
             return () => {
-                calculate_safe_zone();
-                Phaser.Geom.Rectangle.RandomOutside(world_bounds, safe_zone, point);
+                Phaser.Geom.Rectangle.CenterOn(safe_zone, scene.__character_sprite.x, scene.__character_sprite.y);
+                if (Phaser.Geom.Rectangle.Overlaps(safe_zone, spawn_zone)) {
+                    Phaser.Geom.Rectangle.Random(spawn_zone, point);
+                    let tries = 0;
+                    while(Phaser.Geom.Rectangle.Contains(safe_zone, point.x, point.y)) {
+                        Phaser.Geom.Rectangle.Random(spawn_zone, point);
+                        if (tries++ > 100) {
+                            break;
+                        }
+                    }
+                } else {
+                    overlap_zone.x = 0;
+                    overlap_zone.y = 0;
+                    overlap_zone.width = 0;
+                    overlap_zone.height = 0;
+                    Phaser.Geom.Rectangle.Random(spawn_zone, point);
+                }
+                //show_debugs();
                 return point;
             }
         })();
@@ -716,9 +800,11 @@ let GameScene = new Phaser.Class({
                 scene.cameras.main.shake(50, 0.01, true);
             });
             scene.time.delayedCall(6000, () => {
-                scene.__wave_text.setVisible(false)
-                scene.__spawn_happening = false;
+                scene.__wave_text.setVisible(false);
                 scene.__spawn_wave();
+            });
+            scene.time.delayedCall(8000, () => {
+                scene.__spawn_happening = false;
             });
 
         }
@@ -753,7 +839,7 @@ let config = {
         ]
     },
      */
-    scene: [ LoadScene, ControllerScene, GameScene ]
+    scene: [ LoadScene, TitleScene, ControllerScene, GameScene ]
 };
 
 game = new Phaser.Game(config);

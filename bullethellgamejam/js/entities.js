@@ -167,6 +167,22 @@ let addOffscreenAlert = (scene, outer_port_offset) => {
     };
 };
 
+let addEnemySpawn = (scene, x, y, spawn_function) => {
+    let spawn = scene.add.sprite(x, y, 'spawn', 0)
+        .setDepth(DEPTHS.MG)
+        .setVisible(false)
+        .setScale(3);
+    scene.time.delayedCall(Phaser.Math.Between(0,500), () => {
+        spawn.setVisible(true)
+            .play('spawn_anim');
+
+        spawn.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                spawn.destroy();
+                spawn_function(scene, x, y);
+            })
+    })
+}
+
 let addBulletSpawner = (scene, x,y) => {
 
     let spiral_vector = new Phaser.Math.Vector2(PLAYER_SPEED/4,0);
