@@ -157,7 +157,15 @@ let TitleScene = new Phaser.Class({
                 { font: GRID_SIZE/2 + 'px PressStart2P', fill: '#FFF', align: 'center' })
                 .setOrigin(0.5, 0.5),
             () => {
-                scene.scene.start('ControllerScene');
+                scene.scene.start('ControllerScene', {run_tutorial: false});
+            }
+        )
+        addButton(
+            scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 3*GRID_SIZE, 'TUTORIAL',
+                { font: GRID_SIZE/2 + 'px PressStart2P', fill: '#FFF', align: 'center' })
+                .setOrigin(0.5, 0.5),
+            () => {
+                scene.scene.start('ControllerScene', {run_tutorial: true});
             }
         )
     },
@@ -179,9 +187,9 @@ let ControllerScene = new Phaser.Class({
     preload: function () {},
 
     //--------------------------------------------------------------------------
-    create: function () {
+    create: function (data) {
         let scene = this;
-        scene.scene.launch('GameScene', {run_tutorial: true});
+        scene.scene.launch('GameScene', data);
         let bg_music = scene.sound.add('bg_music', {loop: true});
         bg_music.play();
         let bg_music_slow = scene.sound.add('bg_music_slow', {loop: true, volume: 0});
