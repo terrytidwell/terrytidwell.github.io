@@ -181,7 +181,7 @@ let ControllerScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-        scene.scene.launch('GameScene');
+        scene.scene.launch('GameScene', {run_tutorial: true});
         let bg_music = scene.sound.add('bg_music', {loop: true});
         bg_music.play();
         let bg_music_slow = scene.sound.add('bg_music_slow', {loop: true, volume: 0});
@@ -238,7 +238,7 @@ let ControllerScene = new Phaser.Class({
             scene.scene.pause('GameScene');
             let game_scene = scene.scene.get('GameScene');
             scene.time.delayedCall(3000, () => {
-                game_scene.scene.restart();
+                game_scene.scene.restart({run_tutorial: false});
             });
         };
 
@@ -479,7 +479,11 @@ let GameScene = new Phaser.Class({
 
         let character_direction = new Phaser.Math.Vector2(0,0);
         let player_moving = false;
+        let player_movement_allowed = true;
         character_sprite.__input = (input) => {
+            if (!player_movement_allowed) {
+                return;
+            }
             character_direction.x = 0;
             character_direction.y = 0;
             if (input.left) {
@@ -545,7 +549,7 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    create: function () {
+    create: function (data) {
         let scene = this;
         scene.scene.bringToTop('ControllerScene');
         scene.scene.get('ControllerScene').__death_callback();
@@ -698,6 +702,7 @@ let GameScene = new Phaser.Class({
                 }
                 scene.scene.get('ControllerScene').__setBulletTime(on);
                 if (on) {
+                    scene.__run_tutorial.handle_bullet_time_on();
                     async_handler.clear();
                     async_handler.addTween({
                         targets: time_left,
@@ -716,6 +721,7 @@ let GameScene = new Phaser.Class({
                     scene.physics.world.timeScale = 1/time_scale;
                     scene.time.timeScale = time_scale;
                 } else {
+                    scene.__run_tutorial.handle_bullet_time_off();
                     async_handler.clear();
                     scene.cameras.main.zoomTo(1, 150, 'Linear', true);
                     async_handler.addTween({
@@ -809,7 +815,8 @@ let GameScene = new Phaser.Class({
             repeat: -1,
             duration: 2000
         });
-        scene.__wave_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ["ENEMY WAVE IN", "3"], { font: GRID_SIZE*3/4 + 'px PressStart2P', fill: '#FFF' })
+        scene.__wave_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ["ENEMY WAVE IN", "3"],
+            { font: GRID_SIZE*3/4 + 'px PressStart2P', fill: '#FFF' })
             .setOrigin(0.5,0.5)
             .setScrollFactor(0)
             .setAngle(7.5)
@@ -860,9 +867,196 @@ let GameScene = new Phaser.Class({
             }
         })();
 
-        scene.__spawn_happening = false;
+        scene.__spawn_happening = data.run_tutorial;
+        scene.__run_tutorial = (() => {
+            if (!data.run_tutorial) {
+                return {
+                    handle_move: () =>{},
+                    handle_attack: () =>{},
+                    handle_bullet_time_on: () =>{},
+                    handle_bullet_time_off: () =>{},
+                };
+            }
 
+            let text_read_time = 5000;
+            let waiting_for_move = false;
+            let move_received = false;
+            let waiting_for_attack = false;
+            let attack_received = false;
+            let waiting_for_bullet_time_on = false;
+            let bullet_time_on_received = false;
+            let waiting_for_bullet_time_off = false;
+            let bullet_time_off_received = false;
+            let ui_scene = scene.scene.get('ControllerScene');
+            let tutorial_text = ui_scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT + GRID_SIZE, ["WASD (OR ARROWS)", "TO MOVE"],
+                { font: GRID_SIZE/4 + 'px PressStart2P', fill: '#FFF', align: 'center' })
+                .setOrigin(0.5,0.5)
+                .setScrollFactor(0)
+                .setAngle(0)
+                .setDepth(DEPTHS.FG);
 
+            ui_scene.tweens.add({
+                targets: tutorial_text,
+                y: SCREEN_HEIGHT - GRID_SIZE,
+                duration: 250,
+                onComplete: () => {
+                    ui_scene.time.delayedCall(text_read_time, () => {
+                        waiting_for_move = true;
+                        sword_swing();
+                    });
+                },
+            });
+            let sword_swing = () => {
+                if (!waiting_for_move || !move_received) {
+                    return;
+                }
+                waiting_for_move  = false;
+                let timeline = ui_scene.tweens.createTimeline()
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        tutorial_text.setText(["MOUSE TO AIM","LEFT CLICK TO ATTACK"])
+                    },
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT - GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        ui_scene.time.delayedCall(text_read_time, () => {
+                            waiting_for_attack = true;
+                            bullet_time();
+                        });
+                    },
+                });
+                timeline.play();
+            };
+
+            let bullet_time = () => {
+                if (!waiting_for_attack || !attack_received) {
+                    return;
+                }
+                waiting_for_attack = false;
+                let timeline = ui_scene.tweens.createTimeline()
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        tutorial_text.setText(["SPACE TO ACTIVATE","SLOW MOTION"])
+                    },
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT - GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        ui_scene.time.delayedCall(text_read_time, () => {
+                            waiting_for_bullet_time_on = true;
+                            bullet_time_off();
+                        });
+                    },
+                });
+                timeline.play();
+            };
+            let bullet_time_off = () => {
+                if (!waiting_for_bullet_time_on || !bullet_time_on_received) {
+                    return;
+                }
+                waiting_for_bullet_time_on = false;
+                let timeline = ui_scene.tweens.createTimeline()
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        tutorial_text.setText(["SPACE AGAIN TO EXIT","SLOW MOTION"])
+                    },
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT - GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        ui_scene.time.delayedCall(text_read_time, () => {
+                            waiting_for_bullet_time_off = true;
+                            outro();
+                        });
+                    },
+                });
+                timeline.play();
+            };
+            let outro = () => {
+                if (!waiting_for_bullet_time_off || !bullet_time_off_received) {
+                    return;
+                }
+                waiting_for_bullet_time_off = false;
+                let timeline = ui_scene.tweens.createTimeline()
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    duration: 250,
+                    onComplete: () => {
+                        tutorial_text.setText(["< SLOW MOTION DRAINS ENERGY","ENERGY REPLENISHES WITH TIME"])
+                    },
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT - GRID_SIZE,
+                    duration: 250,
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    delay: text_read_time,
+                    duration: 250,
+                    onComplete: () => {
+                        tutorial_text.setText(["GETTING HIT BY ENEMIES","OR BULLETS COSTS LIVES >"])
+                    },
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT - GRID_SIZE,
+                    duration: 250,
+                });
+                timeline.add({
+                    targets: tutorial_text,
+                    y: SCREEN_HEIGHT + GRID_SIZE,
+                    delay: text_read_time,
+                    duration: 250,
+                    onComplete: () => {
+                        scene.__spawn_happening = false;
+                    }
+                });
+                timeline.play();
+            };
+
+            let handle_move = () => {
+                move_received = true;
+                sword_swing();
+            };
+            let handle_attack = () => {
+                attack_received = true;
+                bullet_time();
+            };
+            let handle_bullet_time_on = () => {
+                bullet_time_on_received = true;
+                bullet_time_off();
+            };
+            let handle_bullet_time_off = () => {
+                bullet_time_off_received = true;
+                outro();
+            };
+
+            return {
+                handle_move: handle_move,
+                handle_attack: handle_attack,
+                handle_bullet_time_on: handle_bullet_time_on,
+                handle_bullet_time_off: handle_bullet_time_off,
+            };
+        })();
     },
 
     //--------------------------------------------------------------------------
@@ -880,22 +1074,27 @@ let GameScene = new Phaser.Class({
         if (scene.__cursor_keys.left.isDown ||
             scene.__cursor_keys.letter_left.isDown) {
             input.left = true;
+            scene.__run_tutorial.handle_move();
         }
         if (scene.__cursor_keys.right.isDown ||
             scene.__cursor_keys.letter_right.isDown) {
             input.right = true;
+            scene.__run_tutorial.handle_move();
         }
         if (scene.__cursor_keys.up.isDown ||
             scene.__cursor_keys.letter_up.isDown) {
             input.up = true;
+            scene.__run_tutorial.handle_move();
         }
         if (scene.__cursor_keys.down.isDown ||
             scene.__cursor_keys.letter_down.isDown) {
             input.down = true;
+            scene.__run_tutorial.handle_move();
         }
 
         if (scene.input.activePointer.leftButtonDown()) {
             input.fire = true;
+            scene.__run_tutorial.handle_attack();
         }
 
         scene.__character_sprite.__input(input);
