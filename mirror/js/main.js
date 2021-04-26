@@ -44,6 +44,9 @@ let LoadScene = new Phaser.Class({
         scene.load.audio('bg_music', ['assets/KAV_in_game_music.wav']);
         scene.load.audio('vampire_kill', ['assets/Vampire_Death.wav']);
         scene.load.audio('press_start', ['assets/Press_Start_.wav']);
+        scene.load.audio('mission_start', ['assets/Mission_Start.wav']);
+        scene.load.audio('mission_complete', ['assets/Mission_Complete.wav']);
+        scene.load.audio('mission_failed', ['assets/Mission_Failed.wav']);
 
         scene.load.spritesheet('death_effect','assets/death_effect.png',
             { frameWidth: 128,  frameHeight: 128});
@@ -404,6 +407,7 @@ let MusicScene = new Phaser.Class( {
         let scene = this;
         let bg_music = scene.sound.add('bg_music', {loop: true});
         bg_music.play();
+        bg_music.volume = 0.75;
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, function() {
             bg_music.stop();
         })
@@ -441,6 +445,9 @@ let GameScene = new Phaser.Class({
         let accept_player_input = false;
         let vampires_killed = 0;
         let vampire_kill = scene.sound.add('vampire_kill');
+        let mission_start = scene.sound.add('mission_start');
+        let mission_failed = scene.sound.add('mission_failed');
+        let mission_complete = scene.sound.add('mission_complete');
 
         let missionEndCalled = false;
         let mission_end_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ["MISSION","FAILED"],
@@ -458,10 +465,14 @@ let GameScene = new Phaser.Class({
             timer.stop();
 
             accept_player_input = false;
+            let sound = mission_failed;
             if (succeeded) {
                 mission_end_text.setText(['MISSION', 'COMPLETE']);
-                mission_end_text.setColor('#008000')
+                mission_end_text.setColor('#008000');
+                sound = mission_complete;
             }
+            sound.volume = .25;
+            sound.play();
 
             scene.tweens.add({
                 targets: mission_end_text,
@@ -562,6 +573,7 @@ let GameScene = new Phaser.Class({
                 duration: 500,
                 onComplete: () => {
                     scene.cameras.main.shake(250, 0.007, true);
+
                 }
             })
             timeline.add({
@@ -576,6 +588,8 @@ let GameScene = new Phaser.Class({
                 }
             });
             timeline.play();
+            mission_start.volume = .25;
+            mission_start.play();
         };
         start();
 
