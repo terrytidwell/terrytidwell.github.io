@@ -41,6 +41,10 @@ let LoadScene = new Phaser.Class({
             "0%", { font: GRID_SIZE/2 + FONT, fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
+        scene.load.audio('bg_music', ['assets/KAV_in_game_music.wav']);
+        scene.load.audio('vampire_kill', ['assets/Vampire_Death.wav']);
+        scene.load.audio('press_start', ['assets/Press_Start_.wav']);
+
         scene.load.spritesheet('death_effect','assets/death_effect.png',
             { frameWidth: 128,  frameHeight: 128});
 
@@ -206,6 +210,8 @@ let TitleScene = new Phaser.Class({
 
         LevelInfo.reset();
 
+        let press_start = scene.sound.add('press_start');
+
         scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - GRID_SIZE, ["KILL ALL", "VAMPIRES"],
             { font: GRID_SIZE + FONT, fill: '#FFFFFF'})
             .setOrigin(0.5, 0.5)
@@ -220,7 +226,9 @@ let TitleScene = new Phaser.Class({
             .setDepth(DEPTHS.UI)
             .setAlpha(0.5);
         addButton(start_text, () => {
+            press_start.play();
             scene.scene.start('GameScene');
+            scene.scene.start('MusicScene');
             scene.scene.stop('TitleScene');
         });
 
@@ -275,6 +283,11 @@ let CreditScene = new Phaser.Class({
             ["GAME BY:",
             "",
             "CricketHunter",
+            "",
+            "",
+            "MUSIC AND SOUND BY:",
+            "",
+            "Sethersson",
             "",
             "",
             "ASSETS FROM: ",
@@ -365,6 +378,7 @@ let HowToPlayScene = new Phaser.Class({
         addButton(text, () => {
             LevelInfo.reset();
             scene.scene.start('GameScene');
+            scene.scene.start('MusicScene');
             scene.scene.stop('HowToPlayScene');
         });
     },
@@ -373,6 +387,31 @@ let HowToPlayScene = new Phaser.Class({
     update: function() {
     },
 });
+
+let MusicScene = new Phaser.Class( {
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'MusicScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {},
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        let bg_music = scene.sound.add('bg_music', {loop: true});
+        bg_music.play();
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, function() {
+            bg_music.stop();
+        })
+    },
+
+    //--------------------------------------------------------------------------
+    update: function () {},
+})
 
 let GameScene = new Phaser.Class({
 
@@ -401,6 +440,7 @@ let GameScene = new Phaser.Class({
 
         let accept_player_input = false;
         let vampires_killed = 0;
+        let vampire_kill = scene.sound.add('vampire_kill');
 
         let missionEndCalled = false;
         let mission_end_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ["MISSION","FAILED"],
@@ -464,6 +504,7 @@ let GameScene = new Phaser.Class({
             .setDepth(DEPTHS.UI);
         addButton(back_text, () => {
             scene.scene.stop('GameScene');
+            scene.scene.stop('MusicScene');
             scene.scene.start('TitleScene');
         });
 
@@ -607,6 +648,7 @@ let GameScene = new Phaser.Class({
                     death_effect.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
                         death_effect.destroy();
                     });
+                    vampire_kill.play();
                     vampires_killed++;
                     if (LevelInfo.numVampires === vampires_killed) {
                         missionEnd(true);
@@ -673,7 +715,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, TitleScene, HowToPlayScene, CreditScene, GameScene ]
+    scene: [ LoadScene, TitleScene, HowToPlayScene, CreditScene, MusicScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
