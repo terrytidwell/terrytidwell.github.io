@@ -1,11 +1,7 @@
 const GRID_SIZE = 50;
-const GRID_COLS = 16;
 const GRID_ROWS = 10;
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 768;
-const BPM = 123;
-const ARTIST = "Doctor Vox";
-const SONG_NAME = "Frontier";
 
 const ARROW = {
     NONE: 0,
@@ -107,6 +103,45 @@ const COLORS = {
     }
 };
 
+/*
+1) BPM
+2) Song
+3) BG video
+4) column #
+5) block sprites
+6) grid sprite
+7) scanline color
+ */
+let Levels = [{
+    artist: "Doctor Vox",
+    song_name: "Frontier",
+    bpm: 123,
+    cols: 10,
+    bg_music: 'bg_music_2', //"assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4'",
+    bg_video: 'bg_video_2', //"assets/DOCTOR VOX - Frontier - (123bpm).mp3",
+    block_spritesheet: 'boxes2',
+    grey_arrow: 'grey_arrow2',
+    grid_spritesheet: 'grid2',
+    scanline_spritesheet: 'scanline_bar2',
+    scanline_tail_spritesheet: 'scanline_tail2',
+    player_controller_spritesheet: 'player_controller2'
+}, {
+    artist: "Arinity",
+    song_name: "Going Home",
+    bpm: 116,
+    cols: 16,
+    bg_music: 'bg_music_1', //"assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4'",
+    bg_video: 'bg_video_1', //"assets/DOCTOR VOX - Frontier - (123bpm).mp3",
+    block_spritesheet: 'boxes1',
+    grey_arrow: 'grey_arrow1',
+    grid_spritesheet: 'grid1',
+    scanline_spritesheet: 'scanline_bar1',
+    scanline_tail_spritesheet: 'scanline_tail1',
+    player_controller_spritesheet: 'player_controller1'
+}];
+let CurrentLevel = 1;
+
+
 let LoadScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -125,32 +160,32 @@ let LoadScene = new Phaser.Class({
             "0%", { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
             .setOrigin(0.5, 0.5);
 
-        //this.load.spritesheet('boxes', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
-        this.load.spritesheet('boxes', 'assets/Play Grid/SpriteSheet2.png', { frameWidth: 50, frameHeight: 50 });
-        //this.load.image('grid', 'assets/Play Grid/EmptyGrid01.png');
-        this.load.image('grid', 'assets/Play Grid/EmptyGrid2.png');
+        this.load.spritesheet('boxes1', 'assets/Boxes/Boxes2.png', { frameWidth: 50, frameHeight: 50 });
+        this.load.spritesheet('boxes2', 'assets/Play Grid/SpriteSheet2.png', { frameWidth: 50, frameHeight: 50 });
+        this.load.image('grid1', 'assets/Play Grid/EmptyGrid01.png');
+        this.load.image('grid2', 'assets/Play Grid/EmptyGrid2.png');
         this.load.image('start_01', 'assets/Play Grid/Start_01.png');
         this.load.image('start_02', 'assets/Play Grid/Start_02.png');
         this.load.image('start_03', 'assets/Play Grid/Start_03.png');
         this.load.image('start_start', 'assets/Play Grid/Start_start.png');
-        //this.load.image('player_controller', 'assets/Play Grid/PlayerController.png');
-        this.load.image('player_controller', 'assets/Play Grid/PlayerController2.png');
-        //this.load.image('grey_arrow', 'assets/Boxes/GreyArrow_Right.png');
-        this.load.image('grey_arrow', 'assets/Play Grid/GreyArrow.png');
+        this.load.image('player_controller1', 'assets/Play Grid/PlayerController.png');
+        this.load.image('player_controller2', 'assets/Play Grid/PlayerController2.png');
+        this.load.image('grey_arrow1', 'assets/Boxes/GreyArrow_Right.png');
+        this.load.image('grey_arrow2', 'assets/Play Grid/GreyArrow.png');
         this.load.image('grey_box', 'assets/Boxes/Grey_Single.png');
         this.load.image('scanline', 'assets/Play Grid/R_Scanline.png');
-        //this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v3_Bar.png');
-        this.load.image('scanline_bar', 'assets/Play Grid/Scanline_v2_Bar.png');
-        //this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v3_Trail.png');
-        this.load.image('scanline_tail', 'assets/Play Grid/Scanline_v2_Trail.png');
+        this.load.image('scanline_bar1', 'assets/Play Grid/Scanline_v3_Bar.png');
+        this.load.image('scanline_bar2', 'assets/Play Grid/Scanline_v2_Bar.png');
+        this.load.image('scanline_tail1', 'assets/Play Grid/Scanline_v3_Trail.png');
+        this.load.image('scanline_tail2', 'assets/Play Grid/Scanline_v2_Trail.png');
         this.load.image('menu', 'assets/ScanlineMenu_v2.png');
         this.load.image('bonus_box', 'assets/Play Grid/BonusBox.png');
         this.load.image('combo_box', 'assets/Play Grid/ComboBox.png');
         this.load.image('score_box', 'assets/Play Grid/ScoreBox.png');
-        //this.load.video('bg_video','assets/Play Grid/Background Video/dynamic lines.mp4');
-        this.load.video('bg_video','assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4');
-        //this.load.audio('bg_music', ['assets/Arinity - Going Home.mp3']);
-        this.load.audio('bg_music', ['assets/DOCTOR VOX - Frontier - (123bpm).mp3']);
+        this.load.video('bg_video_1','assets/Play Grid/Background Video/dynamic lines.mp4');
+        this.load.video('bg_video_2','assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4');
+        this.load.audio('bg_music_1', ['assets/Arinity - Going Home.mp3']);
+        this.load.audio('bg_music_2', ['assets/DOCTOR VOX - Frontier - (123bpm).mp3']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -191,8 +226,7 @@ let TitleScene = new Phaser.Class({
         let menu = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'menu');
         menu.setInteractive();
         menu.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function() {
-            scene.scene.start('GameScene');
-            scene.scene.stop('TitleScene');
+            scene.scene.start('LevelSelectScene');
         });
     },
 
@@ -200,6 +234,55 @@ let TitleScene = new Phaser.Class({
     update: function() {
     },
 });
+
+let addButton = (text, handler) => {
+    text.setAlpha(0.5);
+    text.setInteractive();
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
+        text.setAlpha(1);
+    });
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+        text.setAlpha(0.5);
+    });
+    text.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, handler);
+};
+
+let LevelSelectScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'LevelSelectScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        let offset = 0;
+        for (let level of Levels) {
+            let text = scene.add.text(SCREEN_WIDTH/2, GRID_SIZE + offset * GRID_SIZE,
+                level.song_name + " by " + level.artist,
+                { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
+                .setOrigin(0.5, 0.5);
+            let current_offset = offset;
+            addButton(text, () => {
+                CurrentLevel = current_offset;
+                scene.scene.start('GameScene');
+            })
+            offset++;
+        }
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
 
 let ScoreScene = new Phaser.Class( {
     Extends: Phaser.Scene,
@@ -248,12 +331,12 @@ let GameScene = new Phaser.Class({
     },
 
     //--------------------------------------------------------------------------
-    preload: function () {
-    },
+    preload: function () {},
 
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+        let level = Levels[CurrentLevel];
         let grid_offset = 1 * GRID_SIZE;
         let score_strip_offset = grid_offset + GRID_SIZE/2;
 
@@ -261,7 +344,7 @@ let GameScene = new Phaser.Class({
         //FUNCTIONS
         //----------------------------------------------------------------------
         let gridX = function(x) {
-            let dx = x - GRID_COLS / 2;
+            let dx = x - level.cols / 2;
             return SCREEN_WIDTH/2 + dx * GRID_SIZE + 23;
         };
 
@@ -275,7 +358,7 @@ let GameScene = new Phaser.Class({
         };
 
         let xLegal = function(x) {
-            return x >= 0 && x < GRID_COLS;
+            return x >= 0 && x < level.cols;
         };
 
         let gridLegal = function(x, y) {
@@ -298,7 +381,7 @@ let GameScene = new Phaser.Class({
                 let flipX = CONNECTION.flipX(connection);
                 let flipY = CONNECTION.flipY(connection);
                 let rotation = CONNECTION.rotation(connection);
-                square.setTexture('boxes', color*9 + offset).setFlipX(flipX).setFlipY(flipY);
+                square.setTexture(level.block_spritesheet, color*9 + offset).setFlipX(flipX).setFlipY(flipY);
                 square.rotation = rotation;
                 square.setVisible(true);
             } else {
@@ -306,14 +389,14 @@ let GameScene = new Phaser.Class({
                     square.setTexture('grey_box');
                     square.setVisible(false);
                 } else {
-                    square.setTexture('grey_arrow')
+                    square.setTexture(level.grey_arrow)
                         .setFlipX(ARROW.LEFT === square.data.values.arrow);
                     if (COLORS.isColor(square.data.values.arrow_color)) {
                         let offset = 4;
                         if (square.data.values.locked) {
                             offset += 4;
                         }
-                        square.setTexture('boxes', square.data.values.arrow_color*9 + offset);
+                        square.setTexture(level.block_spritesheet, square.data.values.arrow_color*9 + offset);
                     }
                     square.setVisible(true);
                 }
@@ -337,7 +420,7 @@ let GameScene = new Phaser.Class({
 
         scene.__gravity = function() {
             for (let y = GRID_ROWS - 1; y > 0; y--) {
-                for(let x = 0; x < GRID_COLS; x++) {
+                for(let x = 0; x < level.cols; x++) {
                     let square = grid[x][y];
                     let blank = square.data.values.color === COLORS.COLORLESS &&
                         square.data.values.arrow === ARROW.NONE;
@@ -517,7 +600,7 @@ let GameScene = new Phaser.Class({
         let scan_grid = function() {
             //clear all unlocked blocks
             for (let y = 0; y < GRID_ROWS; y++) {
-                for (let x = 0; x < GRID_COLS; x++) {
+                for (let x = 0; x < level.cols; x++) {
                     if (!grid[x][y].data.values.locked &&
                         COLORS.isColor(grid[x][y].data.values.color)) {
                         grid[x][y].setData('connection', CONNECTION.NONE);
@@ -528,7 +611,7 @@ let GameScene = new Phaser.Class({
 
             //look for grey arrows
             for (let y = 0; y < GRID_ROWS; y++) {
-               for (let x = 0; x < GRID_COLS; x++) {
+               for (let x = 0; x < level.cols; x++) {
                     let square = grid[x][y];
                     let color = square.data.values.color;
                     let arrow = square.data.values.arrow;
@@ -557,7 +640,7 @@ let GameScene = new Phaser.Class({
             }
 
             for (let y = 0; y < GRID_ROWS; y++) {
-                for (let x = 0; x < GRID_COLS; x++) {
+                for (let x = 0; x < level.cols; x++) {
                     let square = grid[x][y];
                     let color = square.data.values.color;
                     let arrow = square.data.values.arrow;
@@ -578,7 +661,7 @@ let GameScene = new Phaser.Class({
             }
 
             for (let y = 0; y < GRID_ROWS; y++) {
-                for(let x = 0; x < GRID_COLS; x++) {
+                for(let x = 0; x < level.cols; x++) {
                     let square = grid[x][y];
                     set_block_texture(square);
                 }
@@ -630,7 +713,7 @@ let GameScene = new Phaser.Class({
 
         let add_line = function() {
             for (let y = 0; y < GRID_ROWS; y++) {
-                for(let x = 0; x < GRID_COLS; x++) {
+                for(let x = 0; x < level.cols; x++) {
                     //two things on most rows we...
                     if (y + 1 < GRID_ROWS) {
                         //...shift squares up, but...
@@ -648,7 +731,7 @@ let GameScene = new Phaser.Class({
         };
 
         let remove_n_blocks_from_line = function(y, number) {
-            let indexes = Phaser.Utils.Array.NumberArray(0, GRID_COLS-1);
+            let indexes = Phaser.Utils.Array.NumberArray(0, level.cols-1);
             Phaser.Utils.Array.Shuffle(indexes);
             number = Math.min(number, indexes.length);
             for (let i = 0; i < number; i++) {
@@ -667,19 +750,19 @@ let GameScene = new Phaser.Class({
             scene.tweens.add({
                 targets: [scanline, scanline_tail],
                 x: gridX(scanlineX + DIRECTION.dx(scanlineDirection)),
-                duration: 60 * 1000 / BPM
+                duration: 60 * 1000 / level.bpm
             });
             scene.tweens.add({
                 targets: [scanline],
                 alpha: 0.85,
                 yoyo: true,
-                duration: 60 * 1000 / BPM / 2
+                duration: 60 * 1000 / level.bpm / 2
             });
             scene.tweens.add({
                 targets: [scanline_tail],
                 alpha: 0.65,
                 yoyo: true,
-                duration: 60 * 1000 / BPM / 2
+                duration: 60 * 1000 / level.bpm / 2
             });
         };
 
@@ -834,13 +917,13 @@ let GameScene = new Phaser.Class({
         let grid = [];
         let afterglow_pool = [];
 
-        scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_video').play(true);
-        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + grid_offset, 'grid');
+        scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, level.bg_video).play(true);
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + grid_offset, level.grid_spritesheet);
         scene.add.sprite(SCREEN_WIDTH/2, score_strip_offset,'score_box').setScale(0.75);
         scene.add.sprite(SCREEN_WIDTH/2 + 8 * GRID_SIZE, score_strip_offset,'bonus_box').setScale(0.75);
         scene.add.sprite(SCREEN_WIDTH/2 - 8 * GRID_SIZE, score_strip_offset,'combo_box').setScale(0.75);
 
-        for (let x = 0; x < GRID_COLS; x++)
+        for (let x = 0; x < level.cols; x++)
         {
             grid.push([]);
             for (let y = 0; y < GRID_ROWS; y++)
@@ -851,31 +934,31 @@ let GameScene = new Phaser.Class({
             }
         }
 
-        let playerX = GRID_COLS/2 - 1;
+        let playerX = level.cols/2 - 1;
         let playerY = GRID_ROWS - 1;
-        let player = scene.add.sprite(0,0,'player_controller');
+        let player = scene.add.sprite(0,0,level.player_controller_spritesheet);
         //reconcile sprite to playerX, playerY
         move_character(DIRECTION.NONE);
 
         let scanlineX = 0;
         let scanlineDirection = DIRECTION.RIGHT;
-        let scanline_tail = scene.add.sprite(0,0,'scanline_tail')
+        let scanline_tail = scene.add.sprite(0,0,level.scanline_tail_spritesheet)
             .setOrigin(1, 0.5)
             .setScale(583/818);
-        let scanline = scene.add.sprite(0,0,'scanline_bar')
+        let scanline = scene.add.sprite(0,0,level.scanline_spritesheet)
             .setScale(583/818);
 
 
         //add_test_line();
 
         add_line();
-        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .75));
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(level.cols * .75));
 
         add_line();
-        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .50));
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(level.cols * .50));
 
         add_line();
-        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(GRID_COLS * .25));
+        remove_n_blocks_from_line(GRID_ROWS - 1, Math.round(level.cols * .25));
 
         add_line();
         /*
@@ -947,7 +1030,7 @@ let GameScene = new Phaser.Class({
         let start = function () {
             set_scanline();
             let scanline_event = scene.time.addEvent({
-                "delay": 60 * 1000 / BPM,
+                "delay": 60 * 1000 / level.bpm,
                 "loop": true,
                 "callback": update_scanline
             });
@@ -967,7 +1050,7 @@ let GameScene = new Phaser.Class({
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             scene.space_key.on('down', try_selection);
 
-            let music = scene.sound.add('bg_music', {loop: false });
+            let music = scene.sound.add(level.bg_music, {loop: false });
             let finish = function() {
                 scanline_event.remove();
                 scene.m_cursor_keys.down.off('down');
@@ -1041,11 +1124,11 @@ let GameScene = new Phaser.Class({
             music.play();
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                SONG_NAME,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
+                level.song_name,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let artist_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
-                'By ' + ARTIST,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
+                'By ' + level.artist,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
                 .setOrigin(0,1)
                 .setAlpha(0);
             let title_timeline = scene.tweens.createTimeline()
@@ -1116,7 +1199,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, TitleScene, GameScene, ScoreScene ]
+    scene: [ LoadScene, TitleScene, LevelSelectScene, GameScene, ScoreScene ]
 };
 
 game = new Phaser.Game(config);
