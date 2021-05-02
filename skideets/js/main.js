@@ -186,6 +186,12 @@ let LoadScene = new Phaser.Class({
         this.load.video('bg_video_2','assets/Play Grid/Background Video/Level 2 Bgvid_10mb.mp4');
         this.load.audio('bg_music_1', ['assets/Arinity - Going Home.mp3']);
         this.load.audio('bg_music_2', ['assets/DOCTOR VOX - Frontier - (123bpm).mp3']);
+        this.load.audio('sl_move', ['assets/SFX/sl_move.wav']);
+        this.load.audio('sl_swap', ['assets/SFX/sl_swap.wav']);
+        this.load.audio('sl_count', ['assets/SFX/sl_count.wav']);
+        this.load.audio('sl_start', ['assets/SFX/sl_start.wav']);
+        this.load.audio('sl_scan', ['assets/SFX/sl_scan.wav']);
+        this.load.audio('sl_remove', ['assets/SFX/sl_remove.wav']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -282,7 +288,6 @@ let LevelSelectScene = new Phaser.Class({
     update: function() {
     },
 });
-
 
 let ScoreScene = new Phaser.Class( {
     Extends: Phaser.Scene,
@@ -683,10 +688,14 @@ let GameScene = new Phaser.Class({
 
             if (try_swap_squares(left_square,right_square)) {
                 scan_grid();
+                sl_swap.play();
             }
         };
 
-        let move_character = function (direction) {
+        let move_character = function (direction, surpress_sound = false) {
+            if (!surpress_sound) {
+                sl_move.play();
+            }
             let newX = playerX + DIRECTION.dx(direction);
             let newY = playerY + DIRECTION.dy(direction);
             if (!xLegal(newX) ||
@@ -727,7 +736,7 @@ let GameScene = new Phaser.Class({
                 }
                 scan_grid();
             }
-            move_character(DIRECTION.UP);
+            move_character(DIRECTION.UP, true);
         };
 
         let remove_n_blocks_from_line = function(y, number) {
@@ -783,6 +792,7 @@ let GameScene = new Phaser.Class({
                         for (let step of square.data.values.path.steps) {
                             step.square.setData('locked', true);
                         }
+                        sl_scan.play()
                         active_lines.push({start_x: x, start_y:y, path: square.data.values.path});
                     }
                     scan_grid();
@@ -800,6 +810,7 @@ let GameScene = new Phaser.Class({
             squares_cleared: 0,
         };
         let clear_line = function(active_line) {
+            sl_remove.play();
             clear_stats.line_count++;
             clear_stats.squares_cleared += active_line.path.steps.length;
             let delta = calculate_score(active_line.path.steps.length);
@@ -922,6 +933,12 @@ let GameScene = new Phaser.Class({
         scene.add.sprite(SCREEN_WIDTH/2, score_strip_offset,'score_box').setScale(0.75);
         scene.add.sprite(SCREEN_WIDTH/2 + 8 * GRID_SIZE, score_strip_offset,'bonus_box').setScale(0.75);
         scene.add.sprite(SCREEN_WIDTH/2 - 8 * GRID_SIZE, score_strip_offset,'combo_box').setScale(0.75);
+        let sl_move = scene.sound.add('sl_move', {loop: false });
+        let sl_swap = scene.sound.add('sl_swap', {loop: false });
+        let sl_count = scene.sound.add('sl_count', {loop: false });
+        let sl_start = scene.sound.add('sl_start', {loop: false });
+        let sl_scan = scene.sound.add('sl_scan', {loop: false });
+        let sl_remove = scene.sound.add('sl_remove', {loop: false });
 
         for (let x = 0; x < level.cols; x++)
         {
@@ -1000,18 +1017,22 @@ let GameScene = new Phaser.Class({
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2,
             'start_03');
+        sl_count.play();
 
         scene.time.delayedCall(1000,function() {
+            sl_count.play();
             start_text.setTexture('start_02');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
         });
         scene.time.delayedCall(2000,function() {
+            sl_count.play();
             start_text.setTexture('start_01');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
         });
         scene.time.delayedCall(3000,function() {
+            sl_start.play();
             start_text.setTexture('start_start');
             fade_screen.height -= 4*GRID_SIZE;
             fade_screen.y += 2*GRID_SIZE;
