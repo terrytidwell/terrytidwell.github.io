@@ -271,22 +271,21 @@ let LevelSelectScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
-        let offset = 0;
-        let text = scene.add.text(2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+        let text = scene.add.text(2*GRID_SIZE, GRID_SIZE,
             'STAGE',
             { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
             .setOrigin(0, 0.5);
-        scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+        scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, GRID_SIZE,
             'TOP SCORE',
             { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
             .setOrigin(1, 0.5);
-        offset = 1;
+        let offset = 0;
         for (let level of Levels) {
-            let text = scene.add.text(2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+            let text = scene.add.text(2*GRID_SIZE, 2*GRID_SIZE + offset * GRID_SIZE,
                 level.song_name + " by " + level.artist,
                 { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
                 .setOrigin(0, 0.5);
-            scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+            scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, 2*GRID_SIZE + offset * GRID_SIZE,
                 level.top_score === 0 ? '-' : level.top_score,
                 { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
                 .setOrigin(1, 0.5);
@@ -1165,6 +1164,7 @@ let GameScene = new Phaser.Class({
 
                 scoring_timeline.play();
             };
+            //scene.time.delayedCall(25000, finish);
             music.once(Phaser.Sound.Events.COMPLETE, finish);
             music.play();
 
