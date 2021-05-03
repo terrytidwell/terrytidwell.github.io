@@ -1023,7 +1023,8 @@ let GameScene = new Phaser.Class({
             '' +  score + '',
             {font: '' + GRID_SIZE*3/4 + 'px the_ovd', fill: '#FFFFFF'})
             .setOrigin(0.5, 0.5)
-            .setAlpha(0.7);
+            .setAlpha(0.7)
+            .setStroke('#000000', GRID_SIZE/12);;
 
         let fade_screen = scene.add.rectangle(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.5);
