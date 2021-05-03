@@ -124,7 +124,8 @@ let Levels = [{
     grid_spritesheet: 'grid2',
     scanline_spritesheet: 'scanline_bar2',
     scanline_tail_spritesheet: 'scanline_tail2',
-    player_controller_spritesheet: 'player_controller2'
+    player_controller_spritesheet: 'player_controller2',
+    top_score: 0,
 }, {
     artist: "Arinity",
     song_name: "Going Home",
@@ -137,7 +138,8 @@ let Levels = [{
     grid_spritesheet: 'grid1',
     scanline_spritesheet: 'scanline_bar1',
     scanline_tail_spritesheet: 'scanline_tail1',
-    player_controller_spritesheet: 'player_controller1'
+    player_controller_spritesheet: 'player_controller1',
+    top_score: 0,
 }];
 let CurrentLevel = 1;
 
@@ -270,11 +272,24 @@ let LevelSelectScene = new Phaser.Class({
     create: function () {
         let scene = this;
         let offset = 0;
+        let text = scene.add.text(2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+            'STAGE',
+            { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
+            .setOrigin(0, 0.5);
+        scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+            'TOP SCORE',
+            { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
+            .setOrigin(1, 0.5);
+        offset = 1;
         for (let level of Levels) {
-            let text = scene.add.text(SCREEN_WIDTH/2, GRID_SIZE + offset * GRID_SIZE,
+            let text = scene.add.text(2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
                 level.song_name + " by " + level.artist,
                 { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
-                .setOrigin(0.5, 0.5);
+                .setOrigin(0, 0.5);
+            scene.add.text(SCREEN_WIDTH - 2*GRID_SIZE, GRID_SIZE + offset * GRID_SIZE,
+                level.top_score === 0 ? '-' : level.top_score,
+                { font: GRID_SIZE+ 'px xolonium', fill: '#FFF' })
+                .setOrigin(1, 0.5);
             let current_offset = offset;
             addButton(text, () => {
                 CurrentLevel = current_offset;
@@ -1136,8 +1151,17 @@ let GameScene = new Phaser.Class({
                     current_offset++;
                 };
                 add_stat('SCORE:', clear_stats.true_score);
+                level.top_score = Math.max(level.top_score, clear_stats.true_score)
                 add_stat('LINES CLEARED:', clear_stats.line_count);
                 add_stat('SQUARES CLEARED:', clear_stats.squares_cleared);
+                scoring_timeline.setCallback('onComplete', () => {
+                    let continue_text = scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT * 7/8, 'CLICK TO CONTINUE',
+                        { font: GRID_SIZE/2 + 'px xolonium', fill: '#FFF' })
+                        .setOrigin(0.5, 0.5);
+                    addButton(continue_text, () => {
+                        scene.scene.start('LevelSelectScene');
+                    });
+                });
 
                 scoring_timeline.play();
             };
