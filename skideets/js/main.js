@@ -942,7 +942,8 @@ let GameScene = new Phaser.Class({
         let grid = [];
         let afterglow_pool = [];
 
-        scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, level.bg_video).play(true);
+        let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, level.bg_video);
+        video.play(true);
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + grid_offset, level.grid_spritesheet);
         scene.add.sprite(SCREEN_WIDTH/2, score_strip_offset,'score_box').setScale(0.75);
         scene.add.sprite(SCREEN_WIDTH/2 + 8 * GRID_SIZE, score_strip_offset,'bonus_box').setScale(0.75);
@@ -1085,8 +1086,10 @@ let GameScene = new Phaser.Class({
             });
             scene.space_key = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
             scene.space_key.on('down', try_selection);
+            scene.slow_mo_key = scene.input.keyboard.addKey('q');
+            scene.slow_mo_key.on('down', scene.__bulletTime.toggle);
 
-            let music = scene.sound.add(level.bg_music, {loop: false });
+            scene.__music = scene.sound.add(level.bg_music, {loop: false });
             let finish = function() {
                 scanline_event.remove();
                 scene.m_cursor_keys.down.off('down');
@@ -1094,8 +1097,9 @@ let GameScene = new Phaser.Class({
                 scene.m_cursor_keys.right.off('down');
                 scene.m_cursor_keys.up.off('down');
                 scene.space_key.off('down');
+                scene.slow_mo_key.off('down');
 
-                music.stop();
+                scene.__music.stop();
 
                 let bg = scene.add.rectangle(SCREEN_WIDTH/2-SCREEN_WIDTH, SCREEN_HEIGHT/2,
                     SCREEN_WIDTH, SCREEN_HEIGHT * 7/8, 0x000000, 0.8);
@@ -1166,8 +1170,8 @@ let GameScene = new Phaser.Class({
                 scoring_timeline.play();
             };
             //scene.time.delayedCall(25000, finish);
-            music.once(Phaser.Sound.Events.COMPLETE, finish);
-            music.play();
+            scene.__music.once(Phaser.Sound.Events.COMPLETE, finish);
+            scene.__music.play();
 
             let title_text = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
                 level.song_name,{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
@@ -1211,7 +1215,37 @@ let GameScene = new Phaser.Class({
                 alpha: 0
             });
             title_timeline.play();
-        }
+        };
+
+        scene.__bulletTime = (() => {
+            let on = false;
+            let time_scale = 0.5;
+            let toggle = () => {
+                set(!on);
+            };
+            let set = (bullet_time) => {
+                on = bullet_time;
+                if (on) {
+                    scene.tweens.timeScale = time_scale;
+                    scene.anims.globalTimeScale = time_scale;
+                    scene.physics.world.timeScale = 1/time_scale;
+                    scene.time.timeScale = time_scale;
+                    scene.__music.setRate(time_scale);
+                    video.setPlaybackRate(time_scale);
+                } else {
+                    scene.tweens.timeScale = 1;
+                    scene.anims.globalTimeScale = 1;
+                    scene.physics.world.timeScale = 1;
+                    scene.time.timeScale = 1;
+                    scene.__music.setRate(1);
+                    video.setPlaybackRate(1);
+                }
+            };
+            return {
+                toggle: toggle,
+                set: set
+            };
+        })();
 
     },
 
