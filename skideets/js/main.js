@@ -358,6 +358,9 @@ let GameScene = new Phaser.Class({
         let level = Levels[CurrentLevel];
         let grid_offset = 1 * GRID_SIZE;
         let score_strip_offset = grid_offset + GRID_SIZE/2;
+        let updateables = scene.add.group({
+            runChildUpdate: true,
+        });
 
         //----------------------------------------------------------------------
         //FUNCTIONS
@@ -1090,6 +1093,17 @@ let GameScene = new Phaser.Class({
             scene.slow_mo_key.on('down', scene.__bulletTime.toggle);
 
             scene.__music = scene.sound.add(level.bg_music, {loop: false });
+            let remaining_time = scene.add.text(SCREEN_WIDTH, SCREEN_HEIGHT,
+                '0:00',{ font: GRID_SIZE*3/4 + 'px xolonium', fill: '#FFF' })
+                .setOrigin(1,1)
+                .setAlpha(0.7);
+            remaining_time.update = () => {
+                let remaining = scene.__music.totalDuration - scene.__music.seek;
+                let min_remaining = Math.floor(remaining/60);
+                let sec_remaining = Math.floor(remaining) % 60;
+                remaining_time.setText('' + min_remaining + ':' + (sec_remaining < 10 ? '0' : '') + sec_remaining);
+            };
+            updateables.add(remaining_time);
             let finish = function() {
                 scanline_event.remove();
                 scene.m_cursor_keys.down.off('down');
