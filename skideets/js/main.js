@@ -973,7 +973,7 @@ let GameScene = new Phaser.Class({
         let playerY = GRID_ROWS - 1;
         let player = scene.add.sprite(0,0,level.player_controller_spritesheet);
         //reconcile sprite to playerX, playerY
-        move_character(DIRECTION.NONE);
+        move_character(DIRECTION.NONE, true);
 
         let scanlineX = 0;
         let scanlineDirection = DIRECTION.RIGHT;
@@ -1098,6 +1098,10 @@ let GameScene = new Phaser.Class({
                 .setOrigin(1,1)
                 .setAlpha(0.7);
             remaining_time.update = () => {
+                if (!scene.__music.isPlaying) {
+                    remaining_time.setText('0:00');
+                    return;
+                }
                 let remaining = scene.__music.totalDuration - scene.__music.seek;
                 let min_remaining = Math.floor(remaining/60);
                 let sec_remaining = Math.floor(remaining) % 60;
