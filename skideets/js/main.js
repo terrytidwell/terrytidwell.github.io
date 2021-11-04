@@ -392,6 +392,7 @@ let GameScene = new Phaser.Class({
             square.setFlipX(false);
             square.setFlipY(false);
             square.setVisible(false);
+            square.setAlpha(0.75);
             square.rotation = 0;
             let color = square.data.values.color;
             if (COLORS.isColor(color)) {
@@ -399,6 +400,7 @@ let GameScene = new Phaser.Class({
                 let offset = CONNECTION.offset(connection);
                 if (square.data.values.locked) {
                     offset += 4;
+                    square.setAlpha(1);
                 }
                 let flipX = CONNECTION.flipX(connection);
                 let flipY = CONNECTION.flipY(connection);
@@ -417,6 +419,7 @@ let GameScene = new Phaser.Class({
                         let offset = 4;
                         if (square.data.values.locked) {
                             offset += 4;
+                            square.setAlpha(1);
                         }
                         square.setTexture(level.block_spritesheet, square.data.values.arrow_color*9 + offset);
                     }
@@ -686,6 +689,9 @@ let GameScene = new Phaser.Class({
                 for(let x = 0; x < level.cols; x++) {
                     let square = grid[x][y];
                     set_block_texture(square);
+                    if (x === scanlineX) {
+                        square.setAlpha(1);
+                    }
                 }
             }
         };
@@ -944,6 +950,7 @@ let GameScene = new Phaser.Class({
 
         let grid = [];
         let afterglow_pool = [];
+        let scanlineX = 0;
 
         let video = scene.add.video(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, level.bg_video);
         video.play(true);
@@ -975,7 +982,7 @@ let GameScene = new Phaser.Class({
         //reconcile sprite to playerX, playerY
         move_character(DIRECTION.NONE, true);
 
-        let scanlineX = 0;
+
         let scanlineDirection = DIRECTION.RIGHT;
         let scanline_tail = scene.add.sprite(0,0,level.scanline_tail_spritesheet)
             .setOrigin(1, 0.5)
