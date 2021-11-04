@@ -165,6 +165,10 @@ let GameScene = new Phaser.Class({
         let current = [];
         let buttons = [];
         let BUTTONS_TO_REVEAL = 5;
+        let choose_boxes = [
+            scene.add.rectangle(0,0,GRID_SIZE,GRID_SIZE,0x8080ff, 0.75).setVisible(false),
+            scene.add.rectangle(0,0,GRID_SIZE,GRID_SIZE,0x8080ff, 0.75).setVisible(false)
+        ];
         let text = scene.add.text(
             SCREEN_WIDTH, SCREEN_HEIGHT,
             '' + BUTTONS_TO_REVEAL +"/81", { font: GRID_SIZE + 'px Eczar-Regular', fill: '#FFF' })
@@ -180,6 +184,8 @@ let GameScene = new Phaser.Class({
                     rectangle.data.values.show(false);
                 }
                 rectangle.setInteractive();
+                rectangle.setData('chosen',false);
+
                 rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
                     rectangle.setFillStyle(0xFFFFFF, 0.5);
                 });
@@ -187,11 +193,22 @@ let GameScene = new Phaser.Class({
                     rectangle.setFillStyle(0xFFFFFF, 0);
                 });
                 rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function() {
-                    if (current.length < 2) {
-                        current.push(rectangle.data.values.card);
+                    if (current.length < 2 && rectangle.data.values.shapes[0].visible) {
+                        if (!rectangle.data.values.chosen) {
+                            rectangle.setData('chosen', true);
+                            choose_boxes[current.length].setPosition(rectangle.x - GRID_SIZE * 3 / 8, rectangle.y - GRID_SIZE * 3 / 8);
+                            choose_boxes[current.length].setSize(rectangle.width + GRID_SIZE / 4, rectangle.height + GRID_SIZE / 4);
+                            choose_boxes[current.length].setVisible(true);
+                            current.push(rectangle);
+                        } else {
+                            choose_boxes[0].setVisible(false);
+                            rectangle.setData('chosen', false)
+                            current = [];
+                        }
                     }
                     if (current.length == 2) {
-                        let cardToReveal = scene.__completingCard(current[0], current[1]);
+                        let cardToReveal = scene.__completingCard(current[0].data.values.card,
+                            current[1].data.values.card);
                         let count = 0;
                         for (button of buttons) {
                             if (cardToReveal.cardinality === button.data.values.card.cardinality &&
@@ -214,6 +231,10 @@ let GameScene = new Phaser.Class({
                                 count++;
                             }
                         }
+                        current[0].setData('chosen', false);
+                        current[1].setData('chosen', false);
+                        choose_boxes[0].setVisible(false);
+                        choose_boxes[1].setVisible(false);
                         current = [];
                         text.setText(''+count+'/81');
                     }
