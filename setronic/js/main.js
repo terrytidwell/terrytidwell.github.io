@@ -8,6 +8,17 @@ const DEPTHS = {
     CARD: 1000,
     SHAPES: 2000,
 };
+const PROPERTIES = [
+    'cardinality',
+    'shape',
+    'fill',
+    'color'
+];
+const COMPLETION = [
+    [0, 2, 1],
+    [2, 1, 0],
+    [1, 0, 2]
+];
 
 let LoadScene = new Phaser.Class({
 
@@ -65,60 +76,77 @@ let GameScene = new Phaser.Class({
         //FUNCTIONS
         //----------------------------------------------------------------------
 
-        scene.__addCard = function(x, y, cardinality, shape, fill, color, scale = 2) {
-            let size = GRID_SIZE/2 * 3 * scale;
+        scene.__addCard = function(x, y, cardinality, shape, fill, color) {
+            let size = GRID_SIZE/2 * 3;
             let tile_shift = GRID_SIZE/2;
-            tile_shift *= scale;
-            scene.add.sprite(x, y, 'set', 29).setScale(scale);
-            scene.add.sprite(x - tile_shift, y, 'set', 28).setScale(scale);
-            let sprite = scene.add.sprite(x, y - tile_shift, 'set', 28).setScale(scale);
-            sprite.angle = 90;
-            sprite = scene.add.sprite(x, y + tile_shift, 'set', 28).setScale(scale);
-            sprite.angle = -90;
-            scene.add.sprite(x + tile_shift, y, 'set', 28).setScale(scale).setFlipX(true);
-            scene.add.sprite(x - tile_shift, y - tile_shift, 'set', 27).setScale(scale);
-            scene.add.sprite(x - tile_shift, y + tile_shift, 'set', 27)
-                .setScale(scale).setFlipY(true);
-            scene.add.sprite(x + tile_shift, y + tile_shift, 'set', 27)
-                .setScale(scale).setFlipY(true).setFlipX(true);
-            scene.add.sprite(x + tile_shift, y - tile_shift, 'set', 27)
-                .setScale(scale).setFlipX(true);
+            let highlight = scene.add.rectangle(0,0,size + GRID_SIZE/4,size + GRID_SIZE/4,0x8080ff, 0.75)
+                .setVisible(false);
+            let sprites = [
+                highlight,
+                scene.add.sprite(0, 0, 'set', 29),
+                scene.add.sprite(-tile_shift, 0, 'set', 28),
+                scene.add.sprite(0, -tile_shift, 'set', 28).setAngle(90),
+                scene.add.sprite(0, tile_shift, 'set', 28).setAngle(-90),
+                scene.add.sprite(tile_shift, 0, 'set', 28).setFlipX(true),
+                scene.add.sprite(-tile_shift, -tile_shift, 'set', 27),
+                scene.add.sprite(-tile_shift, tile_shift, 'set', 27)
+                    .setFlipY(true),
+                scene.add.sprite(tile_shift, tile_shift, 'set', 27)
+                    .setFlipY(true).setFlipX(true),
+                scene.add.sprite(tile_shift, -tile_shift, 'set', 27)
+                    .setFlipX(true),
+            ];
             let rectangle = scene.add.rectangle(x, y, size, size, 0xFFFFFF, 0);
+            sprites.push(rectangle);
             let card = shape * 9 + fill * 3 + color;
             let gap = GRID_SIZE/4 + GRID_SIZE/32;
-            gap *= scale;
             let shapes = [];
             if (cardinality == 0) {
-                shapes = [scene.add.sprite(x, y, 'set', card).setScale(scale*2)];
+                shapes = [scene.add.sprite(0, 0, 'set', card).setScale(2)];
             }
             if (cardinality == 1) {
                 shapes = [
-                    scene.add.sprite(x+gap, y, 'set', card).setScale(scale),
-                    scene.add.sprite(x-gap, y, 'set', card).setScale(scale)];
+                    scene.add.sprite(gap, 0, 'set', card),
+                    scene.add.sprite(-gap, 0, 'set', card)];
             }
             if (cardinality == 2) {
                 shapes = [
-                    scene.add.sprite(x, y - gap, 'set', card).setScale(scale),
-                    scene.add.sprite(x + gap, y + gap, 'set', card).setScale(scale),
-                    scene.add.sprite(x - gap, y + gap, 'set', card).setScale(scale)];
+                    scene.add.sprite(0, -gap, 'set', card),
+                    scene.add.sprite(gap, gap, 'set', card),
+                    scene.add.sprite(-gap, gap, 'set', card)];
             }
-            rectangle.setData('shapes', shapes);
-            rectangle.setData('show', function (bool) {
-                for (shape of shapes) {
+            for (let shape of shapes) {
+                sprites.push(shape);
+            }
+            let container = scene.add.container(x, y, sprites);
+            container.setData('shapes', shapes);
+            container.setData('isRevealed', function() {
+                return shapes[0].visible;
+            });
+            container.setData('show', function (bool) {
+                for (let shape of shapes) {
                     shape.setVisible(bool);
                 }
             });
-            rectangle.setData('card', {
+            container.setData('isChosen', function() {
+                return highlight.visible;
+            });
+            container.setData('setChosen', function(bool) {
+                return highlight.setVisible(bool);
+            });
+            container.setData('card', {
                 cardinality : cardinality,
                 shape : shape,
                 fill : fill,
                 color : color});
-            return rectangle;
+            container.setSize(size, size);
+            //rectangle.setFillStyle(0xFFFFFF, 0.5);
+            return container;
         };
 
         let CARDS = Phaser.Utils.Array.NumberArray(0, 80);
 
-        scene.__randomCardFromInteger = function(card) {
+        scene.__integerToCard = function(card) {
             let retVal = {};
             let value = Math.floor(card/27);
             card -= value * 27;
@@ -131,26 +159,33 @@ let GameScene = new Phaser.Class({
             retVal.fill = value;
             retVal.color = card;
             return retVal;
-        }
+        };
+
+        scene.__cardToInteger = function(card) {
+            return card.cardinality * 27 +
+                card.shape * 9 +
+                card.fill * 3 +
+                card.color;
+        };
 
         scene.__randomCard = function() {
-            return {
-                cardinality : Phaser.Math.Between(0,2),
-                shape : Phaser.Math.Between(0,2),
-                fill : Phaser.Math.Between(0,2),
-                color : Phaser.Math.Between(0,2),
-            };
+            let retVal = {};
+            for (let property of PROPERTIES) {
+                retVal[property] = Phaser.Math.Between(0,2);
+            }
+            return retVal;
+        };
+
+        scene.__randomCardExcluding = function(card) {
+            return scene.__integerToCard(
+                (scene.__cardToInteger(card)+Phaser.Math.Between(1,80)) % 81);
         };
 
         scene.__completingCard = function(card1, card2) {
-            let magic = [
-                [0, 2, 1],
-                [2, 1, 0],
-                [1, 0, 2]
-            ];
+
             let retVal = {};
-            for (property of ['cardinality','shape','fill','color']) {
-                retVal[property] = magic[card1[property]][card2[property]];
+            for (let property of PROPERTIES) {
+                retVal[property] = COMPLETION[card1[property]][card2[property]];
             }
             return retVal;
         };
@@ -165,52 +200,49 @@ let GameScene = new Phaser.Class({
         let current = [];
         let buttons = [];
         let BUTTONS_TO_REVEAL = 5;
-        let choose_boxes = [
-            scene.add.rectangle(0,0,GRID_SIZE,GRID_SIZE,0x8080ff, 0.75).setVisible(false),
-            scene.add.rectangle(0,0,GRID_SIZE,GRID_SIZE,0x8080ff, 0.75).setVisible(false)
-        ];
         let text = scene.add.text(
             SCREEN_WIDTH, SCREEN_HEIGHT,
             '' + BUTTONS_TO_REVEAL +"/81", { font: GRID_SIZE + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 1);
         Phaser.Utils.Array.Shuffle(CARDS);
-        for (x of [GRID_COLS/2 - 8, GRID_COLS/2 - 6, GRID_COLS/2 - 4, GRID_COLS/2 - 2, GRID_COLS/2, GRID_COLS/2 + 2, GRID_COLS/2 + 4, GRID_COLS/2 + 6, GRID_COLS/2 + 8]) {
-            for (y of [GRID_ROWS/2 - 8, GRID_ROWS/2 - 6, GRID_ROWS/2 - 4, GRID_ROWS/2 - 2, GRID_ROWS/2, GRID_ROWS/2 + 2, GRID_ROWS/2 + 4, GRID_ROWS/2 + 6, GRID_ROWS/2 + 8]) {
+        for (let x of [GRID_COLS/2 - 8, GRID_COLS/2 - 6, GRID_COLS/2 - 4, GRID_COLS/2 - 2, GRID_COLS/2, GRID_COLS/2 + 2, GRID_COLS/2 + 4, GRID_COLS/2 + 6, GRID_COLS/2 + 8]) {
+            for (let y of [GRID_ROWS/2 - 8, GRID_ROWS/2 - 6, GRID_ROWS/2 - 4, GRID_ROWS/2 - 2, GRID_ROWS/2, GRID_ROWS/2 + 2, GRID_ROWS/2 + 4, GRID_ROWS/2 + 6, GRID_ROWS/2 + 8]) {
                 if (count >= CARDS.length) { continue; }
-                let card = scene.__randomCardFromInteger(CARDS[count++]);
+                let card = scene.__integerToCard(CARDS[count++]);
                 let rectangle = scene.__addCard(scene.__gridX(x), scene.__gridY(y),
                     card.cardinality, card.shape, card.fill, card.color, 1);
                 if (count > BUTTONS_TO_REVEAL) {
                     rectangle.data.values.show(false);
                 }
                 rectangle.setInteractive();
-                rectangle.setData('chosen',false);
+                scene.input.setDraggable(rectangle);
+                scene.input.on('drag', function(pointer, gameObject, dragX, dragY) {
+                    gameObject.x = dragX;
+                    gameObject.y = dragY;
+                });
 
                 rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
-                    rectangle.setFillStyle(0xFFFFFF, 0.5);
+                    //rectangle.setFillStyle(0xFFFFFF, 0.5);
                 });
                 rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
-                    rectangle.setFillStyle(0xFFFFFF, 0);
+                    //rectangle.setFillStyle(0xFFFFFF, 0);
                 });
                 rectangle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, function() {
-                    if (current.length < 2 && rectangle.data.values.shapes[0].visible) {
-                        if (!rectangle.data.values.chosen) {
-                            rectangle.setData('chosen', true);
-                            choose_boxes[current.length].setPosition(rectangle.x - GRID_SIZE * 3 / 8, rectangle.y - GRID_SIZE * 3 / 8);
-                            choose_boxes[current.length].setSize(rectangle.width + GRID_SIZE / 4, rectangle.height + GRID_SIZE / 4);
-                            choose_boxes[current.length].setVisible(true);
+                    if (current.length < 2 && rectangle.data.values.isRevealed()) {
+                        if (!rectangle.data.values.isChosen()) {
+                            rectangle.data.values.setChosen(true);
                             current.push(rectangle);
                         } else {
-                            choose_boxes[0].setVisible(false);
-                            rectangle.setData('chosen', false)
+                            current[0].data.values.setChosen(false);
                             current = [];
                         }
                     }
+                    console.log(current.length);
                     if (current.length == 2) {
                         let cardToReveal = scene.__completingCard(current[0].data.values.card,
                             current[1].data.values.card);
                         let count = 0;
-                        for (button of buttons) {
+                        for (let button of buttons) {
                             if (cardToReveal.cardinality === button.data.values.card.cardinality &&
                                 cardToReveal.shape === button.data.values.card.shape &&
                                 cardToReveal.fill === button.data.values.card.fill &&
@@ -227,14 +259,12 @@ let GameScene = new Phaser.Class({
                                 }
                                 button.data.values.show(true);
                             }
-                            if (button.data.values.shapes[0].visible) {
+                            if (button.data.values.isRevealed()) {
                                 count++;
                             }
                         }
-                        current[0].setData('chosen', false);
-                        current[1].setData('chosen', false);
-                        choose_boxes[0].setVisible(false);
-                        choose_boxes[1].setVisible(false);
+                        current[0].data.values.setChosen(false);
+                        current[1].data.values.setChosen(false);
                         current = [];
                         text.setText(''+count+'/81');
                     }
