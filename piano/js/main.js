@@ -241,11 +241,16 @@ let GameScene = new Phaser.Class({
     create: function (data) {
         let scene = this;
 
+        //scene.lights.enable();
+
         let bg_image = scene.add.image(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg_image')
-            .setDepth(DEPTHS.BG);
+            .setDepth(DEPTHS.BG)
+        //    .setPipeline('Light2D');
+
+        //scene.lights.addLight(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_HEIGHT/2);
 
         //addBassClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
-        addTrebleClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
+        //addTrebleClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
 
         let current_note = 'undefined';
         let wrong_count = 0;
@@ -258,16 +263,34 @@ let GameScene = new Phaser.Class({
         };
 
         let current_evil_note;
-        let add_note = function() {
+
+        let add_treble_clef_note = function() {
+            let offset = Phaser.Math.Between(-6, 6);
+            current_note = ['A', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'G', 'F', 'E', 'D', 'C'][offset + 6];
+            return add_note_inner(offset, current_note);
+        };
+        let add_bass_clef_note = function() {
+            let offset = Phaser.Math.Between(-6, 6);
+            current_note = ['C', 'B', 'A', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'G', 'F', 'E'][offset + 6];
+            return add_note_inner(offset, current_note);
+        };
+
+        let add_note = add_treble_clef_note;
+        if (Phaser.Utils.Array.GetRandom([true, false])) {
+            addBassClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
+            add_note = add_bass_clef_note;
+        } else {
+             addTrebleClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
+        }
+
+        let add_note_inner = function(offset, current_note) {
             let note_speed = 16;
             let async_handler = asyncHandler(scene);
             let min_offset = SCREEN_WIDTH + SVG_SCALE * 16;
             let threshold = GRID_SIZE * 4;
             let min_dist = min_offset - threshold;
             let number_of_steps = Math.ceil(min_dist/(note_speed * SVG_SCALE));
-            let offset = Phaser.Math.Between(-6, 6);
-
-            current_note = ['A', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'G', 'F', 'E', 'D', 'C'][offset + 6];
+            let destroyed = false;
 
             let evil_note = scene.add.sprite(threshold + number_of_steps * note_speed * SVG_SCALE, SCREEN_HEIGHT / 2 + offset * 11 * SVG_SCALE, 'evil_note', 0)
                 .setScale(SVG_SCALE)
@@ -300,6 +323,10 @@ let GameScene = new Phaser.Class({
             note_move();
 
             let destroy = function () {
+                if (destroyed) {
+                    return;
+                }
+                destroyed = true;
                 async_handler.clear();
                 evil_note.play('evil_note_death_anim');
                 evil_note.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
