@@ -97,7 +97,7 @@ let addDeathEffect = function (scene, x, y) {
         .setDepth(DEPTHS.ENTITIES + Math.round(y) + .25)
         .play('death_effect_anim')
         .setFlipX(Phaser.Utils.Array.GetRandom([false, true]))
-        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function () {
+        .once(Phaser.Animations.Events.ANIMATION_COMPLETE, function () {
             death_effect.destroy();
         });
     return death_effect;
@@ -298,7 +298,7 @@ let addLaserEffect = function (scene, x, y, create, avatar_sprite, avatar_sprite
         .setAlpha(.75)
         .setScale(2)
         .setFlipX(laser_flip)
-        .once(Phaser.Animations.Events.SPRITE_ANIMATION_COMPLETE, function () {
+        .once(Phaser.Animations.Events.ANIMATION_COMPLETE, function () {
             Phaser.Utils.Array.Each(laser_effects, function (laser_effect) {
                 laser_effect.destroy();
             }, self);
@@ -1314,6 +1314,7 @@ let addPlayer = function (scene, x, y) {
 
     let character = scene.add.rectangle(0, 0, GRID_SIZE / 2, GRID_SIZE / 2, 0x00ff00, 0.0);
     scene.__updateables.add(character);
+    let player_stomp = scene.sound.add('player_stomp');
     let player_status = scene.scene.get('ControllerScene').__player_status;
     player_status.x = x;
     player_status.y = y;
@@ -1487,6 +1488,7 @@ let addPlayer = function (scene, x, y) {
             onComplete: function () {
                 player_status.playerMoveAllowed = true;
                 player_status.playerDangerous = false;
+                player_stomp.play();
                 if (scene.__shouldTransition(player_status.x, player_status.y)) {
                     tearDown();
                     scene.scene.get('ControllerScene').__transition();
@@ -1662,6 +1664,7 @@ let addPlayer = function (scene, x, y) {
                 player_status.z = tweenZ.getValue();
             },
             onComplete: function () {
+                player_stomp.play();
                 impact();
                 player_status.playerMoveAllowed = true;
                 player_status.playerGracePeriod = false;
@@ -1690,7 +1693,7 @@ let addFightSequence = function (scene, victory_condition) {
         fight_music.stop();
         victory_condition();
     };
-    let fight_music = scene.sound.add('fight_music', {loop: true});
+    let fight_music = scene.sound.add('fight_music', {loop: true, volume: 0.25});
     let start = function () {
         addMobCountGuard(0, fight_end);
         fight_music.play();

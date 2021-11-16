@@ -73,6 +73,7 @@ let LoadScene = new Phaser.Class({
         scene.load.spritesheet('keyhole', 'assets/keyhole.png', { frameWidth: 16, frameHeight: 16 });
         scene.load.spritesheet('lava', 'assets/lava.png', { frameWidth: 64, frameHeight: 64 });
         scene.load.spritesheet('speech_bubbles','assets/ImanorBalloon.png', { frameWidth: 16, frameHeight: 16 })
+        scene.load.audio('player_stomp', ['assets/impactWood_heavy_000.ogg']);
 
         scene.load.on('progress', function(percentage) {
             percentage = percentage * 100;
@@ -644,7 +645,7 @@ let GameScene = new Phaser.Class({
         scene.__mob_touchables = scene.physics.add.group();
         scene.__updateables = scene.add.group({
             runChildUpdate: true,
-        })
+        });
         scene.__mobs = scene.add.group();
 
         let room_info = scene.scene.get('ControllerScene').__world_info.current_info;
