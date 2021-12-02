@@ -17,6 +17,12 @@ const COLORS = {
     random: function() { return Phaser.Math.Between(0, 2); },
     color: function(color) { return [0xff0000, 0x00ff00, 0x0000ff][color]; },
 };
+const PLAYER_STATE = {
+    NORMAL: 0,
+    HIT: 1,
+    HIT_GRACE: 2,
+    HIT_GRACE: 3,
+}
 
 let LoadScene = new Phaser.Class({
 
@@ -119,6 +125,12 @@ let GameScene = new Phaser.Class({
             platforms.add(obstacle);
         }
 
+
+        scene.__character_state =
+        let player_damage = function() {
+
+        };
+
         let create_small_blob = function(scene) {
             let orientation = Phaser.Math.Between(0,1);
             let x = [Phaser.Math.Between(-.5 * SCREEN_WIDTH, 1.5*SCREEN_WIDTH),
@@ -138,7 +150,7 @@ let GameScene = new Phaser.Class({
                 let circle = new Phaser.Geom.Circle(
                     small_blob.x + radius,
                     small_blob.y + radius,
-                    radius)
+                    radius);
                 for (let n = 0; n < 15; n++)
                 {
                     let point = circle.getRandomPoint();
@@ -277,7 +289,7 @@ let GameScene = new Phaser.Class({
             scene.physics.add.collider(casing, platforms);
             mouse_vector.normalizeRightHand();
             let percent = Phaser.Math.Between(-40,0);
-            mouse_vector.rotate(percent/100)
+            mouse_vector.rotate(percent/100);
             percent = Phaser.Math.Between(50,100);
             casing.body.setVelocity(
                 mouse_vector.x * GRID_SIZE/16 * percent/100,
