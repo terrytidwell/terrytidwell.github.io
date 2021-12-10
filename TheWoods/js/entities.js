@@ -1,3 +1,10 @@
+let getRelativePositionToCanvas = (gameObject, camera) => {
+    return {
+        x: (gameObject.x - camera.worldView.x) * camera.zoom,
+        y: (gameObject.y - camera.worldView.y) * camera.zoom
+    }
+};
+
 let asyncHandler = function (scene) {
     let self = this;
     let m_tweens = [];
@@ -301,16 +308,21 @@ let addDog = (scene, x, y) => {
 };
 
 let addPlayer = (scene, x, y) => {
-    //offsets for a 14x14 object
-    let object_running_offset = [-18, -19, -18, -16, -18, -19, -18, -16];
-    let object_idle_offset = -17;
+    let object_running_offset = [-11, -12, -11, -9, -11, -12, -11, -9];
+    let object_idle_offset = -10;
     let character_sprite = scene.add.sprite(0, -12 * SPRITE_SCALE, 'character', 8)
         .setScale(SPRITE_SCALE);
     let object = scene.add.sprite(0, object_idle_offset*SPRITE_SCALE, 'objects', 0)
         .setScale(SPRITE_SCALE)
+        .setOrigin(0.5, 1)
         .setVisible(false);
+    let ui_icon = scene.add.sprite(16*SPRITE_SCALE, -17*SPRITE_SCALE, 'ui', 1)
+        .setScale(SPRITE_SCALE)
+        .setVisible(false)
+        .setDepth(DEPTHS.UI);
 
-    let solid_box = scene.add.container(x, y, [character_sprite, object]);
+
+    let solid_box = scene.add.container(x, y, [character_sprite, object, ui_icon]);
     solid_box.setSize(8*SPRITE_SCALE, 8*SPRITE_SCALE)
         .setDepth(DEPTHS.PLAYER);
     scene.physics.world.enable(solid_box);
@@ -375,6 +387,68 @@ let addPlayer = (scene, x, y) => {
     };
     let state_handler = stateHandler(scene, STATES, STATES.IDLE);
 
+
+    let enter_hide_locked = () => {
+        enter_hide_interact();
+        ui_icon.setFrame(0);
+    };
+
+    let enter_show_locked = () => {
+        enter_show_interact();
+        ui_icon.setFrame(0);
+        ui_state_handler.addDelayedCall(1000, () => {
+            ui_state_handler.changeState(UI_STATES.HIDE_LOCKED);
+        });
+    };
+
+    let enter_hide_interact = () => {
+        ui_state_handler.addTweenSequence([
+            {
+                targets: [ui_icon],
+                scale: 0,
+                duration: 100,
+                onComplete : () => {
+                    ui_icon.setVisible(false);
+                    ui_icon.setScale(SPRITE_SCALE);
+                }
+            }
+        ]);
+    };
+
+    let enter_show_interact = () => {
+        ui_icon.setFrame(1);
+        ui_icon.setVisible(true);
+        ui_icon.setScale(0.8*SPRITE_SCALE, 0);
+        ui_state_handler.addTweenSequence([
+            {
+                targets: [ui_icon],
+                scaleY: SPRITE_SCALE*1.2,
+                duration: 100
+            },
+            {
+                targets: [ui_icon],
+                scaleX: SPRITE_SCALE*1.2,
+                scaleY: 0.8*SPRITE_SCALE,
+                duration: 100
+            },
+            {
+                targets: [ui_icon],
+                scaleX: SPRITE_SCALE,
+                scaleY: SPRITE_SCALE,
+                duration: 100
+            }
+        ]);
+    };
+
+    let UI_STATES = {
+        HIDE_INTERACT: {enter: enter_hide_interact, exit: null},
+        SHOW_INTERACT: {enter: enter_show_interact, exit: null},
+        HIDE_LOCKED: {enter: enter_hide_locked, exit: null},
+        SHOW_LOCKED: {enter: enter_show_locked, exit: null},
+    };
+    let ui_state_handler = stateHandler(scene, UI_STATES, UI_STATES.HIDE_INTERACT);
+    ui_state_handler.start();
+
     let character_direction = new Phaser.Math.Vector2(0, 0);
     let external_force = new Phaser.Math.Vector2(0, 0);
     let player_movement_allowed = () => {
@@ -384,6 +458,10 @@ let addPlayer = (scene, x, y) => {
     };
     let interact_possible = true;
     solid_box.__input = (input) => {
+        if (current_interactable && !scene.physics.overlap(current_interactable, solid_box)) {
+            ui_state_handler.changeState(UI_STATES.HIDE_INTERACT);
+            current_interactable = null;
+        }
         if (!player_movement_allowed()) {
             return;
         }
@@ -403,11 +481,17 @@ let addPlayer = (scene, x, y) => {
         }
         if (input.interact && interact_possible) {
             interact_possible = false;
-            if (object.visible) {
-                object.setVisible(false);
+            if (object_state_handler.getState() == OBJECT_STATES.SHOW_OBJECT) {
+                object_state_handler.changeState(OBJECT_STATES.HIDE_OBJECT);
+                if (current_object === 2 && current_interactable && current_interactable === scene.__hut) {
+                    current_interactable.__unlock();
+                    return;
+                }
                 let dx = PLAYER_SPEED * LEGACY_SCALE * (character_sprite.flipX ? -1 : 1);
-                scene.__addObject(solid_box.x, solid_box.y + 2*object_idle_offset*LEGACY_SCALE,
+                let spawned_object = scene.__addObject(
+                    solid_box.x, solid_box.y + 2*object_idle_offset*LEGACY_SCALE,
                     dx + 0.5 * solid_box.body.velocity.x, -PLAYER_SPEED * LEGACY_SCALE, object.frame.name);
+                spawned_object.y -= spawned_object.displayHeight/2
                 return;
             }
             if (current_interactable && current_interactable.__interact) {
@@ -442,15 +526,197 @@ let addPlayer = (scene, x, y) => {
         return solid_box.x + (character_sprite.flipX ? -GRID_SIZE : GRID_SIZE);
     };
 
+    let enter_hide_object = () => {
+        object.setVisible(false);
+    };
+    let enter_show_object = () => {
+        object.setVisible(true);
+        object.setScale(1.2*SPRITE_SCALE, 0.8*SPRITE_SCALE);
+        object_state_handler.addTweenSequence([
+            {
+                targets: [object],
+                scaleX: SPRITE_SCALE*0.8,
+                scaleY: SPRITE_SCALE*1.2,
+                duration: 100
+            },
+            {
+                targets: [object],
+                scaleX: SPRITE_SCALE,
+                scaleY: SPRITE_SCALE,
+                duration: 100
+            }
+        ]);
+    };
+
+    let OBJECT_STATES = {
+        HIDE_OBJECT: {enter: enter_hide_object, exit: null},
+        SHOW_OBJECT: {enter: enter_show_object, exit: null},
+    };
+    let object_state_handler = stateHandler(scene, OBJECT_STATES, OBJECT_STATES.HIDE_OBJECT);
+    object_state_handler.start();
+
+    let current_object = null;
     solid_box.__pick_up = (frame) => {
         object.setFrame(frame);
-        object.setVisible(true);
+        current_object = frame;
+        object_state_handler.changeState(OBJECT_STATES.SHOW_OBJECT);
+    };
+
+    solid_box.__show_locked = (frame) => {
+        ui_state_handler.changeState(UI_STATES.SHOW_LOCKED);
+    };
+
+    solid_box.__get_current_object = () => {
+        if (object.visible) {
+            return object.frame;
+        }
+        return null;
     };
 
     let current_interactable = null;
     solid_box.__register_interactable = (interactable) => {
+        if (ui_state_handler.getState() === UI_STATES.SHOW_LOCKED) {
+            return;
+        }
+        ui_state_handler.changeState(UI_STATES.SHOW_INTERACT);
         current_interactable = interactable;
+    };
+
+    solid_box.__get_current_interactable = () => {
+        return current_interactable;
     };
 
     return solid_box;
 };
+
+let addParkObject = (scene, floor_height, x, index) => {
+    scene.add.sprite(x, floor_height - 8 * SPRITE_SCALE, 'park_objects', index)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG_ENTITY);
+};
+let addBench = (scene, floor_height, x) => {
+    addParkObject(scene, floor_height, x - 8 * SPRITE_SCALE, 8);
+    addParkObject(scene,floor_height, x + 8 * SPRITE_SCALE, 9);
+};
+
+let addBackground = (scene, floor_height) => {
+    scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg', 0)
+        .setScrollFactor(0, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2-SCREEN_WIDTH, SCREEN_HEIGHT/2, 'bg', 1)
+        .setScrollFactor(0.25, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2+SCREEN_WIDTH, SCREEN_HEIGHT/2, 'bg', 1)
+        .setScrollFactor(0.25, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg', 1)
+        .setScrollFactor(0.25, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg', 2)
+        .setScrollFactor(0.5, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2+SCREEN_WIDTH, SCREEN_HEIGHT/2, 'bg', 2)
+        .setScrollFactor(0.5, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.sprite(SCREEN_WIDTH/2-SCREEN_WIDTH, SCREEN_HEIGHT/2, 'bg', 2)
+        .setScrollFactor(0.5, 1)
+        .setScale(SPRITE_SCALE)
+        .setDepth(DEPTHS.BG);
+    scene.add.rectangle(SCREEN_WIDTH/2, floor_height, SCREEN_WIDTH*3, SCREEN_HEIGHT - floor_height,
+        0x322523)
+        .setOrigin(0.5, 0)
+        .setDepth(DEPTHS.BG);
+};
+
+let addMazeInterior = (area_name, exit_left_area, exit_left_entrance, exit_right_area, exit_right_entrance) => {
+    AREAS[area_name] = {};
+    AREAS[area_name].setup = (scene) => {
+        scene.__playerCharacter = addPlayer(scene, SCREEN_WIDTH / 2, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+        scene.__dog = addDog(scene, SCREEN_WIDTH / 2 - GRID_SIZE, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+
+        let floor_height = GRID_SIZE * 12;
+
+        addBackground(scene, floor_height);
+
+        scene.cameras.main.setBounds(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        scene.cameras.main.startFollow(scene.__playerCharacter, true, 1, 1, 0, 0);
+
+        scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH, GRID_SIZE * 13 - 9 * SPRITE_SCALE,
+            SCREEN_WIDTH * 2, 29 * LEGACY_SCALE,
+            0xff00ff, 0.00)
+            .setDepth(DEPTHS.FG));
+        scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH/2 - GRID_SIZE*7, SCREEN_HEIGHT / 2,
+            32, SCREEN_HEIGHT,
+            0xff00ff, 0.00)
+            .setDepth(DEPTHS.FG));
+        scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH/2 + GRID_SIZE*7, SCREEN_HEIGHT / 2,
+            32, SCREEN_HEIGHT,
+            0xff00ff, 0.00)
+            .setDepth(DEPTHS.FG));
+
+        let addTree = (x, image) => {
+            let tree = scene.add.sprite(x, floor_height, image)
+                .setScale(SPRITE_SCALE)
+                .setDepth(DEPTHS.BG_TERRAIN)
+                .setOrigin(0.5, 1);
+            return tree;
+        };
+
+        let addInnerMaze = (x) => {
+            let add_sprite = (offset, frame, flipX, depths = DEPTHS.BG_TERRAIN) => {
+                return scene.add.sprite(x + GRID_SIZE*offset, floor_height, 'maze_objects',frame)
+                    .setScale(SPRITE_SCALE)
+                    .setFlipX(flipX)
+                    .setDepth(depths)
+                    .setOrigin(0.5,1);
+            };
+
+            addTree(x - 8*GRID_SIZE, 'tree1');
+            add_sprite(-7, 2, false, DEPTHS.FG);
+            add_sprite(-6, 3, false);
+            add_sprite(-5, 0, false);
+            let entrance = add_sprite(-4, 5, false);
+            scene.__interactables.add(entrance);
+            entrance.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene(
+                    exit_left_area, exit_left_entrance);
+            };
+
+            add_sprite(-3, 4, false);
+            add_sprite(-2, 3, false);
+            add_sprite(-1, 3, false);
+            add_sprite(0, 3, false);
+            add_sprite(1, 3, false);
+            add_sprite(2, 3, false);
+            add_sprite(3, 0, false);
+            entrance =  add_sprite(4, 5, false);
+            scene.__interactables.add(entrance);
+            entrance.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene(
+                    exit_right_area, exit_right_entrance);
+            };
+            add_sprite(5, 4, false);
+            add_sprite(6, 3, false);
+            add_sprite(7, 1, false, DEPTHS.FG);
+        };
+        addInnerMaze(SCREEN_WIDTH/2);
+
+        for (let x = 0; x < SCREEN_WIDTH + 32; x += 32 * LEGACY_SCALE) {
+            scene.add.image(x, GRID_SIZE * 13 - 18 * LEGACY_SCALE, 'ground')
+                .setScale(LEGACY_SCALE)
+                .setDepth(DEPTHS.FLOOR);
+        }
+    };
+    AREAS[area_name].entrance = {
+        'default' : (scene) => {
+            scene.__playerCharacter.x = SCREEN_WIDTH / 2;
+            scene.__dog.x = scene.__playerCharacter.x - GRID_SIZE;
+        }
+    };
+}
