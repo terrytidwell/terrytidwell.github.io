@@ -213,7 +213,7 @@ let ControllerScene = new Phaser.Class({
             .setDepth(DEPTHS.UI);
         addButton(button, () => {
             Phaser.Actions.Call(this.__explodables.getChildren(), (explodable) => {
-                if (!explodable.body.blocked.down) {
+                if (explodable.body.gravity.y === 0) {
                     explodable.__explode();
                 }
             })
