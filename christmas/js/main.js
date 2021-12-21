@@ -10,6 +10,7 @@ const DEPTHS = {
     BG: 0,
     TREE: 2000,
     DECORATIONS: 3000,
+    FRONT_SNOW: 3500,
     UI: 4000
 }
 
@@ -111,10 +112,12 @@ let ControllerScene = new Phaser.Class({
             let speed = [20, 10, 5][size];
             let xoffset = [32, 16, 8][size];
             let delay = [400, 200, 100][size];
+            let depth = [DEPTHS.FRONT_SNOW, DEPTHS.BG, DEPTHS.BG][size]
             let startX = Phaser.Math.Between(0, SCREEN_WIDTH);
             let startY = Phaser.Math.Between(-SCREEN_HEIGHT, 0);
             let snowball = scene.add.sprite(startX, startY, 'snowballs', size)
                 .setAlpha(0.25)
+                .setDepth(depth)
                 .setScale(SPRITE_SCALE);
             let tween = scene.tweens.add({
                 targets: [snowball],
