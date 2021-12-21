@@ -37,6 +37,10 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 12, frameHeight: 14 });
         scene.load.spritesheet('bulbs', 'bulbs.png',
             { frameWidth: 5, frameHeight: 5 });
+        scene.load.spritesheet('big_presents', 'big_presents.png',
+            { frameWidth: 9, frameHeight: 9 });
+        scene.load.spritesheet('small_presents', 'small_presents.png',
+            { frameWidth: 5, frameHeight: 6 });
         scene.load.spritesheet('snowballs', 'snowballs.png',
             { frameWidth: 5, frameHeight: 5 });
         scene.load.spritesheet('trees', 'trees.png',
@@ -148,7 +152,8 @@ let ControllerScene = new Phaser.Class({
             let startY = Phaser.Math.Between(0, SCREEN_HEIGHT);
             let frame = Phaser.Utils.Array.GetRandom([0,1,2]);
             let type = Phaser.Utils.Array.GetRandom(
-                ['bulbs', 'bulbs', 'bulbs', 'bulbs', 'stars']);
+                ['bulbs', 'bulbs', 'bulbs', 'bulbs', 'bulbs',
+                    'small_presents', 'big_presents','stars']);
             let bulb = scene.add.sprite(startX, startY, type, frame)
                 .setOrigin(0.5, 0.5)
                 .setScale(SPRITE_SCALE)
