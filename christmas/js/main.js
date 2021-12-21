@@ -39,7 +39,7 @@ let LoadScene = new Phaser.Class({
             { frameWidth: 5, frameHeight: 5 });
         scene.load.spritesheet('snowballs', 'snowballs.png',
             { frameWidth: 5, frameHeight: 5 });
-        scene.load.spritesheet('tree', 'tree.png',
+        scene.load.spritesheet('trees', 'trees.png',
             { frameWidth: 38, frameHeight: 62 });
         scene.load.spritesheet('background', 'background.png',
             { frameWidth: 38, frameHeight: 62 });
@@ -96,8 +96,8 @@ let ControllerScene = new Phaser.Class({
                 .setDepth(DEPTHS.BG);
         }
 
-
-        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT, 'tree')
+        let current_frame = 0;
+        let tree = scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT, 'trees', current_frame)
             .setOrigin(0.5, 1)
             .setScale(SPRITE_SCALE)
             .setDepth(DEPTHS.TREE);
@@ -205,6 +205,20 @@ let ControllerScene = new Phaser.Class({
             .setDepth(DEPTHS.UI);
         addButton(button, () => {
             addBulb();
+        });
+
+        button = scene.add.sprite(SCREEN_WIDTH - GRID_SIZE, 0 + 2*32 + 3* GRID_SIZE,
+            'UI', 3)
+            .setOrigin(1, 0)
+            .setDepth(DEPTHS.UI);
+        addButton(button, () => {
+            Phaser.Actions.Call(this.__explodables.getChildren(), (explodable) => {
+                if (!explodable.body.blocked.down) {
+                    explodable.__explode();
+                }
+            })
+            current_frame = (current_frame+1)%3;
+            tree.setFrame(current_frame);
         });
 
         scene.__trash = scene.add.sprite(0 + GRID_SIZE, 0 + GRID_SIZE,
