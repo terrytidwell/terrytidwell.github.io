@@ -8,6 +8,7 @@ const DEPTHS =
 {
     BG : 0,
     GRID: 10,
+    PLAYER: 15,
     GUESS: 20,
     FG: 40,
     UI: 50
@@ -59,8 +60,12 @@ let GameScene = new Phaser.Class({
         //do/undo log
         let events = [];
 
-        let current_x = 3;
-        let current_y = 0;
+        let start_x = 3;
+        let start_y = -2;
+        let current_x = start_x;
+        let current_y = start_y;
+        let target_x = 3;
+        let target_y = 0;
         let player_pic = null;
         let player_text = null;
 
@@ -77,11 +82,9 @@ let GameScene = new Phaser.Class({
         };
 
         let set_player_location = function(x, y) {
-            current_x = x;
-            current_y = y;
-            player_pic.x = xPixel(x);
-            player_pic.y = yPixel(y - 0.5);
-            grid_squares[x][y].data.values.text.setVisible(true);
+            target_x = x;
+            target_y = y;
+            state_handler.changeState(STATES.WALK);
         };
 
         let prepare_empty_grid = function() {
@@ -151,9 +154,11 @@ let GameScene = new Phaser.Class({
                                 square.data.values.locked = !square.data.values.locked;
                                 square.data.values.flag.setVisible(square.data.values.locked);
                             }
-                        } else if (delta === 1) {
+                        } else if (delta === 1 && state_handler.getState() === STATES.IDLE) {
                             if (square.data.values.hidden_mine) {
-                                set_player_location(3, 0)
+                                target_x = x;
+                                target_y = y;
+                                state_handler.changeState(STATES.DEAD);
                             } else {
                                 set_player_location(square.data.values.x, square.data.values.y);
                             }
@@ -171,6 +176,7 @@ let GameScene = new Phaser.Class({
                         yPixel(y + 0.5),
                         '' + 0 + '',
                         {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+                        .setDepth(DEPTHS.GUESS)
                         .setOrigin(1, 1)
                         .setVisible(false);
                     let sum = 0;
@@ -208,7 +214,7 @@ let GameScene = new Phaser.Class({
             let particles = scene.add.particles('tiles',5);
 
             particles.createEmitter({
-                alpha: { start: 0.75, end: 0 },
+                alpha: 0.85, //{ start: 0.85, end: 0.75 },
                 //scale: { start: 0.5, end: 2.5 },
                 //tint: 0x000080,
                 //speed: 100,
@@ -227,10 +233,10 @@ let GameScene = new Phaser.Class({
             });
             particles.setDepth(DEPTHS.FG);
 
-             particles = scene.add.particles('tiles',5);
+            particles = scene.add.particles('tiles',5);
 
             particles.createEmitter({
-                alpha: 0.75,
+                alpha: 0.85,
                 scale: 0.5, //{ start: 0.5, end: 2.5 },
                 //tint: 0x000080,
                 //speed: 100,
@@ -257,47 +263,89 @@ let GameScene = new Phaser.Class({
 
         prepare_empty_grid();
 
-        player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0);
+        player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0)
+            .setScale(1.5)
+            .setDepth(DEPTHS.PLAYER);
+        let walk = (complete) => {
+            player_pic.play('guy_walk_anim');
+            if (current_x > target_x) {
+                player_pic.setFlipX(true);
+            } else if (current_x < target_x) {
+                player_pic.setFlipX(false);
+            }
+            let delta = Phaser.Math.Distance.Between(
+                current_x, current_y,
+                target_x, target_y);
+            state_handler.addTween({
+                targets: player_pic,
+                x: xPixel(target_x),
+                y: yPixel(target_y - 0.5),
+                duration: 1000 * delta,
+                onComplete: complete
+            });
+        };
+        let enter_walk = () => {
+            walk(() => {
+                state_handler.changeState(STATES.IDLE);
+            });
+        };
+        let exit_walk = () => {
+            player_pic.anims.stop();
+            current_x = target_x;
+            current_y = target_y;
+            player_pic.x = xPixel(current_x);
+            player_pic.y = yPixel(current_y - 0.5);
+        };
+
+        let enter_idle = () => {
+            player_pic.setFrame(0);
+            grid_squares[current_x][current_y].data.values.text.setVisible(true);
+        };
+
+        let enter_dead = () => {
+            walk(() => {
+                scene.add.sprite(xPixel(target_x), yPixel(target_y), 'tiles', 4);
+                current_x = start_x;
+                current_y = start_y;
+                player_pic.x = xPixel(current_x);
+                player_pic.y = yPixel(current_y - 0.5);
+                let flash = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                    SCREEN_WIDTH, SCREEN_HEIGHT, 0xffffff)
+                    .setDepth(DEPTHS.FG);
+                state_handler.addTween({
+                    targets: flash,
+                    alpha: 0,
+                    delay: 500,
+                    duration: 2000,
+                    onComplete: () => {
+                        set_player_location(3, 0);
+                        flash.destroy();
+                    }
+                });
+            });
+        };
+
+        let STATES = {
+            WALK: {enter: enter_walk, exit: exit_walk},
+            IDLE: {enter: enter_idle, exit: null},
+            DEAD: {enter: enter_dead, exit: null},
+        };
+        let state_handler = stateHandler(scene, STATES, STATES.WALK);
 
         set_player_location(3, 0);
+        state_handler.start();
+
 
         //----------------------------------------------------------------------
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
-
-        /*
-        Util.make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS-2),yPixel(SCREEN_ROWS+4),'undo'),
-            undo_square);
-        Util.make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS-1),yPixel(SCREEN_ROWS+4),'clue'),
-            reveal_random_hint);
-        Util.make_button(
-            scene.add.image(xPixel(SCREEN_COLUMNS),yPixel(SCREEN_ROWS+4),'info'),
-            HelpApi.fade_in);
-
-         */
     },
 
     update: function () {
     }
 });
 
-//Util functions
-let Util = {
-    make_button : function(image,func) {
-        image.setAlpha(0.5);
-        image.setInteractive();
-        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function() {
-            image.setAlpha(1);
-        });
-        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function() {
-            image.setAlpha(0.5);
-        });
-        image.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, func);
-    }
-};
 
 //external help api
 //filled in during HelpScene.create();
@@ -344,10 +392,9 @@ let LoadScene = new Phaser.Class({
             scene.scene.start('HelpScene');
             scene.scene.start('GameScene');
             scene.scene.bringToTop('HelpScene');
-            scene.scene.stop('LoadScene');
         });
         scene.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 64, frameHeight: 160});
-        scene.load.spritesheet('guy', 'assets/guy.png', { frameWidth: 64, frameHeight: 128});
+        scene.load.spritesheet('guy', 'assets/guy2.png', { frameWidth: 32, frameHeight: 64});
         scene.load.spritesheet('flag', 'assets/flag.png', { frameWidth: 64, frameHeight: 64});
     },
 
@@ -366,6 +413,15 @@ let LoadScene = new Phaser.Class({
             ],
             skipMissedFrames: false,
             frameRate: 3,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'guy_walk_anim',
+            frames: scene.anims.generateFrameNumbers('guy',
+                { start: 0, end: 9 }),
+            skipMissedFrames: false,
+            frameRate: 10,
             repeat: -1
         });
     },
