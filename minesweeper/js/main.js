@@ -7,11 +7,11 @@ const SCREEN_WIDTH = GRID_SIZE * (SCREEN_COLUMNS + 2 * BUFFER);
 const DEPTHS =
 {
     BG : 0,
-    GRID: 10,
-    PLAYER: 15,
-    GUESS: 20,
-    FG: 40,
-    UI: 50
+    GRID: 1000,
+    PLAYER: 1500,
+    GUESS: 2000,
+    FG: 4000,
+    UI: 5000
 };
 
 let COLORS = {
@@ -87,14 +87,43 @@ let GameScene = new Phaser.Class({
             state_handler.changeState(STATES.WALK);
         };
 
+        let addTree = () => {
+            let tile = Phaser.Utils.Array.GetRandom([0,0,0,0,6]);
+            let x = Phaser.Math.Between(-50,-150)/100;
+            x += Phaser.Utils.Array.GetRandom([0,8]);
+            let y = Phaser.Math.Between(-150,1250)/100;
+            let flip = Phaser.Utils.Array.GetRandom([true,false]);
+            scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile).setFlipX(flip).setDepth(DEPTHS.BG + y);
+        };
+
         let prepare_empty_grid = function() {
 
+            for(x = 0; x < 40; x++) {
+                addTree();
+            }
+
+            /*
             scene.add.sprite(xPixel(-0.55), yPixel(2), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-0.75), yPixel(8), 'tiles',6).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.2), yPixel(-.75), 'tiles',6).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1.1), yPixel(3), 'tiles',0).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-0.85), yPixel(8), 'tiles',6).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-0.6), yPixel(4), 'tiles',6).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1.2), yPixel(-.65), 'tiles',6).setDepth(DEPTHS.BG);
             scene.add.sprite(xPixel(-1), yPixel(4), 'tiles',0).setDepth(DEPTHS.BG);
             scene.add.sprite(xPixel(-0.75), yPixel(5.25), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.35), yPixel(5.6), 'tiles',0).setFlipX(false).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1.35), yPixel(5.6), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1.35), yPixel(10), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-0.7), yPixel(9.5), 'tiles',0).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(-1), yPixel(10.9), 'tiles',0).setDepth(DEPTHS.BG);
+
+            scene.add.sprite(xPixel(6.85), yPixel(1), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(7.3), yPixel(0.5), 'tiles',0).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(7), yPixel(1.9), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(6.65), yPixel(8), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(7.2), yPixel(8.5), 'tiles',0).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(7.4), yPixel(9.9), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(7.1), yPixel(4.3), 'tiles',6).setDepth(DEPTHS.BG);
+             */
+
 
             scene.add.rectangle(
                 xPixel(SCREEN_COLUMNS / 2 - 0.5),
@@ -133,7 +162,7 @@ let GameScene = new Phaser.Class({
                     {
                         square.setData('hidden_mine', false);
                     }
-                    let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),64,64,'flag')
+                    let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),64,64,'flag');
                     flag.play('flag_blowing');
                     flag.setVisible(false);
                     square.setData('flag', flag);
@@ -153,11 +182,13 @@ let GameScene = new Phaser.Class({
                             if (!square.data.values.text.visible) {
                                 square.data.values.locked = !square.data.values.locked;
                                 square.data.values.flag.setVisible(square.data.values.locked);
+                                flag.play('flag_blowing');
                             }
                         } else if (delta === 1 && state_handler.getState() === STATES.IDLE) {
                             if (square.data.values.hidden_mine) {
                                 target_x = x;
                                 target_y = y;
+                                square.data.values.hidden_mine = false;
                                 state_handler.changeState(STATES.DEAD);
                             } else {
                                 set_player_location(square.data.values.x, square.data.values.y);
@@ -189,7 +220,7 @@ let GameScene = new Phaser.Class({
                             }
                         }
                     }
-                    text.text = '' + sum + '';
+                    text.text = grid_squares[x][y].data.values.hidden_mine ? ' ' : '' + sum + '';
                     grid_squares[x][y].setData('text',text);
                 }
             }
@@ -284,22 +315,35 @@ let GameScene = new Phaser.Class({
                 onComplete: complete
             });
         };
+
         let enter_walk = () => {
             walk(() => {
-                state_handler.changeState(STATES.IDLE);
+                if (target_x === 3 && target_y === 11) {
+                    state_handler.changeState(STATES.LEAVE);
+                } else {
+                    state_handler.changeState(STATES.IDLE);
+                }
             });
         };
+
+        let enter_leave = () => {
+            target_y = 15;
+            walk(() => {
+                scene.scene.restart();
+            });
+        };
+
         let exit_walk = () => {
             player_pic.anims.stop();
             current_x = target_x;
             current_y = target_y;
             player_pic.x = xPixel(current_x);
             player_pic.y = yPixel(current_y - 0.5);
+            grid_squares[current_x][current_y].data.values.text.setVisible(true);
         };
 
         let enter_idle = () => {
             player_pic.setFrame(0);
-            grid_squares[current_x][current_y].data.values.text.setVisible(true);
         };
 
         let enter_dead = () => {
@@ -329,6 +373,7 @@ let GameScene = new Phaser.Class({
             WALK: {enter: enter_walk, exit: exit_walk},
             IDLE: {enter: enter_idle, exit: null},
             DEAD: {enter: enter_dead, exit: null},
+            LEAVE: {enter: enter_leave, exit: null},
         };
         let state_handler = stateHandler(scene, STATES, STATES.WALK);
 
