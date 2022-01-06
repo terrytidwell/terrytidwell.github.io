@@ -211,13 +211,15 @@ let GameScene = new Phaser.Class({
                         .setOrigin(1, 1)
                         .setVisible(false);
                     let sum = 0;
-                    for(let dx = -1; dx <= 1; dx++) {
-                        for(let dy = -1; dy <= 1; dy++) {
-                            if (x + dx >= 0 && x + dx < SCREEN_COLUMNS &&
-                                y + dy >= 0 && y + dy < SCREEN_ROWS &&
-                                grid_squares[x+dx][y+dy].data.values.hidden_mine) {
-                                sum++
-                            }
+                    for (let d of [[-1, -1], [-1, 0], [-1, 1],
+                        [0, -1],[0, 1],
+                        [1, -1],[1, 0],[1, 1]]) {
+                        let dx = d[0];
+                        let dy = d[1];
+                        if (x + dx >= 0 && x + dx < SCREEN_COLUMNS &&
+                            y + dy >= 0 && y + dy < SCREEN_ROWS &&
+                            grid_squares[x+dx][y+dy].data.values.hidden_mine) {
+                            sum++
                         }
                     }
                     text.text = grid_squares[x][y].data.values.hidden_mine ? ' ' : '' + sum + '';
@@ -329,9 +331,15 @@ let GameScene = new Phaser.Class({
 
         let enter_leave = () => {
             target_y = 15;
-            walk(() => {
-                scene.scene.restart();
-            });
+            state_handler.addTween({
+                targets: matte,
+                alpha: 1,
+                duration: 3000,
+                onComplete : () => {
+                    scene.scene.restart();
+                }
+            })
+            walk(() => {});
         };
 
         let exit_walk = () => {
@@ -376,9 +384,18 @@ let GameScene = new Phaser.Class({
             DEAD: {enter: enter_dead, exit: null},
             LEAVE: {enter: enter_leave, exit: null},
         };
-        let state_handler = stateHandler(scene, STATES, STATES.WALK);
+        let state_handler = stateHandler(scene, STATES, STATES.IDLE);
 
-        set_player_location(3, 0);
+        let matte = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0xE8E8E8)
+            .setDepth(DEPTHS.FG);
+        scene.tweens.add({
+            targets: matte,
+            alpha: 0,
+            onComplete: () => {
+                set_player_location(3, 0)
+            }
+        });
         state_handler.start();
 
 
