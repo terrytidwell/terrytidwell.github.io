@@ -202,14 +202,7 @@ let GameScene = new Phaser.Class({
 
             for (let x = 0; x < SCREEN_COLUMNS; x++) {
                 for (let y = 0; y < SCREEN_ROWS; y++) {
-                    let text = scene.add.text(
-                        xPixel(x),
-                        yPixel(y + 0.5),
-                        '' + 0 + '',
-                        {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
-                        .setDepth(DEPTHS.GUESS)
-                        .setOrigin(1, 1)
-                        .setVisible(false);
+
                     let sum = 0;
                     for (let d of [[-1, -1], [-1, 0], [-1, 1],
                         [0, -1],[0, 1],
@@ -222,7 +215,16 @@ let GameScene = new Phaser.Class({
                             sum++
                         }
                     }
-                    text.text = grid_squares[x][y].data.values.hidden_mine ? ' ' : '' + sum + '';
+                    let clue_text =
+                        grid_squares[x][y].data.values.hidden_mine ? ' ' : '' + sum + '';
+                    let text = scene.add.text(
+                        xPixel(x),
+                        yPixel(y + 0.5),
+                        clue_text,
+                        {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+                        .setDepth(DEPTHS.GUESS)
+                        .setOrigin(1, 1)
+                        .setVisible(false);
                     grid_squares[x][y].setData('text',text);
                 }
             }
