@@ -98,7 +98,7 @@ let GameScene = new Phaser.Class({
 
         let prepare_empty_grid = function() {
 
-            for(x = 0; x < 40; x++) {
+            for(let x = 0; x < 40; x++) {
                 addTree();
             }
 
@@ -162,7 +162,7 @@ let GameScene = new Phaser.Class({
                     {
                         square.setData('hidden_mine', false);
                     }
-                    let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),64,64,'flag');
+                    let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),'flag');
                     flag.play('flag_blowing');
                     flag.setVisible(false);
                     square.setData('flag', flag);
@@ -242,6 +242,7 @@ let GameScene = new Phaser.Class({
                     .setDepth(DEPTHS.GRID).setFlipX(flipX);
             }
 
+            /*
             let particles = scene.add.particles('tiles',5);
 
             particles.createEmitter({
@@ -285,7 +286,7 @@ let GameScene = new Phaser.Class({
                 y: 0
             });
             particles.setDepth(DEPTHS.FG);
-
+*/
         };
 
         //----------------------------------------------------------------------
@@ -421,6 +422,138 @@ let HelpScene = new Phaser.Class({
     },
 });
 
+let MenuScene = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'MenuScene', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function () {
+        let scene = this;
+        let matte = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000)
+            .setDepth(DEPTHS.BG);
+
+
+        let rectangle = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0xE8E8E8)
+            .setDepth(DEPTHS.BG)
+            .setAlpha(0);
+
+        scene.tweens.add({
+            targets: rectangle,
+            alpha: 0.5,
+            delay: 4000,
+            duration: 2000
+        });
+
+
+        let text = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2 - GRID_SIZE,
+            "MINE",
+            {font: '' + 3*GRID_SIZE + 'px kremlin', fill: '#FFFFFF'})
+            .setOrigin(0.5, 0.5)
+            .setVisible(false);
+        let mask = new Phaser.Display.Masks.BitmapMask(scene, text);
+
+        let text2 = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2 + GRID_SIZE,
+            "START",
+            {font: '' + 1*GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
+            .setOrigin(0.5, 0.5)
+            .setVisible(true);
+        addButton(text2,() => {
+            text2.disableInteractive();
+            particles.clearMask();
+            particles2.clearMask();
+            let objects = [matte,rectangle,text,text2];
+            let completer =
+
+            scene.tweens.add({
+                targets: objects,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    Phaser.Utils.Array.Each(objects, (object) => {
+                        object.destroy();
+                    });
+                },
+            })
+            scene.scene.launch('GameScene');
+            scene.scene.bringToTop('MenuScene');
+        });
+        text2.setAlpha(0);
+        scene.tweens.add({
+            targets: text2,
+            alpha: 0.5,
+            delay: 6000,
+            duration: 500,
+        });
+
+        let particles = scene.add.particles('tiles',5);
+        particles.createEmitter({
+            alpha: 0.85, //{ start: 0.85, end: 0.75 },
+            //scale: { start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 175,
+            speedX : 20,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 6000, max: 9000 },
+            //blendMode: 'ADD',
+            frequency: 300,
+            //maxParticles: 10,
+            x: { min: -100, max: SCREEN_WIDTH},
+            y: 0,
+            mask: mask,
+        });
+        particles.setDepth(DEPTHS.FG);
+        particles.setMask(mask);
+
+        particles2 = scene.add.particles('tiles',5);
+
+        particles2.createEmitter({
+            alpha: 0.85,
+            scale: 0.5, //{ start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 100,
+            speedX : 10,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 3000, max: 12000 },
+            //blendMode: 'ADD',
+            frequency: 200,
+            //maxParticles: 10,
+            x: { min: 0, max: SCREEN_WIDTH},
+            y: 0,
+            mask: mask,
+        });
+        particles2.setDepth(DEPTHS.FG);
+        particles2.setMask(mask);
+        rectangle.setMask(mask);
+    },
+
+    //--------------------------------------------------------------------------
+    update: function() {
+    },
+});
+
 let LoadScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -433,14 +566,19 @@ let LoadScene = new Phaser.Class({
     //--------------------------------------------------------------------------
     preload: function () {
         let scene = this;
-        scene.load.on('complete', function() {
-            scene.scene.start('HelpScene');
-            scene.scene.start('GameScene');
-            scene.scene.bringToTop('HelpScene');
-        });
+
+
         scene.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 64, frameHeight: 160});
         scene.load.spritesheet('guy', 'assets/guy2.png', { frameWidth: 32, frameHeight: 64});
         scene.load.spritesheet('flag', 'assets/flag.png', { frameWidth: 64, frameHeight: 64});
+
+        scene.load.on('complete', function() {
+            scene.scene.start('MenuScene');
+            /*
+            scene.scene.start('GameScene');
+            scene.scene.bringToTop('HelpScene');
+            */
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -496,7 +634,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, HelpScene, GameScene ]
+    scene: [ LoadScene, MenuScene, HelpScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
