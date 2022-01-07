@@ -50,16 +50,6 @@ let GameScene = new Phaser.Class({
         //board
         let grid_squares = [];
 
-        //row and column clues
-        let column_clues = [];
-        let row_clues = [];
-
-        //hidden ship clues
-        let ship_clues = [];
-
-        //do/undo log
-        let events = [];
-
         let start_x = 3;
         let start_y = -2;
         let current_x = start_x;
@@ -67,7 +57,6 @@ let GameScene = new Phaser.Class({
         let target_x = 3;
         let target_y = 0;
         let player_pic = null;
-        let player_text = null;
 
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
@@ -177,7 +166,7 @@ let GameScene = new Phaser.Class({
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
                         let delta = Phaser.Math.Distance.Snake(
                             current_x, current_y,
-                            square.data.values.x, square.data.values.y)
+                            square.data.values.x, square.data.values.y);
                         if (delta > 1 || square.data.values.locked) {
                             if (!square.data.values.text.visible) {
                                 square.data.values.locked = !square.data.values.locked;
@@ -246,51 +235,6 @@ let GameScene = new Phaser.Class({
                     .setDepth(DEPTHS.GRID).setFlipX(flipX);
             }
 
-            /*
-            let particles = scene.add.particles('tiles',5);
-
-            particles.createEmitter({
-                alpha: 0.85, //{ start: 0.85, end: 0.75 },
-                //scale: { start: 0.5, end: 2.5 },
-                //tint: 0x000080,
-                //speed: 100,
-                speedY : 175,
-                speedX : 20,
-                //accelerationY: 300,
-                angle: 0, // { min: -85, max: -95 },
-                //scale: .25,
-                //rotate: 20, //{ min: -180, max: 180 },
-                lifespan: { min: 6000, max: 9000 },
-                //blendMode: 'ADD',
-                frequency: 300,
-                //maxParticles: 10,
-                x: { min: -100, max: SCREEN_WIDTH},
-                y: 0
-            });
-            particles.setDepth(DEPTHS.FG);
-
-            particles = scene.add.particles('tiles',5);
-
-            particles.createEmitter({
-                alpha: 0.85,
-                scale: 0.5, //{ start: 0.5, end: 2.5 },
-                //tint: 0x000080,
-                //speed: 100,
-                speedY : 100,
-                speedX : 10,
-                //accelerationY: 300,
-                angle: 0, // { min: -85, max: -95 },
-                //scale: .25,
-                //rotate: 20, //{ min: -180, max: 180 },
-                lifespan: { min: 3000, max: 12000 },
-                //blendMode: 'ADD',
-                frequency: 200,
-                //maxParticles: 10,
-                x: { min: 0, max: SCREEN_WIDTH},
-                y: 0
-            });
-            particles.setDepth(DEPTHS.FG);
-*/
         };
 
         //----------------------------------------------------------------------
@@ -340,7 +284,7 @@ let GameScene = new Phaser.Class({
                 onComplete : () => {
                     scene.scene.restart();
                 }
-            })
+            });
             walk(() => {});
         };
 
@@ -411,13 +355,6 @@ let GameScene = new Phaser.Class({
     }
 });
 
-
-//external help api
-//filled in during HelpScene.create();
-let HelpApi = {
-    fade_in : function() {}
-};
-
 let HelpScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -433,7 +370,6 @@ let HelpScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
-        let scene = this;
     },
 
     //--------------------------------------------------------------------------
@@ -488,7 +424,7 @@ let MenuScene = new Phaser.Class({
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2 + GRID_SIZE,
             "START",
-            {font: '' + 1*GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
+            {font: '' + GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
             .setOrigin(0.5, 0.5)
             .setVisible(true);
         addButton(text2,() => {
@@ -496,7 +432,6 @@ let MenuScene = new Phaser.Class({
             particles.clearMask();
             particles2.clearMask();
             let objects = [matte,rectangle,text,text2];
-            let completer =
 
             scene.tweens.add({
                 targets: objects,
@@ -507,7 +442,7 @@ let MenuScene = new Phaser.Class({
                         object.destroy();
                     });
                 },
-            })
+            });
             scene.scene.launch('GameScene');
             scene.scene.bringToTop('MenuScene');
         });
@@ -542,7 +477,7 @@ let MenuScene = new Phaser.Class({
         particles.setDepth(DEPTHS.FG);
         particles.setMask(mask);
 
-        particles2 = scene.add.particles('tiles',5);
+        let particles2 = scene.add.particles('tiles',5);
 
         particles2.createEmitter({
             alpha: 0.85,
