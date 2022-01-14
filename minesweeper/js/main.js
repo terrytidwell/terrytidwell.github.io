@@ -25,6 +25,14 @@ let COLORS = {
     VIOLATION_TEXT: '#800000'
 };
 
+let xPixel = function(x) {
+    return Math.round(x * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
+};
+
+let yPixel = function(y) {
+    return Math.round(y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -61,14 +69,6 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
-
-        let xPixel = function(x) {
-            return Math.round(x * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
-        };
-
-        let yPixel = function(y) {
-            return Math.round(y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
-        };
 
         let set_player_location = function(x, y) {
             target_x = x;
@@ -355,13 +355,13 @@ let GameScene = new Phaser.Class({
     }
 });
 
-let HelpScene = new Phaser.Class({
+let CreateScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
 
     //--------------------------------------------------------------------------
     initialize: function () {
-        Phaser.Scene.call(this, {key: 'HelpScene', active: false});
+        Phaser.Scene.call(this, {key: 'CreateScene', active: false});
     },
 
     //--------------------------------------------------------------------------
@@ -370,6 +370,347 @@ let HelpScene = new Phaser.Class({
 
     //--------------------------------------------------------------------------
     create: function () {
+        let scene = this;
+
+        let grid_squares = [];
+
+        scene.add.rectangle(
+            xPixel(SCREEN_COLUMNS / 2 - 0.5),
+            yPixel(SCREEN_ROWS / 2 - 0.5),
+            SCREEN_COLUMNS * GRID_SIZE,
+            SCREEN_ROWS * GRID_SIZE,
+            COLORS.BORDER,
+            0
+        ).setStrokeStyle(GRID_SIZE/16, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
+
+        for (let x = 0; x < SCREEN_COLUMNS; x++) {
+            grid_squares.push([]);
+            for (let y = 0; y < SCREEN_ROWS; y++) {
+                let square = scene.add.rectangle(
+                    xPixel(x),
+                    yPixel(y),
+                    GRID_SIZE,
+                    GRID_SIZE,
+                    COLORS.BORDER,
+                    0
+                ).setStrokeStyle(GRID_SIZE/32, COLORS.BORDER, 1).setDepth(DEPTHS.GRID);
+                grid_squares[x].push(square);
+                square.setInteractive();
+                square.setData('x', x);
+                square.setData('y', y);
+                square.setData('locked', false);
+                square.setData('hidden_mine', false);
+                if ( (y === 0 || y === 1) && (x === 2 || x === 3 || x === 4))
+                {
+                    square.setData('hidden_mine', false);
+                }
+                if ( y === SCREEN_ROWS - 1 && x === 3)
+                {
+                    square.setData('hidden_mine', false);
+                }
+                let text = scene.add.text(
+                    xPixel(x),
+                    yPixel(y + 0.5),
+                    ' ',
+                    {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+                    .setDepth(DEPTHS.GUESS)
+                    .setOrigin(1, 1)
+                    .setVisible(false);
+                square.setData('text',text);
+                let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),'flag');
+                flag.play('flag_blowing');
+                flag.setVisible(false);
+                square.setData('flag', flag);
+                //square.setData('shapes', create_shape(x, y));
+
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
+                    square.setFillStyle(0x000000, 0.15);
+                });
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
+                    square.setFillStyle(0x000000, 0);
+                });
+                square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
+                        let hidden_mine = !square.data.values.hidden_mine;
+                        square.data.values.hidden_mine = hidden_mine;
+                        square.data.values.flag.setVisible(hidden_mine);
+                        flag.play('flag_blowing');
+                        square.data.values.text.setVisible(!hidden_mine);
+                });
+            }
+        }
+
+        let text = scene.add.text(
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            'SOLVE',
+            {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+            .setDepth(DEPTHS.GUESS)
+            .setOrigin(1, 1)
+            .setVisible(true);
+        addButton(text, () => {
+            let GUESS = {
+                HIDDEN: 11,
+                BOMB: 9,
+                NOT_BOMB: 10,
+            };
+            let guess_to_text = (guess) => {
+                return ['0', '1', '2', '3', '4', '5',
+                    '6', '7', '8', 'M', '-', '?'][guess];
+            };
+            let set_guess = (square, guess) => {
+                square.setData('guess', guess);
+                square.data.values.text.setText(guess_to_text(guess));
+            }
+            for (let grid_line of grid_squares) {
+                for (let square of grid_line) {
+                    set_guess(square, GUESS.HIDDEN);
+                    square.data.values.text.setVisible(true);
+                    square.setData('current_count', 0);
+                }
+            }
+
+            let action_base = (square, action) => {
+                let x = square.data.values.x;
+                let y = square.data.values.y;
+                for (let d of [[-1, -1], [-1, 0], [-1, 1],
+                    [0, -1],[0, 1],
+                    [1, -1],[1, 0],[1, 1]]) {
+                    let dx = d[0];
+                    let dy = d[1];
+                    if (x + dx >= 0 && x + dx < SCREEN_COLUMNS &&
+                        y + dy >= 0 && y + dy < SCREEN_ROWS) {
+                        action(grid_squares[x+dx][y+dy]);
+                    }
+                }
+            };
+
+            let find_adjacent_to_revealed = (square) => {
+                return 0 < counter_base(square, (other_square) => {
+                    return (square.data.values.x === other_square.data.values.x ||
+                        square.data.values.y === other_square.data.values.y) &&
+                        other_square.data.values.guess >= 0 && other_square.data.values.guess <= 8;
+                    });
+            };
+
+            let counter_base = (square, condition) => {
+                let sum = 0;
+                action_base(square,(square) => {
+                    if (condition(square)) {
+                        sum++;
+                    }});
+                return sum;
+            };
+
+            let find_value = (square) => {
+                return counter_base(square, (square) => {
+                    return square.data.values.hidden_mine });
+            };
+            let find_current_count = (square) => {
+                return counter_base(square, (square) => {
+                    return square.data.values.guess === GUESS.BOMB; });
+            };
+            let find_open_squares = (square) => {
+                return counter_base(square, (square) => {
+                    return square.data.values.guess === GUESS.HIDDEN; });
+            };
+            let find_border_squares = (square) => {
+                return 0 < counter_base(square, (square) => {
+                    return square.data.values.guess >= 0 &&
+                        square.data.values.guess <= 8;
+                });
+            };
+
+            let reveal_square = (square) => {
+                let value = 'M';
+                square.setData('guess',GUESS.BOMB);
+                if (!square.data.values.hidden_mine) {
+                    value = find_value(square);
+                    square.setData('guess', value);
+                }
+                square.data.values.text.setText(''+value+'');
+            };
+
+            let squares_to_investigate = [];
+            reveal_square(grid_squares[3][0]);
+
+            let check_legality = () => {
+                for (let grid_line of grid_squares) {
+                    for (let square of grid_line) {
+                        if (square.data.values.guess >= 0 &&
+                            square.data.values.guess <= 8) {
+                            let current = find_current_count(square);
+                            if (current > square.data.values.guess) {
+                                return false;
+                            }
+                            let empty = find_open_squares(square);
+                            if (current + empty < square.data.values.guess) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            };
+
+            let expand_squares = () => {
+                let square_added = true;
+                let expanded = false;
+                while (square_added) {
+                    square_added = propagate_literals();
+                    for (let grid_line of grid_squares) {
+                        for (let square of grid_line) {
+                            if (square.data.values.guess === GUESS.NOT_BOMB &&
+                                find_adjacent_to_revealed(square)) {
+                                reveal_square(square);
+                                square_added = true;
+                                expanded = true;
+                            }
+                        }
+                    }
+                }
+                return expanded;
+            };
+
+            let propagate_literals = () => {
+                let literals_flipped = false;
+                for (let grid_line of grid_squares) {
+                    for (let square of grid_line) {
+                        if (square.data.values.guess >= 0 &&
+                            square.data.values.guess <= 8) {
+                            let current = find_current_count(square);
+                            if (current === square.data.values.guess) {
+                                action_base(square, (square) => {
+                                    if (square.data.values.guess === GUESS.HIDDEN) {
+                                        literals_flipped = true;
+                                        square.data.values.guess = GUESS.NOT_BOMB;
+                                        square.data.values.text.setText('-');
+                                    }
+                                });
+                            }
+                            let empty = find_open_squares(square);
+                            if (current + empty === square.data.values.guess) {
+                                action_base(square, (square) => {
+                                    if (square.data.values.guess === GUESS.HIDDEN) {
+                                        square.data.values.guess = GUESS.BOMB;
+                                        square.data.values.text.setText('M');
+                                        literals_flipped = true;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+                return literals_flipped;
+            };
+
+            let find_solution = (set) => {
+                let get_first_unassigned = (set) => {
+                    for (let square of set) {
+                        if (square.data.values.guess === GUESS.HIDDEN) {
+                            return square;
+                        }
+                    }
+                    return null;
+                };
+
+                let revert = [];
+                for (let square of set) {
+                    revert.push(square.data.values.guess);
+                }
+
+                let inner_find_solution = () => {
+                    let legal = check_legality();
+                    if (!legal) {
+                        return legal;
+                    }
+                    propagate_literals();
+                    let next = get_first_unassigned(set);
+                    if (!next) {
+                        return check_legality();
+                    }
+                    set_guess(next, GUESS.BOMB);
+                    if (find_solution(set)) {
+                        return true;
+                    };
+                    set_guess(next, GUESS.NOT_BOMB);
+                    if (find_solution(set)) {
+                        return true;
+                    }
+                    return false;
+                };
+                let solved = inner_find_solution();
+                if (!solved) {
+                    for (let x = 0; x < revert.length; x++) {
+                        set_guess(set[x], revert[x]);
+                    }
+                }
+                return solved;
+            };
+
+            let find_invariants = () => {
+                let search_grid = [];
+                for (let grid_line of grid_squares) {
+                    for (let square of grid_line) {
+                        if (square.data.values.guess === GUESS.HIDDEN &&
+                            find_border_squares(square)) {
+                            search_grid.push(square);
+                        }
+                    }
+                }
+                for (let square of search_grid) {
+                    square.data.values.text.setText('x');
+                }
+                if(search_grid.length === 0) {
+                    return;
+                }
+
+                let test_candidate_in_set = (index, set) => {
+                    let candidate = set[index];
+                    let search_grid = [];
+                    for (let x = 0; x < set.length; x++) {
+                        if (x !== index) {
+                            search_grid.push(set[x]);
+                        }
+                    }
+                    let revert = [];
+                    for (let square of search_grid) {
+                        revert.push(square.data.values.guess);
+                    }
+                    set_guess(candidate, GUESS.BOMB);
+                    if (candidate.data.values.x === 2 &&
+                        candidate.data.values.y === 3) {
+                        console.log('AHA!');
+                    }
+                    if (!find_solution(search_grid)) {
+                        set_guess(candidate, GUESS.NOT_BOMB);
+                        return;
+                    }
+                    for (let x = 0; x < revert.length; x++) {
+                        set_guess(search_grid[x], revert[x]);
+                    }
+                    set_guess(candidate, GUESS.NOT_BOMB);
+                    if (!find_solution(search_grid)) {
+                        set_guess(candidate, GUESS.BOMB);
+                        return;
+                    }
+                    for (let x = 0; x < revert.length; x++) {
+                        set_guess(search_grid[x], revert[x]);
+                    }
+                    set_guess(candidate, GUESS.HIDDEN);
+                    return;
+                };
+
+                for (let x = 0; x < search_grid.length; x++) {
+                    test_candidate_in_set(x, search_grid);
+                }
+
+            };
+
+            while(expand_squares()) {
+                find_invariants();
+            };
+
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -427,8 +768,9 @@ let MenuScene = new Phaser.Class({
             {font: '' + GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
             .setOrigin(0.5, 0.5)
             .setVisible(true);
-        addButton(text2,() => {
+        let close_menu = (oncomplete) => {
             text2.disableInteractive();
+            text3.disableInteractive();
             particles.clearMask();
             particles2.clearMask();
             let objects = [matte,rectangle,text,text2];
@@ -441,14 +783,33 @@ let MenuScene = new Phaser.Class({
                     Phaser.Utils.Array.Each(objects, (object) => {
                         object.destroy();
                     });
+                    if (oncomplete) {
+                        oncomplete();
+                    }
                 },
             });
+        };
+        addButton(text2,() => {
+            close_menu();
             scene.scene.launch('GameScene');
             scene.scene.bringToTop('MenuScene');
         });
+        let text3 = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2 + 2*GRID_SIZE,
+            "CREATE",
+            {font: '' + GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
+            .setOrigin(0.5, 0.5)
+            .setVisible(true);
+        addButton(text3,() => {
+            close_menu(() => {
+                scene.scene.start('CreateScene');
+            });
+        });
         text2.setAlpha(0);
+        text3.setAlpha(0)
         scene.tweens.add({
-            targets: text2,
+            targets: [text2, text3],
             alpha: 0.5,
             delay: 6000,
             duration: 500,
@@ -528,10 +889,6 @@ let LoadScene = new Phaser.Class({
 
         scene.load.on('complete', function() {
             scene.scene.start('MenuScene');
-            /*
-            scene.scene.start('GameScene');
-            scene.scene.bringToTop('HelpScene');
-            */
         });
     },
 
@@ -588,7 +945,7 @@ let config = {
             debug: false
         }
     },
-    scene: [ LoadScene, MenuScene, HelpScene, GameScene ]
+    scene: [ LoadScene, MenuScene, CreateScene, GameScene ]
 };
 
 game = new Phaser.Game(config);
