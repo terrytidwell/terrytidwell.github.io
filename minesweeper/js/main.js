@@ -119,7 +119,7 @@ let GameScene = new Phaser.Class({
                     square.setData('x', x);
                     square.setData('y', y);
                     square.setData('locked', false);
-                    square.setData('hidden_mine', solution_statistics.board[x][y].hidden_mines);
+                    square.setData('hidden_mine', solution_statistics.board[x][y].hidden_mine);
                     if ( (y === 0 || y === 1) && (x === 2 || x === 3 || x === 4))
                     {
                         square.setData('hidden_mine', false);
@@ -531,7 +531,7 @@ let MenuScene = new Phaser.Class({
             text3.disableInteractive();
             particles.clearMask();
             particles2.clearMask();
-            let objects = [matte,rectangle,text,text2];
+            let objects = [matte,rectangle,text,text2,text3];
 
             scene.tweens.add({
                 targets: objects,
