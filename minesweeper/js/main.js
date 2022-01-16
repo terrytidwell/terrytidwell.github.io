@@ -33,6 +33,11 @@ let yPixel = function(y) {
     return Math.round(y * GRID_SIZE + GRID_SIZE/2 + BUFFER * GRID_SIZE);
 };
 
+let player_stats = {
+    version: 1,
+    boards_cleared : 0,
+};
+
 let GameScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -65,6 +70,11 @@ let GameScene = new Phaser.Class({
         let target_x = 3;
         let target_y = 0;
         let player_pic = null;
+
+        let local_stats = localStorage.getItem('player_stats');
+        if (local_stats) {
+            player_stats = JSON.parse(local_stats);
+        }
 
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
@@ -254,8 +264,19 @@ let GameScene = new Phaser.Class({
 
         let enter_leave = () => {
             target_y = 15;
+            player_stats.boards_cleared++;
+            localStorage.setItem('player_stats', JSON.stringify(player_stats));
+            let exit_text = scene.add.text(SCREEN_WIDTH/2,SCREEN_HEIGHT/2,
+                'KMS WALKED: '+(player_stats.boards_cleared-1),
+                {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+                .setDepth(DEPTHS.UI)
+                .setAlpha(0)
+                .setOrigin(0.5, 0.5);
+            state_handler.addDelayedCall(2000, () => {
+                    exit_text.setText('KMS WALKED: '+player_stats.boards_cleared)
+                });
             state_handler.addTween({
-                targets: matte,
+                targets: [exit_text, matte],
                 alpha: 1,
                 duration: 3000,
                 onComplete : () => {
@@ -494,20 +515,47 @@ let MenuScene = new Phaser.Class({
         let scene = this;
         let matte = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000)
-            .setDepth(DEPTHS.BG);
+            .setDepth(DEPTHS.FG);
 
-
-        let rectangle = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+        let rectangle = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2  + 0.5 * GRID_SIZE,
+            SCREEN_WIDTH, SCREEN_HEIGHT, 0xE8E8E8)//0xE8E8E8)
+            .setDepth(DEPTHS.FG)
+            .setAlpha(0)
+            .setOrigin(0.5,1);
+        let rectangle2 = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 0.5 * GRID_SIZE,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0xE8E8E8)
-            .setDepth(DEPTHS.BG)
-            .setAlpha(0);
+            .setDepth(DEPTHS.FG)
+            .setAlpha(0)
+            .setOrigin(0.5,0);
+
 
         scene.tweens.add({
             targets: rectangle,
             alpha: 0.5,
-            delay: 4000,
+            delay: 2000,
             duration: 2000
         });
+        scene.tweens.add({
+            delay: 4000,
+            duration: 500,
+            targets: rectangle2,
+            alpha: 0.5,
+            onComplete : () => {
+                text2_shadow.setInteractive();
+                text2_shadow.input.alwaysEnabled = true;
+                text2_shadow.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
+                    text2_shadow.setAlpha(0.5);
+                });
+                text2_shadow.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+                    text2_shadow.setAlpha(0);
+                });
+                text2_shadow.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                    close_menu();
+                    scene.scene.launch('GameScene');
+                    scene.scene.bringToTop('MenuScene');
+                });
+            }
+        })
 
 
         let text = scene.add.text(
@@ -523,15 +571,25 @@ let MenuScene = new Phaser.Class({
             SCREEN_WIDTH/2,
             SCREEN_HEIGHT/2 + GRID_SIZE,
             "START",
-            {font: '' + GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
+            {font: '' + GRID_SIZE + 'px kremlin', fill: '#FFFFFF'})
             .setOrigin(0.5, 0.5)
-            .setVisible(true);
+            .setVisible(false);
+        let text2_shadow = scene.add.text(
+            SCREEN_WIDTH/2,
+            SCREEN_HEIGHT/2 + GRID_SIZE,
+            "START",
+            {font: '' + GRID_SIZE + 'px kremlin', fill: '#FFFFFF'})
+            .setOrigin(0.5, 0.5)
+            .setAlpha(0)
+            .setDepth(DEPTHS.UI);
+        let mask2 = new Phaser.Display.Masks.BitmapMask(scene, text2);
+
         let close_menu = (oncomplete) => {
             text2.disableInteractive();
-            text3.disableInteractive();
             particles.clearMask();
             particles2.clearMask();
-            let objects = [matte,rectangle,text,text2,text3];
+            let objects = [matte,rectangle,rectangle2,text,
+                text2,text2_shadow,particles,particles2,particles3,particles4];
 
             scene.tweens.add({
                 targets: objects,
@@ -547,31 +605,49 @@ let MenuScene = new Phaser.Class({
                 },
             });
         };
-        addButton(text2,() => {
-            close_menu();
-            scene.scene.launch('GameScene');
-            scene.scene.bringToTop('MenuScene');
+
+        let snow_big = scene.add.particles('tiles',5);
+        snow_big.createEmitter({
+            alpha: 0.85, //{ start: 0.85, end: 0.75 },
+            //scale: { start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 175,
+            speedX : 20,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 6000, max: 9000 },
+            //blendMode: 'ADD',
+            frequency: 300,
+            //maxParticles: 10,
+            x: { min: -100, max: SCREEN_WIDTH},
+            y: 0,
         });
-        let text3 = scene.add.text(
-            SCREEN_WIDTH/2,
-            SCREEN_HEIGHT/2 + 2*GRID_SIZE,
-            "CREATE",
-            {font: '' + GRID_SIZE + 'px kremlin', fill: '#E8E8E8'})
-            .setOrigin(0.5, 0.5)
-            .setVisible(true);
-        addButton(text3,() => {
-            close_menu(() => {
-                scene.scene.start('CreateScene');
-            });
+        snow_big.setDepth(DEPTHS.BG);
+
+        let snow_small = scene.add.particles('tiles',5);
+        snow_small.createEmitter({
+            alpha: 0.85,
+            scale: 0.5, //{ start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 100,
+            speedX : 10,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 3000, max: 12000 },
+            //blendMode: 'ADD',
+            frequency: 200,
+            //maxParticles: 10,
+            x: { min: 0, max: SCREEN_WIDTH},
+            y: 0,
+            mask: mask,
         });
-        text2.setAlpha(0);
-        text3.setAlpha(0);
-        scene.tweens.add({
-            targets: [text2, text3],
-            alpha: 0.5,
-            delay: 6000,
-            duration: 500,
-        });
+        snow_small.setDepth(DEPTHS.BG);
 
         let particles = scene.add.particles('tiles',5);
         particles.createEmitter({
@@ -590,7 +666,7 @@ let MenuScene = new Phaser.Class({
             frequency: 300,
             //maxParticles: 10,
             x: { min: -100, max: SCREEN_WIDTH},
-            y: 0,
+            y: SCREEN_HEIGHT/2 - 1.5 * GRID_SIZE,
             mask: mask,
         });
         particles.setDepth(DEPTHS.FG);
@@ -614,12 +690,60 @@ let MenuScene = new Phaser.Class({
             frequency: 200,
             //maxParticles: 10,
             x: { min: 0, max: SCREEN_WIDTH},
-            y: 0,
+            y: SCREEN_HEIGHT/2 - 1.5 * GRID_SIZE,
             mask: mask,
         });
         particles2.setDepth(DEPTHS.FG);
         particles2.setMask(mask);
         rectangle.setMask(mask);
+
+        let particles3 = scene.add.particles('tiles',5);
+        particles3.createEmitter({
+            alpha: 0.85, //{ start: 0.85, end: 0.75 },
+            //scale: { start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 175,
+            speedX : 20,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 6000, max: 9000 },
+            //blendMode: 'ADD',
+            frequency: 300,
+            //maxParticles: 10,
+            x: { min: -100, max: SCREEN_WIDTH},
+            y: SCREEN_HEIGHT/2 - 1.5 * GRID_SIZE,
+            mask: mask,
+        });
+        particles3.setDepth(DEPTHS.FG);
+        particles3.setMask(mask2);
+
+        let particles4 = scene.add.particles('tiles',5);
+
+        particles4.createEmitter({
+            alpha: 0.85,
+            scale: 0.5, //{ start: 0.5, end: 2.5 },
+            //tint: 0x000080,
+            //speed: 100,
+            speedY : 100,
+            speedX : 10,
+            //accelerationY: 300,
+            angle: 0, // { min: -85, max: -95 },
+            //scale: .25,
+            //rotate: 20, //{ min: -180, max: 180 },
+            lifespan: { min: 3000, max: 12000 },
+            //blendMode: 'ADD',
+            frequency: 200,
+            //maxParticles: 10,
+            x: { min: 0, max: SCREEN_WIDTH},
+            y: SCREEN_HEIGHT/2 - 1.5 * GRID_SIZE,
+            mask: mask,
+        });
+        particles4.setDepth(DEPTHS.FG);
+        particles4.setMask(mask2);
+        rectangle2.setMask(mask2);
     },
 
     //--------------------------------------------------------------------------
