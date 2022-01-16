@@ -91,29 +91,6 @@ let GameScene = new Phaser.Class({
                 addTree();
             }
 
-            /*
-            scene.add.sprite(xPixel(-0.55), yPixel(2), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.1), yPixel(3), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-0.85), yPixel(8), 'tiles',6).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-0.6), yPixel(4), 'tiles',6).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.2), yPixel(-.65), 'tiles',6).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1), yPixel(4), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-0.75), yPixel(5.25), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.35), yPixel(5.6), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1.35), yPixel(10), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-0.7), yPixel(9.5), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(-1), yPixel(10.9), 'tiles',0).setDepth(DEPTHS.BG);
-
-            scene.add.sprite(xPixel(6.85), yPixel(1), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(7.3), yPixel(0.5), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(7), yPixel(1.9), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(6.65), yPixel(8), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(7.2), yPixel(8.5), 'tiles',0).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(7.4), yPixel(9.9), 'tiles',0).setFlipX(true).setDepth(DEPTHS.BG);
-            scene.add.sprite(xPixel(7.1), yPixel(4.3), 'tiles',6).setDepth(DEPTHS.BG);
-             */
-
-
             scene.add.rectangle(
                 xPixel(SCREEN_COLUMNS / 2 - 0.5),
                 yPixel(SCREEN_ROWS / 2 - 0.5),
@@ -122,6 +99,9 @@ let GameScene = new Phaser.Class({
                 COLORS.BORDER,
                 0
             ).setStrokeStyle(GRID_SIZE/16, COLORS.BORDER, 1).setDepth(DEPTHS.BG);
+
+            let solution_statistics = solve_and_take_best();
+            console.log(solution_statistics);
 
             for (let x = 0; x < SCREEN_COLUMNS; x++) {
                 grid_squares.push([]);
@@ -139,10 +119,7 @@ let GameScene = new Phaser.Class({
                     square.setData('x', x);
                     square.setData('y', y);
                     square.setData('locked', false);
-                    square.setData('hidden_mine', false);
-                    if (Phaser.Math.Between(0,100) < 14) {
-                        square.setData('hidden_mine', true);
-                    }
+                    square.setData('hidden_mine', solution_statistics.board[x][y].hidden_mines);
                     if ( (y === 0 || y === 1) && (x === 2 || x === 3 || x === 4))
                     {
                         square.setData('hidden_mine', false);
@@ -439,7 +416,44 @@ let CreateScene = new Phaser.Class({
             }
         }
 
+        let randomize = () => {
+            for (let grid_line of grid_squares) {
+                for (let square of grid_line) {
+                    let y = square.data.values.y;
+                    let x = square.data.values.x;
+                    let hidden_mine =
+                        Phaser.Math.Between(0, 100) < 25;
+                    if ((y === 0 || y === 1) && (x === 2 || x === 3 || x === 4)) {
+                        hidden_mine = false;
+                    }
+                    if (y === SCREEN_ROWS - 1 && x === 3) {
+                        hidden_mine = false;
+                    }
+                    square.data.values.hidden_mine = hidden_mine;
+                    square.data.values.flag.setVisible(hidden_mine);
+                    square.data.values.flag.play('flag_blowing');
+                    square.data.values.text.setVisible(!hidden_mine);
+                }
+            }
+        };
+
         let text = scene.add.text(
+            0,
+            SCREEN_HEIGHT,
+            'RANDOM',
+            {font: '' + GRID_SIZE/2 + 'px kremlin', fill: '#000000'})
+            .setDepth(DEPTHS.GUESS)
+            .setOrigin(0, 1)
+            .setVisible(true);
+        addButton(text, () => {
+            let solution_statistics = solve_and_take_best();
+            console.log(solution_statistics);
+            set_board(solution_statistics.board, grid_squares);
+        });
+
+
+
+        text = scene.add.text(
             SCREEN_WIDTH,
             SCREEN_HEIGHT,
             'SOLVE',
@@ -448,269 +462,13 @@ let CreateScene = new Phaser.Class({
             .setOrigin(1, 1)
             .setVisible(true);
         addButton(text, () => {
-            let GUESS = {
-                HIDDEN: 11,
-                BOMB: 9,
-                NOT_BOMB: 10,
-            };
-            let guess_to_text = (guess) => {
-                return ['0', '1', '2', '3', '4', '5',
-                    '6', '7', '8', 'M', '-', '?'][guess];
-            };
-            let set_guess = (square, guess) => {
-                square.setData('guess', guess);
-                square.data.values.text.setText(guess_to_text(guess));
-            }
-            for (let grid_line of grid_squares) {
-                for (let square of grid_line) {
-                    set_guess(square, GUESS.HIDDEN);
-                    square.data.values.text.setVisible(true);
-                    square.setData('current_count', 0);
-                }
-            }
-
-            let action_base = (square, action) => {
-                let x = square.data.values.x;
-                let y = square.data.values.y;
-                for (let d of [[-1, -1], [-1, 0], [-1, 1],
-                    [0, -1],[0, 1],
-                    [1, -1],[1, 0],[1, 1]]) {
-                    let dx = d[0];
-                    let dy = d[1];
-                    if (x + dx >= 0 && x + dx < SCREEN_COLUMNS &&
-                        y + dy >= 0 && y + dy < SCREEN_ROWS) {
-                        action(grid_squares[x+dx][y+dy]);
-                    }
-                }
-            };
-
-            let find_adjacent_to_revealed = (square) => {
-                return 0 < counter_base(square, (other_square) => {
-                    return (square.data.values.x === other_square.data.values.x ||
-                        square.data.values.y === other_square.data.values.y) &&
-                        other_square.data.values.guess >= 0 && other_square.data.values.guess <= 8;
-                    });
-            };
-
-            let counter_base = (square, condition) => {
-                let sum = 0;
-                action_base(square,(square) => {
-                    if (condition(square)) {
-                        sum++;
-                    }});
-                return sum;
-            };
-
-            let find_value = (square) => {
-                return counter_base(square, (square) => {
-                    return square.data.values.hidden_mine });
-            };
-            let find_current_count = (square) => {
-                return counter_base(square, (square) => {
-                    return square.data.values.guess === GUESS.BOMB; });
-            };
-            let find_open_squares = (square) => {
-                return counter_base(square, (square) => {
-                    return square.data.values.guess === GUESS.HIDDEN; });
-            };
-            let find_border_squares = (square) => {
-                return 0 < counter_base(square, (square) => {
-                    return square.data.values.guess >= 0 &&
-                        square.data.values.guess <= 8;
-                });
-            };
-
-            let reveal_square = (square) => {
-                let value = 'M';
-                square.setData('guess',GUESS.BOMB);
-                if (!square.data.values.hidden_mine) {
-                    value = find_value(square);
-                    square.setData('guess', value);
-                }
-                square.data.values.text.setText(''+value+'');
-            };
-
-            let squares_to_investigate = [];
-            reveal_square(grid_squares[3][0]);
-
-            let check_legality = () => {
-                for (let grid_line of grid_squares) {
-                    for (let square of grid_line) {
-                        if (square.data.values.guess >= 0 &&
-                            square.data.values.guess <= 8) {
-                            let current = find_current_count(square);
-                            if (current > square.data.values.guess) {
-                                return false;
-                            }
-                            let empty = find_open_squares(square);
-                            if (current + empty < square.data.values.guess) {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                return true;
-            };
-
-            let expand_squares = () => {
-                let square_added = true;
-                let expanded = false;
-                while (square_added) {
-                    square_added = propagate_literals();
-                    for (let grid_line of grid_squares) {
-                        for (let square of grid_line) {
-                            if (square.data.values.guess === GUESS.NOT_BOMB &&
-                                find_adjacent_to_revealed(square)) {
-                                reveal_square(square);
-                                square_added = true;
-                                expanded = true;
-                            }
-                        }
-                    }
-                }
-                return expanded;
-            };
-
-            let propagate_literals = () => {
-                let literals_flipped = false;
-                for (let grid_line of grid_squares) {
-                    for (let square of grid_line) {
-                        if (square.data.values.guess >= 0 &&
-                            square.data.values.guess <= 8) {
-                            let current = find_current_count(square);
-                            if (current === square.data.values.guess) {
-                                action_base(square, (square) => {
-                                    if (square.data.values.guess === GUESS.HIDDEN) {
-                                        literals_flipped = true;
-                                        square.data.values.guess = GUESS.NOT_BOMB;
-                                        square.data.values.text.setText('-');
-                                    }
-                                });
-                            }
-                            let empty = find_open_squares(square);
-                            if (current + empty === square.data.values.guess) {
-                                action_base(square, (square) => {
-                                    if (square.data.values.guess === GUESS.HIDDEN) {
-                                        square.data.values.guess = GUESS.BOMB;
-                                        square.data.values.text.setText('M');
-                                        literals_flipped = true;
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-                return literals_flipped;
-            };
-
-            let find_solution = (set) => {
-                let get_first_unassigned = (set) => {
-                    for (let square of set) {
-                        if (square.data.values.guess === GUESS.HIDDEN) {
-                            return square;
-                        }
-                    }
-                    return null;
-                };
-
-                let revert = [];
-                for (let square of set) {
-                    revert.push(square.data.values.guess);
-                }
-
-                let inner_find_solution = () => {
-                    let legal = check_legality();
-                    if (!legal) {
-                        return legal;
-                    }
-                    propagate_literals();
-                    let next = get_first_unassigned(set);
-                    if (!next) {
-                        return check_legality();
-                    }
-                    set_guess(next, GUESS.BOMB);
-                    if (find_solution(set)) {
-                        return true;
-                    };
-                    set_guess(next, GUESS.NOT_BOMB);
-                    if (find_solution(set)) {
-                        return true;
-                    }
-                    return false;
-                };
-                let solved = inner_find_solution();
-                if (!solved) {
-                    for (let x = 0; x < revert.length; x++) {
-                        set_guess(set[x], revert[x]);
-                    }
-                }
-                return solved;
-            };
-
-            let find_invariants = () => {
-                let search_grid = [];
-                for (let grid_line of grid_squares) {
-                    for (let square of grid_line) {
-                        if (square.data.values.guess === GUESS.HIDDEN &&
-                            find_border_squares(square)) {
-                            search_grid.push(square);
-                        }
-                    }
-                }
-                for (let square of search_grid) {
-                    square.data.values.text.setText('x');
-                }
-                if(search_grid.length === 0) {
-                    return;
-                }
-
-                let test_candidate_in_set = (index, set) => {
-                    let candidate = set[index];
-                    let search_grid = [];
-                    for (let x = 0; x < set.length; x++) {
-                        if (x !== index) {
-                            search_grid.push(set[x]);
-                        }
-                    }
-                    let revert = [];
-                    for (let square of search_grid) {
-                        revert.push(square.data.values.guess);
-                    }
-                    set_guess(candidate, GUESS.BOMB);
-                    if (candidate.data.values.x === 2 &&
-                        candidate.data.values.y === 3) {
-                        console.log('AHA!');
-                    }
-                    if (!find_solution(search_grid)) {
-                        set_guess(candidate, GUESS.NOT_BOMB);
-                        return;
-                    }
-                    for (let x = 0; x < revert.length; x++) {
-                        set_guess(search_grid[x], revert[x]);
-                    }
-                    set_guess(candidate, GUESS.NOT_BOMB);
-                    if (!find_solution(search_grid)) {
-                        set_guess(candidate, GUESS.BOMB);
-                        return;
-                    }
-                    for (let x = 0; x < revert.length; x++) {
-                        set_guess(search_grid[x], revert[x]);
-                    }
-                    set_guess(candidate, GUESS.HIDDEN);
-                    return;
-                };
-
-                for (let x = 0; x < search_grid.length; x++) {
-                    test_candidate_in_set(x, search_grid);
-                }
-
-            };
-
-            while(expand_squares()) {
-                find_invariants();
-            };
-
+            let board = create_board_from_grid(grid_squares);
+            let solution_statistics = solve(board);
+            console.log(solution_statistics);
+            set_board(solution_statistics.board, grid_squares);
         });
+
+
     },
 
     //--------------------------------------------------------------------------
@@ -807,7 +565,7 @@ let MenuScene = new Phaser.Class({
             });
         });
         text2.setAlpha(0);
-        text3.setAlpha(0)
+        text3.setAlpha(0);
         scene.tweens.add({
             targets: [text2, text3],
             alpha: 0.5,
