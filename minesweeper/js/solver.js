@@ -13,7 +13,8 @@ let create_board_from_grid = (grid_squares) => {
                 x: square.data.values.x,
                 y: square.data.values.y,
                 guess: GUESS.HIDDEN,
-                hidden_mine: square.data.values.hidden_mine
+                hidden_mine: square.data.values.hidden_mine,
+                generation: -1
             });
         }
         board.push(board_line);
@@ -102,7 +103,7 @@ let solve = (board) => {
         let square_added = true;
         let expanded = false;
         while (square_added) {
-            square_added = propagate_literals();
+            square_added = unit_propagation();
             for (let grid_line of board) {
                 for (let square of grid_line) {
                     if (square.guess === GUESS.NOT_BOMB &&
@@ -117,7 +118,7 @@ let solve = (board) => {
         return expanded;
     };
 
-    let propagate_literals = () => {
+    let unit_propagation = () => {
         let literals_flipped = false;
         for (let grid_line of board) {
             for (let square of grid_line) {
@@ -167,7 +168,7 @@ let solve = (board) => {
             if (!legal) {
                 return legal;
             }
-            propagate_literals();
+            unit_propagation();
             let next = get_first_unassigned(set);
             if (!next) {
                 return check_legality();
@@ -250,13 +251,17 @@ let solve = (board) => {
     while(expand_squares()) {
         find_invariants();
         generations++;
-        if (board[3][11].guess >= 0 &&
-            board[3][11].guess <= 8) {
-            if (!solution_statistics.exit_generation) {
-                solution_statistics.exit_generation = generations;
+        for (let grid_line of board) {
+            for (let square of grid_line) {
+                if (square.guess >= 0 &&
+                    square.guess <= 8 &&
+                    square.generation === -1) {
+                    square.generation = generations;
+                }
             }
         }
     };
+    solution_statistics.exit_generation = board[3][11].generation;
     solution_statistics.board = board;
     solution_statistics.total_generations = generations;
     solution_statistics.total_zeroes = 0;
@@ -290,7 +295,7 @@ let set_board = (board, grid_squares) => {
             //square.data.values.text.setVisible(!board_square.hidden_mine);
         }
     }
-}
+};
 
 let make_randomized_board = () => {
     let board = [];
@@ -302,6 +307,7 @@ let make_randomized_board = () => {
                 y: y,
                 guess: GUESS.HIDDEN,
                 hidden_mine: Phaser.Math.Between(0,100) < 20,
+                generation: -1
             });
         }
         board.push(board_line);

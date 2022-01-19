@@ -6,7 +6,8 @@ const SCREEN_HEIGHT = GRID_SIZE * (SCREEN_ROWS + 2 * BUFFER);
 const SCREEN_WIDTH = GRID_SIZE * (SCREEN_COLUMNS + 2 * BUFFER);
 const DEPTHS =
 {
-    BG : 0,
+    BG_SHADOW : 0,
+    BG : 500,
     GRID: 1000,
     PLAYER: 1500,
     GUESS: 2000,
@@ -23,6 +24,19 @@ let COLORS = {
     GUESS_TEXT: '#C0C0C0',
     VIOLATION: 0x800000,
     VIOLATION_TEXT: '#800000'
+};
+
+let TILES = {
+    TREE_BIG: 0,
+    TREE_BIG_SHADOW: 1,
+    FENCE_1: 2,
+    FENCE_2: 3,
+    FENCE_OPENING: 4,
+    CRATER: 5,
+    SNOW: 6,
+    TREE_SMALL: 7,
+    TREE_SMALL_SHADOW: 8,
+    CHEST: 9
 };
 
 let xPixel = function(x) {
@@ -86,13 +100,72 @@ let GameScene = new Phaser.Class({
             state_handler.changeState(STATES.WALK);
         };
 
+        let INPUT_STATE = {
+            WALK: 0,
+            FLAG: 1
+        };
+        let current_input_state = INPUT_STATE.WALK;
+
+        let add_ui = () => {
+            let ui = scene.add.sprite(xPixel(SCREEN_COLUMNS), yPixel(-1),
+                'ui')
+                .setDepth(DEPTHS.UI);
+            let enter_to_walk = () => {
+                current_input_state = INPUT_STATE.WALK;
+                ui.play('ui_to_walk');
+                ui.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                    ui_state_handler.changeState(UI_STATES.WALK);
+                })
+            };
+            let enter_walk = () => {
+                current_input_state = INPUT_STATE.WALK;
+                ui.play('ui_walk');
+            };
+            let enter_to_flag = () => {
+                current_input_state = INPUT_STATE.FLAG;
+                ui.play('ui_to_flag');
+                ui.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                    ui_state_handler.changeState(UI_STATES.FLAG);
+                })
+            };
+            let enter_flag = () => {
+                current_input_state = INPUT_STATE.FLAG;
+                ui.play('ui_flag');
+            };
+
+            let UI_STATES = {
+                TO_WALK: {enter: enter_to_walk, exit: null},
+                WALK: {enter: enter_walk, exit: null},
+                TO_FLAG: {enter: enter_to_flag, exit: null},
+                FLAG: {enter: enter_flag, exit: null},
+            };
+            let ui_state_handler = stateHandler(scene, UI_STATES, UI_STATES.WALK);
+            ui_state_handler.start();
+
+            ui.play('ui_walk');
+            ui.setInteractive();
+            ui.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
+                if (current_input_state === INPUT_STATE.WALK) {
+                    ui_state_handler.changeState(UI_STATES.TO_FLAG);
+                } else {
+                    ui_state_handler.changeState(UI_STATES.TO_WALK);
+                }
+            });
+        };
+        add_ui();
+
         let addTree = () => {
-            let tile = Phaser.Utils.Array.GetRandom([0,0,0,0,6]);
+            let tile = Phaser.Utils.Array.GetRandom([
+                TILES.TREE_BIG,TILES.TREE_BIG,TILES.TREE_BIG,TILES.TREE_BIG,
+                TILES.TREE_SMALL]);
             let x = Phaser.Math.Between(-50,-150)/100;
             x += Phaser.Utils.Array.GetRandom([0,8]);
             let y = Phaser.Math.Between(-150,1250)/100;
             let flip = Phaser.Utils.Array.GetRandom([true,false]);
-            scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile).setFlipX(flip).setDepth(DEPTHS.BG + y);
+            scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile).setFlipX(flip)
+                .setDepth(DEPTHS.BG);
+            scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile+1).setFlipX(flip)
+                .setDepth(DEPTHS.BG_SHADOW);
         };
 
         let prepare_empty_grid = function() {
@@ -138,11 +211,15 @@ let GameScene = new Phaser.Class({
                     {
                         square.setData('hidden_mine', false);
                     }
+                    if (solution_statistics.board[x][y].generation >
+                        solution_statistics.exit_generation) {
+                        scene.add.sprite(xPixel(x), yPixel(y), 'tiles', TILES.CHEST)
+                            .setDepth(DEPTHS.BG);
+                    }
                     let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),'flag');
                     flag.play('flag_blowing');
                     flag.setVisible(false);
                     square.setData('flag', flag);
-                    //square.setData('shapes', create_shape(x, y));
 
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, function () {
                         square.setFillStyle(0x000000, 0.15);
@@ -151,26 +228,29 @@ let GameScene = new Phaser.Class({
                         square.setFillStyle(0x000000, 0);
                     });
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
-                        let delta = Phaser.Math.Distance.Snake(
-                            current_x, current_y,
-                            square.data.values.x, square.data.values.y);
-                        if (delta > 1 || square.data.values.locked) {
-                            if (!square.data.values.text.visible) {
-                                square.data.values.locked = !square.data.values.locked;
-                                square.data.values.flag.setVisible(square.data.values.locked);
-                                flag.play('flag_blowing');
-                            }
-                        } else if (delta === 1 && state_handler.getState() === STATES.IDLE) {
-                            if (square.data.values.hidden_mine) {
-                                target_x = x;
-                                target_y = y;
-                                square.data.values.hidden_mine = false;
-                                state_handler.changeState(STATES.DEAD);
-                            } else {
-                                set_player_location(square.data.values.x, square.data.values.y);
-                            }
-                        } else if (delta === 0) {
-                            square.data.values.text.setVisible(true);
+                        switch (current_input_state) {
+                            case INPUT_STATE.WALK:
+                                let delta = Phaser.Math.Distance.Snake(
+                                    current_x, current_y,
+                                    square.data.values.x, square.data.values.y);
+                                if (delta === 1 && state_handler.getState() === STATES.IDLE) {
+                                    if (square.data.values.hidden_mine) {
+                                        target_x = x;
+                                        target_y = y;
+                                        square.data.values.hidden_mine = false;
+                                        state_handler.changeState(STATES.DEAD);
+                                    } else {
+                                        set_player_location(square.data.values.x, square.data.values.y);
+                                    }
+                                }
+                                break;
+                            case INPUT_STATE.FLAG:
+                                if (!square.data.values.text.visible) {
+                                    square.data.values.locked = !square.data.values.locked;
+                                    square.data.values.flag.setVisible(square.data.values.locked);
+                                    flag.play('flag_blowing');
+                                }
+                                break;
                         }
                     });
                 }
@@ -206,12 +286,12 @@ let GameScene = new Phaser.Class({
             }
 
             for (let x = 0 - BUFFER; x < SCREEN_COLUMNS + BUFFER; x++) {
-                let tile = 1;
+                let tile = TILES.FENCE_1;
                 let flipX = true;
                 if (x === Math.floor(SCREEN_COLUMNS/2)) {
-                    tile = 3;
+                    tile = TILES.FENCE_OPENING;
                 } else if (Phaser.Math.Between(0,100) < 25) {
-                    tile = 2;
+                    tile = TILES.FENCE_2;
                 }
                 if (Phaser.Math.Between(0,100) < 50) {
                     flipX = false;
@@ -231,7 +311,7 @@ let GameScene = new Phaser.Class({
         prepare_empty_grid();
 
         player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0)
-            .setScale(1.5)
+            .setScale(1)
             .setDepth(DEPTHS.PLAYER);
         let walk = (complete) => {
             player_pic.play('guy_walk_anim');
@@ -301,7 +381,7 @@ let GameScene = new Phaser.Class({
 
         let enter_dead = () => {
             walk(() => {
-                scene.add.sprite(xPixel(target_x), yPixel(target_y), 'tiles', 4);
+                scene.add.sprite(xPixel(target_x), yPixel(target_y), 'tiles', TILES.CRATER);
                 current_x = start_x;
                 current_y = start_y;
                 player_pic.x = xPixel(current_x);
@@ -332,7 +412,7 @@ let GameScene = new Phaser.Class({
 
         let matte = scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
             SCREEN_WIDTH, SCREEN_HEIGHT, 0xE8E8E8)
-            .setDepth(DEPTHS.FG);
+            .setDepth(DEPTHS.UI);
         scene.tweens.add({
             targets: matte,
             alpha: 0,
@@ -606,7 +686,7 @@ let MenuScene = new Phaser.Class({
             });
         };
 
-        let snow_big = scene.add.particles('tiles',5);
+        let snow_big = scene.add.particles('tiles',TILES.SNOW);
         snow_big.createEmitter({
             alpha: 0.85, //{ start: 0.85, end: 0.75 },
             //scale: { start: 0.5, end: 2.5 },
@@ -627,7 +707,7 @@ let MenuScene = new Phaser.Class({
         });
         snow_big.setDepth(DEPTHS.BG);
 
-        let snow_small = scene.add.particles('tiles',5);
+        let snow_small = scene.add.particles('tiles',TILES.SNOW);
         snow_small.createEmitter({
             alpha: 0.85,
             scale: 0.5, //{ start: 0.5, end: 2.5 },
@@ -649,7 +729,7 @@ let MenuScene = new Phaser.Class({
         });
         snow_small.setDepth(DEPTHS.BG);
 
-        let particles = scene.add.particles('tiles',5);
+        let particles = scene.add.particles('tiles',TILES.SNOW);
         particles.createEmitter({
             alpha: 0.85, //{ start: 0.85, end: 0.75 },
             //scale: { start: 0.5, end: 2.5 },
@@ -672,7 +752,7 @@ let MenuScene = new Phaser.Class({
         particles.setDepth(DEPTHS.FG);
         particles.setMask(mask);
 
-        let particles2 = scene.add.particles('tiles',5);
+        let particles2 = scene.add.particles('tiles',TILES.SNOW);
 
         particles2.createEmitter({
             alpha: 0.85,
@@ -697,7 +777,7 @@ let MenuScene = new Phaser.Class({
         particles2.setMask(mask);
         rectangle.setMask(mask);
 
-        let particles3 = scene.add.particles('tiles',5);
+        let particles3 = scene.add.particles('tiles',TILES.SNOW);
         particles3.createEmitter({
             alpha: 0.85, //{ start: 0.85, end: 0.75 },
             //scale: { start: 0.5, end: 2.5 },
@@ -720,7 +800,7 @@ let MenuScene = new Phaser.Class({
         particles3.setDepth(DEPTHS.FG);
         particles3.setMask(mask2);
 
-        let particles4 = scene.add.particles('tiles',5);
+        let particles4 = scene.add.particles('tiles',TILES.SNOW);
 
         particles4.createEmitter({
             alpha: 0.85,
@@ -766,8 +846,9 @@ let LoadScene = new Phaser.Class({
 
 
         scene.load.spritesheet('tiles', 'assets/tiles.png', { frameWidth: 64, frameHeight: 160});
-        scene.load.spritesheet('guy', 'assets/guy2.png', { frameWidth: 32, frameHeight: 64});
+        scene.load.spritesheet('guy', 'assets/guy3.png', { frameWidth: 48, frameHeight: 96});
         scene.load.spritesheet('flag', 'assets/flag.png', { frameWidth: 64, frameHeight: 64});
+        scene.load.spritesheet('ui', 'assets/UI.png', { frameWidth: 64, frameHeight: 64});
 
         scene.load.on('complete', function() {
             scene.scene.start('MenuScene');
@@ -779,14 +860,41 @@ let LoadScene = new Phaser.Class({
         let scene = this;
         scene.anims.create({
             key: 'flag_blowing',
-            frames: [
-                { key: 'flag', frame: 0 },
-                { key: 'flag', frame: 1 },
-                { key: 'flag', frame: 2 },
-                { key: 'flag', frame: 3 },
-                { key: 'flag', frame: 4 },
-                { key: 'flag', frame: 5 },
-            ],
+                frames: scene.anims.generateFrameNumbers('flag',
+                    { start: 0, end: 5 }),
+            skipMissedFrames: false,
+            frameRate: 3,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'ui_to_walk',
+            frames: scene.anims.generateFrameNumbers('ui',
+                { start: 0, end: 1 }),
+            skipMissedFrames: false,
+            frameRate: 16,
+            repeat: 0
+        });
+        scene.anims.create({
+            key: 'ui_walk',
+            frames: scene.anims.generateFrameNumbers('ui',
+                { start: 2, end: 9 }),
+            skipMissedFrames: false,
+            frameRate: 3,
+            repeat: -1
+        });
+        scene.anims.create({
+            key: 'ui_to_flag',
+            frames: scene.anims.generateFrameNumbers('ui',
+                { start: 10, end: 11 }),
+            skipMissedFrames: false,
+            frameRate: 16,
+            repeat: 0
+        });
+        scene.anims.create({
+            key: 'ui_flag',
+            frames: scene.anims.generateFrameNumbers('ui',
+                { start: 12, end: 17 }),
             skipMissedFrames: false,
             frameRate: 3,
             repeat: -1
