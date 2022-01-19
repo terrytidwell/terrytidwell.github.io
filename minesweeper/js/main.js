@@ -211,11 +211,6 @@ let GameScene = new Phaser.Class({
                     {
                         square.setData('hidden_mine', false);
                     }
-                    if (solution_statistics.board[x][y].generation >
-                        solution_statistics.exit_generation) {
-                        scene.add.sprite(xPixel(x), yPixel(y), 'tiles', TILES.CHEST)
-                            .setDepth(DEPTHS.BG);
-                    }
                     let flag = scene.add.sprite(xPixel(x), yPixel(y-.25),'flag');
                     flag.play('flag_blowing');
                     flag.setVisible(false);
