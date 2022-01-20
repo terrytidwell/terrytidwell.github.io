@@ -310,6 +310,34 @@ let GameScene = new Phaser.Class({
             .setDepth(DEPTHS.PLAYER);
         let walk = (complete) => {
             player_pic.play('guy_walk_anim');
+            let set_footprint = (frame) => {
+                let footprint = scene.add.sprite(player_pic.x, player_pic.y, 'guy', frame)
+                    .setDepth(DEPTHS.BG_SHADOW)
+                    .setFlipX(player_pic.flipX);
+                scene.tweens.add({
+                    targets: footprint,
+                    alpha: 0,
+                    duration: 3000,
+                    onComplete: () => {
+                        footprint.destroy();
+                    }
+                })
+            };
+            player_pic.on(Phaser.Animations.Events.ANIMATION_UPDATE,
+                (anim, frame, gameObject, frameKey) => {
+                // Here you can check for the specific-frame
+                let frame_to_footprint = [12, -1, 10, -1, -1, -1, -1, 11, -1, -1, -1]
+                // Or with the index of the frame
+
+                if(frame_to_footprint[frame.index] !== -1){
+                    set_footprint(frame_to_footprint[frame.index]);
+                }
+            });
+            player_pic.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                player_pic.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+                player_pic.off(Phaser.Animations.Events.ANIMATION_UPDATE);
+            });
+            set_footprint(13);
             if (current_x > target_x) {
                 player_pic.setFlipX(true);
             } else if (current_x < target_x) {
