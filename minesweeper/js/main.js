@@ -163,7 +163,7 @@ let GameScene = new Phaser.Class({
             let y = Phaser.Math.Between(-150,1250)/100;
             let flip = Phaser.Utils.Array.GetRandom([true,false]);
             scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile).setFlipX(flip)
-                .setDepth(DEPTHS.BG);
+                .setDepth(DEPTHS.BG+y);
             scene.add.sprite(xPixel(x), yPixel(y), 'tiles', tile+1).setFlipX(flip)
                 .setDepth(DEPTHS.BG_SHADOW);
         };
@@ -173,6 +173,7 @@ let GameScene = new Phaser.Class({
             for(let x = 0; x < 40; x++) {
                 addTree();
             }
+            //scene.add.sprite(xPixel(7), yPixel(10), 'tiles', 10).setDepth(DEPTHS.BG + 10).setScale(2)
 
             scene.add.rectangle(
                 xPixel(SCREEN_COLUMNS / 2 - 0.5),
