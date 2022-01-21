@@ -173,7 +173,6 @@ let GameScene = new Phaser.Class({
             for(let x = 0; x < 40; x++) {
                 addTree();
             }
-            //scene.add.sprite(xPixel(7), yPixel(10), 'tiles', 10).setDepth(DEPTHS.BG + 10).setScale(2)
 
             scene.add.rectangle(
                 xPixel(SCREEN_COLUMNS / 2 - 0.5),
@@ -229,7 +228,8 @@ let GameScene = new Phaser.Class({
                                 let delta = Phaser.Math.Distance.Snake(
                                     current_x, current_y,
                                     square.data.values.x, square.data.values.y);
-                                if (delta === 1 && state_handler.getState() === STATES.IDLE) {
+                                if (delta === 1 && state_handler.getState() === STATES.IDLE &&
+                                    !square.data.values.locked) {
                                     if (square.data.values.hidden_mine) {
                                         target_x = x;
                                         target_y = y;
@@ -241,7 +241,7 @@ let GameScene = new Phaser.Class({
                                 }
                                 break;
                             case INPUT_STATE.FLAG:
-                                if (!square.data.values.text.visible) {
+                                if (!square.data.values.text.visible || square.data.values.locked) {
                                     square.data.values.locked = !square.data.values.locked;
                                     square.data.values.flag.setVisible(square.data.values.locked);
                                     flag.play('flag_blowing');
