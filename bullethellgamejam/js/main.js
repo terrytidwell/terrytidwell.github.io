@@ -534,7 +534,7 @@ let GameScene = new Phaser.Class({
                 }
             }
             //normalize
-            character_direction.setLength(PLAYER_SPEED)
+            character_direction.setLength(PLAYER_SPEED);
 
             if (!player_moving && character_direction.length() > 0) {
                 player_moving = true;
