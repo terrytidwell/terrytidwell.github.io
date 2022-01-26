@@ -83,6 +83,7 @@ let GameScene = new Phaser.Class({
         let current_y = start_y;
         let target_x = 3;
         let target_y = 0;
+        let path = [];
         let player_pic = null;
 
         let local_stats = localStorage.getItem('player_stats');
@@ -93,6 +94,114 @@ let GameScene = new Phaser.Class({
         //----------------------------------------------------------------------
         // HELPER FUNCTIONS
         //----------------------------------------------------------------------
+
+
+        let find_player_path = (() => {
+
+            let INFINITY = SCREEN_ROWS * SCREEN_COLUMNS + 1;
+            let distance_grid = [];
+            for (let x = 0; x < SCREEN_COLUMNS; x++) {
+                let d_col = [];
+                for (let y = 0; y < SCREEN_ROWS; y++) {
+                    d_col.push({
+                        x: x,
+                        y: y,
+                        dist: INFINITY,
+                        prev_x: -1,
+                        prev_y: -1,
+                    });
+                }
+                distance_grid.push(d_col);
+            }
+
+            let clear_grid = () => {
+                for (let d_col of distance_grid) {
+                    for (let d of d_col) {
+                        d.dist = INFINITY;
+                        d.prev_x = -1;
+                        d.prev_y = -1;
+                    }
+                }
+            };
+
+            let in_bounds = (x, y) => {
+                return x >= 0 && x < SCREEN_COLUMNS &&
+                    y >= 0 && y < SCREEN_ROWS;
+            };
+
+            let is_square_safely_walkable = (x,y) => {
+                if (x === current_x && y === current_y) {
+                    return true;
+                }
+                return in_bounds(x,y) &&
+                    grid_squares[x][y].data.values.text.visible &&
+                    !grid_squares[x][y].data.values.locked;
+            };
+
+            return (current_x, current_y, target_x, target_y) => {
+                let path = [];
+
+                if (current_x === target_x &&
+                    current_y === target_y) {
+                    return path;
+                }
+                if (!in_bounds(current_x, current_y) ||
+                    !in_bounds(target_x, target_y)) {
+                    return path;
+                }
+
+                clear_grid();
+                let s = distance_grid[target_x][target_y];
+                s.dist = 0;
+                let search_grid = [s];
+                let search_succesful = false;
+                while (!search_succesful && search_grid.length > 0) {
+                    s = search_grid.shift();
+                    for (let d of [[0,1], [1,0], [-1,0], [0,-1]]) {
+                        let x = s.x + d[0];
+                        let y = s.y + d[1];
+                        if (is_square_safely_walkable(x, y) &&
+                            s.dist + 1 < distance_grid[x][y].dist) {
+                            distance_grid[x][y].dist = s.dist + 1;
+                            distance_grid[x][y].prev_x = s.x;
+                            distance_grid[x][y].prev_y = s.y;
+                            search_grid.push(distance_grid[x][y])
+                        }
+                        if (x === current_x && y === current_y) {
+                            search_succesful = true;
+                        }
+                    }
+                }
+
+                if (search_succesful) {
+                    let path_x = current_x;
+                    let path_y = current_y;
+                    while (path_x !== target_x || path_y !== target_y) {
+                        let new_x = distance_grid[path_x][path_y].prev_x;
+                        let new_y = distance_grid[path_x][path_y].prev_y;
+                        path.push([new_x, new_y]);
+                        path_x = new_x;
+                        path_y = new_y;
+                    }
+                }
+
+                return path;
+            };
+        })();
+
+        let assign_next_waypoint = () => {
+            if (path.length > 0) {
+                let waypoint = path.shift();
+                set_player_location(waypoint[0], waypoint[1]);
+            }
+        };
+
+        let set_player_path = function(x,y) {
+            path = find_player_path(current_x, current_y, x, y)
+            if (state_handler.getState() === STATES.IDLE) {
+                assign_next_waypoint();
+            }
+        };
 
         let set_player_location = function(x, y) {
             target_x = x;
@@ -225,19 +334,8 @@ let GameScene = new Phaser.Class({
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
                         switch (current_input_state) {
                             case INPUT_STATE.WALK:
-                                let delta = Phaser.Math.Distance.Snake(
-                                    current_x, current_y,
-                                    square.data.values.x, square.data.values.y);
-                                if (delta === 1 && state_handler.getState() === STATES.IDLE &&
-                                    !square.data.values.locked) {
-                                    if (square.data.values.hidden_mine) {
-                                        target_x = x;
-                                        target_y = y;
-                                        square.data.values.hidden_mine = false;
-                                        state_handler.changeState(STATES.DEAD);
-                                    } else {
-                                        set_player_location(square.data.values.x, square.data.values.y);
-                                    }
+                                if (!square.data.values.locked) {
+                                    set_player_path(square.data.values.x, square.data.values.y);
                                 }
                                 break;
                             case INPUT_STATE.FLAG:
@@ -309,21 +407,22 @@ let GameScene = new Phaser.Class({
         player_pic = scene.add.sprite(xPixel(current_x),yPixel(current_y-0.5),'guy', 0)
             .setScale(1)
             .setDepth(DEPTHS.PLAYER);
+        let set_footprint = (frame) => {
+            let footprint = scene.add.sprite(player_pic.x, player_pic.y, 'guy', frame)
+                .setDepth(DEPTHS.BG_SHADOW)
+                .setFlipX(player_pic.flipX);
+            scene.tweens.add({
+                targets: footprint,
+                alpha: 0,
+                duration: 3000,
+                onComplete: () => {
+                    footprint.destroy();
+                }
+            })
+        };
         let walk = (complete) => {
             player_pic.play('guy_walk_anim');
-            let set_footprint = (frame) => {
-                let footprint = scene.add.sprite(player_pic.x, player_pic.y, 'guy', frame)
-                    .setDepth(DEPTHS.BG_SHADOW)
-                    .setFlipX(player_pic.flipX);
-                scene.tweens.add({
-                    targets: footprint,
-                    alpha: 0,
-                    duration: 3000,
-                    onComplete: () => {
-                        footprint.destroy();
-                    }
-                })
-            };
+
             player_pic.on(Phaser.Animations.Events.ANIMATION_UPDATE,
                 (anim, frame, gameObject, frameKey) => {
                 // Here you can check for the specific-frame
@@ -338,7 +437,6 @@ let GameScene = new Phaser.Class({
                 player_pic.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
                 player_pic.off(Phaser.Animations.Events.ANIMATION_UPDATE);
             });
-            set_footprint(13);
             if (current_x > target_x) {
                 player_pic.setFlipX(true);
             } else if (current_x < target_x) {
@@ -358,15 +456,28 @@ let GameScene = new Phaser.Class({
 
         let enter_walk = () => {
             walk(() => {
-                if (target_x === 3 && target_y === 11) {
+                if (target_x >= 0 && target_x < SCREEN_COLUMNS &&
+                    target_y >= 0 && target_y < SCREEN_ROWS &&
+                    grid_squares[target_x][target_y].data.values.hidden_mine) {
+                    grid_squares[target_x][target_y].data.values.hidden_mine = false;
+                    state_handler.changeState(STATES.DEAD);
+                } else if (target_x === 3 && target_y === 11) {
                     state_handler.changeState(STATES.LEAVE);
+                } else if (path.length > 0) {
+                        //force self transition;
+                        exit_walk();
+                        assign_next_waypoint();
+                        enter_walk();
                 } else {
                     state_handler.changeState(STATES.IDLE);
                 }
             });
+            current_x = target_x;
+            current_y = target_y;
         };
 
         let enter_leave = () => {
+            target_x = 3;
             target_y = 15;
             player_stats.boards_cleared++;
             localStorage.setItem('player_stats', JSON.stringify(player_stats));
@@ -392,8 +503,6 @@ let GameScene = new Phaser.Class({
 
         let exit_walk = () => {
             player_pic.anims.stop();
-            current_x = target_x;
-            current_y = target_y;
             player_pic.x = xPixel(current_x);
             player_pic.y = yPixel(current_y - 0.5);
             grid_squares[current_x][current_y].data.values.text.setVisible(true);
@@ -401,6 +510,10 @@ let GameScene = new Phaser.Class({
 
         let enter_idle = () => {
             player_pic.setFrame(0);
+        };
+
+        let exit_idle = () => {
+            set_footprint(13);
         };
 
         let enter_dead = () => {
@@ -419,6 +532,7 @@ let GameScene = new Phaser.Class({
                     delay: 500,
                     duration: 2000,
                     onComplete: () => {
+                        path = [];
                         set_player_location(3, 0);
                         flash.destroy();
                     }
@@ -428,7 +542,7 @@ let GameScene = new Phaser.Class({
 
         let STATES = {
             WALK: {enter: enter_walk, exit: exit_walk},
-            IDLE: {enter: enter_idle, exit: null},
+            IDLE: {enter: enter_idle, exit: exit_idle},
             DEAD: {enter: enter_dead, exit: null},
             LEAVE: {enter: enter_leave, exit: null},
         };
@@ -441,6 +555,7 @@ let GameScene = new Phaser.Class({
             targets: matte,
             alpha: 0,
             onComplete: () => {
+                path = [];
                 set_player_location(3, 0)
             }
         });
