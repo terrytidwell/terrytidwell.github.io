@@ -331,7 +331,15 @@ let GameScene = new Phaser.Class({
                     square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, function () {
                         square.setFillStyle(0x000000, 0);
                     });
-                    square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function () {
+                    square.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, function (pointer) {
+                        if (pointer.button === 2) {
+                            if (!square.data.values.text.visible || square.data.values.locked) {
+                                square.data.values.locked = !square.data.values.locked;
+                                square.data.values.flag.setVisible(square.data.values.locked);
+                                flag.play('flag_blowing');
+                            }
+                            return;
+                        }
                         switch (current_input_state) {
                             case INPUT_STATE.WALK:
                                 if (!square.data.values.locked) {
@@ -566,9 +574,56 @@ let GameScene = new Phaser.Class({
         // SETUP GAME INPUT
         //----------------------------------------------------------------------
         scene.input.addPointer(5);
+        scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
+        scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
+        scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
+        scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
+        scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
+
+        scene.__handle_input = (input) => {
+            if (state_handler.getState() !== STATES.IDLE) {
+                return;
+            }
+            let dx = 0;
+            let dy = 0;
+            if(input.left) { dx += -1; }
+            if(input.right) { dx += 1; }
+            if(input.up) { dy -= 1; }
+            if(input.down) { dy += 1; }
+            if (dx !== 0 || dy !== 0) {
+                set_player_path(current_x + dx, current_y + dy);
+            }
+        };
     },
 
     update: function () {
+        let scene = this;
+
+        let input = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
+
+        if (scene.__cursor_keys.left.isDown ||
+            scene.__cursor_keys.letter_left.isDown) {
+            input.left = true;
+        }
+        if (scene.__cursor_keys.right.isDown ||
+            scene.__cursor_keys.letter_right.isDown) {
+            input.right = true;
+        }
+        if (scene.__cursor_keys.up.isDown ||
+            scene.__cursor_keys.letter_up.isDown) {
+            input.up = true;
+        }
+        if (scene.__cursor_keys.down.isDown ||
+            scene.__cursor_keys.letter_down.isDown) {
+            input.down = true;
+        }
+
+        scene.__handle_input(input);
     }
 });
 
@@ -1055,6 +1110,7 @@ let LoadScene = new Phaser.Class({
 });
 
 let config = {
+    disableContextMenu: true,
     backgroundColor: '#E8E8E8',
     type: Phaser.AUTO,
     render: {
