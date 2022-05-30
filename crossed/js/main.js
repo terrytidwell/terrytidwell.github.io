@@ -64,6 +64,8 @@ let LoadScene = new Phaser.Class({
             {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.svg('next', 'navigate_next-black-36dp.svg',
             {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('close', 'close_FILL0_wght400_GRAD0_opsz48.svg',
+            {width:GRID_SIZE, height:GRID_SIZE});
 
 
         scene.load.on('complete', function() {
@@ -138,7 +140,7 @@ let VictoryScene = new Phaser.Class( {
 
         scene.__victory = () => {
             let game_scene = scene.scene.get('GameScene');
-            scene.scene.pause('GameScene');
+            //scene.scene.pause('GameScene');
             scene.tweens.add({
                 targets : bg,
                 alpha: 0.5,
@@ -217,6 +219,13 @@ let ControllerScene = new Phaser.Class( {
         });
         container.add(menu);
         container.setVisible(false);
+
+        let close_button = scene.add.image(SCREEN_WIDTH - GRID_SIZE, 2*GRID_SIZE, 'close').setOrigin(1,0);
+        close_button.setInteractive();
+        close_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+            toggle_menu();
+        });
+        container.add(close_button);
 
         let game_scene_was_paused = false;
         let victory_scene_was_paused = false;
@@ -578,7 +587,10 @@ let GameScene = new Phaser.Class({
 
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg').setDepth(DEPTHS.BG);
 
+
+        let drag_enabled = true;
         scene.input.on('dragstart', function (pointer, gameObject) {
+            if (!drag_enabled) { return; }
             let container = gameObject.__parent;
             container.alpha = 0.5;
             container.setDepth(DEPTHS.BLOCKS_DRAGGED);
@@ -586,11 +598,13 @@ let GameScene = new Phaser.Class({
             container.__start_y = container.y - gameObject.y;
         });
         scene.input.on('drag', function (pointer, gameObject, dragX, dragY) {
+            if (!drag_enabled) { return; }
             let container = gameObject.__parent;
             container.x = dragX + container.__start_x;
             container.y = dragY + container.__start_y;
         });
         scene.input.on('dragend', function(pointer, gameObject) {
+            if (!drag_enabled) { return; }
             let container = gameObject.__parent;
             container.setDepth(DEPTHS.BLOCKS);
             container.x = snap_to(container.x);
@@ -598,6 +612,7 @@ let GameScene = new Phaser.Class({
             container.alpha = 1;
             check_adjacency_and_merge(container);
             if (check_solve()) {
+                drag_enabled = false;
                 scene.scene.get('VictoryScene').__victory();
             }
         });
