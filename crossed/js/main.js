@@ -398,6 +398,8 @@ let GameScene = new Phaser.Class({
 
         let add_cluster = (x, y, letters, vx, vy) => {
             let sprites = [];
+            let drag_zones = [];
+            let draggables = [];
             for (let letter of letters) {
                 let sprite = scene.add.sprite(
                     letter.x * GRID_SIZE,
@@ -405,18 +407,34 @@ let GameScene = new Phaser.Class({
                     letter.letter);
                 sprite._vx = letter.x + vx;
                 sprite._vy = letter.x + vy;
+                let drag_zone = scene.add.zone(
+                    letter.x * GRID_SIZE,
+                    letter.y * GRID_SIZE,
+                    GRID_SIZE * 3,
+                    GRID_SIZE * 3
+                );
+                drag_zone._vx = letter.x + vx;
+                drag_zone._vy = letter.y + vy;
+                drag_zones.push(drag_zone);
                 sprites.push(sprite);
+                draggables.push(drag_zone);
+                draggables.push(sprite);
             }
+
             let container = scene.add.container(x * GRID_SIZE,
                 y * GRID_SIZE, sprites);
             container._vx = vx;
             container._vy = vy;
             container.setDepth(DEPTHS.BLOCKS);
-            for (let sprite of sprites) {
-                sprite.setInteractive();
-                scene.input.setDraggable(sprite);
-                sprite.__parent = container;
+            let drag_container = scene.add.container(x * GRID_SIZE,
+                y * GRID_SIZE, drag_zones);
+            drag_container.setDepth(DEPTHS.BLOCKS-1);
+            for (let draggable of draggables) {
+                draggable.setInteractive();
+                scene.input.setDraggable(draggable);
+                draggable.__parent = container;
             }
+            container.__drag_zone = drag_container;
             clusters.add(container);
         };
 
@@ -460,17 +478,30 @@ let GameScene = new Phaser.Class({
             for (let cluster of clusters_to_merge) {
                 let cluster_offset_x = cluster.x - this_cluster.x;
                 let cluster_offset_y = cluster.y - this_cluster.y;
+                let drag_zone = cluster.__drag_zone;
                 let letters = [];
                 for (let letter of cluster.list) {
                     letter.x += cluster_offset_x;
                     letter.y += cluster_offset_y;
                     letters.push(letter);
                 }
+                let letter_drag_zones = [];
+                for (let letter_drag_zone of drag_zone.list) {
+                    letter_drag_zone.x += cluster_offset_x;
+                    letter_drag_zone.y += cluster_offset_y;
+                    letter_drag_zones.push(letter_drag_zone);
+                }
                 cluster.removeAll();
                 cluster.destroy();
+                drag_zone.removeAll();
+                drag_zone.destroy();
                 for (let letter of letters) {
                     this_cluster.add(letter);
                     letter.__parent = this_cluster;
+                }
+                for (let letter_drag_zone of letter_drag_zones) {
+                    this_cluster.__drag_zone.add(letter_drag_zone);
+                    letter_drag_zone.__parent = this_cluster;
                 }
             }
             let shines = [];
@@ -600,15 +631,21 @@ let GameScene = new Phaser.Class({
         scene.input.on('drag', function (pointer, gameObject, dragX, dragY) {
             if (!drag_enabled) { return; }
             let container = gameObject.__parent;
+            let drag_container = container.__drag_zone;
             container.x = dragX + container.__start_x;
             container.y = dragY + container.__start_y;
+            drag_container.x = container.x;
+            drag_container.y = container.y;
         });
         scene.input.on('dragend', function(pointer, gameObject) {
             if (!drag_enabled) { return; }
             let container = gameObject.__parent;
+            let drag_container = container.__drag_zone;
             container.setDepth(DEPTHS.BLOCKS);
             container.x = snap_to(container.x);
             container.y = snap_to(container.y);
+            drag_container.x = container.x;
+            drag_container.y = container.y;
             container.alpha = 1;
             check_adjacency_and_merge(container);
             if (check_solve()) {
