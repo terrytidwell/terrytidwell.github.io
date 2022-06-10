@@ -9,8 +9,10 @@ const FONT = 'px Schoolbell-Regular';
 const DEPTHS = {
     BG: 0,
     GRID: 500,
+    BLOCK_DRAG_ZONES: 750,
+    SELECTED_BLOCK_DRAG_ZONE: 800,
     BLOCKS: 1000,
-    BLOCKS_DRAGGED: 2000,
+    SELECTED_BLOCKS: 2000,
 };
 
 let json_version = 1;
@@ -428,7 +430,7 @@ let GameScene = new Phaser.Class({
             container.setDepth(DEPTHS.BLOCKS);
             let drag_container = scene.add.container(x * GRID_SIZE,
                 y * GRID_SIZE, drag_zones);
-            drag_container.setDepth(DEPTHS.BLOCKS-1);
+            drag_container.setDepth(DEPTHS.BLOCK_DRAG_ZONES);
             for (let draggable of draggables) {
                 draggable.setInteractive();
                 scene.input.setDraggable(draggable);
@@ -624,7 +626,8 @@ let GameScene = new Phaser.Class({
             if (!drag_enabled) { return; }
             let container = gameObject.__parent;
             container.alpha = 0.5;
-            container.setDepth(DEPTHS.BLOCKS_DRAGGED);
+            container.setDepth(DEPTHS.SELECTED_BLOCKS);
+            container.__drag_zone.setDepth(DEPTHS.SELECTED_BLOCK_DRAG_ZONE);
             container.__start_x = container.x - gameObject.x;
             container.__start_y = container.y - gameObject.y;
         });
@@ -642,6 +645,7 @@ let GameScene = new Phaser.Class({
             let container = gameObject.__parent;
             let drag_container = container.__drag_zone;
             container.setDepth(DEPTHS.BLOCKS);
+            container.__drag_zone.setDepth(DEPTHS.BLOCK_DRAG_ZONES);
             container.x = snap_to(container.x);
             container.y = snap_to(container.y);
             drag_container.x = container.x;
