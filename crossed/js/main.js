@@ -77,13 +77,14 @@ let LoadScene = new Phaser.Class({
                 local_stats = JSON.parse(local_stats);
                 if (local_stats.version &&
                     local_stats.version === json_version) {
-                    player_stats = local_stats;
+                    Object.assign(player_stats, local_stats);
                 } else {
                     localStorage.setItem('player_stats', JSON.stringify(player_stats));
                 }
             }
-            scene.scene.start('GameScene');
-            scene.scene.start('VictoryScene');
+            scene.scene.start('TitleScreen');
+            //scene.scene.start('GameScene');
+            //scene.scene.start('VictoryScene');
             scene.scene.start('ControllerScene');
         });
     },
@@ -687,6 +688,55 @@ let GameScene = new Phaser.Class({
     }
 });
 
+let TitleScreen = new Phaser.Class({
+
+    Extends: Phaser.Scene,
+
+    //--------------------------------------------------------------------------
+    initialize: function () {
+        Phaser.Scene.call(this, {key: 'TitleScreen', active: false});
+    },
+
+    //--------------------------------------------------------------------------
+    preload: function () {
+    },
+
+    //--------------------------------------------------------------------------
+    create: function (data) {
+        let scene = this;
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg').setDepth(DEPTHS.BG);
+
+        let textStyle = {
+            fill: "#000000",
+            font: ' ' + Math.round(GRID_SIZE * .9) + FONT,
+            align: "center",
+            wordWrap: { width: GRID_SIZE*(GRID_COLS - 3) , useAdvancedWrap: true }
+        };
+        let text = scene.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT/2,
+            'DAILY PUZZLE', textStyle)
+            .setDepth(DEPTHS.GRID)
+            .setOrigin(0.5, 0.5);
+        addButton(text, () => {
+            level = g_puzzles.length - 1;
+            scene.scene.start('GameScene');
+            scene.scene.start('VictoryScene');
+        });
+        text = scene.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT/2 + GRID_SIZE*2,
+            'RANDOM PUZZLE', textStyle)
+            .setDepth(DEPTHS.GRID)
+            .setOrigin(0.5, 0.5);
+        addButton(text, () => {
+            level = Phaser.Math.Between(1, g_puzzles.length - 2);
+            scene.scene.start('GameScene');
+            scene.scene.start('VictoryScene');
+        });
+    },
+
+    //--------------------------------------------------------------------------
+    update: function () {
+    }
+});
+
 let config = {
     backgroundColor: "#000000",
     type: Phaser.WEBGL,
@@ -707,7 +757,7 @@ let config = {
             debug: true
         }
     },
-    scene: [ LoadScene, GameScene, VictoryScene, ControllerScene ]
+    scene: [ LoadScene, GameScene, TitleScreen, VictoryScene, ControllerScene ]
 };
 
 let game = new Phaser.Game(config);
