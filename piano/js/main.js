@@ -36,6 +36,8 @@ let LoadScene = new Phaser.Class({
         scene.load.image('bg_image', 'papelIGuess.jpeg');
         scene.load.svg('bass_clef', 'bass-only_23998.svg', { scale: SVG_SCALE });
         scene.load.svg('treble_clef', 'treble-only_304441.svg', { scale: SVG_SCALE });
+        scene.load.spritesheet('treble_clef_png', 'treble-only_304441.png',
+            { frameWidth: 235, frameHeight: 150});
         scene.load.spritesheet('evil_note', 'EvilNote.png',
             { frameWidth: 32, frameHeight: 32 });
 
@@ -218,7 +220,10 @@ let addBassClef = function(scene, x_left, y_center, length) {
 };
 
 let addTrebleClef = function(scene, x_left, y_center, length) {
-    scene.add.image(x_left + (969/5 * SVG_SCALE)/2 + (24 * SVG_SCALE) - (10*SVG_SCALE), y_center  + (18 * SVG_SCALE) - (3*SVG_SCALE), 'treble_clef');
+    scene.add.image(
+        x_left + (969/5 * SVG_SCALE)/2 + (24 * SVG_SCALE) - (10*SVG_SCALE),
+        y_center  + (18 * SVG_SCALE) - (3*SVG_SCALE),
+        'treble_clef_png', 0).setScale(SVG_SCALE);
     addBars(scene, x_left, y_center, length);
 };
 
@@ -276,7 +281,7 @@ let GameScene = new Phaser.Class({
         };
 
         let add_note = add_treble_clef_note;
-        if (Phaser.Utils.Array.GetRandom([true, false])) {
+        if (Phaser.Utils.Array.GetRandom([false, false])) {
             addBassClef(scene, GRID_SIZE, SCREEN_HEIGHT/2, SCREEN_WIDTH);
             add_note = add_bass_clef_note;
         } else {
@@ -284,10 +289,10 @@ let GameScene = new Phaser.Class({
         }
 
         let add_note_inner = function(offset, current_note) {
-            let note_speed = 16;
+            let note_speed = 32;
             let async_handler = asyncHandler(scene);
             let min_offset = SCREEN_WIDTH + SVG_SCALE * 16;
-            let threshold = GRID_SIZE * 4;
+            let threshold = GRID_SIZE * 3;
             let min_dist = min_offset - threshold;
             let number_of_steps = Math.ceil(min_dist/(note_speed * SVG_SCALE));
             let destroyed = false;
@@ -386,7 +391,10 @@ let GameScene = new Phaser.Class({
         scene.add.rectangle(bass_clef.x, bass_clef.y, bass_clef.displayWidth, bass_clef.displayHeight, 0xff0000, 0.5)
             .setDepth(DEPTHS.BG);
         */
-        let treble_clef = scene.add.image(SCREEN_WIDTH/2 + (24 * SVG_SCALE), SCREEN_HEIGHT/2 + (18 * SVG_SCALE), 'treble_clef')
+        let treble_clef = scene.add.sprite(
+            SCREEN_WIDTH/2 + (24 * SVG_SCALE),
+            SCREEN_HEIGHT/2 + (18 * SVG_SCALE), 'treble_clef_png', 0)
+            .setScale(SVG_SCALE)
             .setDepth(DEPTHS.MG)
             .setVisible(true);
         /*

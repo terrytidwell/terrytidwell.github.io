@@ -460,7 +460,7 @@ let LoadScene = new Phaser.Class({
                     interaction_function(pointer,highlight);
                 });
             });
-        }
+        };
         addInteractiveZone(shape_array, interaction_function, true);
         addInteractiveZone([859, 431, 881, 334, 952, 335, 943, 385, 953, 427],
             function() {

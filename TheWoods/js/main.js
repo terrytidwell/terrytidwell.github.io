@@ -156,7 +156,7 @@ let AREAS = {
             scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH / 2, GRID_SIZE * 13 - 9 * SPRITE_SCALE,
                 SCREEN_WIDTH * 3, 29 * LEGACY_SCALE,
                 0xff00ff, 0.00)
-                .setDepth(DEPTHS.FG));
+                .setDepth(DEPTHS.FG));SCREEN_WIDTH
             scene.__floor.add(scene.add.rectangle(-SCREEN_WIDTH - 16, SCREEN_HEIGHT / 2,
                 32, SCREEN_HEIGHT,
                 0xff00ff, 0.80)
@@ -165,10 +165,6 @@ let AREAS = {
                 32, SCREEN_HEIGHT,
                 0xff00ff, 0.80)
                 .setDepth(DEPTHS.FG));
-            scene.physics.add.collider(scene.__interactables, scene.__floor, (interactable, floor) => {
-                interactable.body.setVelocityX(0);
-            });
-
 
             let addTree = (x, y, image) => {
                 let tree = scene.add.sprite(x, y, image)
@@ -248,6 +244,14 @@ let AREAS = {
                 return door;
             };
 
+            let door = scene.add.rectangle(SCREEN_WIDTH*2, floor_height, GRID_SIZE*1.5, GRID_SIZE*2, 0x800000, 1)
+                .setOrigin(1,1)
+                .setDepth(DEPTHS.BG);
+            scene.__interactables.add(door);
+            door.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene('CITY');
+            };
+
             addBench(scene, floor_height,SCREEN_WIDTH / 2);
             addParkObject(scene, floor_height,SCREEN_WIDTH / 2 + GRID_SIZE, 1);
             for (let x of [3, 17, 21, 22, 25, 29, 37, 42]) {
@@ -307,6 +311,10 @@ let AREAS = {
             },
             'hut' : (scene) => {
                 scene.__playerCharacter.x = SCREEN_WIDTH / 2 + GRID_SIZE * 27;
+                scene.__dog.x = scene.__playerCharacter.x - GRID_SIZE;
+            },
+            'city' : (scene) => {
+                scene.__playerCharacter.x = 2*SCREEN_WIDTH - SPRITE_SCALE * 8;
                 scene.__dog.x = scene.__playerCharacter.x - GRID_SIZE;
             }
         },
@@ -412,9 +420,6 @@ let AREAS = {
                 32, SCREEN_HEIGHT,
                 0xff00ff, 0.80)
                 .setDepth(DEPTHS.FG));
-            scene.physics.add.collider(scene.__interactables, scene.__floor, (interactable, floor) => {
-                interactable.body.setVelocityX(0);
-            });
 
             scene.add.rectangle(SCREEN_WIDTH/8, SCREEN_HEIGHT/2, SCREEN_WIDTH/4, SCREEN_HEIGHT, 0x322523, 1)
                 .setDepth(DEPTHS.FG);
@@ -454,6 +459,92 @@ let AREAS = {
             }
         }
     },
+    'CITY' : {
+        setup: (scene) => {
+            scene.__playerCharacter = addPlayer(scene, SCREEN_WIDTH / 2, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+
+            scene.__dog = addDog(scene, SCREEN_WIDTH / 2 - GRID_SIZE, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+
+            let floor_height = GRID_SIZE * 12;
+            scene.cameras.main.setBounds(-SCREEN_WIDTH, 0, 2*SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            scene.__floor.add(scene.add.rectangle(0, GRID_SIZE * 13 - 9 * SPRITE_SCALE,
+                SCREEN_WIDTH * 3, 29 * LEGACY_SCALE,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));SCREEN_WIDTH
+            scene.__floor.add(scene.add.rectangle(-SCREEN_WIDTH - 16, SCREEN_HEIGHT / 2,
+                32, SCREEN_HEIGHT,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));
+            scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH  + 16, SCREEN_HEIGHT / 2,
+                32, SCREEN_HEIGHT,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));
+
+            let door = scene.add.rectangle(-SCREEN_WIDTH, floor_height, GRID_SIZE*1.5, GRID_SIZE*2, 0x800000, 1)
+                .setOrigin(0,1)
+                .setDepth(DEPTHS.BG);
+            scene.__interactables.add(door);
+            door.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene('PARK1', 'city');
+            };
+
+            let door2 = scene.add.rectangle(SCREEN_WIDTH, floor_height, GRID_SIZE*1.5, GRID_SIZE*2, 0x800000, 1)
+                .setOrigin(1,1)
+                .setDepth(DEPTHS.BG);
+            scene.__interactables.add(door2);
+            door2.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene('FOREST');
+            };
+        },
+        entrance: {
+            'default' : (scene) => {
+                scene.__playerCharacter.x = -SCREEN_WIDTH + 8 * SPRITE_SCALE;
+                scene.__dog.x = scene.__playerCharacter.x + GRID_SIZE;
+            },
+            'forest' : (scene) => {
+                scene.__playerCharacter.x = SCREEN_WIDTH - 8 * SPRITE_SCALE;
+                scene.__dog.x = scene.__playerCharacter.x - GRID_SIZE;
+            }
+        }
+    },
+    'FOREST' : {
+        setup: (scene) => {
+            scene.__playerCharacter = addPlayer(scene, SCREEN_WIDTH / 2, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+
+            scene.__dog = addDog(scene, SCREEN_WIDTH / 2 - GRID_SIZE, GRID_SIZE * 12 - 4 * SPRITE_SCALE);
+
+            let floor_height = GRID_SIZE * 12;
+            scene.cameras.main.setBounds(-SCREEN_WIDTH, 0, 2*SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            scene.__floor.add(scene.add.rectangle(0, GRID_SIZE * 13 - 9 * SPRITE_SCALE,
+                SCREEN_WIDTH * 3, 29 * LEGACY_SCALE,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));
+            scene.__floor.add(scene.add.rectangle(-SCREEN_WIDTH - 16, SCREEN_HEIGHT / 2,
+                32, SCREEN_HEIGHT,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));
+            scene.__floor.add(scene.add.rectangle(SCREEN_WIDTH  + 16, SCREEN_HEIGHT / 2,
+                32, SCREEN_HEIGHT,
+                0xff00ff, 0.80)
+                .setDepth(DEPTHS.FG));
+
+            let door = scene.add.rectangle(-SCREEN_WIDTH, floor_height, GRID_SIZE*1.5, GRID_SIZE*2, 0x800000, 1)
+                .setOrigin(0,1)
+                .setDepth(DEPTHS.BG);
+            scene.__interactables.add(door);
+            door.__interact = () => {
+                scene.scene.get('ControllerScene').__change_scene('CITY', 'forest');
+            };
+        },
+        entrance: {
+            'default' : (scene) => {
+                scene.__playerCharacter.x = -SCREEN_WIDTH + 8 * SPRITE_SCALE;
+                scene.__dog.x = scene.__playerCharacter.x + GRID_SIZE;
+            }
+        }
+    }
 };
 
 let current_area = 'PARK1';
@@ -721,7 +812,7 @@ let GameScene = new Phaser.Class({
 
         let bind_event = (key, event, handler) => {
             key.on(event, handler);
-
+x
             scene.events.once(Phaser.Scenes.Events.SHUTDOWN, function() {
                 key.off(event);
             })
@@ -741,6 +832,11 @@ let GameScene = new Phaser.Class({
         scene.physics.add.overlap(scene.__playerCharacter, scene.__interactables, function(player, interactable) {
             scene.__playerCharacter.__register_interactable(interactable);
         });
+
+        scene.physics.add.collider(scene.__interactables, scene.__floor, (interactable, floor) => {
+            interactable.body.setVelocityX(0);
+        });
+
 
         scene.physics.add.collider(scene.__playerCharacter, scene.__floor);
         scene.physics.add.collider(scene.__dog, scene.__floor);

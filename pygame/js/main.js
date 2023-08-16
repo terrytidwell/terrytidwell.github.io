@@ -117,7 +117,7 @@ let GameScene = new Phaser.Class({
                 let dy = Phaser.Math.Between(30,70);
                 flame.body.velocity.y = dy;
                 flame_hitbox.body.velocity.y = dy;
-            }
+            };
             flame_hitbox.__reset();
         };
         for(let i = 0; i < 20; i++) {
