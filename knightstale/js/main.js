@@ -184,10 +184,11 @@ let TitleScene = new Phaser.Class({
             { font: GRID_SIZE + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(0.5, 0.5)
             .setAlpha(0);
-        let intro_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - (GRID_SIZE/2 * 2.5), "Introduction",
+        /*let intro_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - (GRID_SIZE/2 * 2.5), "Introduction",
             { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 0.5)
             .setAlpha(0);
+		*/
         let start_text = scene.add.text(SCREEN_WIDTH*5/6, SCREEN_HEIGHT*5/6 - (GRID_SIZE/2 * 1.25), "Start",
             { font: GRID_SIZE/2 + 'px Eczar-Regular', fill: '#FFF' })
             .setOrigin(1, 0.5)
@@ -219,11 +220,13 @@ let TitleScene = new Phaser.Class({
             duration: 4000,
             delay: 1000,
             onComplete: () => {
+				/*
                 scene.tweens.add({
                     targets: intro_text,
                     alpha: 0.75,
                     duration: 250,
                 });
+				*/
                 scene.tweens.add({
                     targets: start_text,
                     alpha: 0.75,
@@ -250,11 +253,13 @@ let TitleScene = new Phaser.Class({
             duration: 4000,
             delay: 1000,
         });
+		/*
         make_button(intro_text, () => {
             PAUSE_SCENE = false;
             scene.scene.resume('chess_room');
             scene.scene.stop('TitleScene');
         });
+		*/
         make_button(start_text, () => {
             START_SCENE = 'entrance_room';
             PAUSE_SCENE = false;
@@ -265,7 +270,7 @@ let TitleScene = new Phaser.Class({
         });
         make_button(credits_text, () => {
             title_text.setVisible(false);
-            intro_text.setVisible(false);
+            //intro_text.setVisible(false);
             start_text.setVisible(false);
             credits_text.setVisible(false);
             credit_text.setVisible(true);
@@ -273,7 +278,7 @@ let TitleScene = new Phaser.Class({
         });
         make_button(back_text, () => {
             title_text.setVisible(true);
-            intro_text.setVisible(true);
+            //intro_text.setVisible(true);
             start_text.setVisible(true);
             credits_text.setVisible(true);
             credit_text.setVisible(false);
