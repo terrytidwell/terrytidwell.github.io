@@ -25,6 +25,11 @@ let CELL_BLOCK_EVENTS = {
     MAINPANEL_FIXED: 'mainpanel_activated',
 };
 
+let TUTORIAL_EVENTS = {
+    PHONE_OPENED: {label: 'phone_activated', fired: false},
+    MOVE_ACTIVATED: {label: 'moved_activated', fried: false},
+};
+
 
 let get_new_gamestate = () => {
     return {
@@ -34,9 +39,11 @@ let get_new_gamestate = () => {
     }
 };
 
+let seen_intro = false;
+
 let getFont = (align = "left", fontSize = GRID_SIZE, color="#000000") => {
     return {font: '' + fontSize + 'px m5x7', fill: color, align: align,
-        wordWrap: {width: SCREEN_WIDTH, useAdvancedWrap: false}};
+        wordWrap: {width: SCREEN_WIDTH-4*GRID_SIZE, useAdvancedWrap: true}};
 };
 
 let GameScene = new Phaser.Class({
@@ -82,8 +89,8 @@ let GameScene = new Phaser.Class({
         let interactives = scene.physics.add.group({runChildUpdate: true});
         let text = null;
         //TODO: this probably needs to be wrapped up as a player state
-        let room_letter = 1;
-        let room_number = 2;
+        let room_letter = 3;
+        let room_number = 4;
         let room_letters = ['A','B','C','D'];
         let player_state_handler = null;
         let solid_box = null;
@@ -106,6 +113,13 @@ let GameScene = new Phaser.Class({
             main_panel_triggered = true;
             add_indicator_lights();
         });
+        bind_event(scene, scene.events, TUTORIAL_EVENTS.PHONE_OPENED.label, () => {
+            TUTORIAL_EVENTS.PHONE_OPENED.fired = true;
+        });
+        bind_event(scene, scene.events, TUTORIAL_EVENTS.MOVE_ACTIVATED.label, () => {
+            TUTORIAL_EVENTS.MOVE_ACTIVATED.fired = true;
+        });
+
 
         let add_indicator_lights = () => {
             if (room_letter !== 0 || room_number !== 1) { return; }
@@ -514,13 +528,9 @@ let GameScene = new Phaser.Class({
                 }
             }
         }
-        player_state_handler = stateHandler(scene, PLAYER_STATES.MOVING_TO_IDLE);
+        player_state_handler = stateHandler(scene, PLAYER_STATES.ANIMATION);
 
-        let monsters = [
-            {x: 0, y: 0, visible: false, moving: false},
-            {x: 2, y: 3, visible: false, moving: false},
-            //{x: 3, y: 1, visible: false, moving: false},
-        ];
+        let monsters = [];
         let monster_trigger = (monster) => {
             let delay = Phaser.Utils.Array.GetRandom([1000,2000,3000,4000,5000]);
             let duration = Phaser.Utils.Array.GetRandom([250,500,750]);
@@ -562,7 +572,9 @@ let GameScene = new Phaser.Class({
                 })
             })
         };
-        for (let monster of monsters) {
+        let add_monster = (x, y) => {
+            let monster = {x: x, y: y, visible: false, moving: false}
+            monsters.push(monster)
             monster_trigger(monster);
             monster_trigger_move(monster);
         }
@@ -607,13 +619,6 @@ let GameScene = new Phaser.Class({
         }
         keypad_numbers[2].__last = true;
         let phone_icons = scene.add.group({runChildUpdate: true});
-        let phone_ui_icon = scene.add.sprite(
-            SCREEN_WIDTH - 4 * SPRITE_SCALE,
-            SCREEN_HEIGHT - 4 * SPRITE_SCALE,
-            'ui', 0)
-            .setDepth(DEPTHS.UI)
-            .setScale(SPRITE_SCALE)
-            .setOrigin(1,1);
         let phone = scene.add.sprite(x,y,'phone',0)
             .setAlpha(0)
             .setScale(SPRITE_SCALE)
@@ -755,12 +760,320 @@ let GameScene = new Phaser.Class({
         phone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             //nothing
         });
-        phone_ui_icon.setInteractive();
-        phone_ui_icon.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
-            if (!player_state_handler.getState().player_ui_enabled) { return; }
-            activate_ui_screen();
-            player_state_handler.changeState(PLAYER_STATES.UI);
-        });
+
+
+        let add_phone_ui = () => {
+            let phone_ui_icon = scene.add.sprite(
+                SCREEN_WIDTH - 4 * SPRITE_SCALE,
+                SCREEN_HEIGHT - 4 * SPRITE_SCALE,
+                'ui', 0)
+                .setDepth(DEPTHS.UI)
+                .setScale(SPRITE_SCALE)
+                .setOrigin(1,1);
+            phone_ui_icon.setInteractive();
+            phone_ui_icon.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+                add_starting_monsters();
+                if (!player_state_handler.getState().player_ui_enabled) { return; }
+                activate_ui_screen();
+                player_state_handler.changeState(PLAYER_STATES.UI);
+            });
+        }
+
+        let addDialogue = (scene, dialogue_array, onComplete) => {
+
+            let text_box = scene.add.rectangle(
+                x,
+                SCREEN_HEIGHT-GRID_SIZE,
+                SCREEN_WIDTH - GRID_SIZE*3,
+                GRID_SIZE*5,
+                0xFFFFFF)
+                .setAlpha(0.25)
+                .setOrigin(0.5, 1)
+                .setDepth(DEPTHS.UI+2);
+            text_box.setInteractive();
+
+            let dialogue_lines = dialogue_array;
+            let displayed_text = ["","",""];
+
+            let text_object = scene.add.text(
+                GRID_SIZE*2, SCREEN_HEIGHT - GRID_SIZE*6,
+                "",
+                getFont("left", GRID_SIZE*2, "#FFFFFF"))
+                .setDepth(DEPTHS.UI+3)
+                .setOrigin(0,0);
+
+            let breakDialogue = (text_object, dialogue_lines, max_lines) => {
+                let text_sections = [];
+                for (let line of dialogue_lines) {
+                    text_object.setText(line);
+                    let text_lines = text_object.getWrappedText();
+                    let current_section = [];
+                    text_sections.push(current_section);
+                    for (let text_line of text_lines) {
+                        if (current_section.length === max_lines) {
+                            current_section = [];
+                            text_sections.push(current_section);
+                        }
+                        current_section.push(text_line);
+                    }
+                    while (current_section.length < max_lines) {
+                        current_section.push('');
+                    }
+                }
+                text_object.setText("")
+                return text_sections;
+            };
+            let text_array = breakDialogue(text_object, dialogue_lines, 3);
+            console.log(text_array);
+
+            let current_section_index = 0;
+
+            let enterStartDialogue = (handler) => {
+                text_box.setAlpha(0.25);
+                handler.addDelayedCall(250, () => {
+                    handler.changeState(DIALOGUE_STATES.ADD_CHARACTER)
+                });
+            };
+
+            let find_line_to_add_character = () => {
+                let current_section = text_array[current_section_index];
+                for(let x = 0; x < current_section.length; x++) {
+                    if(displayed_text[x].length < current_section[x].length) {
+                        return x;
+                    }
+                }
+                return displayed_text.length;
+            };
+            let addCharacter = (line) => {
+                let current_line = text_array[current_section_index][line];
+                //console.log(current_line)
+                let displayed_line_length = displayed_text[line].length;
+                displayed_text[line] += current_line[displayed_line_length];
+                text_object.setText(displayed_text);
+            };
+
+            let enterAddCharacter = (handler) => {
+                let line = find_line_to_add_character();
+                if (line >= displayed_text.length) {
+                    handler.changeState(DIALOGUE_STATES.SECTION_FINISH)
+                    return;
+                }
+                addCharacter(line);
+                handler.changeState(DIALOGUE_STATES.INTRA_CHACTER)
+            };
+
+            let enterSectionFinish = (handler) => {
+                text_object.setText(text_array[current_section_index]);
+                current_section_index += 1;
+                if (current_section_index >= text_array.length)
+                {
+                    handler.changeState(DIALOGUE_STATES.FINISH_DIALOGUE_WAIT);
+                } else {
+                    handler.changeState(DIALOGUE_STATES.INTRA_SECTION_WAIT);
+                }
+            };
+
+            let enterIntraSectionWait = (handler) => {
+                handler.addDelayedCall(5000, () => {
+                    handler.changeState(DIALOGUE_STATES.ADD_CHARACTER);
+                })
+            };
+            let exitIntraSectionWait = (handler) => {
+                text_object.setText('')
+                displayed_text = ["","",""];
+            };
+
+            let enterIntraCharacter = (handler) => {
+                handler.addDelayedCall(50, () => {
+                    handler.changeState(DIALOGUE_STATES.ADD_CHARACTER);
+                })
+            };
+
+            let enterCloseDialogue = (handler) => {
+                text_box.destroy();
+                text_object.destroy();
+                onComplete();
+            };
+
+            let enterFinishDialogueWait = (handler) => {
+                handler.addDelayedCall(5000, () => {
+                    handler.changeState(DIALOGUE_STATES.CLOSE_DIALOGUE);
+                })
+            }
+
+            let DIALOGUE_STATES = {
+                START_DIALOGUE: {
+                    enter: enterStartDialogue
+                },
+                ADD_CHARACTER: {
+                    enter: enterAddCharacter,
+                },
+                INTRA_CHACTER: {
+                    enter: enterIntraCharacter,
+                },
+                SECTION_FINISH: {
+                    enter: enterSectionFinish,
+                },
+                INTRA_SECTION_WAIT: {
+                    enter: enterIntraSectionWait,
+                    exit: exitIntraSectionWait,
+                },
+                FINISH_DIALOGUE_WAIT: {
+                    enter: enterFinishDialogueWait,
+                },
+                CLOSE_DIALOGUE: {
+                    enter: enterCloseDialogue,
+                }
+            };
+            let textStateHandler = stateHandler(scene,DIALOGUE_STATES.START_DIALOGUE);
+            text_box.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+                if (textStateHandler.getState() === DIALOGUE_STATES.FINISH_DIALOGUE_WAIT) {
+                    textStateHandler.changeState(DIALOGUE_STATES.CLOSE_DIALOGUE);
+                    return;
+                }
+                if (textStateHandler.getState() === DIALOGUE_STATES.INTRA_SECTION_WAIT) {
+                    textStateHandler.changeState(DIALOGUE_STATES.ADD_CHARACTER);
+                    return;
+                }
+                textStateHandler.changeState(DIALOGUE_STATES.SECTION_FINISH);
+            })
+        };
+
+
+        let add_starting_monsters = (() => {
+            let monsters_added = false
+            return () => {
+                if (monsters_added) return;
+                monsters_added = true;
+                add_monster(0, 1);
+                add_monster(2, 0);
+            }
+        })();
+
+        let fast_begin_game = () => {
+            player_state_handler.changeState(PLAYER_STATES.MOVING_TO_IDLE);
+            add_phone_ui();
+            add_starting_monsters();
+        };
+
+        let begin_game = () => {
+            player_state_handler.changeState(PLAYER_STATES.MOVING_TO_IDLE);
+            add_phone_ui();
+            scene.time.delayedCall(13000,() => {
+                let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
+                    "Click the phone icon to check motion detector.",
+                    getFont("center", GRID_SIZE, "#FFFFFF"))
+                    .setOrigin(0.5, 1)
+                    .setDepth(DEPTHS.UI+5);
+                scene.time.delayedCall(3000, () => {
+                    tutorial_text.destroy();
+                    add_starting_monsters();
+                })
+            });
+
+            scene.time.delayedCall(1000,() => {
+                let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
+                    "WASD or Arrows to move.",
+                    getFont("center", GRID_SIZE, "#FFFFFF"))
+                    .setOrigin(0.5, 1)
+                    .setDepth(DEPTHS.UI+5);
+                scene.time.delayedCall(3000, () => {
+                    tutorial_text.destroy();
+                })
+            });
+
+            scene.time.delayedCall(7000,() => {
+                let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
+                    "E to interact.",
+                    getFont("center", GRID_SIZE, "#FFFFFF"))
+                    .setOrigin(0.5, 1)
+                    .setDepth(DEPTHS.UI+5);
+                scene.time.delayedCall(3000, () => {
+                    tutorial_text.destroy();
+                })
+            });
+
+        };
+
+        let location_dialogue = (scene) => {
+            sam.play('sam-lookaround');
+            sam.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                addDialogue(scene, ["Looks like I'm in the southeast corner " +
+                "of the cell block. I need to go to the northwest corner to continue my " +
+                "investigation into the prison."], begin_game)
+            });
+        };
+
+        let drop_animation = () => {
+            sam.setVisible(true);
+            sam_shadow.setVisible(true);
+            sam.setFlipX(true);
+            sam.play('sam-fall');
+            let start_y = sam.y;
+            sam.y -= SCREEN_HEIGHT/2;
+            scene.tweens.add({
+                targets: sam,
+                y : start_y,
+                duration: 500,
+                ease: Phaser.Math.Easing.Quadratic.In,
+                onComplete: () => {
+                    sam.play('sam-land');
+                    sam.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                        //player_state_handler.changeState(PLAYER_STATES.MOVING_TO_IDLE)
+                    });
+                }
+            });
+            let end_x = sam_shadow.x;
+            sam_shadow.x += GRID_SIZE;
+            sam.x += GRID_SIZE;
+            scene.tweens.add({
+                targets: [sam, sam_shadow],
+                x : end_x,
+                duration: 500,
+                ease: Phaser.Math.Easing.Quadratic.In,
+                onComplete: () => {
+                    sam.play('sam-land');
+                    sam.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                        location_dialogue(scene);
+                    });
+                }
+            })
+        };
+
+        let opening = (scene, onComplete) => {
+            sam.setVisible(false);
+            sam_shadow.setVisible(false);
+            let fade_in = () => {
+                scene.tweens.add({
+                    targets: black_box,
+                    alpha: 0,
+                    onComplete: () => {
+                        scene.time.delayedCall(1000, () => {
+                            addDialogue(scene,
+                                ["Oh, this is a higher drop than I thought.",'...','Here goes nothing...'],
+                                onComplete);
+                        });
+                    }
+                });
+            };
+
+            let black_box = scene.add.rectangle(
+                x, y,
+                SCREEN_WIDTH, SCREEN_HEIGHT,
+                0x000000)
+                .setDepth(DEPTHS.UI);
+            addDialogue(scene, ["This window is a tight fit..."], fade_in)
+        };
+
+
+        if (!seen_intro) {
+            seen_intro = true;
+            opening(scene, drop_animation);
+        } else {
+            fast_begin_game();
+        }
+
+
 
         let death_triggered = false;
         let ghost_attack = () => {
@@ -850,14 +1163,24 @@ let GameScene = new Phaser.Class({
         let vector = new Phaser.Math.Vector2();
         scene.__update = () => {
             let monster_in_room = false;
+            let monster_next_door = false;
             for (let monster of monsters) {
-                if (monster.x === room_number - 1 &&
-                    monster.y === room_letter) {
+                let distance = Phaser.Math.Distance.Snake(
+                    monster.x, monster.y, room_number - 1, room_letter)
+                if (distance === 0) {
                     monster_in_room = true;
+                }
+                if (distance === 1) {
+                    monster_next_door = true;
                 }
             }
             if (monster_in_room) {
                 delayed_ghost_attack();
+            }
+            if (monster_next_door) {
+                main_light.setMainLightToFlicker(true);
+            } else {
+                main_light.setMainLightToFlicker(false);
             }
 
             let input = {
@@ -899,6 +1222,7 @@ let GameScene = new Phaser.Class({
                 let moving = vector.x !== 0 || vector.y !== 0;
 
                 if (moving) {
+                    scene.events.emit(TUTORIAL_EVENTS.MOVE_ACTIVATED.label);
                     if (input.left) { sam.setFlipX(true); }
                     if (input.right) { sam.setFlipX(false); }
                     vector.setLength(GRID_SIZE*5)
@@ -974,23 +1298,116 @@ let TitleScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+
         let x = SCREEN_WIDTH/2;
         let y = SCREEN_HEIGHT/2;
+
+        let top_shade = scene.add.rectangle(x,y,SCREEN_WIDTH,SCREEN_HEIGHT,0x000000)
+            .setAlpha(1)
+            .setDepth(3);
+        scene.tweens.add({
+            delay: 0,
+            duration: 10000,
+            targets: top_shade,
+            alpha: 0
+        });
+
+        scene.add.sprite(x,y,'splash',1)
+            .setScale(5)
+            .setDepth(0);
+        let shade = scene.add.rectangle(x,y,SCREEN_WIDTH,SCREEN_HEIGHT,0x000000,0.9)
+            .setDepth(0);
+        scene.tweens.add({
+            delay: 0,
+            duration: 3000,
+            targets: shade,
+            ease: Phaser.Math.Easing.Quadratic.In,
+            alpha: 0
+        });
+
+        scene.add.sprite(x,y,'splash',2)
+            .setScale(5)
+            .setDepth(2);
+
+        let addRain = () => {
+            let random_y = Phaser.Math.Between(0,13*5);
+            let random_x = Phaser.Math.Between(40,SCREEN_WIDTH-40);
+            let rain = scene.add.sprite(random_x,SCREEN_HEIGHT-random_y,'splash', 3)
+                .setScale(5)
+                .setDepth(1)
+                .setOrigin(0.5, 1)
+                .setAlpha(0.25);
+            rain.play('rain_drop');
+            rain.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                rain.destroy();
+            });
+        }
+        scene.time.addEvent({
+            delay: 50,
+            callback: addRain,
+            loop: true,
+        })
+        addRain();
+
+        scene.add.text(SCREEN_WIDTH-GRID_SIZE*2, y, 'Ghosts, Inc.',
+            getFont('right', GRID_SIZE, "#FFFFFF"))
+            .setOrigin(1,0.5)
+            .setDepth(4);
+        let start = scene.add.text(SCREEN_WIDTH-GRID_SIZE*2, y+GRID_SIZE, 'click to start',
+            getFont('right', GRID_SIZE, "#FFFFFF"))
+            .setOrigin(1,0.5)
+            .setDepth(4)
+            .setAlpha(0);
+        scene.add.tween({
+            targets: start,
+            alpha:1,
+            delay: 4000,
+            duration: 2000,
+            onComplete: () => {
+                scene.add.tween({
+                    targets: start,
+                    alpha: 0.5,
+                    duration: 1000,
+                    yoyo: true,
+                    loop: -1,
+                });
+            }
+        });
+
+        scene.time.delayedCall(500, () => {
+            let click = scene.add.zone(x,y,SCREEN_WIDTH,SCREEN_HEIGHT);
+            click.setInteractive();
+            click.once(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+               scene.scene.start('ControllerScene');
+               scene.scene.start('GameScene');
+           });
+        });
+
+
+
+
+        return;
+
         scene.add.sprite(x,y,'logo',1)
             .setScale(SPRITE_SCALE*1.1)
-            .setAlpha(0.25);
+            .setAlpha(0.25)
+            .setDepth(3);
         scene.add.sprite(x,y,'logo',1)
             .setScale(SPRITE_SCALE*1.05)
-            .setAlpha(0.5);
+            .setAlpha(0.5)
+            .setDepth(3);
         scene.add.sprite(x,y,'logo',1)
-            .setScale(SPRITE_SCALE);
+            .setScale(SPRITE_SCALE)
+            .setDepth(3);
         scene.add.rectangle(x, y + (44*SPRITE_SCALE),
             SCREEN_WIDTH, GRID_SIZE*2+4*SPRITE_SCALE,
             0xFFFFFF)
-            .setOrigin(0.5, 0.5);
+            .setOrigin(0.5, 0.5)
+            .setDepth(3);
         scene.add.text(x, y + (42*SPRITE_SCALE), 'GHOSTS, INC.',
             getFont('center', GRID_SIZE*4, "#00acff"))
-            .setOrigin(0.5,0.5);
+            .setOrigin(0.5,0.5)
+            .setDepth(3);
     },
 
     //--------------------------------------------------------------------------
@@ -1014,6 +1431,8 @@ let LoadScene = new Phaser.Class({
 
         scene.load.spritesheet('samantha', 'assets/Samantha.png',
             { frameWidth: 16, frameHeight: 32 });
+        scene.load.spritesheet('splash', 'assets/GhostsInc.png',
+            { frameWidth: 16*16, frameHeight: 9*16 });
         scene.load.spritesheet('logo', 'assets/Logo.png',
             { frameWidth: 192, frameHeight: 96 });
         scene.load.spritesheet('ghost', 'assets/Ghost.png',
@@ -1043,14 +1462,24 @@ let LoadScene = new Phaser.Class({
         });
 
         scene.load.on('complete', function() {
-            scene.scene.start('ControllerScene');
-            scene.scene.start('GameScene');
+            scene.scene.start('TitleScene');
+            //scene.scene.start('ControllerScene');
+            //scene.scene.start('GameScene');
         });
     },
 
     //--------------------------------------------------------------------------
     create: function () {
         let scene = this;
+
+        scene.anims.create({
+            key: 'rain_drop',
+            frames: scene.anims.generateFrameNumbers('splash', {
+                frames: [3,4,5,6,7,8,9,10] }),
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeat: 0
+        });
 
         scene.anims.create({
             key: 'motion_trigger',
@@ -1102,6 +1531,24 @@ let LoadScene = new Phaser.Class({
                 { frames: [5, 1] }),
             skipMissedFrames: false,
             frameRate: 12,
+            repeat: 0
+        });
+
+        scene.anims.create({
+            key: 'sam-fall',
+            frames: scene.anims.generateFrameNumbers('samantha',
+                { frames: [36, 37] }),
+            skipMissedFrames: false,
+            frameRate: 12,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'sam-land',
+            frames: scene.anims.generateFrameNumbers('samantha',
+                { frames: [38,38,38, 39, 40, 41] }),
+            skipMissedFrames: false,
+            frameRate: 8,
             repeat: 0
         });
 

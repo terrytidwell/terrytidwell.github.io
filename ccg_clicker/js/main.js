@@ -14,8 +14,8 @@ const SCREEN_WIDTH = SCREEN_COLUMNS*CARD_SIZE + (SCREEN_COLUMNS+1)*GAP; // 630 /
 */
 const GRID_SIZE = 64;
 const SCREEN_SCALE = 1.5;
-const SCREEN_HEIGHT = 720 * SCREEN_SCALE;
-const SCREEN_WIDTH = 360 * SCREEN_SCALE;
+const SCREEN_HEIGHT = 720; // 720 * SCREEN_SCALE;
+const SCREEN_WIDTH = 1280; //360 * SCREEN_SCALE;
 
 const DEPTHS = {
     CARD: 1000,
@@ -416,21 +416,27 @@ let white_cards = [
 ];
 
 let RARITY = {
-    "Common" : {name: "Common", frame: 5, count: 20},
-    "Uncommon" : {name: "Uncommon", frame: 6, count: 16},
-    "Rare" : {name: "Rare", frame: 7, count: 12},
-    "Mythic" : {name: "Mythic", frame: 7, count: 4},
+    "Common" : {name: "Common", frame: 5, count: 20, shreds: 20, price: 200, abbreviation: 'C', deck_weight: 1},
+    "Uncommon" : {name: "Uncommon", frame: 6, count: 16, shreds: 40, price: 400, abbreviation: 'U', deck_weight: 2},
+    "Rare" : {name: "Rare", frame: 7, count: 12, shreds: 70, price: 700, abbreviation: 'R', deck_weight: 4},
+    "Mythic" : {name: "Mythic", frame: 8, count: 4, shreds: 160, price: 1600, abbreviation: 'M', deck_weight: 8},
 };
 let RARITIES = [RARITY.Common, RARITY.Uncommon, RARITY.Rare, RARITY.Mythic];
 
 let COLOR = {
-    "Blue" : {name: "Blue", names: blue_cards, frame: 0}, // collector_number_offset: 0},
-    "Red" : {name: "Red", names: red_cards, frame: 1}, // collector_number_offset: 52},
-    "Black" : {name: "Black", names: black_cards, frame: 2}, // collector_number_offset: 104},
-    "Green" : {name: "Green", names: green_cards, frame: 3}, // collector_number_offset: 156},
-    "White" : {name: "White", names: white_cards, frame: 4}, // collector_number_offset: 208},
+    "Blue" : {name: "Blue", names: blue_cards, frame: 0, abbreviation: 'U'}, // collector_number_offset: 0},
+    "Red" : {name: "Red", names: red_cards, frame: 1, abbreviation: 'R'}, // collector_number_offset: 52},
+    "Black" : {name: "Black", names: black_cards, frame: 2, abbreviation: 'B'}, // collector_number_offset: 104},
+    "Green" : {name: "Green", names: green_cards, frame: 3, abbreviation: 'G'}, // collector_number_offset: 156},
+    "White" : {name: "White", names: white_cards, frame: 4, abbreviation: 'W'}, // collector_number_offset: 208},
 };
 let COLORS = [COLOR.Blue, COLOR.Red, COLOR.Black, COLOR.Green, COLOR.White];
+
+let GAME_EVENTS = {
+    "FOUR_DOLLARS" : {label: "FOUR_DOLLARS", fired: false},
+    "FIVE_PACKS" : {label: "FIVE_PACKS", fired: false},
+    "FIFTH_COPY" : {label: "FIFTH_COPY", fired: false},
+};
 
 let getFont = (align = "left", fontSize = 16) => {
     let color = '#000000'; //'#8ae234';
@@ -438,9 +444,18 @@ let getFont = (align = "left", fontSize = 16) => {
         wordWrap: {width: SCREEN_WIDTH, useAdvancedWrap: false}};
 };
 
+let getDecklistFont = (align = "left", fontSize = 16) => {
+    let color = '#FFFFFF'; //'#8ae234';
+    return {font: '' + fontSize + 'px m5x7', fill: color, align: align,
+        wordWrap: {width: SCREEN_WIDTH, useAdvancedWrap: false}};
+};
+
 let createGameState = () => {
     let value = {
         money: 0,
+        elo: 400,
+        vp: 0,
+        shreds: 0,
         number_collected: [],
     };
     repeat(260, () => { value.number_collected.push(0); });
@@ -560,55 +575,78 @@ let GameScene = new Phaser.Class({
         };
         let all_card_list = build_card_list();
 
-        let color_filters = [
-            {active: true, color: COLOR.Blue},
-            {active: true, color: COLOR.Red},
-            {active: true, color: COLOR.Black},
-            {active: true, color: COLOR.Green},
-            {active: true, color: COLOR.White},
-        ];
-        let rarity_filters = [
-            {active: true, rarity: RARITY.Common},
-            {active: true, rarity: RARITY.Uncommon},
-            {active: true, rarity: RARITY.Rare},
-            {active: true, rarity: RARITY.Mythic},
-        ];
-        let owned_filters = [
-            {active: true, owned: 0},
-            {active: true, owned: 1},
-            {active: true, owned: 2},
-            {active: true, owned: 3},
-            {active: true, owned: 4},
-        ];
+
+        let get_color_filter = () =>
+        {
+            return [
+                {active: true, color: COLOR.Blue},
+                {active: true, color: COLOR.Red},
+                {active: true, color: COLOR.Black},
+                {active: true, color: COLOR.Green},
+                {active: true, color: COLOR.White},
+            ];
+        };
+        let color_filters = get_color_filter();
+
+        let get_rarity_filter = () =>
+        {
+            return [
+                {active: true, rarity: RARITY.Common},
+                {active: true, rarity: RARITY.Uncommon},
+                {active: true, rarity: RARITY.Rare},
+                {active: true, rarity: RARITY.Mythic},
+            ];
+        };
+        let rarity_filters = get_rarity_filter();
+
+        let get_owned_filter = () => {
+            return [
+                {active: true, owned: 0},
+                {active: true, owned: 1},
+                {active: true, owned: 2},
+                {active: true, owned: 3},
+                {active: true, owned: 4},
+            ];
+        }
+        let owned_filters = get_owned_filter();
 
         let current_filter_list = [];
-        let card_filter = (card) => {
-            let color_filter_match = false;
-            for (let color_filter of color_filters) {
-                if (color_filter.active && card.color === color_filter.color) {
-                    color_filter_match = true;
-                    break;
+
+        let get_card_filter = (color_filters, rarity_filters, owned_filters) => {
+            let local_color_filters = color_filters;
+            let local_rarity_filters = rarity_filters;
+            let local_owned_filters = owned_filters;
+
+            return (card) => {
+                let color_filter_match = false;
+                for (let color_filter of color_filters) {
+                    if (color_filter.active && card.color === color_filter.color) {
+                        color_filter_match = true;
+                        break;
+                    }
                 }
-            }
-            let rarity_filter_match = false;
-            for (let rarity_filter of rarity_filters) {
-                if (rarity_filter.active && card.rarity === rarity_filter.rarity) {
-                    rarity_filter_match = true;
-                    break;
+                let rarity_filter_match = false;
+                for (let rarity_filter of rarity_filters) {
+                    if (rarity_filter.active && card.rarity === rarity_filter.rarity) {
+                        rarity_filter_match = true;
+                        break;
+                    }
                 }
-            }
-            let owned_filter_match = false;
-            for (let owned_filter of owned_filters) {
-                if (owned_filter.active &&
-                    gameState.number_collected[card.index] === owned_filter.owned) {
-                    owned_filter_match = true;
-                    break;
+                let owned_filter_match = false;
+                for (let owned_filter of owned_filters) {
+                    if (owned_filter.active &&
+                        gameState.number_collected[card.index] === owned_filter.owned) {
+                        owned_filter_match = true;
+                        break;
+                    }
                 }
+                return color_filter_match && rarity_filter_match && owned_filter_match;
             }
-            return color_filter_match && rarity_filter_match && owned_filter_match;
-        };
+        }
+
+        let standard_card_filter = get_card_filter(color_filters, rarity_filters, owned_filters);
         let apply_filter = () => {
-            current_filter_list = all_card_list.filter(card_filter);
+            current_filter_list = all_card_list.filter(standard_card_filter);
             scene.events.emit('filter_updated');
         };
         apply_filter();
@@ -655,7 +693,6 @@ let GameScene = new Phaser.Class({
                 });
             }
         };
-        add_filter_buttons();
 
         let random_card_by_rarity = (rarity) => {
             let total_rarity = rarity.count * COLORS.length;
@@ -694,11 +731,12 @@ let GameScene = new Phaser.Class({
                 .setOrigin(0, 1));
             sprites.push(scene.add.text(0 + 50 - 5, 0 + 64 - 6, card.collectors_number_string, getFont('right'))
                 .setOrigin(1, 1));
-            let sheen_sprite = scene.add.sprite(0, 0, 'ccg', 9)
-                .setAlpha(1) ;
+            let sheen_sprite = scene.add.sprite(0, 0, 'ccg', 10)
+                .setAlpha(0.5) ;
             sprites.push(sheen_sprite);
             let container = scene.add.container(x, y, sprites)
                 .setDepth(DEPTHS.CARD);
+            container.__interactive = sprites[0];
             container.__sheen = () => {
                 sheen_sprite.play('sheen');
                 return sheen_sprite;
@@ -791,6 +829,85 @@ let GameScene = new Phaser.Class({
                         }
                         current_backings[count-1].setAlpha(1);
                         current_cards.push(card);
+                        card.__interactive.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                            let price = all_card_list[card.__collectors_number - 1].rarity.price;
+
+                            let purchase_group = scene.add.group();
+                            let bg = scene.add.rectangle(
+                                SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                                SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000, 0.50)
+                                .setDepth(DEPTHS.UI);
+                            bg.setInteractive();
+                            purchase_group.add(bg);
+
+                            purchase_group.add(scene.add.rectangle(
+                                SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                                SCREEN_WIDTH, SCREEN_HEIGHT/3, 0xFFFFFF, 0.50)
+                                .setDepth(DEPTHS.UI));
+                            purchase_group.add(
+                                add_card(
+                                    SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 1/2 * GRID_SIZE,
+                                    all_card_list[card.__collectors_number-1])
+                                    .setDepth(DEPTHS.UI));
+
+                            purchase_group.add(scene.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2  + GRID_SIZE,
+                                " CRAFT FOR " + price + " SHREDS?",
+                                getFont("center", 32))
+                                .setDepth(DEPTHS.UI)
+                                .setOrigin(0.5,1));
+                            let yes_button = scene.add.text(SCREEN_WIDTH / 2 - GRID_SIZE, SCREEN_HEIGHT / 2 + GRID_SIZE + 32,
+                                " YES ",
+                                getFont("center", 32))
+                                .setBackgroundColor('#FFFFFF')
+                                .setDepth(DEPTHS.UI)
+                                .setOrigin(0.5,1);
+                            purchase_group.add(yes_button);
+                            addButton(yes_button, () => {
+                                if (gameState.number_collected[card.__collectors_number - 1] >= 4) {
+                                    return;
+                                }
+
+                                if (gameState.shreds < price) {
+                                    return;
+                                }
+
+                                gameState.shreds -= price;
+                                gameState.number_collected[card.__collectors_number - 1]++;
+
+                                purchase_group.clear(true, true);
+                                purchase_group.destroy();
+                            });
+                            let no_button = scene.add.text(SCREEN_WIDTH / 2 + GRID_SIZE, SCREEN_HEIGHT / 2 + GRID_SIZE + 32,
+                                " NO ",
+                                getFont("center", 32))
+                                .setBackgroundColor('#FFFFFF')
+                                .setDepth(DEPTHS.UI)
+                                .setOrigin(0.5,1);
+                            purchase_group.add(no_button);
+                            addButton(no_button, () => {
+                                purchase_group.clear(true, true);
+                                purchase_group.destroy();
+                            });
+
+
+
+
+                        });
+                        card.__interactive.setInteractive();
+                        card.__dragend = (gameObject, drag_target) => {
+                            if (gameObject.__collectors_number === drag_target.__collectors_number &&
+                                gameState.number_collected[drag_target.__collectors_number - 1] < 4) {
+                                gameObject.destroy();
+                                gameState.number_collected[drag_target.__collectors_number - 1]++;
+
+                                //TODO: if I add a sheen and then do apply_filter later, I get a weird graphical glitch
+                                drag_target.__sheen();
+                                let card = all_card_list[drag_target.__collectors_number - 1];
+                                if (!standard_card_filter(card)) {
+                                    apply_filter();
+                                }
+                            }
+                        };
                         drag_targets.add(card);
                         container.add(card);
 
@@ -854,59 +971,136 @@ let GameScene = new Phaser.Class({
                 set_page();
             });
         };
-        add_binder(SCREEN_WIDTH/2, 32);
 
-        let buy_pack_button =
-            scene.add.text(x, SCREEN_HEIGHT - 32, " BUY PACK ($4) ",
-                getFont("center", 32))
-                .setOrigin(0.5,1)
-                .setBackgroundColor("#FFFFFF");
-        let buy_pack_available = true;
-        addButton(buy_pack_button, () => {
-            if (gameState.money < 4 && buy_pack_available) {
+        let add_buy_binder_button = () => {
+            let buy_binder_button =
+                scene.add.text(32, SCREEN_HEIGHT - 64, " BUY BINDER ($20) ",
+                    getFont("center", 32))
+                    .setOrigin(0,1)
+                    .setBackgroundColor("#FFFFFF");
+            addButton(buy_binder_button, () => {
+                if (gameState.money < 20) {
+                    return;
+                }
+                gameState.money -= 20;
+
+                add_binder(SCREEN_WIDTH/2, 32);
+                buy_binder_button.destroy();
+                add_filter_buttons();
+            });
+        };
+        game.events.once(GAME_EVENTS.FIVE_PACKS.label, () => {
+            if (GAME_EVENTS.FIVE_PACKS.fired) {
                 return;
             }
-            gameState.money -= 4;
-            let pack = [
-                {dx: 0, dy: 0, rarity: Phaser.Math.Between(0, 7) === 0 ? RARITY.Mythic : RARITY.Rare, delay: 400},
-                {dx: - 100 - 8, dy: 8, rarity: RARITY.Uncommon, delay: 300},
-                {dx: 100 + 8, dy: 8, rarity: RARITY.Uncommon, delay: 300},
-                {dx: - 100*2 - 8*2, dy: + 128 + 8 + 8*2, rarity: RARITY.Common, delay: 0},
-                {dx: - 100*1 - 8*1, dy: + 128 + 8 + 8*1, rarity: RARITY.Common, delay: 100},
-                {dx: - 100*0 - 8*0, dy: + 128 + 8 + 8*0, rarity: RARITY.Common, delay: 200},
-                {dx: 100*1 + 8*1, dy: + 128 + 8 + 8*1, rarity: RARITY.Common, delay: 100},
-                {dx: 100*2 + 8*2, dy: + 128 + 8 + 8*2, rarity: RARITY.Common, delay: 0},
-            ];
-            for (let card of pack) {
-                scene.time.delayedCall(card.delay, () => {
-                    let new_card = add_card(x + card.dx, y + card.dy,
-                        random_card_by_rarity(card.rarity));
-                    new_card.setInteractive();
-                    scene.input.setDraggable(new_card);
-                    draggables.add(new_card);
+            GAME_EVENTS.FIVE_PACKS.fired = true;
+            add_buy_binder_button();
+        });
 
-                    let target_y = new_card.y;
-                    new_card.alpha = 0;
-                    new_card.y += 16;
-                    scene.tweens.add({
-                        targets: new_card,
-                        duration: 150,
-                        alpha: 1,
-                        y: target_y,
-                        //ease: 'Bounce.easeOut'
-                    });
+        let add_buy_shredder_button = () => {
+            let buy_shredder_button =
+                scene.add.text(32, SCREEN_HEIGHT - 96, " BUY SHREDDER ($50) ",
+                    getFont("center", 32))
+                    .setOrigin(0,1)
+                    .setBackgroundColor("#FFFFFF");
+            addButton(buy_shredder_button, () => {
+                if (gameState.money < 50) {
+                    return;
+                }
+                gameState.money -= 50;
 
-                    new_card.__sheen();
-                });
+                add_trash();
+                buy_shredder_button.destroy();
+            });
+        };
+        game.events.once(GAME_EVENTS.FIFTH_COPY.label, () => {
+            if (GAME_EVENTS.FIFTH_COPY.fired) {
+                return;
             }
+            GAME_EVENTS.FIFTH_COPY.fired = true;
+            add_buy_shredder_button();
+        });
+
+        let packs_bought = 0;
+        let add_buy_pack_button = () => {
+            let buy_pack_button =
+                scene.add.text(32, SCREEN_HEIGHT - 32, " BUY PACK ($4) ",
+                    getFont("center", 32))
+                    .setOrigin(0,1)
+                    .setBackgroundColor("#FFFFFF");
+            let buy_pack_available = true;
+            addButton(buy_pack_button, () => {
+                if (gameState.money < 4 && buy_pack_available) {
+                    return;
+                }
+                packs_bought += 1;
+                if (packs_bought === 5) {
+                    game.events.emit(GAME_EVENTS.FIVE_PACKS.label);
+                }
+                gameState.money -= 4;
+                let pack = [
+                    {dx: 0, dy: 0, rarity: Phaser.Math.Between(0, 7) === 0 ? RARITY.Mythic : RARITY.Rare, delay: 400},
+                    {dx: - 100 - 8, dy: 8, rarity: RARITY.Uncommon, delay: 300},
+                    {dx: 100 + 8, dy: 8, rarity: RARITY.Uncommon, delay: 300},
+                    {dx: - 100*2 - 8*2, dy: + 128 + 8 + 8*2, rarity: RARITY.Common, delay: 0},
+                    {dx: - 100*1 - 8*1, dy: + 128 + 8 + 8*1, rarity: RARITY.Common, delay: 100},
+                    {dx: - 100*0 - 8*0, dy: + 128 + 8 + 8*0, rarity: RARITY.Common, delay: 200},
+                    {dx: 100*1 + 8*1, dy: + 128 + 8 + 8*1, rarity: RARITY.Common, delay: 100},
+                    {dx: 100*2 + 8*2, dy: + 128 + 8 + 8*2, rarity: RARITY.Common, delay: 0},
+                ];
+                for (let card of pack) {
+                    scene.time.delayedCall(card.delay, () => {
+                        let new_card = add_card(x + card.dx, y + GRID_SIZE + card.dy,
+                            random_card_by_rarity(card.rarity));
+                        new_card.setInteractive();
+                        scene.input.setDraggable(new_card);
+                        let count = gameState.number_collected[new_card.__collectors_number - 1];
+                        draggables.children.each( (other_card) => {
+                            if (other_card.__collectors_number === new_card.__collectors_number) {
+                                count++;
+                            }
+                        });
+                        //and me!
+                        count++;
+                        //console.log(all_card_list[new_card.__collectors_number - 1].name + ": " + count);
+                        if (count === 5) {
+                            game.events.emit(GAME_EVENTS.FIFTH_COPY.label);
+                        }
+                        draggables.add(new_card);
+
+                        let target_y = new_card.y;
+                        new_card.alpha = 0;
+                        new_card.y += 16;
+                        scene.tweens.add({
+                            targets: new_card,
+                            duration: 150,
+                            alpha: 1,
+                            y: target_y,
+                            //ease: 'Bounce.easeOut'
+                        });
+
+                        new_card.__sheen();
+                    });
+                }
+            });
+        };
+        game.events.once(GAME_EVENTS.FOUR_DOLLARS.label, () => {
+            if (GAME_EVENTS.FOUR_DOLLARS.fired) {
+                return;
+            }
+            GAME_EVENTS.FOUR_DOLLARS.fired = true;
+            add_buy_pack_button();
         });
 
         let earn_money_button =
-            scene.add.text(32, SCREEN_HEIGHT - 32, " EARN MONEY ", getFont("left", 32))
-                .setOrigin(0,1)
+            scene.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT - 32, " EARN MONEY ", getFont("left", 32))
+                .setOrigin(0.5,1)
                 .setBackgroundColor("#FFFFFF");
         addButton(earn_money_button, () => {
             gameState.money += 1;
+            if (gameState.money === 4) {
+                game.events.emit(GAME_EVENTS.FOUR_DOLLARS.label);
+            }
         });
 
         let money_ui =
@@ -918,6 +1112,26 @@ let GameScene = new Phaser.Class({
             money_ui.setText(" $" + gameState.money + " ");
         };
         updateables.add(money_ui);
+
+        let vp_ui =
+            scene.add.text(SCREEN_WIDTH - 32, SCREEN_HEIGHT - 32 - 2*GRID_SIZE/2, " VPS: 0 ",
+                getFont("right", 32))
+                .setOrigin(1,1)
+                .setColor("#FFFFFF");
+        vp_ui.update = () => {
+            vp_ui.setText(" VPS: " + gameState.vp + " ");
+        };
+        updateables.add(vp_ui);
+
+        let elo_ui =
+            scene.add.text(SCREEN_WIDTH - 32, SCREEN_HEIGHT - 32 - 3*GRID_SIZE/2, " ELO: 400 ",
+                getFont("right", 32))
+                .setOrigin(1,1)
+                .setColor("#FFFFFF");
+        elo_ui.update = () => {
+            elo_ui.setText(" ELO: " + gameState.elo + " ");
+        };
+        updateables.add(elo_ui);
 
         let drag_enabled = true;
         scene.input.on('dragstart', function (pointer, gameObject) {
@@ -934,24 +1148,507 @@ let GameScene = new Phaser.Class({
             if (!drag_enabled) { return; }
             gameObject.setDepth(DEPTHS.CARD);
             scene.physics.overlap(gameObject, drag_targets, (gameObject, drag_target) => {
-                if (gameObject.__collectors_number === drag_target.__collectors_number &&
-                    gameState.number_collected[drag_target.__collectors_number - 1] < 4) {
-                    gameObject.destroy();
-                    gameState.number_collected[drag_target.__collectors_number - 1]++;
-
-                    //TODO: if I add a sheen and then do apply_filter later, I get a weird graphical glitch
-                    drag_target.__sheen();
-                    let card = all_card_list[drag_target.__collectors_number - 1];
-                    if (!card_filter(card)) {
-                        apply_filter();
-                    }
-                }
+                drag_target.__dragend(gameObject, drag_target);
             });
         });
+
+        let add_trash = () => {
+            let scraps_ui =
+                scene.add.text(SCREEN_WIDTH - 32, SCREEN_HEIGHT - 32 - GRID_SIZE/2, "SHREDS: 0",
+                    getFont("right", 32))
+                    .setOrigin(1,1)
+                    .setColor("#FFFFFF");
+            scraps_ui.update = () => {
+                scraps_ui.setText(" SHREDS: " + gameState.shreds + " ");
+            };
+            updateables.add(scraps_ui);
+
+            let card_height = 128;
+            let card_width = 100;
+            let center_x =SCREEN_WIDTH - 32 - card_width/2;
+            let center_y = 32 + card_height/2;
+            let backing = scene.add.sprite(
+                center_x, center_y,
+                'ccg', 22)
+                .setAlpha(0.5);
+            let center = scene.add.rectangle(SCREEN_WIDTH - 32 - card_width/2,
+                32 + card_height/2, 32, 32, 0xFF0000, 0)
+                .setAlpha(0.5)
+            drag_targets.add(center);
+            updateables.add(center);
+            center.update = () => {
+                let alpha = 0.5;
+                scene.physics.overlap(draggables, center, (draggable, center) => {
+                    alpha = 1;
+                });
+                backing.setAlpha(alpha);
+            };
+            let vector = new Phaser.Math.Vector2();
+            center.__dragend = (gameObject, drag_target) => {
+                let card = all_card_list[gameObject.__collectors_number - 1];
+
+                gameObject.destroy();
+                let target_x = SCREEN_WIDTH - 32 - 16;
+                let target_y = SCREEN_HEIGHT - 32 - GRID_SIZE/2 - 16;
+                repeat(card.rarity.shreds, () => {
+                    let confetti = scene.add.rectangle(center_x, center_y, 8, 8, 0xffffff)
+                        .setAngle(Phaser.Math.Between(0,360));
+                    vector.x = 1;
+                    vector.y = 0;
+                    vector.setLength(Phaser.Math.Between(4, 32));
+                    vector.setAngle(Phaser.Math.Between(0, 360));
+                    let next_x = vector.x + center_x;
+                    let next_y = vector.y + center_y;
+                    scene.add.tween({
+                        targets: confetti,
+                        x: next_x,
+                        y: next_y,
+                        duration: 125,
+                        onComplete: () => {
+                            scene.time.delayedCall(250, () => {
+                                scene.tweens.add({
+                                    targets: confetti,
+                                    x: target_x,
+                                    y: target_y,
+                                    alpha: 0.1,
+                                    duration: 250,
+                                    delay: Phaser.Math.Between(0,750),
+                                    onComplete: () => {
+                                        confetti.destroy();
+                                        gameState.shreds += 1;
+                                    }
+                                })
+                            })
+                        }
+                    })
+                });
+            }
+        };
+
+        let get_deck_candidates = (color_function, rarity_function, number, amount = 4) => {
+            let color_filters = get_color_filter().filter((filter) => {
+                return color_function(filter.color);
+            });
+
+            let rarity_filters = get_rarity_filter().filter((filter) => {
+                return rarity_function(filter.rarity);
+            });
+            let deck_filter = get_card_filter(color_filters, rarity_filters, get_owned_filter());
+            let deck_candidates = all_card_list.filter(deck_filter);
+            Phaser.Utils.Array.Shuffle(deck_candidates);
+
+            let deck_list = [];
+            for (let card of deck_candidates.slice(0, number)) {
+                deck_list.push({amount: amount, card: card});
+            }
+            return deck_list;
+        };
+
+        let all_deck_lists = [];
+        let unlocking = null;
+        let remaining_unlocking_time = 0;
+        let current_deck_list_index = 0;
+        let current_deck = null;
+        const DECK_TEIR = {
+            'BRONZE' : {label: "Bronze", upper_label: "BRONZE", elo_boost: 400, time_cost: 1, vp_cost: 0},
+            'SILVER' : {label: "Silver", upper_label: "SILVER", elo_boost: 800, time_cost: 30, vp_cost: 100},
+            'GOLD' : {label: "Gold", upper_label: "GOLD", elo_boost: 1600, time_cost: 60, vp_cost: 1000},
+        }
+
+        let decorate_deck = (tier, deck_list) => {
+            let deck_strength = deck_list.reduce(
+                (accumulator, deck_list_entry) => {
+                    return accumulator +
+                        (deck_list_entry.amount *
+                            deck_list_entry.card.rarity.deck_weight);
+                }, 0
+            );
+
+            return {
+                deck_list: deck_list,
+                deck_strength: deck_strength,
+                tier: tier,
+                current_elo_boost: 0,
+                elo_boost: tier.elo_boost,
+                unlocked: false,
+                xp_bonus_boost: 0,
+            };
+        }
+
+        let make_beginner_deck = (color1) => {
+            let deck_list = [];
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Common },
+                6
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Uncommon },
+                2
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Rare },
+                1
+            ));
+            deck_list.sort((a, b) => {return a.card.collectors_number - b.card.collectors_number });
+
+            return decorate_deck(DECK_TEIR.BRONZE, deck_list);
+        };
+
+        let make_intermediate_deck = (color1, color2) => {
+            let deck_list = [];
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1 || color === color2 },
+                (rarity) => { return rarity === RARITY.Common },
+                1
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Uncommon },
+                2
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color2},
+                (rarity) => { return rarity === RARITY.Uncommon },
+                3
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Rare },
+                1
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color2},
+                (rarity) => { return rarity === RARITY.Rare },
+                1
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color2 || color === color1},
+                (rarity) => { return rarity === RARITY.Mythic },
+                1
+            ));
+            deck_list.sort((a, b) => {return a.card.collectors_number - b.card.collectors_number });
+
+            return decorate_deck(DECK_TEIR.SILVER, deck_list);
+        };
+
+        let make_expert_deck = (color1, color2) => {
+            let deck_list = [];
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1 || color === color2 },
+                (rarity) => { return rarity === RARITY.Uncommon },
+                1
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Rare },
+                2
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color2},
+                (rarity) => { return rarity === RARITY.Rare },
+                2
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color1},
+                (rarity) => { return rarity === RARITY.Mythic },
+                2
+            ));
+            deck_list.push(...get_deck_candidates(
+                (color) => { return color === color2},
+                (rarity) => { return rarity === RARITY.Mythic },
+                2
+            ));
+            deck_list.sort((a, b) => {return a.card.collectors_number - b.card.collectors_number });
+
+            return decorate_deck(DECK_TEIR.GOLD, deck_list);
+        };
+
+        all_deck_lists.push(make_beginner_deck(COLOR.Blue));
+        all_deck_lists.push(make_beginner_deck(COLOR.Red));
+        all_deck_lists.push(make_beginner_deck(COLOR.Black));
+        all_deck_lists.push(make_beginner_deck(COLOR.Green));
+        all_deck_lists.push(make_beginner_deck(COLOR.White));
+        all_deck_lists.push(make_intermediate_deck(COLOR.Blue, COLOR.Red));
+        all_deck_lists.push(make_intermediate_deck(COLOR.Red, COLOR.Black));
+        all_deck_lists.push(make_intermediate_deck(COLOR.Black, COLOR.Green));
+        all_deck_lists.push(make_intermediate_deck(COLOR.Green, COLOR.White));
+        all_deck_lists.push(make_intermediate_deck(COLOR.White, COLOR.Blue));
+        all_deck_lists.push(make_expert_deck(COLOR.Blue, COLOR.Black));
+        all_deck_lists.push(make_expert_deck(COLOR.Red, COLOR.Green));
+        all_deck_lists.push(make_expert_deck(COLOR.Black, COLOR.White));
+        all_deck_lists.push(make_expert_deck(COLOR.Green, COLOR.Blue));
+        all_deck_lists.push(make_expert_deck(COLOR.White, COLOR.Red));
+
+        let update_decklist = (decklist_group) => {
+
+
+            let deck = all_deck_lists[current_deck_list_index];
+            let deck_list = deck.deck_list;
+
+            if (!deck.unlocked) {
+
+                current_deck = null;
+                let height = 160+20+32;
+                let y_center = (32 + 32 + height) / 2;
+                let x_center = (32 + + 32 + 168) / 2;
+
+                if (unlocking) {
+                    decklist_group.add(scene.add.text(
+                        x_center, y_center, "unlocking deck...", getDecklistFont('center')
+                    ).setOrigin(0.5, 0.5));
+                    let countdown = scene.add.text(
+                        x_center, y_center + 16, remaining_unlocking_time + " secs remaining",
+                        getDecklistFont('center')
+                    ).setOrigin(0.5, 0.5);
+                    countdown.update = () => {
+                        countdown.setText(remaining_unlocking_time + " secs remaining");
+                    };
+                    updateables.add(countdown);
+                    decklist_group.add(countdown);
+
+                    return;
+                }
+                //32, 160+32?
+                //32, 168
+                decklist_group.add(
+                    scene.add.rectangle(32, 32,
+                    168, height,
+                    0xff0000,0.5).setOrigin(0,0));
+
+                /*
+                    decklist_group.add(
+                    scene.add.text(x_center, y_center,
+                    deck.tier.label + " deck list locked",
+                    getDecklistFont('center'))
+                    .setOrigin(0.5, 0.5));
+                */
+
+                let text = [" UNLOCK ",
+                    " " + deck.tier.upper_label + " TIER ",
+                    " DECK ",
+                    " (" + deck.tier.time_cost + " SECS) "];
+                if (deck.tier.vp_cost !== 0) {
+                    text.push(" (" + deck.tier.vp_cost + " VPS) ");
+                }
+
+                let buy_button =
+                    scene.add.text(x_center, y_center,
+                        text, getFont('center', 32))
+                        .setOrigin(0.5, 0.5)
+                        .setBackgroundColor('#FFFFFF')
+                        .setDepth(DEPTHS.CARD + 1)
+                        .setVisible(true);
+                addButton(buy_button, () => {
+                    if (gameState.vp < deck.tier.vp_cost) {
+                        return;
+                    }
+                    gameState.vp -= deck.tier.vp_cost;
+                    unlocking = deck;
+                    remaining_unlocking_time = deck.tier.time_cost;
+                    let check = () => {
+                        remaining_unlocking_time -= 1;
+                        if (remaining_unlocking_time > 0) {
+                            scene.time.delayedCall(1000, check);
+                            return;
+                        }
+                        unlocking = null;
+                        deck.unlocked = true;
+                        decklist_group.clear(true, true);
+                        update_decklist(decklist_group);
+                    }
+                    scene.time.delayedCall(1000, check)
+                    decklist_group.clear(true, true);
+                    update_decklist(decklist_group);
+                });
+
+                decklist_group.add(buy_button);
+
+                return decklist_group;
+            }
+            current_deck = deck;
+
+            let get_current_count_in_deck = (deck_list_entry) => {
+                return Math.min(gameState.number_collected[deck_list_entry.card.collectors_number-1],
+                    deck_list_entry.amount);
+            }
+
+            let y_offset = 0
+            for (let deck_list_entry of deck_list) {
+                let card = deck_list_entry.card;
+                decklist_group.add(scene.add.text(32, y_offset + 32, "" + card.name,
+                    getDecklistFont("left"))
+                    .setOrigin(0,0)
+                    .setColor("#FFFFFF"));
+
+                decklist_group.add(scene.add.text(32 + 128, y_offset + 32,
+                    card.color.abbreviation,
+                    getDecklistFont("left"))
+                    .setOrigin(1,0)
+                    .setColor("#FFFFFF"));
+
+
+                decklist_group.add(scene.add.text(32 + 128 + 16, y_offset + 32,
+                    card.rarity.abbreviation,
+                    getDecklistFont("left"))
+                    .setOrigin(1,0)
+                    .setColor("#FFFFFF"));
+
+
+                let count_text = scene.add.text(32 + 128 + 40, y_offset + 32,
+                    gameState.number_collected[card.collectors_number-1] + "/4",
+                    getDecklistFont("left"))
+                    .setOrigin(1,0)
+                    .setColor("#FFFFFF");
+                y_offset+=16;
+
+                count_text.update = () => {
+                    count_text.setText(
+                        get_current_count_in_deck(deck_list_entry) + "/"
+                        + deck_list_entry.amount);
+                };
+                updateables.add(count_text);
+                decklist_group.add(count_text);
+            }
+            decklist_group.add(scene.add.text(32, y_offset + 48,
+                "Collection bonus:",
+                getDecklistFont("left"))
+                .setOrigin(0,0)
+                .setColor("#FFFFFF"));
+
+            let deck_strength_text = scene.add.text(32 + 128 + 40, y_offset + 48,
+                "--",
+                getDecklistFont("left"))
+                .setOrigin(1,0)
+                .setColor("#FFFFFF");
+            let update_deck_strength_text = () => {
+                let current_strength = deck_list.reduce(
+                    (accumulator, deck_list_entry) => {
+                        return accumulator +
+                            (get_current_count_in_deck(deck_list_entry)
+                                * deck_list_entry.card.rarity.deck_weight);
+                    }, 0
+                );
+                let current_elo_boost = Math.floor(current_strength / deck.deck_strength * deck.elo_boost)
+                deck_strength_text.setText("+" + current_elo_boost);
+                deck.current_elo_boost = current_elo_boost;
+            };
+            deck_strength_text.update = () => {
+                update_deck_strength_text();
+            };
+            update_deck_strength_text();
+            updateables.add(deck_strength_text);
+            decklist_group.add(deck_strength_text);
+
+            decklist_group.add(scene.add.text(32, y_offset + 64,
+                "Experience bonus:",
+                getDecklistFont("left"))
+                .setOrigin(0,0)
+                .setColor("#FFFFFF"));
+            let deck_experience_text = scene.add.text(32 + 128 + 40, y_offset + 64,
+                "--",
+                getDecklistFont("left"))
+                .setOrigin(1,0)
+                .setColor("#FFFFFF");
+            let update_deck_experience_text = () => {
+                deck_experience_text.setText("+"+deck.xp_bonus_boost);
+            };
+            deck_experience_text.update = () => {
+                update_deck_experience_text();
+            };
+            update_deck_experience_text();
+            updateables.add(deck_experience_text);
+            decklist_group.add(deck_experience_text);
+
+            decklist_group.add(scene.add.text(32, y_offset + 80,
+                "Total strength:",
+                getDecklistFont("left"))
+                .setOrigin(0,0)
+                .setColor("#FFFFFF"));
+            let deck_total_strength_text = scene.add.text(32 + 128 + 40, y_offset + 80,
+                "--",
+                getDecklistFont("left"))
+                .setOrigin(1,0)
+                .setColor("#FFFFFF");
+            let update_deck_total_strength_text = () => {
+                deck_total_strength_text.setText("+"+(deck.xp_bonus_boost+deck.current_elo_boost));
+            };
+            deck_total_strength_text.update = () => {
+                update_deck_total_strength_text();
+            };
+            update_deck_total_strength_text();
+            updateables.add(deck_total_strength_text);
+            decklist_group.add(deck_total_strength_text);
+
+            return decklist_group;
+        };
+
+        let decklist = () => {
+            let decklist_group = scene.add.group();
+            update_decklist(decklist_group);
+
+            let prev =
+                scene.add.text(32, 160 + 64+32, " < ", getFont('right', 32))
+                    .setOrigin(0, 0.5)
+                    .setBackgroundColor('#FFFFFF')
+                    .setDepth(DEPTHS.CARD + 1);
+            addButton(prev, () => {
+                current_deck_list_index = current_deck_list_index === 0 ?
+                    all_deck_lists.length - 1 :
+                    current_deck_list_index - 1;
+                decklist_group.clear(true, true);
+                update_decklist(decklist_group);
+            });
+            let next =
+                scene.add.text(32 + 128 + 40, 160 + 64+32, " > ", getFont('right', 32))
+                    .setOrigin(1, 0.5)
+                    .setBackgroundColor('#FFFFFF')
+                    .setDepth(DEPTHS.CARD + 1);
+            addButton(next, () => {
+                current_deck_list_index = current_deck_list_index === all_deck_lists.length - 1 ?
+                    0 :
+                    current_deck_list_index + 1;
+                decklist_group.clear(true, true);
+                update_decklist(decklist_group);
+            });
+            let deck_count = scene.add.text(32+64+20, 160 + 64+32,
+                current_deck_list_index + 1 + "/" + all_deck_lists.length,
+                getDecklistFont("left"))
+                .setOrigin(0.5, 0.5)
+                .setColor("#FFFFFF");
+            updateables.add(deck_count);
+            deck_count.update = () => {
+                deck_count.setText(current_deck_list_index + 1 + "/" + all_deck_lists.length)
+            }
+        };
+        scene.time.delayedCall(1000, decklist);
+
+        let game_play = () => {
+           scene.add.rectangle(32, SCREEN_HEIGHT/2, 168, 128, 0xe0e0e0)
+               .setOrigin(0, 0.5);
+           let x_center = 32 + (168 / 2);
+           let y_center = SCREEN_HEIGHT/2;
+
+           let buy_button =
+                scene.add.text(x_center, y_center,
+                    [" ENTER "," TOURNAMENT "], getFont('center', 32))
+                    .setOrigin(0.5, 0.5)
+                    .setBackgroundColor('#FFFFFF')
+                    .setDepth(DEPTHS.CARD + 1)
+                    .setVisible(true);
+            addButton(buy_button, () => {
+
+            });
+        };
+        game_play();
 
         scene.__update = () => {
         };
     },
+
+
 
     update: function () {
         let scene = this;
@@ -1032,7 +1729,7 @@ let LoadScene = new Phaser.Class({
         scene.anims.create({
             key: 'sheen',
             frames: scene.anims.generateFrameNumbers('ccg',
-                { start: 9, end: 20 }),
+                { start: 10, end: 21 }),
             skipMissedFrames: false,
             frameRate: 24,
             repeat: 0

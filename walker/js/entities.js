@@ -54,6 +54,7 @@ let addMainLight = (scene) => {
 
     let enterLightWait = (handler) => {
         setIntensity(1);
+        return;
         let delay = Phaser.Utils.Array.GetRandom([15,30,45,60]);
         delay *= 1000
         handler.addDelayedCall(delay, () => {
@@ -74,8 +75,12 @@ let addMainLight = (scene) => {
     }
     let lightStateHandler = stateHandler(scene,LIGHT_STATES.LIGHT_WAIT);
     return {
-        setMainLightToFlicker: () => {
-            lightStateHandler.changeState(LIGHT_STATES.LIGHT_BLINK_PERMANENT);
+        setMainLightToFlicker: (bool = true) => {
+            if (bool) {
+                lightStateHandler.changeState(LIGHT_STATES.LIGHT_BLINK_PERMANENT);
+            } else {
+                lightStateHandler.changeState(LIGHT_STATES.LIGHT_WAIT);
+            }
         }
     }
 };
