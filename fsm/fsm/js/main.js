@@ -42,9 +42,10 @@ let level_legal = (words) => {
         words[3].length <= 8 &&
         words[5].length <= 8
 };
-for (let words of LEVELS) {
+for (let level of LEVELS) {
+    let words = level.words;
     if (!level_legal(words)) {
-        console.log("WARNING: Puzzzle problem detected ", words);
+        console.log("WARNING: Puzzle problem detected ", words);
     }
 }
 let serialize_level = (level) => {
@@ -52,7 +53,25 @@ let serialize_level = (level) => {
 };
 
 if (DEBUG_BUILD) {
-    LEVELS.unshift(["A","1","B","2","C","3", "D"])
+    let i = 0;
+    LEVELS = [];
+    repeat(11,() => {
+        i++;
+        LEVELS.push({words:["UNLOCKED"+i,"1","B","2","C","3", "D"],})
+    })
+
+    LEVELS.push({
+            words: ["LOCKED1", "A", "A", "A", "A", "A", "A"],
+            locked: Date.now() + 30_000,
+        });
+    LEVELS.push({
+            words: ["LOCKED2", "A", "A", "A", "A", "A", "A"],
+            locked: Date.now() + 60_000,
+        });
+    repeat(36,() => {
+        i++
+        LEVELS.push({words:["UNLOCKED"+i,"1","B","2","C","3", "D"],})
+    })
 }
 
 let get_new_game_state = () => {
@@ -64,7 +83,7 @@ let get_new_game_state = () => {
 };
 let get_game_state = () => {
     let local_stats_str = localStorage.getItem('fsm_stats');
-    //localStorage.removeItem('player_stats');
+    local_stats_str = DEBUG_BUILD ? null : local_stats_str;
     let local_stats_obj;
     if (local_stats_str) {
         try {
@@ -85,8 +104,59 @@ let save_game_state = () => {
         console.log('error writing save')
     }
 };
-let current_puzzle = 0; //LEVELS.length-1;
-let current_page = Math.floor(current_puzzle/SIZES.puzzles_per_page);
+let check_for_saved_solve = (level_number) => {
+    let serialized_name = serialize_level(LEVELS[level_number].words);
+    let value = game_state.solved?.[serialized_name] ?? false;
+    return value;
+};
+
+let is_unlocked = (level_number) => {
+    if (level_number >= LEVELS.length) {
+        return false;
+    }
+    if (LEVELS[level_number].locked && LEVELS[level_number].locked >= Date.now()) {
+        return false;
+    }
+    return true;
+};
+
+let get_next_unsolved_puzzle = (level_number) => {
+    let next_value = null;
+    for (let i = level_number + 1; i < LEVELS.length; i++) {
+        if (is_unlocked(i) && !check_for_saved_solve(i)) {
+            next_value = i;
+            break;
+        }
+        if ( !is_unlocked(i) ) {
+            return null;
+        }
+    }
+    return next_value;
+};
+let get_last_unlocked_puzzle = (level_number) => {
+    let next_value = null;
+    for (let i = level_number + 1; i < LEVELS.length; i++) {
+        if(! is_unlocked(i)) {
+            break;
+        }
+        next_value = i;
+    }
+    return next_value;
+};
+let get_max_displayed_puzzle = (level_number) => {
+    for (let i = level_number; i < LEVELS.length; i++) {
+        if(! is_unlocked(i)) {
+            return i;
+        }
+    }
+    return LEVELS.length - 1;
+};
+
+let current_puzzle = get_next_unsolved_puzzle(-1) ?? get_last_unlocked_puzzle(-1) ?? 0;
+let calculate_current_page = () => {
+    return Math.floor(current_puzzle/SIZES.puzzles_per_page);
+}
+let current_page = calculate_current_page();
 
 let getFont = (align = "center", fontSize = SIZES.piece_font,
                color= COLORS.piece_text, wrap_length= SCREEN_WIDTH) => {
@@ -171,38 +241,94 @@ let LevelSelectScene = new Phaser.Class({
             x_height-GRID_SIZE/2, panel_height, GRID_SIZE/2);
 
         let puzzle = current_page*SIZES.puzzles_per_page;
-        let max_page = Math.floor((LEVELS.length - 1)/SIZES.puzzles_per_page);
+        let max_puzzle = get_max_displayed_puzzle(puzzle);
+        let max_page = Math.floor((max_puzzle)/SIZES.puzzles_per_page);
 
         for( let y of y_locations) {
             for (let x of x_locations) {
-                if (puzzle >= LEVELS.length) {
+                if (puzzle > max_puzzle) {
                     continue;
                 }
-                let serialized_name = serialize_level(LEVELS[puzzle]);
                 let slack = panel_height - SIZES.circle_radius * 3 - SIZES.timer_font;
                 let buffer = slack / 3;
                 let top = y - panel_height/2;
                 let center_circle = top + buffer + SIZES.circle_radius * 1.5;
                 let center_text = center_circle + SIZES.circle_radius * 1.5 + buffer + SIZES.timer_font/2;
-                let parameters = game_state.solved?.[serialized_name] ?? false ?
-                    {circle_color: COLORS.solved, font_color: COLORS.white_text, text: game_state.solved[serialized_name].time} :
-                    {circle_color: COLORS.grey, font_color: COLORS.piece_text, text: "" };
-                scene.add.sprite(x, y, 'level_panel');
-                let circle = scene.add.circle(x, center_circle, SIZES.circle_radius * 1.5,
-                    parameters.circle_color, 1);
-                let label = puzzle + 1;
-                let this_puzzle = puzzle;
-                scene.add.text(x, center_circle, label, getFont())
-                    .setOrigin(0.5, 0.5)
-                    .setColor(parameters.font_color);
-                scene.add.text(x, center_text, parameters.text, getTimeFont())
-                    .setOrigin(0.5, 0.5)
-                    .setColor(COLORS.piece_text);
-                circle.setInteractive();
-                circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                    current_puzzle = this_puzzle;
-                    scene.scene.start('GameScene');
-                })
+                let value = check_for_saved_solve(puzzle);
+
+                let getDateString = (later) => {
+                    let now = Date.now();
+                    //let later = new Date(2025,6,3,0,0,0,0);
+                    //let later = new Date("2025-07-03T00:00")
+                    let diffMs = later - now;
+                    let hours = Math.floor(diffMs / 3_600_000);
+                    let minutes = Math.floor((diffMs / 60_000) % 60);
+                    let seconds = Math.floor((diffMs / 1_000) % 60);
+                    let date_string =
+                        Phaser.Utils.String.Pad(hours, 2, '0', 1) + ":" +
+                        Phaser.Utils.String.Pad(minutes, 2, '0',1) + ":" +
+                        Phaser.Utils.String.Pad(seconds, 2, '0',1);
+                    return date_string;
+                };
+
+                let addLevel = (puzzle, save_data, locked_date) => {
+                    console.log(puzzle, locked_date)
+                    let grey_set = {circle_color: COLORS.grey, font_color: COLORS.piece_text, text: ""};
+
+                    let parameters = save_data ?
+                        {circle_color: COLORS.solved, font_color: COLORS.white_text, text: value.time} :
+                        grey_set;
+                    parameters = locked_date ? grey_set : parameters;
+                    if ( locked_date ) {
+                        parameters.text = getDateString(locked_date);
+                    }
+
+                    scene.add.sprite(x, y, 'level_panel');
+                    let circle = scene.add.circle(x, center_circle, SIZES.circle_radius * 1.5,
+                        parameters.circle_color, 1);
+                    let this_puzzle = puzzle;
+
+                    let under_text = scene.add.text(x, center_text, parameters.text, getTimeFont())
+                        .setOrigin(0.5, 0.5)
+                        .setColor(COLORS.piece_text);
+
+                    if ( locked_date ) {
+                        scene.add.sprite(x, center_circle, 'lock');
+                        let ticker = this.time.addEvent({
+                            delay   : 1000,
+                            loop    : true,
+                            callback: () => {
+                                if ( Date.now() >= locked_date ) {
+                                    scene.scene.restart();
+                                    return;
+                                }
+                                under_text.setText(getDateString(locked_date));
+                            }
+                        });
+                    }
+
+                    let label = locked_date ? "" : puzzle + 1;
+                    scene.add.text(x, center_circle, label, getFont())
+                        .setOrigin(0.5, 0.5)
+                        .setColor(parameters.font_color);
+
+
+                    if ( !locked_date ) {
+                        circle.setInteractive();
+                        circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                            current_puzzle = this_puzzle;
+                            current_page = calculate_current_page();
+                            scene.scene.start('GameScene');
+                        });
+
+                    }
+                };
+                let locked = false;
+                if ( LEVELS[puzzle].locked && LEVELS[puzzle].locked > Date.now())  {
+                    locked = LEVELS[puzzle].locked;
+                }
+                addLevel(puzzle, value, locked);
+
                 puzzle += 1;
             }
         }
@@ -258,8 +384,21 @@ let GameScene = new Phaser.Class({
     create: function () {
         let scene = this;
 
+        if (DEBUG_BUILD) {
+            //current_puzzle = LEVELS.length-1;
+            //current_page = calculate_current_page();
+        }
+
+        //failsafe
+        if (current_puzzle >= LEVELS.length || !is_unlocked(current_puzzle)) {
+            console.log("WARNING: tried to start an illegal puzzle");
+            current_puzzle = 0;
+            current_page = calculate_current_page();
+            scene.scene.start('LevelSelectScene')
+        }
+
         let scene_state = {
-            level_info: LEVELS[current_puzzle],
+            level_info: LEVELS[current_puzzle].words,
             targets: scene.physics.add.group(),
             pieces: scene.physics.add.group(),
             cursor: null,
@@ -367,7 +506,7 @@ let GameScene = new Phaser.Class({
         /* ---------------- Stop on puzzle SOLVED ---------------- */
         bind_once_event(scene,scene.events,scene_state.events.SOLVED, () => {
             ticker.remove(false);
-            let serialized_name = serialize_level(LEVELS[current_puzzle]);
+            let serialized_name = serialize_level(LEVELS[current_puzzle].words);
             game_state.solved[serialized_name] = {time: time_label.text};
             save_game_state();
         });
@@ -699,8 +838,7 @@ let GameScene = new Phaser.Class({
                 duration: 250,
             });
 
-            let delay = 750;
-            if (current_puzzle < LEVELS.length - 1) {
+            let add_next_button = (delay) => {
                 let next_label = scene.add.text(
                     SCREEN_WIDTH/2, congrat_y_locations[1],
                     ["NEXT PUZZLE"],
@@ -717,7 +855,8 @@ let GameScene = new Phaser.Class({
                     .setDepth(DEPTHS.BG);
                 next_button.setInteractive();
                 next_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                    current_puzzle++;
+                    current_puzzle = next_puzzle;
+                    current_page = calculate_current_page();
                     scene.scene.restart();
                 });
                 scene.tweens.add({
@@ -726,7 +865,28 @@ let GameScene = new Phaser.Class({
                     duration: 250,
                     delay: delay,
                 });
+            }
+
+            let delay = 750;
+            let next_puzzle = get_next_unsolved_puzzle(current_puzzle);
+            if (next_puzzle) {
+                add_next_button(delay);
                 delay+=250;
+            } else {
+                let next_puzzle_text = scene.add.text(
+                    SCREEN_WIDTH/2, congrat_y_locations[1] + SIZES.timer_font/2,
+                    "NEXT PUZZLE IN 00:00:00",
+                    getTimeFont())
+                    .setOrigin(0.5,0.5)
+                    .setAlpha(0)
+                    .setDepth(DEPTHS.BG);
+                scene.tweens.add({
+                    targets: [next_puzzle_text],
+                    alpha: 1,
+                    duration: 250,
+                    delay: delay,
+                });
+                delay+=250
             }
             let menu_label = scene.add.text(
                 SCREEN_WIDTH/2, congrat_y_locations[2],
@@ -841,6 +1001,8 @@ let LoadScene = new Phaser.Class({
             {width:SIZES.icon_size, height:SIZES.icon_size});
         scene.load.svg('arrow', 'assets/arrow.svg',
             {width:SIZES.icon_size, height:SIZES.icon_size});
+        scene.load.svg('lock', 'assets/lock.svg',
+            {width:SIZES.piece_font, height:SIZES.piece_font});
         //load_audio(scene);
 
         scene.add.rectangle(
