@@ -1,4 +1,4 @@
-const DEBUG_BUILD = true;
+const DEBUG_BUILD = false;
 
 const SCREEN_HEIGHT = 1920;
 const SCREEN_WIDTH = 1080;
