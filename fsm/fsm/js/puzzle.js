@@ -61,7 +61,7 @@ let LEVELS = [
     },
     {
         words: ["A","A","A","A","A","A","A"],
-        locked: true
+        locked: new Date("20250704T00:00"),
     },
 
     //["OBSCURE","FAINT",],
