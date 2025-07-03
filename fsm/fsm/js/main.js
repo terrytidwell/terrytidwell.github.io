@@ -1,4 +1,4 @@
-const DEBUG_BUILD = false;
+const DEBUG_BUILD = true;
 
 const SCREEN_HEIGHT = 1920;
 const SCREEN_WIDTH = 1080;
@@ -119,7 +119,16 @@ let is_unlocked = (level_number) => {
     }
     return true;
 };
-
+let get_next_candidate_puzzle = (level_number) => {
+    let next_value = null;
+    for (let i = level_number + 1; i < LEVELS.length; i++) {
+        if (!check_for_saved_solve(i)) {
+            next_value = i;
+            break;
+        }
+    }
+    return next_value;
+};
 let get_next_unsolved_puzzle = (level_number) => {
     let next_value = null;
     for (let i = level_number + 1; i < LEVELS.length; i++) {
@@ -170,6 +179,21 @@ let getTimeFont = () => {
 
 let getClueFont = () => {
     return getFont("center",  SIZES.clue_font, COLORS.clue_text);
+};
+
+let getDateString = (later) => {
+    let now = Date.now();
+    //let later = new Date(2025,6,3,0,0,0,0);
+    //let later = new Date("2025-07-03T00:00")
+    let diffMs = Math.max(0, later - now);
+    let hours = Math.floor(diffMs / 3_600_000);
+    let minutes = Math.floor((diffMs / 60_000) % 60);
+    let seconds = Math.floor((diffMs / 1_000) % 60);
+    let date_string =
+        Phaser.Utils.String.Pad(hours, 2, '0', 1) + ":" +
+        Phaser.Utils.String.Pad(minutes, 2, '0',1) + ":" +
+        Phaser.Utils.String.Pad(seconds, 2, '0',1);
+    return date_string;
 };
 
 let LevelSelectScene = new Phaser.Class({
@@ -255,21 +279,6 @@ let LevelSelectScene = new Phaser.Class({
                 let center_circle = top + buffer + SIZES.circle_radius * 1.5;
                 let center_text = center_circle + SIZES.circle_radius * 1.5 + buffer + SIZES.timer_font/2;
                 let value = check_for_saved_solve(puzzle);
-
-                let getDateString = (later) => {
-                    let now = Date.now();
-                    //let later = new Date(2025,6,3,0,0,0,0);
-                    //let later = new Date("2025-07-03T00:00")
-                    let diffMs = later - now;
-                    let hours = Math.floor(diffMs / 3_600_000);
-                    let minutes = Math.floor((diffMs / 60_000) % 60);
-                    let seconds = Math.floor((diffMs / 1_000) % 60);
-                    let date_string =
-                        Phaser.Utils.String.Pad(hours, 2, '0', 1) + ":" +
-                        Phaser.Utils.String.Pad(minutes, 2, '0',1) + ":" +
-                        Phaser.Utils.String.Pad(seconds, 2, '0',1);
-                    return date_string;
-                };
 
                 let addLevel = (puzzle, save_data, locked_date) => {
                     console.log(puzzle, locked_date)
@@ -868,14 +877,12 @@ let GameScene = new Phaser.Class({
             }
 
             let delay = 750;
-            let next_puzzle = get_next_unsolved_puzzle(current_puzzle);
-            if (next_puzzle) {
-                add_next_button(delay);
-                delay+=250;
-            } else {
+            let next_puzzle = get_next_candidate_puzzle(current_puzzle);
+            if (! next_puzzle) {
+                //finished everything?
                 let next_puzzle_text = scene.add.text(
-                    SCREEN_WIDTH/2, congrat_y_locations[1] + SIZES.timer_font/2,
-                    "NEXT PUZZLE IN 00:00:00",
+                    SCREEN_WIDTH/2, congrat_y_locations[1],
+                    "LAST PUZZLE (FOR NOW)",
                     getTimeFont())
                     .setOrigin(0.5,0.5)
                     .setAlpha(0)
@@ -887,6 +894,41 @@ let GameScene = new Phaser.Class({
                     delay: delay,
                 });
                 delay+=250
+            }
+            else if (is_unlocked(next_puzzle)) {
+                add_next_button(delay);
+                delay+=250;
+            } else {
+                let locked_date = LEVELS[next_puzzle].locked;
+                let date_string = getDateString(locked_date);
+                let next_puzzle_text = scene.add.text(
+                    SCREEN_WIDTH/2, congrat_y_locations[1],
+                    "NEXT PUZZLE IN "+date_string,
+                    getTimeFont())
+                    .setOrigin(0.5,0.5)
+                    .setAlpha(0)
+                    .setDepth(DEPTHS.BG);
+                scene.tweens.add({
+                    targets: [next_puzzle_text],
+                    alpha: 1,
+                    duration: 250,
+                    delay: delay,
+                });
+                delay+=250;
+                let ticker = this.time.addEvent({
+                    delay   : 1000,
+                    loop    : true,
+                    callback: () => {
+                        if ( Date.now() >= locked_date ) {
+                            next_puzzle_text.destroy();
+                            add_next_button(250);
+                            ticker.remove();
+                            return;
+                        }
+                        next_puzzle_text.setText("NEXT PUZZLE IN "+
+                            getDateString(locked_date));
+                    }
+                });
             }
             let menu_label = scene.add.text(
                 SCREEN_WIDTH/2, congrat_y_locations[2],

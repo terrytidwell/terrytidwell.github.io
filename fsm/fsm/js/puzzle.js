@@ -61,7 +61,8 @@ let LEVELS = [
     },
     {
         words: ["A","A","A","A","A","A","A"],
-        locked: new Date("2025-07-04T00:00:00"),
+        locked: Date.now() + (3_600_000 * 12),
+        //locked: new Date("2025-07-04T00:00:00"),
     },
 
     //["OBSCURE","FAINT",],
