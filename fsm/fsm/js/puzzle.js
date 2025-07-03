@@ -1,31 +1,73 @@
 let LEVELS = [
-    ["","","FALL","SPRING","MATRESS","",""],
-    ["MATTRESS","BED","GARDEN","SLUG","BULLET","CALIBER","QUALITY"],
-    ["QUALITY","CONTROL","SWAY","ROCK","STONE","KIDNEY","BEAN"],
-    ["BEAN","STALK","HUNT","SEARCH","LIGHT","BULB","ONION"],
-    ["ONION","RING","BELL","PEPPER","SPRAY","TAN","BEIGE"],
-    ["BEIGE","BORING","DRILL","PRACTICE","REHEARSAL","WEDDING","CAKE"],
-    ["CAKE","COAT","TRENCH","DITCH","LEAVES","SHOOTS","FIRE"],
-    ["FIRE","TRUCK","STOP","SUSPEND","FLOAT","PARADE","MARCH"],
-    ["MARCH","JUNE","BUG","VIRUS","COLD","BRISK","FAST"],
+    {
+        words: ["","","FALL","SPRING","MATRESS","",""]
+    },
+    {
+        words: ["MATTRESS","BED","GARDEN","SLUG","BULLET","CALIBER","QUALITY"]
+    },
+    {
+        words: ["QUALITY","CONTROL","SWAY","ROCK","STONE","KIDNEY","BEAN"],
+    },
+    {
+        words: ["BEAN","STALK","HUNT","SEARCH","LIGHT","BULB","ONION"],
+    },
+    {
+        words: ["ONION","RING","BELL","PEPPER","SPRAY","TAN","BEIGE"],
+    },
+    {
+        words: ["BEIGE","BORING","DRILL","PRACTICE","REHEARSAL","WEDDING","CAKE"],
+    },
+    {
+        words: ["CAKE","COAT","TRENCH","DITCH","LEAVES","SHOOTS","FIRE"],
+    },
+    {
+        words: ["FIRE","TRUCK","STOP","SUSPEND","FLOAT","PARADE","MARCH"],
+    },
+    {
+        words: ["MARCH","JUNE","BUG","VIRUS","COLD","BRISK","FAST"],
+    },
+    {
+        words: ["SKIT", "SKETCH", "DRAW", "BRIDGE", "POKER", "CHIP", "TORTILLA"],
+    },
+    {
+        words: ["TORTILLA", "STRIPS", "COMIC", "RELIEF", "PITCHER", "PLANT", "POWER"], //"FACTORY"],
+    },
+    {
+        words: ["NEEDLE", "PIN", "STICK", "JAM", "PRESERVE", "KEEP", "CASTLE"],
+    },
+    {
+        words: ["INTRICATE","COMPLEX", "APARTMENT", "FLAT", "LEVEL", "STAGE", "ACTOR"],
+    },
+    {
+        words: ["BLACK","SEA","SALT","SEASON","FALL","TRIP","VACATION"],
+    },
+    {
+        words: ["SERIOUS","GRAVE","PLOT","STORY","LEVEL","EVEN","ODD"],
+    },
+    {
+        words: ["CLOCK","WATCH","TOWER","LOOM","WEAVE","WEB","INTERNET"],
+    },
+    {
+        words: ["DATE","COURT","JUDGE","GAUGE","METER","FOOT","HAND"],
+    },
+    {
+        words: ["MUSICAL","BEAT","HEART","ATTACK","ASSAULT","BATTERY","CHARGER"],
+    },
+    {
+        words: ["CARD","TRICK","FOOLS","GOLD","FISH","STICKS","ADHERES"],
+    },
+    {
+        words: ["FOUL","RANK","PRIVATE","PROPERTY","ATTRIBUTE","CREDIT","CARD"],
+    },
+    {
+        words: ["A","A","A","A","A","A","A"],
+        locked: true
+    },
 
     //["OBSCURE","FAINT",],
     //["ROMP","PLAY","SKIT"],
-    ["SKIT", "SKETCH", "DRAW", "BRIDGE", "POKER", "CHIP", "TORTILLA"],
-    ["TORTILLA", "STRIPS", "COMIC", "RELIEF", "PITCHER", "PLANT", "POWER"], //"FACTORY"],
-
-    ["NEEDLE", "PIN", "STICK", "JAM", "PRESERVE", "KEEP", "CASTLE"],
-    ["INTRICATE","COMPLEX", "APARTMENT", "FLAT", "LEVEL", "STAGE", "ACTOR"],
-    ["BLACK","SEA","SALT","SEASON","FALL","TRIP","VACATION"],
-    ["SERIOUS","GRAVE","PLOT","STORY","LEVEL","EVEN","ODD"],
-    ["CLOCK","WATCH","TOWER","LOOM","WEAVE","WEB","INTERNET"],
-    ["DATE","COURT","JUDGE","GAUGE","METER","FOOT","HAND"],
     //["DINNER","ROLL","ROCK"],
-    ["MUSICAL","BEAT","HEART","ATTACK","ASSAULT","BATTERY","CHARGER"],
-
     //["TRAIN",,"WALK","JAY"],
     //["TEASE","ROAST","COFFEE",],
-    ["CARD","TRICK","FOOLS","GOLD","FISH","STICKS","ADHERES"],
-    ["FOUL","RANK","PRIVATE","PROPERTY","ATTRIBUTE","CREDIT","CARD"],
     //["BREEZE","WIND","UP","DOWN","PILLOW"]
 ];
