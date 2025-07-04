@@ -414,6 +414,7 @@ let GameScene = new Phaser.Class({
                 SOLVED: 'SCENE_EVENTS.solved',
                 WORD_SOLVED: 'SCENE_EVENTS.word_solved',
             },
+            saved: check_for_saved_solve(current_puzzle),
         };
 
         scene.input.addPointer(5);
@@ -473,6 +474,8 @@ let GameScene = new Phaser.Class({
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg');
 
         let bottom_line_y = odd_y[6] + GRID_SIZE/2 + border_padding;
+        let middle_y = (bottom_line_y + SCREEN_HEIGHT - GRID_SIZE / 2) / 2;
+
         scene.add.rectangle(SCREEN_WIDTH/2, bottom_line_y,
             SCREEN_WIDTH-2*GRID_SIZE,5,COLORS.grey, 1, 5);
         let top_line_y = odd_y[0] - GRID_SIZE/2 - border_padding;
@@ -481,6 +484,9 @@ let GameScene = new Phaser.Class({
         let upper_bar_middle_y = (top_line_y + GRID_SIZE/2)/2;
         let time_label = scene.add.text(SCREEN_WIDTH/2, upper_bar_middle_y, "00:00", getTimeFont())
             .setOrigin(0.5,0.5);
+        if (scene_state.saved) {
+            time_label.setText(scene_state.saved.time);
+        }
 
         addButton(scene.add.sprite(GRID_SIZE, upper_bar_middle_y, 'chevron_left')
             .setOrigin(0,0.5),()=>{
@@ -494,30 +500,32 @@ let GameScene = new Phaser.Class({
         /*addButton(scene.add.sprite(SCREEN_WIDTH - GRID_SIZE - SIZES.icon_spacing, upper_bar_middle_y, 'help')
             .setOrigin(1,0.5),()=>{});*/
 
-        let elapsed = 0;
-        let format = s => {
-            const mm = Phaser.Utils.String.Pad(Math.floor(s / 60), 2, '0', 1);
-            const ss = Phaser.Utils.String.Pad(s % 60, 2, '0', 1);
-            return `${mm}:${ss}`;
-        };
+        if ( ! scene_state.saved ) {
+            let elapsed = 0;
+            let format = s => {
+                const mm = Phaser.Utils.String.Pad(Math.floor(s / 60), 2, '0', 1);
+                const ss = Phaser.Utils.String.Pad(s % 60, 2, '0', 1);
+                return `${mm}:${ss}`;
+            };
 
-        let ticker = this.time.addEvent({
-            delay   : 1000,
-            loop    : true,
-            callback: () => {
-                elapsed += 1;
-                elapsed = Math.min(59*60+59, elapsed)
-                time_label.setText(format(elapsed));
-            }
-        });
+            let ticker = this.time.addEvent({
+                delay: 1000,
+                loop: true,
+                callback: () => {
+                    elapsed += 1;
+                    elapsed = Math.min(59 * 60 + 59, elapsed)
+                    time_label.setText(format(elapsed));
+                }
+            });
 
-        /* ---------------- Stop on puzzle SOLVED ---------------- */
-        bind_once_event(scene,scene.events,scene_state.events.SOLVED, () => {
-            ticker.remove(false);
-            let serialized_name = serialize_level(LEVELS[current_puzzle].words);
-            game_state.solved[serialized_name] = {time: time_label.text};
-            save_game_state();
-        });
+            /* ---------------- Stop on puzzle SOLVED ---------------- */
+            bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
+                ticker.remove(false);
+                let serialized_name = serialize_level(LEVELS[current_puzzle].words);
+                game_state.solved[serialized_name] = {time: time_label.text};
+                save_game_state();
+            });
+        }
 
         let addClue = (y, word) => {
             scene.add.text(SCREEN_WIDTH/2, y, word, getClueFont()).
@@ -530,295 +538,360 @@ let GameScene = new Phaser.Class({
             addClue(odd_y[line_index], scene_state.level_info[i]);
         }
 
-        let addBlank = (y, n, word) => {
-            let even = n % 2 === 0
-            let array = even ? even_x : odd_x;
-            let x_index = (array.length - n) / 2;
-
-            let addBlankInner = (array, start_index, word) => {
-                let x_index = start_index;
-                let i = 0;
-                repeat(n, () => {
-                    scene.add.circle(array[x_index], y,
-                        SIZES.circle_radius-5, COLORS.grey, 0)
-                        .setStrokeStyle(5,COLORS.grey)
-                        .setDepth(DEPTHS.BG);
-                    let blank = scene.add.circle(array[x_index], y,
-                        SIZES.circle_radius-5, COLORS.grey, 0)
-                        .setStrokeStyle(5,COLORS.grey)
-                        .setDepth(DEPTHS.BG);
-                    blank.__value = word[i];
-                    blank.__filled = null;
-                    blank.__word = y;
-                    blank.__index = i;
-                    blank.__solved = false;
-                    scene_state.targets.add(blank);
-                    blank.setInteractive();
-                    blank.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                        scene_state.cursor.__setPosition(blank);
-                    });
-                    x_index++;
-                    i++;
-                });
+        if ( scene_state.saved ) {
+            let addSolvedPiece = (x, y, character) => {
+                let circle = scene.add.circle(0, 0, SIZES.circle_diameter/2, COLORS.solved);
+                let letter = scene.add.text(0, 0, character, getFont())
+                    .setOrigin(0.5, 0.5)
+                    .setPadding(SIZES.circle_spacing,SIZES.circle_spacing);
+                letter.setColor(COLORS.white_text);
+                let piece = scene.add.container(x, y, [circle, letter])
+                    .setDepth(DEPTHS.PIECES);
+                piece.setSize(SIZES.circle_spacing,SIZES.circle_spacing);
+                return piece;
             };
-            addBlankInner(array, x_index, word)
-        };
 
-        let checkSolve = (blank) => {
-            if (blank.__solved) { return; }
-            let pieces = [];
-            let blanks = [];
-            for (let target of scene_state.targets.getChildren()) {
-                if (blank.__word !== target.__word) { continue; }
-                if (!target.__filled) { return false; }
-                if (target.__filled.__value !== target.__value) { return false; }
-                pieces.push(target.__filled);
-                blanks.push(target);
-            }
-            //trigger solved
-            let delay = 0;
-            for (let piece of pieces) {
-                piece.__finished(delay);
-                delay += 100
-            }
-            for (let target of blanks) {
-                target.destroy();
-            }
-            scene.events.emit(scene_state.events.WORD_SOLVED);
-            if (scene_state.targets.getChildren().length === 0) {
-                scene.events.emit(scene_state.events.SOLVED);
-            }
-            return true;
-        };
+            let addSolvedPieces = (y, n, word) => {
+                let even = n % 2 === 0
+                let array = even ? even_x : odd_x;
+                let x_index = (array.length - n) / 2;
+                let addSolvedPiecesInner = (array, start_index, word) => {
+                    let x_index = start_index;
+                    let i = 0;
+                    repeat(n, () => {
+                        addSolvedPiece(array[x_index], y, word[i]);
+                        x_index++;
+                        i++;
+                    });
+                };
+                addSolvedPiecesInner(array, x_index, word);
+            };
 
-        let letters = [];
-        for (let i = 1; i < scene_state.level_info.length; i += 2) {
-            let line_index = i + start_index;
-            addBlank(odd_y[line_index], scene_state.level_info[i].length,
-                scene_state.level_info[i]);
-            for (let c of scene_state.level_info[i]) {
-                letters.push(c);
+            for (let i = 1; i < scene_state.level_info.length; i += 2) {
+                let line_index = i + start_index;
+                addSolvedPieces(odd_y[line_index], scene_state.level_info[i].length,
+                    scene_state.level_info[i]);
             }
         }
 
-        let addCursor = () => {
-            let cursor = scene.add.circle(
-                0, 0,
-                SIZES.circle_radius-5, COLORS.cursor, 0)
-                .setStrokeStyle(5,COLORS.cursor)
-                .setDepth(DEPTHS.PIECES+1);
-            let assignLocation = (t) => {
-                if (!t) {
+        if (! scene_state.saved) {
+
+            let addBlank = (y, n, word) => {
+                let even = n % 2 === 0
+                let array = even ? even_x : odd_x;
+                let x_index = (array.length - n) / 2;
+
+                let addBlankInner = (array, start_index, word) => {
+                    let x_index = start_index;
+                    let i = 0;
+                    repeat(n, () => {
+                        scene.add.circle(array[x_index], y,
+                            SIZES.circle_radius - 5, COLORS.grey, 0)
+                            .setStrokeStyle(5, COLORS.grey)
+                            .setDepth(DEPTHS.BG);
+                        let blank = scene.add.circle(array[x_index], y,
+                            SIZES.circle_radius - 5, COLORS.grey, 0)
+                            .setStrokeStyle(5, COLORS.grey)
+                            .setDepth(DEPTHS.BG);
+                        blank.__value = word[i];
+                        blank.__filled = null;
+                        blank.__word = y;
+                        blank.__index = i;
+                        blank.__solved = false;
+                        scene_state.targets.add(blank);
+                        blank.setInteractive();
+                        blank.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                            scene_state.cursor.__setPosition(blank);
+                        });
+                        x_index++;
+                        i++;
+                    });
+                };
+                addBlankInner(array, x_index, word)
+            };
+
+            let checkSolve = (blank) => {
+                if (blank.__solved) {
                     return;
                 }
-                cursor.__target = t;
-                cursor.__word = t.__word;
-                cursor.__index = t.__index;
-                cursor.copyPosition(t);
+                let pieces = [];
+                let blanks = [];
+                for (let target of scene_state.targets.getChildren()) {
+                    if (blank.__word !== target.__word) {
+                        continue;
+                    }
+                    if (!target.__filled) {
+                        return false;
+                    }
+                    if (target.__filled.__value !== target.__value) {
+                        return false;
+                    }
+                    pieces.push(target.__filled);
+                    blanks.push(target);
+                }
+                //trigger solved
+                let delay = 0;
+                for (let piece of pieces) {
+                    piece.__finished(delay);
+                    delay += 100
+                }
+                for (let target of blanks) {
+                    target.destroy();
+                }
+                scene.events.emit(scene_state.events.WORD_SOLVED);
+                if (scene_state.targets.getChildren().length === 0) {
+                    scene.events.emit(scene_state.events.SOLVED);
+                }
+                return true;
+            };
+
+            let letters = [];
+            for (let i = 1; i < scene_state.level_info.length; i += 2) {
+                let line_index = i + start_index;
+                addBlank(odd_y[line_index], scene_state.level_info[i].length,
+                    scene_state.level_info[i]);
+                for (let c of scene_state.level_info[i]) {
+                    letters.push(c);
+                }
             }
 
-            let getFirst = () => {
-                let ret_val = null;
-                for (let t of scene_state.targets.getChildren()) {
-                    if (!ret_val || (t.__word < ret_val.__word) ||
-                        (t.__word === ret_val.__word && t.__index < ret_val.__index)) {
-                        ret_val = t;
+            let addCursor = () => {
+                let cursor = scene.add.circle(
+                    0, 0,
+                    SIZES.circle_radius - 5, COLORS.cursor, 0)
+                    .setStrokeStyle(5, COLORS.cursor)
+                    .setDepth(DEPTHS.PIECES + 1);
+                let assignLocation = (t) => {
+                    if (!t) {
+                        return;
                     }
+                    cursor.__target = t;
+                    cursor.__word = t.__word;
+                    cursor.__index = t.__index;
+                    cursor.copyPosition(t);
                 }
-                return ret_val;
-            };
 
-            let getSelf = () => {
-                for (let t of scene_state.targets.getChildren()) {
-                    if (cursor.__word === t.__word && cursor.__index === t.__index) {
-                        return t;
+                let getFirst = () => {
+                    let ret_val = null;
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (!ret_val || (t.__word < ret_val.__word) ||
+                            (t.__word === ret_val.__word && t.__index < ret_val.__index)) {
+                            ret_val = t;
+                        }
                     }
-                }
-                return null;
-            };
+                    return ret_val;
+                };
 
-            let getLast = () => {
-                let ret_val = null;
-                for (let t of scene_state.targets.getChildren()) {
-                    if (!ret_val || (t.__word > ret_val.__word) ||
-                        (t.__word === ret_val.__word && t.__index > ret_val.__index)) {
-                        ret_val = t;
+                let getSelf = () => {
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (cursor.__word === t.__word && cursor.__index === t.__index) {
+                            return t;
+                        }
                     }
-                }
-                return ret_val;
-            };
+                    return null;
+                };
 
-            let getPreviousSpace = () => {
-                let ret_val = null;
-                for (let t of scene_state.targets.getChildren()) {
-                    if (t.__word > cursor.__word ||
-                        (t.__word === cursor.__word && t.__index >= cursor.__index)) {
-                        continue;
+                let getLast = () => {
+                    let ret_val = null;
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (!ret_val || (t.__word > ret_val.__word) ||
+                            (t.__word === ret_val.__word && t.__index > ret_val.__index)) {
+                            ret_val = t;
+                        }
                     }
-                    if (!ret_val || (t.__word > ret_val.__word) ||
-                        (t.__word === ret_val.__word && t.__index > ret_val.__index)) {
-                        ret_val = t;
+                    return ret_val;
+                };
+
+                let getPreviousSpace = () => {
+                    let ret_val = null;
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (t.__word > cursor.__word ||
+                            (t.__word === cursor.__word && t.__index >= cursor.__index)) {
+                            continue;
+                        }
+                        if (!ret_val || (t.__word > ret_val.__word) ||
+                            (t.__word === ret_val.__word && t.__index > ret_val.__index)) {
+                            ret_val = t;
+                        }
                     }
-                }
-                return ret_val;
-            };
+                    return ret_val;
+                };
 
-            let getNextSpace = () => {
-                let ret_val = null;
-                for (let t of scene_state.targets.getChildren()) {
-                    if (t.__word < cursor.__word ||
-                        (t.__word === cursor.__word && t.__index <= cursor.__index)) {
-                        continue;
+                let getNextSpace = () => {
+                    let ret_val = null;
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (t.__word < cursor.__word ||
+                            (t.__word === cursor.__word && t.__index <= cursor.__index)) {
+                            continue;
+                        }
+                        if (!ret_val || (t.__word < ret_val.__word) ||
+                            (t.__word === ret_val.__word && t.__index < ret_val.__index)) {
+                            ret_val = t;
+                        }
                     }
-                    if (!ret_val || (t.__word < ret_val.__word) ||
-                        (t.__word === ret_val.__word && t.__index < ret_val.__index)) {
-                        ret_val = t;
+                    return ret_val;
+                };
+
+                let nextWord = () => {
+                    let ret_val = null;
+                    for (let t of scene_state.targets.getChildren()) {
+                        if (t.__word <= cursor.__word || t.__index !== 0) {
+                            continue;
+                        }
+                        if (!ret_val || (t.__word < ret_val.word)) {
+                            ret_val = t;
+                        }
                     }
-                }
-                return ret_val;
-            };
+                    return ret_val;
+                };
 
-            let nextWord = () => {
-                let ret_val = null;
-                for (let t of scene_state.targets.getChildren()) {
-                    if (t.__word <= cursor.__word || t.__index !== 0) {
-                        continue;
+                assignLocation(getFirst());
+
+                cursor.__handlePress = (piece) => {
+                    if (!cursor.__target) {
+                        return;
                     }
-                    if (! ret_val || (t.__word < ret_val.word)) {
-                        ret_val = t;
+                    if (cursor.__target.__filled) {
+                        let old_piece = cursor.__target.__filled;
+                        cursor.__target.__filled = null;
+                        old_piece.setPosition(old_piece.__x, old_piece.__y);
+                        old_piece.__held = null;
                     }
-                }
-                return ret_val;
+                    cursor.__target.__filled = piece;
+                    piece.copyPosition(cursor.__target);
+                    piece.__held = cursor.__target;
+                    cursor.__target.__filled = piece;
+                    checkSolve(cursor.__target);
+
+                    let test_point = getNextSpace() ?? getFirst();
+                    //corner case, if we would go to the next line
+                    //i.e. the index would not go up
+                    //we instead try to stay where we are (getSelf returns
+                    //null only if we just solved the word)
+                    //this prevents us from wrapping onto back onto the same
+                    //word when only one is left, or going to the next line
+                    //without correctly guessing the word we were working on
+                    if (test_point && test_point.__index <= cursor.__index) {
+                        test_point = getSelf() ?? test_point;
+                    }
+                    assignLocation(test_point);
+                };
+
+                cursor.__handleBackspace = () => {
+                    if (!cursor.__target) {
+                        return;
+                    }
+                    if (!cursor.__target.__filled) {
+                        assignLocation(getPreviousSpace() ?? getLast());
+                    }
+                    if (cursor.__target.__filled) {
+                        let old_piece = cursor.__target.__filled;
+                        cursor.__target.__filled = null;
+                        old_piece.setPosition(old_piece.__x, old_piece.__y);
+                        old_piece.__held = null;
+                    }
+                };
+
+                cursor.__setPosition = (t) => {
+                    assignLocation(t);
+                };
+
+                cursor.__handleTab = () => {
+                    if (!cursor.__target) {
+                        return;
+                    }
+                    assignLocation(nextWord() ?? getFirst());
+                };
+
+                bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
+                    cursor.setVisible(false);
+                    cursor.__target = null;
+                });
+
+                scene_state.cursor = cursor;
             };
+            addCursor();
 
-            assignLocation(getFirst());
+            //let x = [120, 240, 360, 480, 600, 720, 840, 960];
+            //let y = //[1200, 1320, 1440,
+            //    [1560, 1680, 1800];
+            let x_index = 0;
+            let y_index = 8;
 
-            cursor.__handlePress = (piece) => {
-                if (!cursor.__target) { return; }
-                if (cursor.__target.__filled) {
-                    let old_piece = cursor.__target.__filled;
-                    cursor.__target.__filled = null;
-                    old_piece.setPosition(old_piece.__x, old_piece.__y);
-                    old_piece.__held = null;
+            let locations = [];
+            let center = {x: SCREEN_WIDTH / 2, y: middle_y};
+            for (let i = 0; i < even_x.length; i++) {
+                let x = even_x[i];
+                locations.push({x: x, y: middle_y - SIZES.circle_spacing * 1.5});
+                if (i === 0 || i === even_x.length - 1) {
+                    continue;
                 }
-                cursor.__target.__filled = piece;
-                piece.copyPosition(cursor.__target);
-                piece.__held = cursor.__target;
-                cursor.__target.__filled = piece;
-                checkSolve(cursor.__target);
-
-                let test_point = getNextSpace() ?? getFirst();
-                //corner case, if we would go to the next line
-                //i.e. the index would not go up
-                //we instead try to stay where we are (getSelf returns
-                //null only if we just solved the word)
-                //this prevents us from wrapping onto back onto the same
-                //word when only one is left, or going to the next line
-                //without correctly guessing the word we were working on
-                if (test_point && test_point.__index <= cursor.__index) {
-                    test_point = getSelf() ?? test_point;
+                locations.push({x: x, y: middle_y + SIZES.circle_spacing * 0.5});
+            }
+            for (let i = 0; i < odd_x.length; i++) {
+                let x = odd_x[i];
+                locations.push({x: x, y: middle_y - SIZES.circle_spacing * 0.5});
+                if (i === 0 || i === odd_x.length - 1) {
+                    continue;
                 }
-                assignLocation(test_point);
-            };
-
-            cursor.__handleBackspace = () => {
-                if (!cursor.__target) { return; }
-                if (!cursor.__target.__filled) {
-                    assignLocation(getPreviousSpace() ?? getLast());
-                }
-                if (cursor.__target.__filled) {
-                    let old_piece = cursor.__target.__filled;
-                    cursor.__target.__filled = null;
-                    old_piece.setPosition(old_piece.__x, old_piece.__y);
-                    old_piece.__held = null;
-                }
-            };
-
-            cursor.__setPosition = (t) => {
-                assignLocation(t);
-            };
-
-            cursor.__handleTab = () => {
-                if (!cursor.__target) { return; }
-                assignLocation(nextWord() ?? getFirst());
-            };
-
-            bind_once_event(scene,scene.events,scene_state.events.SOLVED, () => {
-                cursor.setVisible(false);
-                cursor.__target = null;
+                locations.push({x: x, y: middle_y + SIZES.circle_spacing * 1.5});
+            }
+            Phaser.Utils.Array.Shuffle(locations);
+            for (let location of locations) {
+                location.d = Phaser.Math.Distance.BetweenPoints(location, center);
+            }
+            locations.sort((a, b) => {
+                return b.d - a.d
             });
 
-            scene_state.cursor = cursor;
-        };
-        addCursor();
+            Phaser.Utils.Array.Shuffle(letters);
+            for (let letter of letters) {
+                let location = locations.pop();
+                addPiece(
+                    location.x, location.y,
+                    //0, 0,
+                    letter, COLORS.grey)
 
-        //let x = [120, 240, 360, 480, 600, 720, 840, 960];
-        //let y = //[1200, 1320, 1440,
-        //    [1560, 1680, 1800];
-        let x_index = 0;
-        let y_index = 8;
-
-        let middle_y = (bottom_line_y + SCREEN_HEIGHT - GRID_SIZE/2)/2;
-        let locations = [];
-        let center = {x: SCREEN_WIDTH/2, y: middle_y};
-        for (let i = 0; i < even_x.length; i++) {
-            let x = even_x[i];
-            locations.push({x: x, y: middle_y - SIZES.circle_spacing * 1.5});
-            if (i === 0 || i === even_x.length - 1) { continue; }
-            locations.push({x: x, y: middle_y + SIZES.circle_spacing * 0.5});
-        }
-        for (let i = 0; i < odd_x.length; i++) {
-            let x = odd_x[i];
-            locations.push({x: x, y: middle_y-SIZES.circle_spacing*0.5});
-            if (i === 0 || i === odd_x.length - 1) { continue; }
-            locations.push({x: x, y: middle_y + SIZES.circle_spacing * 1.5});
-        }
-        Phaser.Utils.Array.Shuffle(locations);
-        for (let location of locations) {
-            location.d = Phaser.Math.Distance.BetweenPoints(location, center);
-        }
-        locations.sort((a,b) => { return b.d - a.d});
-
-        Phaser.Utils.Array.Shuffle(letters);
-        for (let letter of letters) {
-            let location = locations.pop();
-            addPiece(
-                location.x, location.y,
-                //0, 0,
-                letter, COLORS.grey)
-
-            x_index++;
-            if (x_index >= even_x.length) {
-                x_index = 0;
-                y_index++;
+                x_index++;
+                if (x_index >= even_x.length) {
+                    x_index = 0;
+                    y_index++;
+                }
             }
+            let circle = scene.add.circle(
+                even_x[7], middle_y + SIZES.circle_spacing * 1.5,
+                SIZES.circle_diameter / 2, COLORS.grey)
+                .setDepth(DEPTHS.PIECES);
+            let letter = scene.add.sprite(
+                even_x[7], middle_y + SIZES.circle_spacing * 1.5,
+                'backspace')
+                .setDepth(DEPTHS.PIECES)
+                .setOrigin(0.5, 0.5);
+            let circle2 = scene.add.circle(
+                even_x[0], middle_y + SIZES.circle_spacing * 1.5,
+                SIZES.circle_diameter / 2, COLORS.grey)
+                .setDepth(DEPTHS.PIECES);
+            let letter2 = scene.add.sprite(
+                even_x[0], middle_y + SIZES.circle_spacing * 1.5,
+                'arrow')
+                .setDepth(DEPTHS.PIECES)
+                .setOrigin(0.5, 0.5);
+            circle.setInteractive();
+            circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                scene_state.cursor.__handleBackspace();
+            });
+            circle2.setInteractive();
+            circle2.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                scene_state.cursor.__handleTab();
+            });
+            bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
+                scene.tweens.add({
+                    targets: [circle, circle2, letter, letter2],
+                    alpha: 0,
+                    duration: 250,
+                });
+            });
         }
-        let circle = scene.add.circle(
-            even_x[7], middle_y + SIZES.circle_spacing * 1.5,
-            SIZES.circle_diameter/2, COLORS.grey)
-            .setDepth(DEPTHS.PIECES);
-        let letter = scene.add.sprite(
-            even_x[7], middle_y + SIZES.circle_spacing * 1.5,
-            'backspace')
-            .setDepth(DEPTHS.PIECES)
-            .setOrigin(0.5, 0.5);
-        let circle2 = scene.add.circle(
-            even_x[0], middle_y + SIZES.circle_spacing * 1.5,
-            SIZES.circle_diameter/2, COLORS.grey)
-            .setDepth(DEPTHS.PIECES);
-        let letter2 = scene.add.sprite(
-            even_x[0], middle_y + SIZES.circle_spacing * 1.5,
-            'arrow')
-            .setDepth(DEPTHS.PIECES)
-            .setOrigin(0.5, 0.5);
-        circle.setInteractive();
-        circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-            scene_state.cursor.__handleBackspace();
-        });
-        circle2.setInteractive();
-        circle2.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-            scene_state.cursor.__handleTab();
-        });
 
         bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
             let congrat_y_locations = [
@@ -839,11 +912,6 @@ let GameScene = new Phaser.Class({
                 alpha: 1,
                 duration: 250,
                 delay: 500,
-            });
-            scene.tweens.add({
-                targets: [circle, circle2, letter, letter2],
-                alpha: 0,
-                duration: 250,
             });
 
             let add_next_button = (delay) => {
@@ -953,6 +1021,10 @@ let GameScene = new Phaser.Class({
                 delay: delay
             });
         });
+
+        if (scene_state.saved) {
+            scene.events.emit(scene_state.events.SOLVED);
+        }
 
     },
 
