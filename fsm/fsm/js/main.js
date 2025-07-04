@@ -281,7 +281,6 @@ let LevelSelectScene = new Phaser.Class({
                 let value = check_for_saved_solve(puzzle);
 
                 let addLevel = (puzzle, save_data, locked_date) => {
-                    console.log(puzzle, locked_date)
                     let grey_set = {circle_color: COLORS.grey, font_color: COLORS.piece_text, text: ""};
 
                     let parameters = save_data ?
