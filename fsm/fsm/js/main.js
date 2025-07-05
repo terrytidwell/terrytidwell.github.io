@@ -419,46 +419,6 @@ let GameScene = new Phaser.Class({
 
         scene.input.addPointer(5);
 
-        let addPiece = (x, y, character, color) => {
-            let circle = scene.add.circle(0, 0, SIZES.circle_diameter/2, color);
-            let letter = scene.add.text(0, 0, character, getFont())
-                .setOrigin(0.5, 0.5)
-                .setPadding(SIZES.circle_spacing,SIZES.circle_spacing);
-            let piece = scene.add.container(x, y, [circle, letter])
-                .setDepth(DEPTHS.PIECES);
-            piece.setSize(SIZES.circle_spacing,SIZES.circle_spacing);
-            piece.__value = character;
-            piece.__held = null;
-            piece.__x = x;
-            piece.__y = y;
-            piece.setInteractive();
-            piece.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                if (piece.__held) {
-                    scene_state.cursor.__setPosition(piece.__held);
-                    return;
-                }
-                scene_state.cursor.__handlePress(piece);
-            });
-            //scene.input.setDraggable(piece);
-            scene_state.pieces.add(piece);
-            piece.__finished = (delay) => {
-                //scene.input.setDraggable(piece, false);
-                piece.disableInteractive();
-                scene.tweens.add({
-                    targets: circle,
-                    yoyo: true,
-                    scale: 1.2,
-                    delay: delay,
-                    duration: 125,
-                    onYoyo: () => {
-                        letter.setColor(COLORS.white_text);
-                        circle.setFillStyle(COLORS.solved);
-                    },
-                })
-            };
-            return piece;
-        };
-
         let border_padding = SIZES.line_spacing - SIZES.circle_radius;
         let odd_y = [];
         let current = GRID_SIZE + border_padding + SIZES.line_spacing;
@@ -484,9 +444,7 @@ let GameScene = new Phaser.Class({
         let upper_bar_middle_y = (top_line_y + GRID_SIZE/2)/2;
         let time_label = scene.add.text(SCREEN_WIDTH/2, upper_bar_middle_y, "00:00", getTimeFont())
             .setOrigin(0.5,0.5);
-        if (scene_state.saved) {
-            time_label.setText(scene_state.saved.time);
-        }
+
 
         addButton(scene.add.sprite(GRID_SIZE, upper_bar_middle_y, 'chevron_left')
             .setOrigin(0,0.5),()=>{
@@ -500,36 +458,9 @@ let GameScene = new Phaser.Class({
         /*addButton(scene.add.sprite(SCREEN_WIDTH - GRID_SIZE - SIZES.icon_spacing, upper_bar_middle_y, 'help')
             .setOrigin(1,0.5),()=>{});*/
 
-        if ( ! scene_state.saved ) {
-            let elapsed = 0;
-            let format = s => {
-                const mm = Phaser.Utils.String.Pad(Math.floor(s / 60), 2, '0', 1);
-                const ss = Phaser.Utils.String.Pad(s % 60, 2, '0', 1);
-                return `${mm}:${ss}`;
-            };
-
-            let ticker = this.time.addEvent({
-                delay: 1000,
-                loop: true,
-                callback: () => {
-                    elapsed += 1;
-                    elapsed = Math.min(59 * 60 + 59, elapsed)
-                    time_label.setText(format(elapsed));
-                }
-            });
-
-            /* ---------------- Stop on puzzle SOLVED ---------------- */
-            bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
-                ticker.remove(false);
-                let serialized_name = serialize_level(LEVELS[current_puzzle].words);
-                game_state.solved[serialized_name] = {time: time_label.text};
-                save_game_state();
-            });
-        }
-
         let addClue = (y, word) => {
-            scene.add.text(SCREEN_WIDTH/2, y, word, getClueFont()).
-                setOrigin(0.5,0.5)
+            scene.add.text(SCREEN_WIDTH/2, y, word, getClueFont())
+                .setOrigin(0.5,0.5)
                 .setDepth(DEPTHS.BG)
                 .setPadding(GRID_SIZE);
         };
@@ -538,7 +469,27 @@ let GameScene = new Phaser.Class({
             addClue(odd_y[line_index], scene_state.level_info[i]);
         }
 
+        let target_locations = [];
+        for (let i = 1; i < scene_state.level_info.length; i += 2) {
+            let line_index = i + start_index;
+            let y = odd_y[line_index];
+            let word = scene_state.level_info[i]
+            let n = word.length;
+            let even =  n % 2 === 0
+            let array = even ? even_x : odd_x;
+            let x_index_offset = (array.length - n) / 2;
+            for (let j = 0; j < n; j++ ) {
+                target_locations.push({
+                    x: array[j + x_index_offset],
+                    y: y,
+                    c: word[j],
+                    i: j,
+                });
+            }
+        }
+
         if ( scene_state.saved ) {
+            time_label.setText(scene_state.saved.time);
             let addSolvedPiece = (x, y, character) => {
                 let circle = scene.add.circle(0, 0, SIZES.circle_diameter/2, COLORS.solved);
                 let letter = scene.add.text(0, 0, character, getFont())
@@ -551,63 +502,58 @@ let GameScene = new Phaser.Class({
                 return piece;
             };
 
-            let addSolvedPieces = (y, n, word) => {
-                let even = n % 2 === 0
-                let array = even ? even_x : odd_x;
-                let x_index = (array.length - n) / 2;
-                let addSolvedPiecesInner = (array, start_index, word) => {
-                    let x_index = start_index;
-                    let i = 0;
-                    repeat(n, () => {
-                        addSolvedPiece(array[x_index], y, word[i]);
-                        x_index++;
-                        i++;
-                    });
-                };
-                addSolvedPiecesInner(array, x_index, word);
-            };
-
-            for (let i = 1; i < scene_state.level_info.length; i += 2) {
-                let line_index = i + start_index;
-                addSolvedPieces(odd_y[line_index], scene_state.level_info[i].length,
-                    scene_state.level_info[i]);
+            for (let t of target_locations) {
+                addSolvedPiece(t.x, t.y, t.c);
             }
         }
 
-        if (! scene_state.saved) {
-
-            let addBlank = (y, n, word) => {
-                let even = n % 2 === 0
-                let array = even ? even_x : odd_x;
-                let x_index = (array.length - n) / 2;
-
-                let addBlankInner = (array, start_index, word) => {
-                    let x_index = start_index;
-                    let i = 0;
-                    repeat(n, () => {
-                        scene.add.circle(array[x_index], y,
-                            SIZES.circle_radius - 5, COLORS.grey, 0)
-                            .setStrokeStyle(5, COLORS.grey)
-                            .setDepth(DEPTHS.BG);
-                        let blank = scene.add.circle(array[x_index], y,
-                            SIZES.circle_radius - 5, COLORS.grey, 0)
-                            .setStrokeStyle(5, COLORS.grey)
-                            .setDepth(DEPTHS.BG);
-                        blank.__value = word[i];
-                        blank.__filled = null;
-                        blank.__word = y;
-                        blank.__index = i;
-                        blank.__solved = false;
-                        scene_state.targets.add(blank);
-                        blank.setInteractive();
-                        blank.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                            scene_state.cursor.__setPosition(blank);
-                        });
-                        x_index++;
-                        i++;
-                    });
+        if ( ! scene_state.saved ) {
+            let addCountdown = () => {
+                let elapsed = 0;
+                let format = s => {
+                    const mm = Phaser.Utils.String.Pad(Math.floor(s / 60), 2, '0', 1);
+                    const ss = Phaser.Utils.String.Pad(s % 60, 2, '0', 1);
+                    return `${mm}:${ss}`;
                 };
-                addBlankInner(array, x_index, word)
+
+                let ticker = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        elapsed += 1;
+                        elapsed = Math.min(59 * 60 + 59, elapsed)
+                        time_label.setText(format(elapsed));
+                    }
+                });
+
+                bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
+                ticker.remove(false);
+                let serialized_name = serialize_level(LEVELS[current_puzzle].words);
+                game_state.solved[serialized_name] = {time: time_label.text};
+                save_game_state();
+            });
+            };
+            addCountdown();
+
+            let addBlankSpot = (x, y, c, index) => {
+                scene.add.circle(x, y,
+                    SIZES.circle_radius - 5, COLORS.grey, 0)
+                    .setStrokeStyle(5, COLORS.grey)
+                    .setDepth(DEPTHS.BG);
+                let blank = scene.add.circle(x, y,
+                    SIZES.circle_radius - 5, COLORS.grey, 0)
+                    .setStrokeStyle(5, COLORS.grey)
+                    .setDepth(DEPTHS.BG);
+                blank.__value = c;
+                blank.__filled = null;
+                blank.__word = y;
+                blank.__index = index;
+                blank.__solved = false;
+                scene_state.targets.add(blank);
+                blank.setInteractive();
+                blank.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                    scene_state.cursor.__setPosition(blank);
+                });
             };
 
             let checkSolve = (blank) => {
@@ -645,14 +591,8 @@ let GameScene = new Phaser.Class({
                 return true;
             };
 
-            let letters = [];
-            for (let i = 1; i < scene_state.level_info.length; i += 2) {
-                let line_index = i + start_index;
-                addBlank(odd_y[line_index], scene_state.level_info[i].length,
-                    scene_state.level_info[i]);
-                for (let c of scene_state.level_info[i]) {
-                    letters.push(c);
-                }
+            for (let t of target_locations) {
+                addBlankSpot(t.x, t.y, t.c, t.i);
             }
 
             let addCursor = () => {
@@ -812,85 +752,128 @@ let GameScene = new Phaser.Class({
             };
             addCursor();
 
-            //let x = [120, 240, 360, 480, 600, 720, 840, 960];
-            //let y = //[1200, 1320, 1440,
-            //    [1560, 1680, 1800];
-            let x_index = 0;
-            let y_index = 8;
+            let addKeyBoard = () => {
+                //let x = [120, 240, 360, 480, 600, 720, 840, 960];
+                //let y = //[1200, 1320, 1440,
+                //    [1560, 1680, 1800];
+                let x_index = 0;
+                let y_index = 8;
 
-            let locations = [];
-            let center = {x: SCREEN_WIDTH / 2, y: middle_y};
-            for (let i = 0; i < even_x.length; i++) {
-                let x = even_x[i];
-                locations.push({x: x, y: middle_y - SIZES.circle_spacing * 1.5});
-                if (i === 0 || i === even_x.length - 1) {
-                    continue;
+                let locations = [];
+                let center = {x: SCREEN_WIDTH / 2, y: middle_y};
+                for (let i = 0; i < even_x.length; i++) {
+                    let x = even_x[i];
+                    locations.push({x: x, y: middle_y - SIZES.circle_spacing * 1.5});
+                    if (i === 0 || i === even_x.length - 1) {
+                        continue;
+                    }
+                    locations.push({x: x, y: middle_y + SIZES.circle_spacing * 0.5});
                 }
-                locations.push({x: x, y: middle_y + SIZES.circle_spacing * 0.5});
-            }
-            for (let i = 0; i < odd_x.length; i++) {
-                let x = odd_x[i];
-                locations.push({x: x, y: middle_y - SIZES.circle_spacing * 0.5});
-                if (i === 0 || i === odd_x.length - 1) {
-                    continue;
+                for (let i = 0; i < odd_x.length; i++) {
+                    let x = odd_x[i];
+                    locations.push({x: x, y: middle_y - SIZES.circle_spacing * 0.5});
+                    if (i === 0 || i === odd_x.length - 1) {
+                        continue;
+                    }
+                    locations.push({x: x, y: middle_y + SIZES.circle_spacing * 1.5});
                 }
-                locations.push({x: x, y: middle_y + SIZES.circle_spacing * 1.5});
-            }
-            Phaser.Utils.Array.Shuffle(locations);
-            for (let location of locations) {
-                location.d = Phaser.Math.Distance.BetweenPoints(location, center);
-            }
-            locations.sort((a, b) => {
-                return b.d - a.d
-            });
-
-            Phaser.Utils.Array.Shuffle(letters);
-            for (let letter of letters) {
-                let location = locations.pop();
-                addPiece(
-                    location.x, location.y,
-                    //0, 0,
-                    letter, COLORS.grey)
-
-                x_index++;
-                if (x_index >= even_x.length) {
-                    x_index = 0;
-                    y_index++;
+                Phaser.Utils.Array.Shuffle(locations);
+                for (let location of locations) {
+                    location.d = Phaser.Math.Distance.BetweenPoints(location, center);
                 }
-            }
-            let circle = scene.add.circle(
-                even_x[7], middle_y + SIZES.circle_spacing * 1.5,
-                SIZES.circle_diameter / 2, COLORS.grey)
-                .setDepth(DEPTHS.PIECES);
-            let letter = scene.add.sprite(
-                even_x[7], middle_y + SIZES.circle_spacing * 1.5,
-                'backspace')
-                .setDepth(DEPTHS.PIECES)
-                .setOrigin(0.5, 0.5);
-            let circle2 = scene.add.circle(
-                even_x[0], middle_y + SIZES.circle_spacing * 1.5,
-                SIZES.circle_diameter / 2, COLORS.grey)
-                .setDepth(DEPTHS.PIECES);
-            let letter2 = scene.add.sprite(
-                even_x[0], middle_y + SIZES.circle_spacing * 1.5,
-                'arrow')
-                .setDepth(DEPTHS.PIECES)
-                .setOrigin(0.5, 0.5);
-            circle.setInteractive();
-            circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                scene_state.cursor.__handleBackspace();
-            });
-            circle2.setInteractive();
-            circle2.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-                scene_state.cursor.__handleTab();
-            });
-            bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
-                scene.tweens.add({
-                    targets: [circle, circle2, letter, letter2],
-                    alpha: 0,
-                    duration: 250,
+                locations.sort((a, b) => {
+                    return b.d - a.d
                 });
-            });
+
+                let addPiece = (x, y, character, color) => {
+                    let circle = scene.add.circle(0, 0, SIZES.circle_diameter/2, color);
+                    let letter = scene.add.text(0, 0, character, getFont())
+                        .setOrigin(0.5, 0.5)
+                        .setPadding(SIZES.circle_spacing,SIZES.circle_spacing);
+                    let piece = scene.add.container(x, y, [circle, letter])
+                        .setDepth(DEPTHS.PIECES);
+                    piece.setSize(SIZES.circle_spacing,SIZES.circle_spacing);
+                    piece.__value = character;
+                    piece.__held = null;
+                    piece.__x = x;
+                    piece.__y = y;
+                    piece.setInteractive();
+                    piece.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                        if (piece.__held) {
+                            scene_state.cursor.__setPosition(piece.__held);
+                            return;
+                        }
+                        scene_state.cursor.__handlePress(piece);
+                    });
+                    //scene.input.setDraggable(piece);
+                    scene_state.pieces.add(piece);
+                    piece.__finished = (delay) => {
+                        //scene.input.setDraggable(piece, false);
+                        piece.disableInteractive();
+                        scene.tweens.add({
+                            targets: circle,
+                            yoyo: true,
+                            scale: 1.2,
+                            delay: delay,
+                            duration: 125,
+                            onYoyo: () => {
+                                letter.setColor(COLORS.white_text);
+                                circle.setFillStyle(COLORS.solved);
+                            },
+                        })
+                    };
+                    return piece;
+                };
+
+                Phaser.Utils.Array.Shuffle(target_locations);
+                for (let t of target_locations) {
+                    let location = locations.pop();
+                    addPiece(
+                        location.x, location.y,
+                        //0, 0,
+                        t.c, COLORS.grey)
+
+                    x_index++;
+                    if (x_index >= even_x.length) {
+                        x_index = 0;
+                        y_index++;
+                    }
+                }
+                let circle = scene.add.circle(
+                    even_x[7], middle_y + SIZES.circle_spacing * 1.5,
+                    SIZES.circle_diameter / 2, COLORS.grey)
+                    .setDepth(DEPTHS.PIECES);
+                let letter = scene.add.sprite(
+                    even_x[7], middle_y + SIZES.circle_spacing * 1.5,
+                    'backspace')
+                    .setDepth(DEPTHS.PIECES)
+                    .setOrigin(0.5, 0.5);
+                let circle2 = scene.add.circle(
+                    even_x[0], middle_y + SIZES.circle_spacing * 1.5,
+                    SIZES.circle_diameter / 2, COLORS.grey)
+                    .setDepth(DEPTHS.PIECES);
+                let letter2 = scene.add.sprite(
+                    even_x[0], middle_y + SIZES.circle_spacing * 1.5,
+                    'arrow')
+                    .setDepth(DEPTHS.PIECES)
+                    .setOrigin(0.5, 0.5);
+                circle.setInteractive();
+                circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                    scene_state.cursor.__handleBackspace();
+                });
+                circle2.setInteractive();
+                circle2.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+                    scene_state.cursor.__handleTab();
+                });
+                bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
+                    scene.tweens.add({
+                        targets: [circle, circle2, letter, letter2],
+                        alpha: 0,
+                        duration: 250,
+                    });
+                });
+            };
+            addKeyBoard();
         }
 
         bind_once_event(scene, scene.events, scene_state.events.SOLVED, () => {
@@ -1025,7 +1008,6 @@ let GameScene = new Phaser.Class({
         if (scene_state.saved) {
             scene.events.emit(scene_state.events.SOLVED);
         }
-
     },
 
     //--------------------------------------------------------------------------
