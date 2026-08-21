@@ -322,7 +322,9 @@ let LevelSelectScene = new Phaser.Class({
 
 
                     if ( !locked_date ) {
-                        circle.setInteractive();
+                        circle.setInteractive({
+                            useHandCursor: true,
+                        });
                         circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                             current_puzzle = this_puzzle;
                             current_page = calculate_current_page();
@@ -550,7 +552,9 @@ let GameScene = new Phaser.Class({
                 blank.__index = index;
                 blank.__solved = false;
                 scene_state.targets.add(blank);
-                blank.setInteractive();
+                blank.setInteractive({
+                    useHandCursor: true,
+                });
                 blank.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                     scene_state.cursor.__setPosition(blank);
                 });
@@ -797,7 +801,9 @@ let GameScene = new Phaser.Class({
                     piece.__held = null;
                     piece.__x = x;
                     piece.__y = y;
-                    piece.setInteractive();
+                    piece.setInteractive({
+                        useHandCursor: true,
+                    });
                     piece.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                         if (piece.__held) {
                             scene_state.cursor.__setPosition(piece.__held);
@@ -857,11 +863,15 @@ let GameScene = new Phaser.Class({
                     'arrow')
                     .setDepth(DEPTHS.PIECES)
                     .setOrigin(0.5, 0.5);
-                circle.setInteractive();
+                circle.setInteractive({
+                    useHandCursor: true,
+                });
                 circle.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                     scene_state.cursor.__handleBackspace();
                 });
-                circle2.setInteractive();
+                circle2.setInteractive({
+                    useHandCursor: true,
+                });
                 circle2.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                     scene_state.cursor.__handleTab();
                 });
@@ -912,7 +922,9 @@ let GameScene = new Phaser.Class({
                     'button')
                     .setAlpha(0)
                     .setDepth(DEPTHS.BG);
-                next_button.setInteractive();
+                next_button.setInteractive({
+                    useHandCursor: true,
+                });
                 next_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                     current_puzzle = next_puzzle;
                     current_page = calculate_current_page();
@@ -993,7 +1005,9 @@ let GameScene = new Phaser.Class({
                 'button')
                 .setAlpha(0)
                 .setDepth(DEPTHS.BG);
-            menu_button.setInteractive();
+            menu_button.setInteractive({
+                useHandCursor: true,
+            });
             menu_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
                 scene.scene.start("LevelSelectScene");
             });
@@ -1033,6 +1047,8 @@ let ControllerScene = new Phaser.Class({
         let scene = this;
         //add_audio_handler(scene);
         scene.scene.launch(DEBUG_BUILD ? 'GameScene' : 'LogoScene');
+
+
     },
 
     //--------------------------------------------------------------------------

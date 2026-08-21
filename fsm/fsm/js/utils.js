@@ -193,7 +193,9 @@ let addButton = (object, handler) => {
 
 let addButtonWithZone = (display_object, zone, handler) => {
     display_object.setAlpha(0.65);
-    zone.setInteractive();
+    zone.setInteractive({
+        useHandCursor: true,
+    });
     zone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
         display_object.setAlpha(1);
     });
@@ -207,7 +209,9 @@ let addButtonWithZone = (display_object, zone, handler) => {
 
 let addButtonWithShadowAndZone = (display_shadow, zone, handler) => {
     display_shadow.setAlpha(0.35);
-    zone.setInteractive();
+    zone.setInteractive({
+        useHandCursor: true,
+    });
     zone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
         display_shadow.setAlpha(0);
     });
