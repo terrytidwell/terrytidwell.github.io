@@ -1,8 +1,9 @@
 let LEVELS = [
     {
-        words: ["","","FALL","SPRING","MATRESS","",""]
+        words: ["","","FALL","SPRING","MATTRESS","",""]
     },
     {
+        //monday
         words: ["MATTRESS","BED","GARDEN","SLUG","BULLET","CALIBER","QUALITY"]
     },
     {
@@ -24,6 +25,7 @@ let LEVELS = [
         words: ["FIRE","TRUCK","STOP","SUSPEND","FLOAT","PARADE","MARCH"],
     },
     {
+        //extra
         words: ["MARCH","JUNE","BUG","VIRUS","COLD","BRISK","FAST"],
     },
     {
