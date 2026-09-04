@@ -2,8 +2,9 @@ let LEVELS = [
     {
         words: ["","","FALL","SPRING","MATTRESS","",""]
     },
+
+    // WEEK 1
     {
-        //monday
         words: ["MATTRESS","BED","GARDEN","SLUG","BULLET","CALIBER","QUALITY"]
     },
     {
@@ -24,15 +25,56 @@ let LEVELS = [
     {
         words: ["FIRE","TRUCK","STOP","SUSPEND","FLOAT","PARADE","MARCH"],
     },
+
+    // WEEK 2
+    {
+        words: ["FAMOUS","NOTED","SAW","JIG","DANCE","BALL","FOUL"],
+    },
+    {
+        words: ["FOUL","RANK","PRIVATE","PROPERTY","ATTRIBUTE","CREDIT","CARD"],
+    },
+    {
+        words: ["CARD","TRICK","FOOLS","GOLD","FISH","STICK","ADHERE"],
+    },
+    {
+        words: ["ADHERE","FOLLOW","LEAD","STEEL","BRACE","CAST","SPELL"],
+    },
+    {
+        words: ["SPELL","PERIOD","COLON","STOMACH","BEAR","BULL","LIE"],
+    },
+    {
+        words: ["LIE","REST","NOTE","BOOK","ARREST","CHECK","CASH"],
+    },
+    {
+        words: ["CASH","BUCK","THROW","BLANKET","COVER","JACKET","STRAIT"],
+    },
+
+    // WEEK 3
+    {
+        words: ["KIND","BREED","MULTIPLY","DIVIDE","PART","BIT","SKIT"],
+    },
+    {
+        words: ["SKIT","SKETCH","DRAW","BRIDGE","POKER","CHIP","TORTILLA"],
+    },
+    {
+        words: ["TORTILLA","STRIPS","COMIC","RELIEF","PITCHER","PLANT","POWER"],
+    },
+    {
+        words: ["POWER","ROOT","CHEER","LEADER","HEAD","CROWN","KING"],
+    },
+    {
+        words: ["KING","BISHOP","CARDINAL","JAY","WALK","JOG","MEMORY"],
+    },
+    {
+        words: ["MEMORY","RAM","BATTER","CAKE","SLICE","HOOK","CROSS"],
+    },
+    {
+        words: ["CROSS","UPSET","TIP","CORNER","TRAP","SNARE","DRUM"],
+    },
+    /*
     {
         //extra
         words: ["MARCH","JUNE","BUG","VIRUS","COLD","BRISK","FAST"],
-    },
-    {
-        words: ["SKIT", "SKETCH", "DRAW", "BRIDGE", "POKER", "CHIP", "TORTILLA"],
-    },
-    {
-        words: ["TORTILLA", "STRIPS", "COMIC", "RELIEF", "PITCHER", "PLANT", "POWER"], //"FACTORY"],
     },
     {
         words: ["NEEDLE", "PIN", "STICK", "JAM", "PRESERVE", "KEEP", "CASTLE"],
@@ -55,12 +97,7 @@ let LEVELS = [
     {
         words: ["MUSICAL","BEAT","HEART","ATTACK","ASSAULT","BATTERY","CHARGER"],
     },
-    {
-        words: ["CARD","TRICK","FOOLS","GOLD","FISH","STICKS","ADHERES"],
-    },
-    {
-        words: ["FOUL","RANK","PRIVATE","PROPERTY","ATTRIBUTE","CREDIT","CARD"],
-    },
+    */
     {
         words: ["A","A","A","A","A","A","A"],
         locked: Date.now() + (3_600_000 * 12),
