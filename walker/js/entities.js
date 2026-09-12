@@ -374,6 +374,9 @@ let addSubPanels = (scene) => {
                 player_state_handler.getState().player_control_enabled &&
                 scene.physics.overlap(interact_zone, solid_box);
             sub_panel_info.panel_highlight.setVisible(interaction_possible);
+            if (interaction_possible) {
+                scene.events.emit(TUTORIAL_EVENTS.INTERACT_AVAILABLE.label);
+            }
             progress_bar.setVisible(sub_panel_info.panel_highlight.visible);
             sub_panel_info.current_panel.fixing = false;
             if (!interaction_possible) {
@@ -429,6 +432,9 @@ let addSubPanels = (scene) => {
                         player_state_handler.getState().player_control_enabled &&
                         scene.physics.overlap(interact_zone, solid_box);
                     highlight.setVisible(interaction_possible);
+                    if (interaction_possible) {
+                        scene.events.emit(TUTORIAL_EVENTS.INTERACT_AVAILABLE.label);
+                    }
                 };
                 interactives.add(interact_zone);
             })();
@@ -474,6 +480,9 @@ let addSubPanels = (scene) => {
                         player_state_handler.getState().player_control_enabled &&
                         scene.physics.overlap(interact_zone, solid_box);
                     main_panel_info.panel_highlight.setVisible(interaction_possible);
+                    if (interaction_possible) {
+                        scene.events.emit(TUTORIAL_EVENTS.INTERACT_AVAILABLE.label);
+                    }
                     progress_bar.setVisible(main_panel_info.panel_highlight.visible);
                     main_panel_info.current_panel.fixing = false;
                     if (!interaction_possible) {

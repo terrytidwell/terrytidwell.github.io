@@ -26,6 +26,7 @@ let CELL_BLOCK_EVENTS = {
 };
 
 let TUTORIAL_EVENTS = {
+    INTERACT_AVAILABLE: {label: 'interact_available', fired: false},
     PHONE_OPENED: {label: 'phone_activated', fired: false},
     MOVE_ACTIVATED: {label: 'moved_activated', fried: false},
 };
@@ -118,6 +119,18 @@ let GameScene = new Phaser.Class({
         });
         bind_event(scene, scene.events, TUTORIAL_EVENTS.MOVE_ACTIVATED.label, () => {
             TUTORIAL_EVENTS.MOVE_ACTIVATED.fired = true;
+        });
+        bind_event(scene, scene.events, TUTORIAL_EVENTS.INTERACT_AVAILABLE.label, () => {
+            if (TUTORIAL_EVENTS.INTERACT_AVAILABLE.fired) { return; }
+            TUTORIAL_EVENTS.INTERACT_AVAILABLE.fired = true;
+            let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
+                "E to interact.",
+                getFont("center", GRID_SIZE, "#FFFFFF"))
+                .setOrigin(0.5, 1)
+                .setDepth(DEPTHS.UI+5);
+            scene.time.delayedCall(3000, () => {
+                tutorial_text.destroy();
+            });
         });
 
 
@@ -1002,17 +1015,6 @@ let GameScene = new Phaser.Class({
             scene.time.delayedCall(1000,() => {
                 let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
                     "WASD or Arrows to move.",
-                    getFont("center", GRID_SIZE, "#FFFFFF"))
-                    .setOrigin(0.5, 1)
-                    .setDepth(DEPTHS.UI+5);
-                scene.time.delayedCall(3000, () => {
-                    tutorial_text.destroy();
-                })
-            });
-
-            scene.time.delayedCall(7000,() => {
-                let tutorial_text = scene.add.text(x, SCREEN_HEIGHT-GRID_SIZE,
-                    "E to interact.",
                     getFont("center", GRID_SIZE, "#FFFFFF"))
                     .setOrigin(0.5, 1)
                     .setDepth(DEPTHS.UI+5);
