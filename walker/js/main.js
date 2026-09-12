@@ -28,7 +28,7 @@ let CELL_BLOCK_EVENTS = {
 let TUTORIAL_EVENTS = {
     INTERACT_AVAILABLE: {label: 'interact_available', fired: false},
     PHONE_OPENED: {label: 'phone_activated', fired: false},
-    MOVE_ACTIVATED: {label: 'moved_activated', fried: false},
+    MOVE_ACTIVATED: {label: 'moved_activated', fired: false},
 };
 
 
@@ -101,6 +101,9 @@ let GameScene = new Phaser.Class({
         let current_subpanel_count = 0;
         let allow_keypad = false;
         let open_door = false;
+        let escaped = false;
+        let death_triggered = false;
+        let attack_started = false;
         bind_event(scene, scene.events, CELL_BLOCK_EVENTS.SUBPANEL_FIXED, () => {
             console.log('subpanel_listener_triggered');
             current_subpanel_count+= 1
@@ -399,6 +402,11 @@ let GameScene = new Phaser.Class({
         scene.physics.world.enable(solid_box);
         scene.physics.add.collider(solid_box, walls);
         scene.physics.add.overlap(exit_box, exits, (exit_box, exit) => {
+            if (escaped || attack_started ||
+                !player_state_handler.getState().player_control_enabled) { return; }
+            // Capture is already committed during its one-second delay.
+            if (death_triggered && room_letter === 0 &&
+                exit.getData('direction').dy === -1) { return; }
             if (exit === disabled_exit) {
                 //console.log('exit squashed');
                 return;
@@ -409,6 +417,7 @@ let GameScene = new Phaser.Class({
             room_letter += direction.dy;
             direction.reset(solid_box);
             if (room_letter < 0) {
+                escaped = true;
                 player_state_handler.changeState(PLAYER_STATES.ANIMATION);
                 scene.cameras.main.resetFX(1000, 0, true);
                 scene.add.rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000)
@@ -633,6 +642,8 @@ let GameScene = new Phaser.Class({
         keypad_numbers[2].__last = true;
         let keypad_success_blink = null;
         let keypad_success_close = null;
+        let keypad_error_reset = null;
+        let combination = Phaser.Utils.Array.Shuffle([1,5,8]);
         let phone_icons = scene.add.group({runChildUpdate: true});
         let phone = scene.add.sprite(x,y,'phone',0)
             .setAlpha(0)
@@ -642,12 +653,12 @@ let GameScene = new Phaser.Class({
         let screen_shade = scene.add.rectangle(x,y,SCREEN_WIDTH,SCREEN_HEIGHT,0x000000)
             .setAlpha(0)
             .setDepth(DEPTHS.UI+1);
-        screen_shade.setInteractive();
 
         activate_keypad_screen = () => {
             if (keypad_success_close) { return; }
             if (!player_state_handler.getState().player_ui_enabled) { return; }
 
+            clear_ui_screen();
             phone_icons.add(scene.add.sprite(
                 x+3*GRID_SIZE,y-6*GRID_SIZE, 'ui', 1)
                 .setDepth(DEPTHS.UI+2)
@@ -664,7 +675,6 @@ let GameScene = new Phaser.Class({
                 {x:0, y:1, value: 8},
                 {x:1, y:1, value: 9},
             ];
-            let combination = Phaser.Utils.Array.Shuffle([1,5,8]);
             for (let button of buttons) {
                 let keypad_button = scene.add.zone(
                     x - 0.5*SPRITE_SCALE + 13*SPRITE_SCALE*button.x,
@@ -676,7 +686,7 @@ let GameScene = new Phaser.Class({
                     .setOrigin(0.5,0.5);
                 keypad_button.setInteractive();
                 keypad_button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
-                    if (!allow_keypad || keypad_success_close) { return false; }
+                    if (!allow_keypad || keypad_success_close || keypad_error_reset) { return false; }
                     for (let keypad_number of keypad_numbers) {
                         if (keypad_number.__set) { continue; }
                         keypad_number.__set = true;
@@ -687,7 +697,8 @@ let GameScene = new Phaser.Class({
                             let combination_found = keypad_numbers.every(
                                 (number, index) => number.__value === combination[index]);
                             if (!combination_found) {
-                                scene.time.delayedCall(500, () => {
+                                keypad_error_reset = scene.time.delayedCall(500, () => {
+                                    keypad_error_reset = null;
                                     for (let keypad_number of keypad_numbers) {
                                         keypad_number.__set = false;
                                         keypad_number.setAlpha(0);
@@ -719,6 +730,8 @@ let GameScene = new Phaser.Class({
             }
 
             keypad.setAlpha(1);
+            keypad.setInteractive();
+            screen_shade.setInteractive();
             for (let keypad_number of keypad_numbers) {
                 keypad_number.setAlpha(
                     keypad_number.__set ? 1 : 0);
@@ -727,12 +740,18 @@ let GameScene = new Phaser.Class({
 
             player_state_handler.changeState(PLAYER_STATES.UI);
         };
-        keypad.setInteractive();
         keypad.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             //nothing
         });
 
         let clear_ui_screen = () => {
+            if (keypad_error_reset) {
+                keypad_error_reset.remove(false);
+                keypad_error_reset = null;
+                for (let number of keypad_numbers) {
+                    number.__set = false;
+                }
+            }
             if (keypad_success_blink) {
                 keypad_success_blink.remove(false);
                 keypad_success_blink = null;
@@ -742,6 +761,9 @@ let GameScene = new Phaser.Class({
                 keypad_success_close = null;
             }
             keypad.setAlpha(0);
+            keypad.disableInteractive();
+            phone.disableInteractive();
+            screen_shade.disableInteractive();
             for(let keypad_number of keypad_numbers) {
                 keypad_number.setAlpha(0);
             }
@@ -751,7 +773,11 @@ let GameScene = new Phaser.Class({
             phone_icons.clear(true,true);
         };
         let activate_ui_screen = () => {
+            clear_ui_screen();
+            scene.events.emit(TUTORIAL_EVENTS.PHONE_OPENED.label);
             phone.setAlpha(1);
+            phone.setInteractive();
+            screen_shade.setInteractive();
             screen_shade.setAlpha(0.75);
             let x_offset = (room_number - 1) * 8 * SPRITE_SCALE;
             let y_offset = room_letter * 8 * SPRITE_SCALE;
@@ -792,7 +818,6 @@ let GameScene = new Phaser.Class({
             clear_ui_screen();
             player_state_handler.changeState(PLAYER_STATES.IDLE);
         });
-        phone.setInteractive();
         phone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             //nothing
         });
@@ -1105,8 +1130,9 @@ let GameScene = new Phaser.Class({
 
 
 
-        let death_triggered = false;
         let ghost_attack = () => {
+            if (escaped) { return; }
+            attack_started = true;
             player_state_handler.changeState(PLAYER_STATES.ANIMATION);
             clear_ui_screen();
             sam.setFrame(1);
@@ -1192,6 +1218,7 @@ let GameScene = new Phaser.Class({
 
         let vector = new Phaser.Math.Vector2();
         scene.__update = () => {
+            if (escaped) { return; }
             let monster_in_room = false;
             let monster_next_door = false;
             for (let monster of monsters) {
@@ -1207,7 +1234,7 @@ let GameScene = new Phaser.Class({
             if (monster_in_room) {
                 delayed_ghost_attack();
             }
-            if (monster_next_door) {
+            if (monster_next_door || attack_started) {
                 main_light.setMainLightToFlicker(true);
             } else {
                 main_light.setMainLightToFlicker(false);

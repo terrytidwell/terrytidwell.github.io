@@ -11,7 +11,7 @@ let bind_event = (scene, key, event, handler) => {
 
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, function() {
         console.log('off '+ event);
-        key.off(event);
+        key.off(event, handler);
     })
 };
 
@@ -52,14 +52,14 @@ let asyncHandler = function (scene) {
         Phaser.Utils.Array.Each(m_tweens, (tween) => tween.pause(), self);
         Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.pause(), self);
         Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = true, self);
-        Phaser.Utils.Array.Each(m_events, (event) => tween.pause(), self);
+        Phaser.Utils.Array.Each(m_events, (event) => event.paused = true, self);
     };
 
     let resume = function () {
         Phaser.Utils.Array.Each(m_tweens, (tween) => tween.resume(), self);
         Phaser.Utils.Array.Each(m_timelines, (timeline) => timeline.resume(), self);
         Phaser.Utils.Array.Each(m_delayedCalls, (delayedCall) => delayedCall.paused = false, self);
-        Phaser.Utils.Array.Each(m_events, (event) => event.resume(), self);
+        Phaser.Utils.Array.Each(m_events, (event) => event.paused = false, self);
     };
 
     let addTween = function (tween) {

@@ -225,6 +225,7 @@ let addSubPanels = (scene) => {
             },
             'OFF_SCREEN': {
                 enter: () => {
+                    panel_info.panel_highlight.setVisible(false);
                     panel_info.panel.setVisible(false);
                     panel_info.panel_light_red.setVisible(false);
                     panel_info.panel_light_pixel_red.setVisible(false);
@@ -420,6 +421,7 @@ let addSubPanels = (scene) => {
                     .setScale(SPRITE_SCALE)
                     .setDepth(DEPTHS.BG + 2)
                     .setVisible(false);
+                room_group.add(highlight);
                 room_group.add(interact_zone);
 
                 interact_zone.__interact = () => {
@@ -456,10 +458,6 @@ let addSubPanels = (scene) => {
                     GRID_SIZE)
                     .setOrigin(0.5, 0);
                 scene.physics.world.enable(interact_zone);
-                let highlight = scene.add.sprite(x, y, 'bg_prison', 15)
-                    .setScale(SPRITE_SCALE)
-                    .setDepth(DEPTHS.BG + 2)
-                    .setVisible(false);
                 room_group.add(interact_zone);
 
                 interact_zone.__interact = () => {
