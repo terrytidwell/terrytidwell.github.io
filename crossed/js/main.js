@@ -1,10 +1,9 @@
-const SPRITE_SCALE = 1;
-const GRID_SIZE = 67;
-const GRID_ROWS = 25;
-const GRID_COLS = 17;
-const SCREEN_WIDTH = GRID_SIZE * GRID_COLS * SPRITE_SCALE;
-const SCREEN_HEIGHT = GRID_SIZE * GRID_ROWS * SPRITE_SCALE;
-const FONT = 'px Schoolbell-Regular';
+const SCREEN_CAP_MODE = false;
+
+const GRID_SIZE = 60;
+const SCREEN_WIDTH = SCREEN_CAP_MODE ? 630 : 1080;
+const SCREEN_HEIGHT = SCREEN_CAP_MODE ? 500 : 1920;
+const FONT = 'px Outfit-SemiBold';
 
 const DEPTHS = {
     BG: 0,
@@ -22,6 +21,54 @@ let player_stats = {
     grid_visible: true,
 };
 
+let game_events = {
+    VICTORY: "game_events.VICTORY",
+    TOGGLE_GRID: "game_events.TOGGLE_GRID",
+};
+
+let COLORS = {
+    grey: 0xE0E0E0,
+    grey_border: 0xDEDEDE,
+    white: 0xFFFFFF,
+    white_text: "#FFFFFF",
+    solved: 0x38bebc,
+    piece_text: "#a2a39e",
+    ui_text: "#3c3c3c",
+    clue_text: "#3d9ca0",
+    cursor: 0xa2a39e,
+};
+
+let SIZES = {
+    clue_font: 100,
+    piece_font: 95,
+    circle_diameter: 110,
+    circle_radius: 55,
+    circle_spacing: 120,
+    line_spacing: 150,
+    timer_font: 50,
+    icon_size: 80,
+    icon_spacing: 120,
+    puzzles_per_page: 12,
+};
+
+let getFont = (align = "center", fontSize = 50,
+               color= '#FFFFFF', wrap_length= SCREEN_WIDTH) => {
+    return {font: '' + fontSize + 'px Outfit-SemiBold', fill: color, align: align,
+        wordWrap: {width: wrap_length, useAdvancedWrap: true}};
+};
+
+let getVictoryFont = () => {
+    return getFont("center", 100);
+}
+
+let getLargeTileFont = () => {
+    return getFont("center", 90);
+}
+
+let getTimeFont = () => {
+    return getFont("center",  SIZES.timer_font, COLORS.ui_text);
+};
+
 let LoadScene = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -36,17 +83,7 @@ let LoadScene = new Phaser.Class({
         let scene = this;
 
         scene.load.path = "assets/";
-        let letters = [ 'A','B','C','D','E',
-                        'F','G','H','I','J',
-                        'K','L','M','N','O',
-                        'P','Q','R','S','T',
-                        'U','V','W','X','Y','Z',
-                        'blank', 'grid', 'shine'];
-        for (let letter of letters) {
-            scene.load.spritesheet(letter, letter + '.png',
-                { frameWidth: 67, frameHeight: 67 });
-        }
-        scene.load.image('bg', 'papelIGuess.jpeg');
+        //scene.load.image('bg', 'papelIGuess.jpeg');
 
         scene.add.rectangle(
             SCREEN_WIDTH/4, SCREEN_HEIGHT / 2,
@@ -68,6 +105,9 @@ let LoadScene = new Phaser.Class({
             {width:GRID_SIZE, height:GRID_SIZE});
         scene.load.svg('close', 'close_FILL0_wght400_GRAD0_opsz48.svg',
             {width:GRID_SIZE, height:GRID_SIZE});
+        scene.load.svg('menu', 'menu.svg',
+            {width:SIZES.icon_size, height:SIZES.icon_size});
+
 
 
         scene.load.on('complete', function() {
@@ -82,15 +122,52 @@ let LoadScene = new Phaser.Class({
                     localStorage.setItem('player_stats', JSON.stringify(player_stats));
                 }
             }
+            if (SCREEN_CAP_MODE) {
+                scene.scene.start('ControllerScene');
+                return;
+            }
             scene.scene.start('TitleScreen');
-            //scene.scene.start('GameScene');
-            //scene.scene.start('VictoryScene');
             scene.scene.start('ControllerScene');
         });
     },
 
     //--------------------------------------------------------------------------
     create: function () {
+        let scene = this;
+
+        let makeRoundedPanelTexture = (scene, key, w, h, radius, color) => {
+            // 1) Draw off-screen
+            const g = scene.add.graphics()
+                .fillStyle(color, 1)
+                .fillRoundedRect(0, 0, w, h, radius);
+            //.lineStyle(5, 0x808080, 1)
+            //.strokeRoundedRect(0, 0, w, h, radius);
+
+            // 2) Turn the drawing into a texture in the global cache
+            g.generateTexture(key, w, h);
+
+            // 3) Free the Graphics object (no longer needed)
+            g.destroy();
+        };
+
+        makeRoundedPanelTexture( scene, 'tile',
+            GRID_SIZE-5, GRID_SIZE-5, 5,
+            0x3d9ca0);
+        makeRoundedPanelTexture( scene, 'large_tile',
+            90, 90, 10,
+            0x3d9ca0);
+        makeRoundedPanelTexture( scene, 'large_blank_tile',
+            90, 90, 10,
+            0xa2a39e);
+        makeRoundedPanelTexture( scene, 'blank_tile',
+            GRID_SIZE-5, GRID_SIZE-5, 5,
+            0xa2a39e);
+        makeRoundedPanelTexture( scene, 'shine_tile',
+            GRID_SIZE-5, GRID_SIZE-5, 5,
+            0xFFFFFF);
+        makeRoundedPanelTexture( scene, 'bg',
+            SCREEN_WIDTH-GRID_SIZE, SCREEN_HEIGHT - GRID_SIZE,GRID_SIZE/2,
+            0xFFFFFF);
     },
 
     //--------------------------------------------------------------------------
@@ -135,13 +212,18 @@ let VictoryScene = new Phaser.Class( {
         let victory_tiles = [];
         for (let y = 0; y < y_offsets.length; y++) {
             for (let x = 0; x < x_offsets.length; x++) {
-                let tile = scene.add.sprite(x_offsets[x], y_offsets[y] - SCREEN_HEIGHT, words[y][x])
-                    .setScale(square_scale * .9);
+                let tile = scene.add.container(x_offsets[x], y_offsets[y] - SCREEN_HEIGHT,[]);
+
+                tile.add(scene.add.sprite(0,0, 'tile')
+                    .setScale(square_scale));
+                tile.add(scene.add.text(0,0,
+                    words[y][x], getVictoryFont())
+                    .setOrigin(0.5, 0.5));
                 victory_tiles.push(tile);
             }
         }
 
-        scene.__victory = () => {
+        let victory = () => {
             let game_scene = scene.scene.get('GameScene');
             //scene.scene.pause('GameScene');
             scene.tweens.add({
@@ -169,6 +251,11 @@ let VictoryScene = new Phaser.Class( {
             });
         };
 
+        game.events.on(game_events.VICTORY, victory);
+        scene.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
+            game.events.off(game_events.VICTORY, victory);
+        })
+
     },
 });
 
@@ -188,8 +275,65 @@ let ControllerScene = new Phaser.Class( {
     create: function (data) {
         let scene = this;
 
+        if (SCREEN_CAP_MODE) {
+            scene.add.rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+                SCREEN_WIDTH, SCREEN_HEIGHT, 0xFFFFFF);
+            let add_tile = (x, y, c) => {
+                scene.add.sprite(x, y, 'large_tile');
+                scene.add.text(x, y, c, getLargeTileFont())
+                    .setOrigin(0.5,0.5);
+            };
+            let add_blank_tile = (x, y) => {
+                scene.add.sprite(x, y, 'large_blank_tile');
+            };
+            let x = SCREEN_WIDTH/2;
+            let y = SCREEN_HEIGHT/2 + 50;
+            add_blank_tile(x - 200, y);
+            add_blank_tile(x - 100, y);
+            add_blank_tile(x - 100, y + 100);
+
+
+            add_blank_tile(x + 200, y-100);
+            add_blank_tile(x + 100, y-200);
+
+            add_blank_tile(x + 200, y+100);
+            //scene.add.text(x+250 - 5, y+100 - 5, "PUZZLES", getTimeFont()).setOrigin(1,0);
+
+            add_blank_tile(x, y-200);
+            add_blank_tile(x - 200, y-200);
+
+            let offset = 25;
+
+            add_tile(x - 200 - offset, y + offset , 'C');
+            add_tile(x - 100 - offset, y + offset, 'R');
+            add_tile(x, y, 'O');
+            add_tile(x + 100, y, 'S');
+            add_tile(x + 200, y, 'S');
+
+            add_tile(x - 100, y - 200, 'W');
+            add_tile(x - 100, y - 100, 'O');
+            add_tile(x - 100 - offset, y + 100 + offset, 'D');
+
+
+
+            return;
+        }
+
+        let border_padding = SIZES.line_spacing - SIZES.circle_radius;
+        let odd_y = [];
+        let current = GRID_SIZE + border_padding + SIZES.line_spacing;
+        let even_x = [120, 240, 360, 480, 600, 720, 840, 960];
+        let odd_x = [180, 300, 420, 540, 660, 780, 900];
+
+        let top_line_y = current - GRID_SIZE/2 - border_padding;
+        let upper_bar_middle_y = (top_line_y + GRID_SIZE/2)/2;
+
+        let menu_button = scene.add.sprite(SCREEN_WIDTH - GRID_SIZE, upper_bar_middle_y, 'menu')
+            .setOrigin(1, 0.5);
+
+
         let container = scene.add.container(0,0);
-        let menu_button = scene.add.image(SCREEN_WIDTH - GRID_SIZE/2, GRID_SIZE/2, 'settings').setOrigin(1,0);
+
         menu_button.setInteractive();
 
         let toggle_menu = () => {
@@ -261,20 +405,23 @@ let ControllerScene = new Phaser.Class( {
         let text = scene.add.text(2 * GRID_SIZE, 4*GRID_SIZE, 'PUZZLE GRID VISIBLE', textStyle)
             .setDepth(DEPTHS.GRID)
             .setOrigin(0,0);
-        let button = scene.add.sprite(SCREEN_WIDTH - 2 * GRID_SIZE, 4*GRID_SIZE,
-            player_stats.grid_visible ? 'X' : 'blank')
-            .setOrigin(1,0);
+        let button = scene.add.sprite(SCREEN_WIDTH - 2 * GRID_SIZE - GRID_SIZE/2,
+            4*GRID_SIZE + GRID_SIZE/2, 'blank_tile')
+            .setOrigin(0.5,0.5);
+        let button_text = scene.add.text(SCREEN_WIDTH - 2 * GRID_SIZE - GRID_SIZE/2,
+            4*GRID_SIZE + GRID_SIZE/2, player_stats.grid_visible ? 'X' : '',
+            getFont())
+            .setOrigin(0.5,0.5);
+
         container.add(text);
         container.add(button);
+        container.add(button_text);
         button.setInteractive();
         button.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
             player_stats.grid_visible = !player_stats.grid_visible;
+            button_text.setText(player_stats.grid_visible ? 'X' : '');
             localStorage.setItem('player_stats', JSON.stringify(player_stats));
-            let game_scene = scene.scene.get('GameScene');
-            if (game_scene) {
-                game_scene.__set_grid_visibility();
-                button.setTexture(player_stats.grid_visible ? 'X' : 'blank');
-            }
+            game.events.emit(game_events.TOGGLE_GRID);
         });
 
         let puzzles_per_page = 4;
@@ -391,6 +538,45 @@ let GameScene = new Phaser.Class({
     create: function (data) {
         let scene = this;
 
+        let border_padding = SIZES.line_spacing - SIZES.circle_radius;
+        let current = GRID_SIZE + border_padding + SIZES.line_spacing;
+
+        scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg');
+
+        let top_line_y = current - GRID_SIZE/2 - border_padding;
+        scene.add.rectangle(SCREEN_WIDTH/2, top_line_y,
+            SCREEN_WIDTH-2*GRID_SIZE,5,COLORS.grey, 1, 5)
+            .setDepth(DEPTHS.BG+1);
+        let upper_bar_middle_y = (top_line_y + GRID_SIZE/2)/2;
+        let time_label = scene.add.text(SCREEN_WIDTH/2, upper_bar_middle_y, "00:00", getTimeFont())
+            .setOrigin(0.5,0.5)
+            .setDepth(DEPTHS.BG+1);
+
+        let elapsed = 0;
+        let format = s => {
+            const mm = Phaser.Utils.String.Pad(Math.floor(s / 60), 2, '0', 1);
+            const ss = Phaser.Utils.String.Pad(s % 60, 2, '0', 1);
+            return `${mm}:${ss}`;
+        };
+
+        let ticker = this.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                elapsed += 1;
+                elapsed = Math.min(59 * 60 + 59, elapsed)
+                time_label.setText(format(elapsed));
+            }
+        });
+
+        let stop_timer = () => {
+            ticker.remove(false);
+        };
+        game.events.once(game_events.VICTORY, stop_timer);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            game.events.off(game_events.VICTORY, stop_timer);
+        });
+
         let grid_square = (x) => {
             return Math.round( x / GRID_SIZE);
         };
@@ -407,7 +593,12 @@ let GameScene = new Phaser.Class({
                 let sprite = scene.add.sprite(
                     letter.x * GRID_SIZE,
                     letter.y * GRID_SIZE,
-                    letter.letter);
+                    'tile');
+                let character = scene.add.text(
+                    letter.x * GRID_SIZE,
+                    letter.y * GRID_SIZE,
+                    letter.letter, getFont())
+                    .setOrigin(0.5,0.5);
                 sprite._vx = letter.x + vx;
                 sprite._vy = letter.x + vy;
                 let drag_zone = scene.add.zone(
@@ -420,6 +611,7 @@ let GameScene = new Phaser.Class({
                 drag_zone._vy = letter.y + vy;
                 drag_zones.push(drag_zone);
                 sprites.push(sprite);
+                sprites.push(character);
                 draggables.push(drag_zone);
                 draggables.push(sprite);
             }
@@ -509,7 +701,7 @@ let GameScene = new Phaser.Class({
             }
             let shines = [];
             for (let letter of this_cluster.list) {
-                let shine = scene.add.sprite(letter.x, letter.y, 'shine');
+                let shine = scene.add.sprite(letter.x, letter.y, 'shine_tile');
                 shine.setAlpha(0);
                 shines.push(shine);
             }
@@ -551,11 +743,10 @@ let GameScene = new Phaser.Class({
         };
 
         let add_grid_square = (x, y) => {
-            let sprite = scene.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'grid');
-            sprite.setScale(0.9);
-            sprite.setTintFill(0x000000);
+            let sprite = scene.add.sprite(x * GRID_SIZE, y * GRID_SIZE, 'blank_tile');
+            //sprite.setTintFill(0x000000);
             sprite.setDepth(DEPTHS.GRID);
-            sprite.setAlpha(0.5);
+            //sprite.setAlpha(0.5);
             grid.add(sprite);
         };
 
@@ -577,7 +768,7 @@ let GameScene = new Phaser.Class({
                     }
                     s_index++;
                 }
-                add_cluster(piece.y, piece.x + 2, letters, piece.vy, piece.vx);
+                add_cluster(piece.y, piece.x + 4, letters, piece.vy, piece.vx);
             }
 
             let s_index = 0;
@@ -587,7 +778,7 @@ let GameScene = new Phaser.Class({
                     if (l === 'O') {
                         let x = puzzle.grid.x + l_index;
                         let y = puzzle.grid.y + s_index;
-                        add_grid_square(y, x + 2)
+                        add_grid_square(y, x + 4)
                     }
                     l_index++;
                 }
@@ -596,28 +787,39 @@ let GameScene = new Phaser.Class({
 
 
             let textStyle = {
-                fill: "#000000",
-                font: ' ' + Math.round(GRID_SIZE * .9) + FONT,
+                fill: COLORS.ui_text,
+                font: ' ' + 50 + FONT,
                 align: "center",
-                wordWrap: { width: GRID_SIZE*(GRID_COLS - 3) , useAdvancedWrap: true }
+                wordWrap: { width: SCREEN_WIDTH - GRID_SIZE, useAdvancedWrap: true }
             };
 
             // set up the main text
-            scene.add.text(SCREEN_WIDTH/2, 0, puzzle.name, textStyle)
+            let title_text = scene.add.text(
+                SCREEN_WIDTH/2, SCREEN_HEIGHT - GRID_SIZE,
+                puzzle.name, textStyle)
                 .setDepth(DEPTHS.GRID)
-                .setOrigin(0.5,0);
+                .setOrigin(0.5,1);
+            let top_y = title_text.getBounds().top;
+            scene.add.rectangle(SCREEN_WIDTH/2, top_y - GRID_SIZE/2,
+                SCREEN_WIDTH-2*GRID_SIZE,5,COLORS.grey, 1, 5)
+                .setDepth(DEPTHS.BG+1);
         };
 
-        scene.__set_grid_visibility = () => {
+        let set_grid_visibility = () => {
             grid.setVisible(player_stats.grid_visible);
-        };
+        }
+
+        game.events.on(game_events.TOGGLE_GRID, set_grid_visibility);
+        scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            game.events.off(game_events.TOGGLE_GRID, set_grid_visibility);
+        });
 
         let clusters = scene.add.group();
         let grid = scene.add.group();
         let puzzle = g_puzzles[level];
 
         setup_puzzle();
-        scene.__set_grid_visibility();
+        set_grid_visibility();
 
         scene.add.sprite(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'bg').setDepth(DEPTHS.BG);
 
@@ -655,7 +857,7 @@ let GameScene = new Phaser.Class({
             check_adjacency_and_merge(container);
             if (check_solve()) {
                 drag_enabled = false;
-                scene.scene.get('VictoryScene').__victory();
+                game.events.emit(game_events.VICTORY);
             }
         });
 
@@ -671,16 +873,6 @@ let GameScene = new Phaser.Class({
 
         scene.input.addPointer(5);
         scene.input.topOnly = true;
-
-        scene.__cursor_keys = scene.input.keyboard.createCursorKeys();
-        scene.__cursor_keys.letter_left = scene.input.keyboard.addKey("a");
-        scene.__cursor_keys.letter_right = scene.input.keyboard.addKey("d");
-        scene.__cursor_keys.letter_up = scene.input.keyboard.addKey("w");
-        scene.__cursor_keys.letter_down = scene.input.keyboard.addKey("s");
-        scene.__cursor_keys.interact = scene.input.keyboard.addKey("x");
-        scene.__cursor_keys.letter_one = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
-
     },
 
     //--------------------------------------------------------------------------
@@ -738,7 +930,7 @@ let TitleScreen = new Phaser.Class({
 });
 
 let config = {
-    backgroundColor: "#000000",
+    backgroundColor: 0xE0E0E0,
     type: Phaser.WEBGL,
     render: {
         pixelArt: true
@@ -761,3 +953,4 @@ let config = {
 };
 
 let game = new Phaser.Game(config);
+const GRID_COLS = 17;
