@@ -27,8 +27,8 @@ class PuzzleBuilderScene extends Phaser.Scene {
         for (let x = 0; x <= 15; x++) lines.lineBetween(90 + x * 60, 270, 90 + x * 60, 1650);
         for (let y = 0; y <= 23; y++) lines.lineBetween(90, 270 + y * 60, 990, 270 + y * 60);
         this.tiles = this.add.container(0, 0);
-        this.wordsLabel = this.add.text(90, 1668, '', { fontFamily: 'Outfit-SemiBold',
-            fontSize: 23, color: '#3c3c3c', wordWrap: { width: 900 } });
+        this.wordsLabel = this.add.text(90, 1660, '', { fontFamily: 'Outfit-SemiBold',
+            fontSize: 22, color: '#3c3c3c', wordWrap: { width: 900 } });
         const button = (x, text, action) => {
             const box = this.add.rectangle(x, 1840, 280, 66, 0x3d9ca0).setInteractive({ useHandCursor: true });
             label(x, 1840, text, 27, '#ffffff');
@@ -46,6 +46,15 @@ class PuzzleBuilderScene extends Phaser.Scene {
             this.startBatch();
         });
         this.exportButton = button(850, 'EXPORT CANDIDATE', () => this.exportCandidate());
+        const stageButton = (x, text, action) => {
+            const box = this.add.rectangle(x, 1773, 430, 50, 0x3d9ca0).setInteractive({ useHandCursor: true });
+            label(x, 1773, text, 27, '#ffffff');
+            box.on('pointerdown', action);
+        };
+        stageButton(310, 'DEFINE PIECES', () => {
+            if (!this.running && this.best) this.openPieces(PiecePartition.importData(this.pieceDraft || this.candidateData()));
+        });
+        stageButton(770, 'IMPORT GRID / DRAFT', () => PieceBuilderIO.import(this, parsed => this.openPieces(parsed)));
         this.startBatch();
     }
     startBatch() {
@@ -64,6 +73,7 @@ class PuzzleBuilderScene extends Phaser.Scene {
         while (performance.now() < sliceEnd) this.optimizer.step();
         const candidate = this.optimizer.best;
         if (candidate && PuzzleOptimizer.better(candidate, this.best)) {
+            this.pieceDraft = null;
             this.best = candidate;
             this.drawBest();
         }
@@ -92,21 +102,22 @@ class PuzzleBuilderScene extends Phaser.Scene {
         this.score.setText(`${b.included.length}/${this.optimizer.words.length} words · ${b.width} × ${b.height} · area ${b.area}`);
         this.wordsLabel.setText(`Included: ${b.included.join(', ')}\nOmitted: ${b.omitted.join(', ') || 'None'}`);
     }
-    exportCandidate() {
-        if (this.running || !this.best) return;
+    openPieces(parsed) {
+        this.scene.pause();
+        this.scene.launch('PieceBuilderScene', parsed);
+    }
+    candidateData() {
         const b = this.best;
         // An intermediate artifact, not the legacy piece/guide format yet.
-        const data = { format: 'crossed-grid-candidate', version: 1, title: PUZZLE_BUILDER_INPUT.title,
+        return { format: 'crossed-grid-candidate', version: 1, title: PUZZLE_BUILDER_INPUT.title,
             words: this.optimizer.words, included: b.included, omitted: b.omitted,
             grid: { str: b.grid, width: b.width, height: b.height,
                 coordinateSystem: 'screen-columns-rows',
                 x: 2 + Math.floor((15 - b.width) / 2), y: 5 + Math.floor((23 - b.height) / 2) } };
-        const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'movie-night-grid.json';
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    exportCandidate() {
+        if (this.running || !this.best) return;
+        PieceBuilderIO.download(this.candidateData(), 'grid');
         this.status.setText('Candidate exported · Keep looking retains this best grid');
     }
 }
