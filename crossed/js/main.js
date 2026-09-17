@@ -1,4 +1,5 @@
 const SCREEN_CAP_MODE = false;
+const PUZZLE_BUILDER_MODE = true;
 
 const GRID_SIZE = 60;
 const SCREEN_WIDTH = SCREEN_CAP_MODE ? 630 : 1080;
@@ -111,6 +112,10 @@ let LoadScene = new Phaser.Class({
 
 
         scene.load.on('complete', function() {
+            if (PUZZLE_BUILDER_MODE && !SCREEN_CAP_MODE) {
+                scene.scene.start('PuzzleBuilderScene');
+                return;
+            }
             let local_stats = localStorage.getItem('player_stats');
 
             if (local_stats) {
@@ -949,7 +954,7 @@ let config = {
             debug: true
         }
     },
-    scene: [ LoadScene, GameScene, TitleScreen, VictoryScene, ControllerScene ]
+    scene: [ LoadScene, GameScene, TitleScreen, VictoryScene, ControllerScene, PuzzleBuilderScene ]
 };
 
 let game = new Phaser.Game(config);
