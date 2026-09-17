@@ -954,7 +954,7 @@ let config = {
             debug: true
         }
     },
-    scene: [ LoadScene, GameScene, TitleScreen, VictoryScene, ControllerScene, PuzzleBuilderScene, PieceBuilderScene ]
+    scene: [ LoadScene, GameScene, TitleScreen, VictoryScene, ControllerScene, PuzzleBuilderScene, PieceBuilderScene, StartingBuilderScene ]
 };
 
 let game = new Phaser.Game(config);

@@ -119,7 +119,17 @@ class PieceBuilderScene extends Phaser.Scene {
         button(540, 1840, 'IMPORT JSON', () => {
             if (!this.search) PieceBuilderIO.import(this, parsed => this.scene.restart(parsed));
         });
-        button(850, 1840, 'CHECK DUPLICATES', () => this.refresh(true));
+        button(850, 1840, 'SET START POSITIONS', () => {
+            if (this.search || this.importDialog) return;
+            const pieces = PiecePartition.regions(this.candidate.grid, this.colors);
+            if (pieces.flatMap(p => p.cells).length !== PiecePartition.occupied(this.candidate.grid).length) {
+                this.status.setText('Color every cell before arranging the pieces.'); return;
+            }
+            if (PiecePartition.duplicates(this.candidate.grid, pieces).length) { this.refresh(true); return; }
+            this.painting = false;
+            this.scene.pause();
+            this.scene.launch('StartingBuilderScene', { candidate: this.candidate, pieces, saved: this.startingDraft });
+        });
         this.refresh();
         this.events.once('shutdown', () => { this.search = null; this.painting = false; });
     }
