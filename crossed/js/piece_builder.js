@@ -3,7 +3,7 @@ const PieceBuilderIO = {
         const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'puzzle'}-${suffix}.json`;
+        link.download = `${(data.title || data.name || 'puzzle').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'puzzle'}-${suffix}.json`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     },

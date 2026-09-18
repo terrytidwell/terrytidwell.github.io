@@ -49,3 +49,46 @@ test('initial spread centers the guide and preserves letters and piece shape wit
     }
     assert.equal(layout.conflicts(items).pairs, 0);
 });
+
+test('legacy export reconstructs moved starts, moved guide, holes, and solution letters', () => {
+    const grid = { width: 5, height: 5, str: ['.....', '.CAT.', '.A.E.', '.TEN.', '.....'] };
+    const pieces = [{ cells: [6, 7, 11], color: 0 }, { cells: [8, 13], color: 1 }, { cells: [16, 17, 18], color: 2 }];
+    const items = layout.create(grid, pieces);
+    items[0].x = 5; items[0].y = 10;
+    items[1].x = 12; items[1].y = 23;
+    const out = layout.legacy('MOVIE NIGHT', items);
+    assert.deepEqual(Object.keys(out).sort(), ['grid', 'name', 'pieces']);
+    assert.equal(out.name, 'MOVIE NIGHT');
+    out.pieces.forEach((piece, i) => {
+        const expected = items[i + 1];
+        assert.equal(piece.y, expected.x);
+        assert.equal(piece.x + 4, expected.y);
+        const reconstructed = [];
+        piece.str.forEach((row, x) => [...row].forEach((letter, y) => {
+            if (letter !== '.') reconstructed.push(`${x},${y}:${letter}`);
+        }));
+        assert.deepEqual(reconstructed.sort(), expected.cells.map(c => `${c.x},${c.y}:${c.letter}`).sort());
+        assert.equal(piece.vy, items[0].x + expected.originX - items[0].originX);
+        assert.equal(piece.vx + 4, items[0].y + expected.originY - items[0].originY);
+    });
+    const guide = new Set();
+    out.grid.str.forEach((row, x) => [...row].forEach((cell, y) => {
+        if (cell === 'O') guide.add(`${out.grid.y + x},${out.grid.x + 4 + y}`);
+    }));
+    assert.deepEqual(guide, new Set(layout.world(items[0]).map(c => `${c.x},${c.y}`)));
+    const solution = new Set();
+    out.pieces.forEach(piece => piece.str.forEach((row, x) => [...row].forEach((letter, y) => {
+        if (letter !== '.') solution.add(`${piece.vy + x},${piece.vx + 4 + y}`);
+    })));
+    assert.deepEqual(solution, guide);
+});
+
+test('legacy export permits spacing conflicts without changing author positions', () => {
+    const grid = { width: 2, height: 1, str: ['AT'] };
+    const items = layout.create(grid, [{ cells: [0, 1], color: 0 }]);
+    items[1].x = items[0].x; items[1].y = items[0].y;
+    assert.ok(layout.conflicts(items).pairs);
+    const out = layout.legacy('Overlapping draft', items);
+    assert.equal(out.pieces[0].x, out.grid.x);
+    assert.equal(out.pieces[0].y, out.grid.y);
+});

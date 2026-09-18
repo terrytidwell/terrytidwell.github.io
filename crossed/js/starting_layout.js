@@ -3,7 +3,8 @@ const StartingLayout = (() => {
     const BOARD = { x: 2, y: 5, width: 15, height: 23 };
     function shape(cells) {
         const left = Math.min(...cells.map(c => c.x)), top = Math.min(...cells.map(c => c.y));
-        return { cells: cells.map(c => ({ ...c, x: c.x - left, y: c.y - top })),
+        return { originX: left, originY: top,
+            cells: cells.map(c => ({ ...c, x: c.x - left, y: c.y - top })),
             width: Math.max(...cells.map(c => c.x)) - left + 1,
             height: Math.max(...cells.map(c => c.y)) - top + 1 };
     }
@@ -59,6 +60,20 @@ const StartingLayout = (() => {
         }
         return items;
     }
-    return { BOARD, shape, snap, world, conflicts, create };
+    function legacy(title, items) {
+        const guide = items[0];
+        // Legacy rows become display columns; legacy columns become display rows.
+        const encode = (item, blank = false) => {
+            const rows = Array.from({ length: item.width }, () => Array(item.height).fill('.'));
+            for (const c of item.cells) rows[c.x][c.y] = blank ? 'O' : c.letter;
+            return rows.map(row => row.join(''));
+        };
+        return { name: title,
+            pieces: items.slice(1).map(item => ({ str: encode(item), x: item.y - 4, y: item.x,
+                vx: guide.y - 4 + item.originY - guide.originY,
+                vy: guide.x + item.originX - guide.originX })),
+            grid: { str: encode(guide, true), x: guide.y - 4, y: guide.x } };
+    }
+    return { BOARD, shape, snap, world, conflicts, create, legacy };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = StartingLayout;

@@ -1,6 +1,7 @@
 class StartingBuilderScene extends Phaser.Scene {
     constructor() { super({ key: 'StartingBuilderScene' }); }
     create(data) {
+        this.title = data.candidate.title;
         this.fingerprint = JSON.stringify([data.candidate.grid, data.pieces.map(p => p.cells)]);
         this.items = StartingLayout.create(data.candidate.grid, data.pieces);
         if (data.saved && data.saved.fingerprint === this.fingerprint) {
@@ -72,12 +73,12 @@ class StartingBuilderScene extends Phaser.Scene {
             const positions = this.history.pop();
             if (positions) { this.items.forEach((item, i) => Object.assign(item, positions[i])); this.refresh(); }
         });
-        button(850, 1855, 'CENTER GUIDE', () => {
-            this.history.push(this.positions());
-            const guide = this.items[0];
-            guide.x = board.x + Math.floor((board.width - guide.width) / 2);
-            guide.y = board.y + Math.floor((board.height - guide.height) / 2);
-            this.refresh();
+        button(850, 1855, 'EXPORT PUZZLE', () => {
+            const puzzle = StartingLayout.legacy(this.title, this.items);
+            // Spacing conflicts are advisory; the author may deliberately accept them.
+            PieceBuilderIO.download({ ...puzzle }, 'puzzle');
+            const conflicts = StartingLayout.conflicts(this.items).pairs;
+            this.status.setText(conflicts ? 'Puzzle exported — current spacing conflicts were kept.' : 'Puzzle exported — ready to paste into g_puzzles.');
         });
         this.refreshMode(); this.refresh();
     }
