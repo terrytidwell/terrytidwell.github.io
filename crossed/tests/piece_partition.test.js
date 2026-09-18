@@ -78,3 +78,24 @@ test('locked duplicate pieces are rejected instead of silently retained', () => 
     const result = run(g, [{ cells: [0, 1], color: 0, locked: true }, { cells: [3, 4], color: 1, locked: true }]);
     assert.match(result.error, /duplicate/);
 });
+
+test('straight four-letter runs split into smaller pieces in either orientation', () => {
+    for (const g of [{ width: 4, height: 1, str: ['ABCD'] },
+        { width: 1, height: 4, str: ['A', 'B', 'C', 'D'] }]) {
+        const result = run(g);
+        assert.ok(result.colors);
+        assert.deepEqual(p.regions(g, result.colors).map(piece => piece.cells.length), [2, 2]);
+        assert.match(run(g, [{ cells: [0, 1, 2, 3], color: 0, locked: true }]).error, /must bend or branch/);
+    }
+});
+
+test('straight triples and bent four-letter pieces remain allowed', () => {
+    for (const g of [{ width: 3, height: 1, str: ['ABC'] },
+        { width: 1, height: 3, str: ['A', 'B', 'C'] },
+        { width: 2, height: 3, str: ['A.', 'B.', 'CD'] }]) {
+        const cells = p.occupied(g);
+        const result = run(g, [{ cells, color: 0, locked: true }]);
+        assert.ok(result.colors);
+        assert.equal(p.regions(g, result.colors).length, 1);
+    }
+});

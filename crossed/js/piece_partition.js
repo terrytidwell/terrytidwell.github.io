@@ -118,7 +118,13 @@ const PiecePartition = (() => {
         }
         return assign() ? Object.fromEntries([...owner].map(([id, p]) => [id, colors[p]])) : null;
     }
+    const straightFour = (grid, cells) => cells.length === 4 &&
+        (cells.every(id => id % grid.width === cells[0] % grid.width) ||
+            cells.every(id => Math.floor(id / grid.width) === Math.floor(cells[0] / grid.width)));
     function* suggest(grid, fixed = [], random = Math.random) {
+        if (fixed.some(p => straightFour(grid, p.cells))) {
+            return { error: 'Unlock straight four-letter pieces first. Four-letter pieces must bend or branch.' };
+        }
         if (duplicates(grid, fixed).length || fixed.some(p => p.cells.length < 2 || p.cells.length > 4)) {
             return { error: 'Unlock duplicate or oversized/single-cell pieces before suggesting.' };
         }
@@ -135,7 +141,7 @@ const PiecePartition = (() => {
                 const group = todo.pop().sort((a, b) => a - b), key = group.join(',');
                 if (unique.has(key)) continue;
                 unique.add(key);
-                if (group.length >= 2) {
+                if (group.length >= 2 && !straightFour(grid, group)) {
                     const bends = group.filter(id => crossing.has(id) &&
                         group.some(n => n !== id && Math.floor(n / grid.width) === Math.floor(id / grid.width)) &&
                         group.some(n => n !== id && n % grid.width === id % grid.width)).length;
