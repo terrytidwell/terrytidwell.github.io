@@ -76,7 +76,7 @@ class StartingBuilderScene extends Phaser.Scene {
         button(850, 1855, 'EXPORT PUZZLE', () => {
             const puzzle = StartingLayout.legacy(this.title, this.items);
             // Spacing conflicts are advisory; the author may deliberately accept them.
-            PieceBuilderIO.download({ ...puzzle }, 'puzzle');
+            PieceBuilderIO.download({ ...puzzle }, 'puzzle', true);
             const conflicts = StartingLayout.conflicts(this.items).pairs;
             this.status.setText(conflicts ? 'Puzzle exported — current spacing conflicts were kept.' : 'Puzzle exported — ready to paste into g_puzzles.');
         });

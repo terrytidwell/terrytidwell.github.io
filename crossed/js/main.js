@@ -1,5 +1,5 @@
 const SCREEN_CAP_MODE = false;
-const PUZZLE_BUILDER_MODE = true;
+const PUZZLE_BUILDER_MODE = false;
 
 const GRID_SIZE = 60;
 const SCREEN_WIDTH = SCREEN_CAP_MODE ? 630 : 1080;

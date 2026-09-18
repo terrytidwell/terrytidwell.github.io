@@ -1,6 +1,6 @@
 const PieceBuilderIO = {
-    download(data, suffix) {
-        const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    download(data, suffix, compact = false) {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, compact ? undefined : 2)], { type: 'application/json' }));
         const link = document.createElement('a');
         link.href = url;
         link.download = `${(data.title || data.name || 'puzzle').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'puzzle'}-${suffix}.json`;
